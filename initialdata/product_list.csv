@@ -1,0 +1,189 @@
+product_id,product_name,product_cost_price,product_retail_price
+PG001,Kids Belts,50,75
+PG002,Foundation2,314.55,699
+PG003,Belt,44.55,99
+PG004,China Spats,89.55,199
+PG005,Stickers,0,0
+PG007,Physics,157.05,349
+PG008,Sportif Green,157.05,349
+PG009,M6 Mk 5,404.55,899
+PG010,Ranked,157.05,349
+PG011,Academy ,329.5,659
+PG012,Academy Kids,249.5,499
+PG013,Tee,89.55,199
+PG014,Tee,89.55,199
+PG015,Crew,116.55,259
+PG016,Supernova,157.05,349
+PG017,Lightning,157.05,349
+PG018,Ink,157.05,349
+PG019,Sportif Orange,157.05,349
+PG020,Featherlight,449.55,999
+PG021,Puma L/S,157.05,349
+PG022,Black Spats,143.55,319
+PG023,Ffion Gi,494.55,1099
+PG024,Vale Tudo,134.55,299
+PG025,Shorts Hybrid Black,161.55,359
+PG026,Foundation 3,404.55,899
+PG027,Trousers,129.6,288
+PG028,Academy RG Black,138.125,319
+PG029,Academy RG White,138.125,319
+PG030,Shorts Hybrid Navy,161.55,359
+PG031,Technical Tee Red,116.55,259
+PG032,Academy Womens Pink,143.55,319
+PG033,Academy Womens Blue,143.55,319
+PG034,Spats Camo,161.55,359
+PG035,Ranked 2022,161.5,349
+PG036,Academy White Shorts,124.31,319
+PG037,Mexicana ,494.55,1099
+PG038,Mexicana Shorts,161.55,359
+PG039,Mexicana RG,157.05,349
+PG040,Bag,202.05,449
+PG041,Academy Black Shorts 2022,124.31,319
+PG042,Technical Tee Blue,116.55,259
+PG043,Technical Tee Black,116.55,259
+PG044,Finger Tape x2,19.72,49
+PG045,Finger Tape x5,49.3,99
+PG046,Finger Tape x4,39.5,70
+PG047,RG Camo,157.05,349
+PG048,Shorts Camo,162.56,359
+PG049,Profile Green RG,157.05,349
+PG050,Profile Green Shorts,162.56,359
+PG051,Academy+ Khaki RG,157.05,349
+PG052,Academy+ Khaki DK,162.56,359
+PG053,Academy+ Black ,157.05,349
+PG054,Academy+ Black ,162.56,359
+PG055,M6 Khaki,380,999
+PG056,Ffion RG,157.05,349
+PG057,Academy Black L/S,157.05,319
+PG058,Bengal Gi,510,1099
+PG059,Owen Livesey RG,187,349
+PG060,Owen Livesey DK,215.05,359
+PG061,Golden ,187,349
+PG062,Golden,215.05,359
+PG063,Academy Kids Black RG,125.4,249
+PG064,Pro Black ,195.5,359
+PG065,Bengal RG,161.5,349
+PG066,Bengal DK,161.5,359
+PG067,A+ Grey Men ,161.5,349
+PG068,A+ Grey Men ,161.5,359
+PG069,A+ Grey Women ,161.5,349
+PG070,A+ Grey Women,161.5,359
+PG071,Kowloon RG,187,190
+PG072,Kowloon DK,153,190
+PG073,Koi Gi,585,1199
+PG074,Koi RG,204,349
+PG075,Koi DK,204,359
+PG076,Stork RG,204,349
+PG077,Stork DK,204,359
+PG078,Wave Gi,638,1199
+PG079,Wave RG,204,349
+PG080,Wave DK,204,359
+PG081,Profile Red RG,170,349
+PG082,Profile Red DK,195.5,359
+PG083,Tech Tee Camo,148.75,259
+PG084,Tech Tee Aqua,148.75,259
+PG085,NSNP 2.0 Tee,140,199
+PG086,M6 Black,562,1099
+PG087,M6 White,562,1099
+PG088,M6 Peach,562,1099
+PG089,Academy + Army Green,405,799
+PG090,Academy + Grey,405,799
+PG091,Academy+ Navy-Yellow RG,190,349
+PG092,Academy+ Navy-Yellow DK,190,359
+PG093,Academy+ Yellow-Navy RG,190,349
+PG094,Academy+ Yellow-Navy DK,190,359
+PG095,NPND GI,652,1199
+PG096,NPND RG,216,349
+PG097,NPND DK,207,359
+PG098,Bengal Black Gi,652,1199
+PG099,Academy RG L/S White,190,319
+5060998008032,Water Bottles,112.5,199
+PG100,A+ Black Womens RG,190,349
+PG101,A+ Black Womens DK,190,359
+PG102,Womens Compression Shorts,189,319
+PG103,Womens Compression Spats,207,349
+PG104,Womens Compression Bra,180,259
+PG105,Featherlight 2.0,537.75,1099
+PG106,Kit Bag,337.5,675
+PG107,Progressinho,225,499
+PG108,Sugar Skull Men,216,349
+PG109,Sugar Skull DK Men,207,359
+PG110,Sugar Skull RG Women,216,349
+PG111,Sugar Skull DK Women,207,359
+PG112,Classico RG,216,349
+PG113,Classico DK,207,359
+PG114,Jungle Camo RG,198,349
+PG115,Jungle Camo DK,198,359
+PG116,Dragon RG,216,349
+PG117,Dragon DK,207,359
+PG118,M6 Unbleached,562.5,1099
+PG119,Kids RG White,132,349
+PG120,Ffion Compression Bra,155,299
+PG121,Ffion Compression Shorts,155,319
+PG122,Ffion Compression Spats,177,329
+PG123,Red Rashguard,0,319
+PG124,Academy White Board Shorts 2024,155,319
+PG125,VASCO Black Shorts,162,319
+PG126,A+ Mint RG Men,181,349
+PG127,A+ Mint DK Men,181,359
+PG128,A+ Mint RG Women,181,349
+PG129,A+ Mint DK Women,181,359
+PG130,A+ Bone RG Men,181,349
+PG131,A+ Bone DK Men,181,359
+PG132,A+ Bone RG Women,181,349
+PG133,A+ Bone DK Women,181,359
+PG134,M6 Olive,555,1099
+PG135,M6 Petroleum,566,1099
+PG136,Rolling Tee Navy,161,299
+PG137,Kids Bengal RG,153,299
+PG138,Kids Academy Black Shorts,132.75,249
+PG139,PRG White Tee,81,199
+PG140,PRG Black Tee,81,199
+PG141,PRG Green Tee,81,199
+PG142,PRG Black Hoodie,202.5,369
+PG143,PRG Black Jogger,182,359
+PG144,PRG Green Hoodie,202.5,369
+PG145,PRG Green Jogger,182,359
+PG146,Flex Shorts Mens,211,359
+PG147,Flex Shorts Womens,211,359
+PG148,Classico Green RG,202.4,349
+PG149,Tech Tee Navy,183,319
+PG150,Tech Tee Green,183,319
+PG151,PRG Crewneck Black,182,399
+PG152,A+ Maroon RG Men,162,349
+PG153,A+ Maroon DK Men,162,359
+PG154,Kids Spats Black,153,249
+PG155,Academy Shorts Black,155,319
+PG156,A+ Black/Maroon RG Men,162,349
+PG157,A+ Black/Maroon DK Men,162,359
+PG158,Sugar Skull 2.0 RG,186.3,349
+PG159,Sugar Skull 2.0 Gi,526.5,1199
+PG160,Eagle RG,162,349
+PG161,Eagle Crew Neck,182.25,329
+PG162,Panther RG,186,349
+PG163,Panther Gi,526.5,1199
+PG164,Panther Hoodie,202.5,369
+PG165,Zipper Jacket,202.5,369
+PG166,Academy Kids Teal,225,499
+PG167,Sugar Skull 2.0 Kids RG,153,249
+PG168,Academy RG S/S Navy,141,319
+PG169,Academy RG L/S Navy,145,319
+PG170,Academy DK Navy,141,319
+PG171,Psychedelic RG Adult,170,349
+PG172,Psychedelic RG Kids,144,249
+PG173,PRG Core Tech Tee,141,249
+PG174,PRG Core Tech Shorts,141,249
+PG175,PRG Core Tech Pants,202,449
+PG176,Ranked 2025,178,349
+PG177,Psychedelic Tee White,113,188
+PG178,Psychedelic Tee Black,113,188
+PG179,Psychedelic Hoodie,202,329
+PG180,Peach Rashguard,162,349
+PG181,Peach Shorts,162,359
+PG182,Forest Green Rashguard,162,349
+PG183,Forest Green Shorts,162,359
+PG184,Peach Rashguard Womens,162,349
+PG185,Peach Shorts Womens,162,359
+PG186,Forest Green Rashguard Womens,162,349
+PG187,Forest Green Shorts Womens,162,359
+PG188,Classico Rashguard Burnt Orange,162,349

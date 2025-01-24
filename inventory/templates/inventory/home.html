@@ -1,0 +1,12 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+    <div class="section">
+        <h1 class="center-align">Welcome to Our Inventory</h1>
+        <p class="center-align">
+            <a href="{% url 'product_list' %}" class="btn waves-effect waves-light">View Products</a>
+        </p>
+    </div>
+{% endblock %}
