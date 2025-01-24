@@ -1,0 +1,22 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}{{ product.product_name }} Details{% endblock %}
+
+{% block content %}
+<div class="section">
+    <h1 class="center-align">{{ product.product_name }}</h1>
+
+    <!-- Product Details -->
+    <div class="product-details">
+        <p><strong>Product ID:</strong> {{ product.product_id }}</p>
+        {% if product.product_photo %}
+            <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" style="max-width: 300px;">
+        {% endif %}
+    </div>
+
+    <!-- Back to Product List -->
+    <div class="center-align">
+        <a href="{% url 'product_list' %}" class="btn">Back to Product List</a>
+    </div>
+</div>
+{% endblock %}

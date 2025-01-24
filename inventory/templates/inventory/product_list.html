@@ -3,34 +3,45 @@
 {% block title %}Product List{% endblock %}
 
 {% block content %}
-    <div class="section">
-        <h1 class="center-align">Product List</h1>
+<div class="section">
+    <h1 class="center-align">Product List</h1>
 
-        <!-- Summary Section -->
-        <div class="summary">
-            <p><strong>Date of Latest Snapshot:</strong> {{ summary.latest_snapshot_date }}</p>
-            <p><strong>Total Products:</strong> {{ summary.total_products }}</p>
-            <p><strong>Total Inventory:</strong> {{ summary.total_inventory }}</p>
-            <p><strong>Items with Zero Inventory:</strong> {{ summary.total_zero_inventory_items }}</p>
-        </div>
+    <!-- Filter Toggle -->
+    <form method="get" class="center-align">
+        <label>
+            <input type="checkbox" name="hide_zero_inventory" value="true" {% if hide_zero_inventory %}checked{% endif %} onchange="this.form.submit()">
+            <span>Hide Items with Zero Inventory</span>
+        </label>
+    </form>
 
-        <!-- Product List -->
-        <ul class="collection">
-            {% for product in products %}
-                <li class="collection-item avatar">
-                    {% if product.product_photo %}
-                        <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" class="circle">
-                    {% endif %}
-                    <span class="title">
-                        <strong>{{ product.product_name }}</strong> - {{ product.product_id }}
-                    </span>
-                    <p>
-                        {{ product.variant_count }} variant{{ product.variant_count|pluralize }},
-                        total sales ({{ product.total_sales|default:0 }} sales, value: {{ product.total_sales_value|floatformat:2|default:"0.00" }}),
-                        total inventory: {{ product.total_inventory|default:0 }}
-                    </p>
-                </li>
-            {% endfor %}
-        </ul>
+    <!-- Summary -->
+    <div class="summary">
+        <p><strong>Date of Latest Snapshot:</strong> {{ summary.latest_snapshot_date }}</p>
+        <p><strong>Total Products:</strong> {{ summary.total_products }}</p>
+        <p><strong>Total Inventory:</strong> {{ summary.total_inventory }}</p>
+        <p><strong>Items with Zero Inventory:</strong> {{ summary.total_zero_inventory_items }}</p>
     </div>
+
+    <!-- Product List -->
+    <ul class="collection">
+    {% for product in products %}
+        <li class="collection-item avatar">
+            {% if product.product_photo %}
+                <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" class="circle">
+            {% endif %}
+            <span class="title">
+                <a href="{% url 'product_detail' product.id %}">
+                    <strong>{{ product.product_name }}</strong>
+                </a> - {{ product.product_id }}
+            </span>
+            <p>
+                {{ product.variant_count }} variant{{ product.variant_count|pluralize }},
+                total sales ({{ product.total_sales|default:0 }} sales, value: {{ product.total_sales_value|floatformat:2|default:"0.00" }}),
+                total inventory: {{ product.total_inventory|default:0 }}
+            </p>
+        </li>
+    {% endfor %}
+</ul>
+
+</div>
 {% endblock %}
