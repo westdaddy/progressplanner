@@ -1,15 +1,20 @@
-
 import os
 import django
+import sys
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'progressplanner.settings')  # Replace 'inventory.settings' with your settings module
+# Set the path to the project root (where manage.py is located)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(BASE_DIR)
+
+# Set the Django settings module
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'progressplanner.settings')  # Adjust if your settings module differs
 django.setup()
 
-import sys
 import pandas as pd
 from datetime import datetime
 from django.db import transaction
 from inventory.models import Sale, ProductVariant
+
 
 '''
 This script uploads sales data. It should have been exported from ERP under the
