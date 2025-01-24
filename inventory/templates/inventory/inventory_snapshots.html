@@ -1,0 +1,25 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}Inventory Snapshots{% endblock %}
+
+{% block content %}
+    <div class="section">
+        <h1 class="center-align">Inventory Snapshots</h1>
+        <table class="highlight">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Total Inventory</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for snapshot in snapshots %}
+                    <tr>
+                        <td>{{ snapshot.date }}</td>
+                        <td>{{ snapshot.total_inventory }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
