@@ -91,6 +91,9 @@ class ProductVariant(models.Model):
     def __str__(self):
         return f"{self.product.product_name} - {self.variant_code}"
 
+    class Meta:
+        ordering = ['-variant_code']
+
 
 class Sale(models.Model):
     sale_id = models.AutoField(primary_key=True)

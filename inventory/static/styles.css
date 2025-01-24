@@ -1,0 +1,26 @@
+
+
+
+
+
+.order-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.order-table th, .order-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+.order-table .left-column {
+    width: 25%;
+}
+
+.order-table .right-column {
+    width: 75%;
+}
+
+.order-table .right-column td {
+    width: 15%;
+}

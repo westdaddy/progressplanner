@@ -101,10 +101,14 @@ def product_detail(request, product_id):
         'quantities': [entry['total_quantity'] for entry in sales_data],
     }
 
+    # Find orders containing the current product
+    orders_with_product = Order.objects.filter(order_items__product_variant__product=product).distinct()
+
     context = {
         'product': product,
         'chart_data': json.dumps(chart_data),  # Pass chart data as JSON
         'date_range': date_range,
+        'orders_with_product': orders_with_product,
     }
     return render(request, 'inventory/product_detail.html', context)
 
@@ -128,14 +132,15 @@ def order_detail(request, order_id):
     order = get_object_or_404(Order, id=order_id)
     order_items = order.order_items.select_related('product_variant__product')  # Optimize queries
 
-    # Group items by product and include total quantity
+    # Group items by product and include total quantity and total value
     grouped_items = {}
     for item in order_items:
         product = item.product_variant.product
         if product not in grouped_items:
-            grouped_items[product] = {'items': [], 'total_quantity': 0}
+            grouped_items[product] = {'items': [], 'total_quantity': 0, 'total_value': 0}
         grouped_items[product]['items'].append(item)
         grouped_items[product]['total_quantity'] += item.quantity
+        grouped_items[product]['total_value'] += item.item_cost_price * item.quantity
 
     # Calculate total order value
     total_value = sum(item.item_cost_price * item.quantity for item in order_items)

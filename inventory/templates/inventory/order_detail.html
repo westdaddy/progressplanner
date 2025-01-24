@@ -15,34 +15,42 @@
     Total Order Value: {{ total_value }}
 
     <h2>Order Items</h2>
-    <table class="striped">
+    <table class="striped order-table">
       <thead>
           <tr>
-            <th>Product</th>
-            <th>Items</th>
+            <th class="left-column">Product</th>
+            <th class="right-column">Items</th>
           </tr>
       </thead>
 
       <tbody>
         {% for product, data in grouped_items.items %}
           <tr class="collection">
-            <td class="collection-item avatar">
+            <td class="collection-item avatar left-column">
               {% if product.product_photo %}
                   <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" class="circle">
               {% endif %}
               <strong>{{ product.product_name }}</strong> ({{ product.product_id }})<br/>
               Total Quantity: <strong>{{ data.total_quantity }}</strong>
+              <p>Total Value: {{ data.total_value }}</p> <!-- Display total value for each product -->
             </td>
-            <td>
+            <td class="right-column">
+                <table class="striped sub-table">
                 {% for item in data.items %}
-                      {{ item.quantity }} x {{ item.product_variant.size }} |
-                            Cost Price: {{ item.item_cost_price }} CNY |
-                            Expected: {{ item.date_expected }}
-                            {% if item.date_arrived %}
-                                 | Arrived: {{ item.date_arrived }}
-                            {% endif %}
-                            <br/>
-                    {% endfor %}
+                  <tr>
+
+                      <td>{{ item.quantity }} x {{ item.product_variant.size }}</td>
+                      <td>Cost Price: {{ item.item_cost_price }} CNY</td>
+                      <td>Expected: {{ item.date_expected }}</td>
+                      <td>
+                      {% if item.date_arrived %}
+                           Arrived: {{ item.date_arrived }}
+                      {% endif %}
+                      </td>
+                  </tr>
+                {% endfor %}
+                </table>
+
             </td>
           </tr>
         {% endfor %}

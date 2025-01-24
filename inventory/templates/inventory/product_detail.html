@@ -25,7 +25,14 @@
 
               <div class="card-stacked">
                   <div class="card-content">
-                    <p>I am a very simple card. I am good at containing small bits of information.</p>
+                    <span class="card-title">Orders containing {{ product.product_id }}</span>
+                    <ul>
+                        {% for order in orders_with_product %}
+                          <li>
+                            <a href="{% url 'order_detail' order.id %}">Order #{{ order.id }} - {{ order.order_date }}</a>
+                          </li>
+                        {% endfor %}
+                    </ul>
                   </div>
               </div>
           </div>
