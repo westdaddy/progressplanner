@@ -1,12 +1,13 @@
 from datetime import datetime, timedelta
 import json
+from collections import defaultdict
 
 from django.shortcuts import render, get_object_or_404
 from django.db.models import Count, Sum, Max, F, Subquery, OuterRef
 from django.http import HttpResponse
 from django.db.models.functions import TruncMonth
 
-from .models import Product, ProductVariant, InventorySnapshot, Sale
+from .models import Product, ProductVariant, InventorySnapshot, Sale, Order, OrderItem
 
 
 
@@ -106,6 +107,37 @@ def product_detail(request, product_id):
         'date_range': date_range,
     }
     return render(request, 'inventory/product_detail.html', context)
+
+
+# Order List View
+def order_list(request):
+    orders = Order.objects.order_by('-order_date')  # Most recent orders first
+    context = {
+        'orders': orders,
+    }
+    return render(request, 'inventory/order_list.html', context)
+
+
+
+def order_detail(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+    order_items = order.order_items.select_related('product_variant__product')  # Optimize queries
+
+    # Group items by product and include total quantity
+    grouped_items = {}
+    for item in order_items:
+        product = item.product_variant.product
+        if product not in grouped_items:
+            grouped_items[product] = {'items': [], 'total_quantity': 0}
+        grouped_items[product]['items'].append(item)
+        grouped_items[product]['total_quantity'] += item.quantity
+
+    context = {
+        'order': order,
+        'grouped_items': grouped_items,
+    }
+    return render(request, 'inventory/order_detail.html', context)
+
 
 
 def inventory_snapshots(request):

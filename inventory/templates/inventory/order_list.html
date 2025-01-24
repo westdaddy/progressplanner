@@ -1,0 +1,22 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}Orders{% endblock %}
+
+{% block content %}
+<div class="section">
+    <h1 class="center-align">Orders</h1>
+
+    <ul class="collection">
+        {% for order in orders %}
+            <li class="collection-item">
+                <a href="{% url 'order_detail' order.id %}">
+                    <strong>Order #{{ order.id }}</strong> - {{ order.order_date }}
+                </a>
+                {% if order.invoice_id %}
+                    <p>Invoice ID: {{ order.invoice_id }}</p>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

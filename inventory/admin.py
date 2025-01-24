@@ -23,10 +23,20 @@ class InventorySnapshotAdmin(admin.ModelAdmin):
     list_filter = ('product_variant', 'date', 'inventory_count')  # Add filters for easy management
 
 
+
+
+class OrderItemInline(admin.TabularInline):  # Use TabularInline for compact editing
+    model = OrderItem
+    extra = 10  # Number of empty rows to display by default
+    min_num = 1
+    fields = ('product_variant', 'quantity', 'item_cost_price', 'date_expected', 'date_arrived', 'actual_quantity')
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = ('id', 'order_date', 'invoice_id')
     search_fields = ('id', 'invoice_id')
+    inlines = [OrderItemInline]  # Attach the inline form
+
 
 @admin.register(OrderItem)
 class OrderItemAdmin(admin.ModelAdmin):

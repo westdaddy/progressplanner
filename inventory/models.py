@@ -122,7 +122,7 @@ class Order(models.Model):
     invoice = models.FileField(upload_to='invoices/', blank=True, null=True, verbose_name="Invoice File")
 
     def __str__(self):
-        return f"Order {self.id} - {self.order_date}"
+        return f"Order {self.invoice_id} - {self.order_date}"
 
 class OrderItem(models.Model):
     product_variant = models.ForeignKey('inventory.ProductVariant', on_delete=models.CASCADE, related_name='order_items', verbose_name="Product Variant")
