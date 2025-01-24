@@ -111,7 +111,12 @@ def product_detail(request, product_id):
 
 # Order List View
 def order_list(request):
-    orders = Order.objects.order_by('-order_date')  # Most recent orders first
+    orders = Order.objects.all()
+
+    # Calculate total order value for each order
+    for order in orders:
+        order.total_value = sum(item.item_cost_price * item.quantity for item in order.order_items.all())
+
     context = {
         'orders': orders,
     }
@@ -132,9 +137,13 @@ def order_detail(request, order_id):
         grouped_items[product]['items'].append(item)
         grouped_items[product]['total_quantity'] += item.quantity
 
+    # Calculate total order value
+    total_value = sum(item.item_cost_price * item.quantity for item in order_items)
+
     context = {
         'order': order,
         'grouped_items': grouped_items,
+        'total_value': total_value,
     }
     return render(request, 'inventory/order_detail.html', context)
 

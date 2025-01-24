@@ -12,6 +12,7 @@
     {% if order.invoice %}
         <p><a href="{{ order.invoice.url }}" target="_blank">Download Invoice</a></p>
     {% endif %}
+    Total Order Value: {{ total_value }}
 
     <h2>Order Items</h2>
     <table class="striped">

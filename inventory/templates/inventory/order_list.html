@@ -15,6 +15,7 @@
                 {% if order.invoice_id %}
                     <p>Invoice ID: {{ order.invoice_id }}</p>
                 {% endif %}
+                <p>Total Value: {{ order.total_value }}</p>
             </li>
         {% endfor %}
     </ul>
