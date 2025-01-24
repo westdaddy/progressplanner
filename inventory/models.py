@@ -1,4 +1,6 @@
 from django.db import models
+from datetime import date
+
 
 class Product(models.Model):
     product_id = models.CharField(max_length=50, unique=True)  # Text/number code
@@ -110,3 +112,26 @@ class InventorySnapshot(models.Model):
 
     def __str__(self):
         return f"Snapshot for {self.product_variant.variant_code} on {self.date}"
+
+
+
+
+class Order(models.Model):
+    order_date = models.DateField(default=date.today, verbose_name="Order Date")
+    invoice_id = models.CharField(max_length=100, blank=True, null=True, verbose_name="Invoice ID")
+    invoice = models.FileField(upload_to='invoices/', blank=True, null=True, verbose_name="Invoice File")
+
+    def __str__(self):
+        return f"Order {self.id} - {self.order_date}"
+
+class OrderItem(models.Model):
+    product_variant = models.ForeignKey('inventory.ProductVariant', on_delete=models.CASCADE, related_name='order_items', verbose_name="Product Variant")
+    quantity = models.PositiveIntegerField(verbose_name="Quantity Ordered")
+    item_cost_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Cost Price (CNY)")
+    date_expected = models.DateField(verbose_name="Expected Arrival Date")
+    date_arrived = models.DateField(blank=True, null=True, verbose_name="Actual Arrival Date")
+    actual_quantity = models.PositiveIntegerField(blank=True, null=True, verbose_name="Actual Quantity Arrived")
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='order_items', verbose_name="Related Order")
+
+    def __str__(self):
+        return f"{self.quantity} x {self.product_variant} (Order {self.order.id})"

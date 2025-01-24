@@ -4,14 +4,51 @@
 
 {% block content %}
 <div class="section">
-    <h1 class="center-align">{{ product.product_name }}</h1>
 
     <!-- Product Details -->
-    <div class="product-details">
-        <p><strong>Product ID:</strong> {{ product.product_id }}</p>
-        {% if product.product_photo %}
-            <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" style="max-width: 300px;">
-        {% endif %}
+    <div class="row">
+      <div class="col l3 m6 s12">
+          <div class="card large">
+              <div class="card-image">
+                {% if product.product_photo %}
+                    <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" style="max-width: 300px;"/>
+                {% endif %}
+              </div>
+              <div class="card-content">
+                <span class="card-title">{{ product.product_name }}</span>
+                <p>{{ product.product_id }}</p>
+              </div>
+          </div>
+        </div>
+        <div class="col l3 m6 s12">
+          <div class="card large horizontal">
+
+              <div class="card-stacked">
+                  <div class="card-content">
+                    <p>I am a very simple card. I am good at containing small bits of information.</p>
+                  </div>
+              </div>
+          </div>
+
+        </div>
+      </div>
+
+
+
+    <!-- Date Range Selector -->
+    <div class="center-align">
+        <label for="dateRange">Select Date Range:</label>
+        <select id="dateRange" onchange="updateDateRange(this.value)">
+            <option value="1m" {% if date_range == '1m' %}selected{% endif %}>Last Month</option>
+            <option value="3m" {% if date_range == '3m' %}selected{% endif %}>Last 3 Months</option>
+            <option value="1y" {% if date_range == '1y' %}selected{% endif %}>Last Year</option>
+        </select>
+    </div>
+
+    <!-- Sales Chart -->
+    <div class="sales-chart">
+        <h3>Sales Over Time</h3>
+        <canvas id="salesChart"></canvas>
     </div>
 
     <!-- Back to Product List -->
@@ -19,4 +56,42 @@
         <a href="{% url 'product_list' %}" class="btn">Back to Product List</a>
     </div>
 </div>
+
+<script>
+    // Parse chart data passed from the view
+    const chartData = JSON.parse('{{ chart_data|escapejs }}');
+
+    // Create the sales chart
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    const salesChart = new Chart(ctx, {
+        type: 'bar', // Bar chart for monthly sales
+        data: {
+            labels: chartData.months, // Months on the X-axis
+            datasets: [{
+                label: 'Monthly Sales Quantity',
+                data: chartData.quantities, // Quantities on the Y-axis
+                borderColor: 'rgba(75, 192, 192, 1)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderWidth: 1,
+            }]
+        },
+        options: {
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Month',
+                    },
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Sales Quantity',
+                    },
+                    beginAtZero: true,
+                }
+            }
+        }
+    });
+</script>
 {% endblock %}

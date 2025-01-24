@@ -1,7 +1,15 @@
+from datetime import datetime, timedelta
+import json
+
 from django.shortcuts import render, get_object_or_404
 from django.db.models import Count, Sum, Max, F, Subquery, OuterRef
 from django.http import HttpResponse
-from .models import Product, ProductVariant, InventorySnapshot
+from django.db.models.functions import TruncMonth
+
+from .models import Product, ProductVariant, InventorySnapshot, Sale
+
+
+
 
 def home(request):
     context = {}
@@ -61,12 +69,41 @@ def product_list(request):
     return render(request, 'inventory/product_list.html', context)
 
 
+
+
 def product_detail(request, product_id):
     # Fetch the product by ID
     product = get_object_or_404(Product, id=product_id)
 
+    # Get the date range parameter
+    date_range = request.GET.get('range', '1y')  # Default to last 1 month
+    today = datetime.today()
+    if date_range == '3m':
+        start_date = today - timedelta(days=90)
+    elif date_range == '1y':
+        start_date = today - timedelta(days=365)
+    else:  # Default: 1 month
+        start_date = today - timedelta(days=30)
+
+    # Fetch sales data for this product, aggregated by month
+    sales_data = (
+        Sale.objects.filter(variant__product=product, date__gte=start_date)
+        .annotate(month=TruncMonth('date'))
+        .values('month')
+        .annotate(total_quantity=Sum('sold_quantity'))
+        .order_by('month')
+    )
+
+    # Prepare data for the chart
+    chart_data = {
+        'months': [entry['month'].strftime('%Y-%m') for entry in sales_data],
+        'quantities': [entry['total_quantity'] for entry in sales_data],
+    }
+
     context = {
         'product': product,
+        'chart_data': json.dumps(chart_data),  # Pass chart data as JSON
+        'date_range': date_range,
     }
     return render(request, 'inventory/product_detail.html', context)
 

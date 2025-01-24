@@ -15,7 +15,7 @@ import csv
 from inventory.models import Product, ProductVariant
 
 # Define the path to your CSV file
-CSV_FILE_PATH = 'initialdata/variants_list.csv'
+CSV_FILE_PATH = 'data/initialdata/variants_list.csv'
 
 # Map color names to hex codes
 COLOR_TO_HEX = {

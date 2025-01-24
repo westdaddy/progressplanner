@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Product, ProductVariant, Sale, InventorySnapshot
+from .models import Product, ProductVariant, Sale, InventorySnapshot, Order, OrderItem
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
@@ -21,3 +21,15 @@ class SaleAdmin(admin.ModelAdmin):
 class InventorySnapshotAdmin(admin.ModelAdmin):
     list_display = ('product_variant', 'date', 'inventory_count')
     list_filter = ('product_variant', 'date', 'inventory_count')  # Add filters for easy management
+
+
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
+    list_display = ('id', 'order_date', 'invoice_id')
+    search_fields = ('id', 'invoice_id')
+
+@admin.register(OrderItem)
+class OrderItemAdmin(admin.ModelAdmin):
+    list_display = ('id', 'product_variant', 'quantity', 'item_cost_price', 'date_expected', 'date_arrived', 'actual_quantity', 'order')
+    search_fields = ('product_variant__variant_code', 'order__id')
+    list_filter = ('date_expected', 'date_arrived')
