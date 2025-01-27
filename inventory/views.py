@@ -17,6 +17,11 @@ def home(request):
     return render(request, 'inventory/home.html', context)
 
 
+def dashboard(request):
+    context = {}
+    return render(request, 'inventory/dashboard.html', context)
+
+
 
 def product_list(request):
     # Get the filter parameter from the request
