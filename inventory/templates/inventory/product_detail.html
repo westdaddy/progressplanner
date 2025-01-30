@@ -6,96 +6,175 @@
 <div class="section">
 
     <!-- Product Details -->
+    <h1>{{ product.product_name }}</h1>
+
+    <!-- Product Details -->
     <div class="row">
-      <div class="col l3 m6 s12">
-          <div class="card large">
-              <div class="card-image">
-                {% if product.product_photo %}
-                    <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" style="max-width: 300px;"/>
-                {% endif %}
-              </div>
-              <div class="card-content">
-                <span class="card-title">{{ product.product_name }}</span>
-                <p>{{ product.product_id }}</p>
-              </div>
-          </div>
-        </div>
         <div class="col l3 m6 s12">
-          <div class="card large horizontal">
-
-              <div class="card-stacked">
-                  <div class="card-content">
-                    <span class="card-title">Orders containing {{ product.product_id }}</span>
-                    <ul>
-                        {% for order in orders_with_product %}
-                          <li>
-                            <a href="{% url 'order_detail' order.id %}">Order #{{ order.id }} - {{ order.order_date }}</a>
-                          </li>
-                        {% endfor %}
-                    </ul>
-                  </div>
-              </div>
-          </div>
-
+            <div class="card large">
+                <div class="card-image">
+                    {% if product.product_photo %}
+                        <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" style="max-width: 300px;"/>
+                    {% endif %}
+                </div>
+                <div class="card-content">
+                    <span class="card-title">{{ product.product_name }}</span>
+                    <p>{{ product.product_id }}</p>
+                </div>
+            </div>
         </div>
-      </div>
+
+        <div class="col l3 m6 s12">
+            <div class="card large horizontal">
+                <div class="card-stacked">
+                    <div class="card-content">
+                       <p><strong>Top 80% of Sales (by Variant)</strong></p>
+                          <ol>
+                              {% for variant in top_selling_variants %}
+                                  <li>{{ variant.variant_code }} - {{ variant.total_sales|default:0 }} </li>
+                              {% endfor %}
+                          </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col l3 m6 s12">
+                <div class="card large horizontal">
+                    <div class="card-stacked">
+                        <div class="card-content">
+                          <!-- Top Selling Sizes -->
+                          <p>Top Selling Sizes (Last 12 Months)</p>
+                          <ol>
+                              {% for size in top_selling_sizes %}
+                                  <li>{{ size.size }} - {{ size.total_sales|default:0 }} units sold</li>
+                              {% endfor %}
+                          </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col l3 m6 s12">
+                <div class="card large horizontal">
+                    <div class="card-stacked">
+                        <div class="card-content">
+
+                          <!-- Top Selling Colors -->
+                          <p>Top Selling Colors (Last 12 Months)</p>
+                          <ol>
+                              {% for color in top_selling_colors %}
+                                  <li>
+                                      <span style="background-color: {{ color.primary_color }}; display: inline-block; width: 20px; height: 20px; border: 1px solid #000;"></span>
+                                      {{ color.primary_color }} - {{ color.total_sales|default:0 }} units sold
+                                  </li>
+                              {% endfor %}
+                          </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
 
 
-    <!-- Date Range Selector -->
-    <div class="center-align">
-        <label for="dateRange">Select Date Range:</label>
-        <select id="dateRange" onchange="updateDateRange(this.value)">
-            <option value="1m" {% if date_range == '1m' %}selected{% endif %}>Last Month</option>
-            <option value="3m" {% if date_range == '3m' %}selected{% endif %}>Last 3 Months</option>
-            <option value="1y" {% if date_range == '1y' %}selected{% endif %}>Last Year</option>
-        </select>
     </div>
 
-    <!-- Sales Chart -->
-    <div class="sales-chart">
-        <h3>Sales Over Time</h3>
-        <canvas id="salesChart"></canvas>
+    <!-- Historic Sales Chart -->
+    <div class="historic-sales-chart">
+        <h3>Sales by Month (Last 12 Months)</h3>
+        <canvas id="historicSalesChart"></canvas>
     </div>
 
-    <!-- Back to Product List -->
-    <div class="center-align">
-        <a href="{% url 'product_list' %}" class="btn">Back to Product List</a>
+    <!-- Stock Levels Chart -->
+    <div class="stock-chart">
+        <h3>Stock Levels Projection</h3>
+        <canvas id="stockChart"></canvas>
     </div>
+
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     // Parse chart data passed from the view
-    const chartData = JSON.parse('{{ chart_data|escapejs }}');
+    const stockChartData = JSON.parse('{{ stock_chart_data|escapejs }}');
+    const historicChartData = JSON.parse('{{ historic_chart_data|escapejs }}');
 
-    // Create the sales chart
-    const ctx = document.getElementById('salesChart').getContext('2d');
-    const salesChart = new Chart(ctx, {
-        type: 'bar', // Bar chart for monthly sales
+    // Create the stock projection chart
+    const stockCtx = document.getElementById('stockChart').getContext('2d');
+    const stockChart = new Chart(stockCtx, {
+        type: 'line',
         data: {
-            labels: chartData.months, // Months on the X-axis
-            datasets: [{
-                label: 'Monthly Sales Quantity',
-                data: chartData.quantities, // Quantities on the Y-axis
-                borderColor: 'rgba(75, 192, 192, 1)',
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                borderWidth: 1,
-            }]
+            labels: stockChartData.months,
+            datasets: stockChartData.variant_lines.map(variant => ({
+                label: variant.variant_name,
+                data: variant.stock_levels,
+                borderWidth: 2,
+                fill: false
+            }))
         },
         options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Projected Stock Levels'
+                }
+            },
             scales: {
                 x: {
                     title: {
                         display: true,
-                        text: 'Month',
-                    },
+                        text: 'Months'
+                    }
                 },
                 y: {
                     title: {
                         display: true,
-                        text: 'Sales Quantity',
+                        text: 'Stock Levels'
                     },
-                    beginAtZero: true,
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Create the historic sales chart (stacked bar chart)
+    const historicCtx = document.getElementById('historicSalesChart').getContext('2d');
+    const historicSalesChart = new Chart(historicCtx, {
+        type: 'bar',
+        data: {
+            labels: historicChartData.months,
+            datasets: historicChartData.datasets.map(dataset => ({
+                label: dataset.label,
+                data: dataset.data,
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }))
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Monthly Sales by Variant (Last 12 Months)'
+                }
+            },
+            scales: {
+                x: {
+                    stacked: true,  // Enable stacking
+                    title: {
+                        display: true,
+                        text: 'Months'
+                    }
+                },
+                y: {
+                    stacked: true,  // Enable stacking
+                    title: {
+                        display: true,
+                        text: 'Sales Quantity'
+                    },
+                    beginAtZero: true
                 }
             }
         }

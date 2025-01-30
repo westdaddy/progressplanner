@@ -1,9 +1,13 @@
 from datetime import datetime, timedelta
+from django.utils.timezone import now
+from dateutil.relativedelta import relativedelta
 import json
 from collections import defaultdict
+import calendar
 
 from django.shortcuts import render, get_object_or_404
-from django.db.models import Count, Sum, Max, F, Subquery, OuterRef
+from django.db import models
+from django.db.models import Count, Sum, Max, F, Subquery, OuterRef, Avg
 from django.http import HttpResponse
 from django.db.models.functions import TruncMonth
 
@@ -18,7 +22,72 @@ def home(request):
 
 
 def dashboard(request):
-    context = {}
+    today = datetime.today().replace(day=1)  # Normalize to first of the month
+    next_12_months = [today + relativedelta(months=i) for i in range(13)]  # Current + next 12 months
+
+    # Fetch the latest inventory snapshot for each variant
+    latest_snapshot_subquery = InventorySnapshot.objects.filter(
+        product_variant=models.OuterRef('pk')
+    ).order_by('-date').values('inventory_count')[:1]
+
+    # Fetch product variants with latest stock level
+    variants = ProductVariant.objects.annotate(latest_inventory=models.Subquery(latest_snapshot_subquery))
+
+    # Calculate sales speed per variant (average over last 3 months)
+    three_months_ago = today - relativedelta(months=6)
+    sales_speed_per_variant = {
+        variant.id: (
+            variant.sales.filter(date__gte=three_months_ago)
+            .aggregate(total_sales=Sum('sold_quantity'))['total_sales'] or 0
+        ) / 6  # Average sales per month
+        for variant in variants
+    }
+
+    # Fetch expected restocks (OrderItem) per month
+    future_orders = OrderItem.objects.filter(date_expected__gte=today).values('date_expected', 'product_variant', 'quantity')
+
+    restock_schedule = {}
+
+    for order in future_orders:
+        restock_month = order['date_expected'].replace(day=1)  # Normalize to first of the month
+        restock_schedule.setdefault(restock_month, {}).setdefault(order['product_variant'], 0)
+        restock_schedule[restock_month][order['product_variant']] += order['quantity']
+
+    print(restock_schedule)
+
+    # Project stock levels for the next 12 months
+    projected_stock_levels = {month.strftime('%b %Y'): {} for month in next_12_months}
+
+    for variant in variants:
+        stock = variant.latest_inventory or 0  # Start with the latest inventory count
+        sales_speed = sales_speed_per_variant.get(variant.id, 0)  # Default sales speed to 0 if no sales data
+
+        for month in next_12_months:
+            month_str = month.strftime('%b %Y')
+            stock -= sales_speed  # Decrease stock by projected sales
+
+            # Debugging: Check if this month has restocks
+            normalized_month = month.date()  # Ensure month is in datetime.date format
+            if normalized_month in restock_schedule:
+                restock_amount = restock_schedule[normalized_month].get(variant.id, 0)
+                if restock_amount > 0:
+                    print(f"Restocking {restock_amount} units of {variant.variant_code} in {month_str}")
+                stock += restock_amount
+
+            projected_stock_levels[month_str][variant.variant_code] = max(stock, 0)  # Ensure stock doesn't go negative
+
+
+    # Convert projected stock levels into data for the graph
+    chart_labels = list(projected_stock_levels.keys())
+    chart_data = [
+        sum(variant_stock.values()) for variant_stock in projected_stock_levels.values()
+    ]
+
+    context = {
+        'labels': json.dumps(chart_labels),
+        'stock_levels': json.dumps(chart_data),
+        'projected_stock_levels': projected_stock_levels.items(),  # Data for table
+    }
     return render(request, 'inventory/dashboard.html', context)
 
 
@@ -37,11 +106,28 @@ def product_list(request):
         latest_inventory=Subquery(latest_snapshot)
     )
 
+    # Time periods for sales speed calculation
+    today = now().date()
+    last_12_months = today - timedelta(days=365)
+    last_30_days = today - timedelta(days=30)
+
     # Fetch all products
     products = Product.objects.annotate(
         variant_count=Count('variants', distinct=True),
         total_sales=Sum('variants__sales__sold_quantity', default=0),
         total_sales_value=Sum('variants__sales__sold_value', default=0),
+        # Total sales in the last 12 months
+        sales_last_12_months=Sum(
+            'variants__sales__sold_quantity',
+            filter=models.Q(variants__sales__date__gte=last_12_months),
+            default=0
+        ),
+        # Total sales in the last 30 days
+        sales_last_30_days=Sum(
+            'variants__sales__sold_quantity',
+            filter=models.Q(variants__sales__date__gte=last_30_days),
+            default=0
+        )
     )
 
     # Calculate total inventory for each product
@@ -49,6 +135,15 @@ def product_list(request):
         product.total_inventory = sum(
             variant.latest_inventory or 0
             for variant in variants_with_inventory.filter(product=product)
+        )
+        # Calculate sales speed for 12 months and 30 days in units per month
+        product.sales_speed_12_months = (
+            product.sales_last_12_months / 12
+            if product.sales_last_12_months > 0 else 0
+        )
+        product.sales_speed_30_days = (
+            product.sales_last_30_days / (30 / 30)  # Always monthly
+            if product.sales_last_30_days > 0 else 0
         )
 
     # Apply filtering for zero inventory products
@@ -76,51 +171,150 @@ def product_list(request):
 
 
 
-
 def product_detail(request, product_id):
     # Fetch the product by ID
     product = get_object_or_404(Product, id=product_id)
 
-    # Get the date range parameter
-    date_range = request.GET.get('range', '1y')  # Default to last 1 month
+    # Define the date range: current month + next 12 months
     today = datetime.today()
-    if date_range == '3m':
-        start_date = today - timedelta(days=90)
-    elif date_range == '1y':
-        start_date = today - timedelta(days=365)
-    else:  # Default: 1 month
-        start_date = today - timedelta(days=30)
+    current_month = today.replace(day=1)  # Start of the current month
+    next_12_months = [current_month + relativedelta(months=i) for i in range(13)]
 
-    # Fetch sales data for this product, aggregated by month
-    sales_data = (
-        Sale.objects.filter(variant__product=product, date__gte=start_date)
-        .annotate(month=TruncMonth('date'))
-        .values('month')
-        .annotate(total_quantity=Sum('sold_quantity'))
-        .order_by('month')
-    )
+    # Fetch all variants of the product
+    variants = product.variants.all()
 
-    # Prepare data for the chart
-    chart_data = {
-        'months': [entry['month'].strftime('%Y-%m') for entry in sales_data],
-        'quantities': [entry['total_quantity'] for entry in sales_data],
+    # Prepare chart data for stock projection
+    stock_chart_data = {
+        'months': [month.strftime('%Y-%m') for month in next_12_months],
+        'variant_lines': []
     }
 
-    # Find orders containing the current product
-    orders_with_product = Order.objects.filter(order_items__product_variant__product=product).distinct()
+    # Prepare chart data for historic sales
+    one_year_ago = today - relativedelta(months=12)
+    historic_sales_data = {}
+
+    for variant in variants:
+        # Get the latest inventory snapshot value for the variant
+        latest_snapshot = (
+            variant.snapshots.order_by('-date').values('inventory_count').first()
+        )
+        current_stock = latest_snapshot['inventory_count'] if latest_snapshot else 0
+
+        # Calculate sales speed for the last 3 months
+        six_months_ago = today - relativedelta(months=6)
+        total_sales_last_6_months = (
+            variant.sales.filter(date__gte=six_months_ago)
+            .aggregate(total_sold=Sum('sold_quantity'))['total_sold'] or 0
+        )
+        sales_speed_per_month = total_sales_last_6_months / 6  # Sales speed in units/month
+
+        # Fetch expected restocks from OrderItem
+        order_items = variant.order_items.filter(date_expected__gte=current_month).values('date_expected', 'quantity')
+
+        # Create a dictionary of restocks by normalized month
+        restocks = {}
+        for item in order_items:
+            restock_month = item['date_expected'].replace(day=1)
+            restocks[restock_month] = restocks.get(restock_month, 0) + item['quantity']
+
+        # Project stock levels for the next 12 months
+        stock_levels = [current_stock]  # Start with the current stock
+        for i in range(1, 13):
+            projected_stock = stock_levels[-1] - sales_speed_per_month
+            month = (current_month + relativedelta(months=i)).date()  # Convert to date object
+
+            # Add restock if there is an order expected in this month
+            if month in restocks:
+                projected_stock += restocks[month]
+
+            stock_levels.append(max(projected_stock, 0))  # Prevent negative stock
+
+        # Add data for stock projection
+        stock_chart_data['variant_lines'].append({
+            'variant_name': variant.variant_code,
+            'stock_levels': stock_levels,
+        })
+
+        # Fetch historic sales for the last 12 months
+        sales = (
+            variant.sales.filter(date__gte=one_year_ago)
+            .annotate(month=TruncMonth('date'))
+            .values('month')
+            .annotate(total_quantity=Sum('sold_quantity'))
+            .order_by('month')
+        )
+
+        for sale in sales:
+            month = sale['month'].strftime('%Y-%m')
+            if month not in historic_sales_data:
+                historic_sales_data[month] = {}
+            historic_sales_data[month][variant.variant_code] = sale['total_quantity']
+
+    # Sort months in historic_sales_data
+    sorted_months = sorted(historic_sales_data.keys())  # Chronological order
+    historic_chart_data = {
+        'months': sorted_months,
+        'datasets': []
+    }
+    for variant in variants:
+        variant_sales = [
+            historic_sales_data.get(month, {}).get(variant.variant_code, 0)
+            for month in sorted_months
+        ]
+        historic_chart_data['datasets'].append({
+            'label': variant.variant_code,
+            'data': variant_sales,
+        })
+
+    # Calculate total sales for each variant
+    top_selling_variants = (
+        variants.annotate(total_sales=Sum('sales__sold_quantity', filter=models.Q(sales__date__gte=one_year_ago)))
+        .order_by('-total_sales')
+    )
+
+    # Perform 80-20 analysis
+    total_sales_all_variants = sum(variant.total_sales or 0 for variant in top_selling_variants)
+    cumulative_sales = 0
+    top_80_percent_variants = []
+
+    for variant in top_selling_variants:
+        cumulative_sales += variant.total_sales or 0
+        top_80_percent_variants.append(variant)
+        if cumulative_sales >= 0.8 * total_sales_all_variants:
+            break
+
+    # Calculate top-selling sizes over the last 12 months
+    top_selling_sizes = (
+        variants.filter(size__isnull=False)  # Exclude variants without a size
+        .values('size')  # Group by size
+        .annotate(total_sales=Sum('sales__sold_quantity', filter=models.Q(sales__date__gte=one_year_ago)))
+        .order_by('-total_sales')
+    )
+
+    # Calculate top-selling colors over the last 12 months
+    top_selling_colors = (
+        variants.filter(primary_color__isnull=False)  # Exclude variants without a primary color
+        .values('primary_color')  # Group by primary color
+        .annotate(total_sales=Sum('sales__sold_quantity', filter=models.Q(sales__date__gte=one_year_ago)))
+        .order_by('-total_sales')
+    )
 
     context = {
         'product': product,
-        'chart_data': json.dumps(chart_data),  # Pass chart data as JSON
-        'date_range': date_range,
-        'orders_with_product': orders_with_product,
+        'stock_chart_data': json.dumps(stock_chart_data),  # Pass stock chart data as JSON
+        'historic_chart_data': json.dumps(historic_chart_data),  # Pass historic sales chart data as JSON
+        'top_selling_variants': top_80_percent_variants,  # Pass the ordered list of top-selling variants
+        'top_selling_sizes': top_selling_sizes,  # Pass the ordered list of top-selling sizes
+        'top_selling_colors': top_selling_colors,  # Pass the ordered list of top-selling colors
     }
+
     return render(request, 'inventory/product_detail.html', context)
 
 
-# Order List View
+
 def order_list(request):
-    orders = Order.objects.all()
+    # Fetch orders, ordering them by date (most recent first)
+    orders = Order.objects.all().order_by('-order_date')
 
     # Calculate total order value for each order
     for order in orders:
@@ -130,6 +324,7 @@ def order_list(request):
         'orders': orders,
     }
     return render(request, 'inventory/order_list.html', context)
+
 
 
 

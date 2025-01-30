@@ -7,11 +7,9 @@
     <h1 class="center-align">Order #{{ order.id }}</h1>
     <p><strong>Order Date:</strong> {{ order.order_date }}</p>
     {% if order.invoice_id %}
-        <p><strong>Invoice ID:</strong> {{ order.invoice_id }}</p>
+        <p><strong>Invoice ID:</strong> {{ order.invoice_id }} {% if order.invoice %}<a href="{{ order.invoice.url }}" target="_blank">(Download)</a>{% endif %}</p>
     {% endif %}
-    {% if order.invoice %}
-        <p><a href="{{ order.invoice.url }}" target="_blank">Download Invoice</a></p>
-    {% endif %}
+
     Total Order Value: {{ total_value }}
 
     <h2>Order Items</h2>
@@ -39,7 +37,7 @@
                 {% for item in data.items %}
                   <tr>
 
-                      <td>{{ item.quantity }} x {{ item.product_variant.size }}</td>
+                      <td>{{ item.quantity }} x {{ item.product_variant.variant_code }}</td>
                       <td>Cost Price: {{ item.item_cost_price }} CNY</td>
                       <td>Expected: {{ item.date_expected }}</td>
                       <td>

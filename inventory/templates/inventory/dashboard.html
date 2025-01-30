@@ -1,82 +1,73 @@
 {% extends 'inventory/base.html' %}
 
-{% block title %}Home{% endblock %}
+{% block title %}Stock Dashboard{% endblock %}
 
 {% block content %}
-    <div class="section">
-        <h1 class="center-align">Dashboard</h1>
+<div class="section">
+    <h2>Stock Levels Projection</h2>
 
-        <!-- Placeholder for filters -->
-                <form id="filters">
-                    <label for="product">Product:</label>
-                    <select id="product" name="product">
-                        <option value="">All</option>
-                        <!-- Populate dynamically -->
-                    </select>
-
-                    <label for="category">Category:</label>
-                    <select id="category" name="category">
-                        <option value="">All</option>
-                        <!-- Populate dynamically -->
-                    </select>
-
-                    <button type="submit">Apply Filters</button>
-                </form>
-            </div>
-
-            <div>
-                <!-- Placeholder for chart -->
-                <canvas id="stockTimelineChart" width="800" height="400"></canvas>
-            </div>
-
-
-
+    <!-- Graph -->
+    <div>
+        <canvas id="stockProjectionChart"></canvas>
     </div>
 
-    <script>
-        // Initialize empty chart
-        const ctx = document.getElementById('stockTimelineChart').getContext('2d');
-        const stockTimelineChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: [], // Time periods
-                datasets: [
-                    {
-                        label: 'Stock Levels',
-                        data: [], // Stock levels
-                        borderColor: 'blue',
-                        fill: false,
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        display: true
-                    }
-                },
-                scales: {
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Time'
-                        }
-                    },
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'Stock Levels'
-                        }
-                    }
-                }
-            }
-        });
-    </script>
+    <!-- Table -->
+    <h3>Stock Levels Data</h3>
+    <table class="highlight striped">
+      <thead>
+          <tr>
+              <th>Month</th>
+              {% for variant in projected_stock_levels.0.1.keys %}  <!-- FIX: Access first item, get keys -->
+                  <th>{{ variant }}</th>
+              {% endfor %}
+          </tr>
+      </thead>
 
+        <tbody>
+            {% for month, data in projected_stock_levels.items %}
+                <tr>
+                    <td>{{ month }}</td>
+                    {% for stock in data.values %}
+                        <td>{{ stock|default:"-" }}</td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 
-{% endblock %}
-
-{% block extrajs %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const ctx = document.getElementById("stockProjectionChart").getContext("2d");
+
+        const chartData = {
+            labels: JSON.parse('{{ labels|escapejs }}'),
+            datasets: [{
+                label: "Projected Stock Levels",
+                data: JSON.parse('{{ stock_levels|escapejs }}'),
+                borderColor: "rgba(75, 192, 192, 1)",
+                backgroundColor: "rgba(75, 192, 192, 0.2)",
+                borderWidth: 2,
+                fill: true
+            }]
+        };
+
+        const chartOptions = {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Projected Stock Levels Over Next 12 Months'
+                }
+            },
+            scales: {
+                x: { title: { display: true, text: "Months" } },
+                y: { title: { display: true, text: "Stock Levels" }, beginAtZero: true }
+            }
+        };
+
+        new Chart(ctx, { type: "line", data: chartData, options: chartOptions });
+    });
+</script>
 {% endblock %}

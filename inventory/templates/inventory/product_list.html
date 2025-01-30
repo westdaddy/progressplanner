@@ -36,12 +36,19 @@
             </span>
             <p>
                 {{ product.variant_count }} variant{{ product.variant_count|pluralize }},
-                total sales ({{ product.total_sales|default:0 }} sales, value: {{ product.total_sales_value|floatformat:2|default:"0.00" }}),
+                total sales: {{ product.total_sales|default:0 }}
+                (value: {{ product.total_sales_value|floatformat:2|default:"0.00" }}),
                 total inventory: {{ product.total_inventory|default:0 }}
+            </p>
+            <p>
+                <strong>Sales Speed:</strong>
+                <br>
+                - Last 12 months: {{ product.sales_speed_12_months|floatformat:2 }} units/month
+                <br>
+                - Last 30 days: {{ product.sales_speed_30_days|floatformat:2 }} units/month
             </p>
         </li>
     {% endfor %}
-</ul>
-
+    </ul>
 </div>
 {% endblock %}
