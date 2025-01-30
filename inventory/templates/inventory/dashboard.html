@@ -15,12 +15,16 @@
     <h3>Stock Levels Data</h3>
     <table class="highlight striped">
       <thead>
-          <tr>
-              <th>Month</th>
-              {% for variant in projected_stock_levels.0.1.keys %}  <!-- FIX: Access first item, get keys -->
-                  <th>{{ variant }}</th>
-              {% endfor %}
-          </tr>
+        <tr>
+            <th>Month</th>
+            {% if projected_stock_levels %}
+                {% for variant in projected_stock_levels|first %}
+                    <th>{{ variant }}</th>
+                {% endfor %}
+            {% else %}
+                <th>No Data Available</th>
+            {% endif %}
+        </tr>
       </thead>
 
         <tbody>
@@ -41,33 +45,53 @@
     document.addEventListener("DOMContentLoaded", function () {
         const ctx = document.getElementById("stockProjectionChart").getContext("2d");
 
-        const chartData = {
+        const lineChartData = {
             labels: JSON.parse('{{ labels|escapejs }}'),
             datasets: [{
-                label: "Projected Stock Levels",
+                label: "Projected Total Stock",
                 data: JSON.parse('{{ stock_levels|escapejs }}'),
                 borderColor: "rgba(75, 192, 192, 1)",
                 backgroundColor: "rgba(75, 192, 192, 0.2)",
                 borderWidth: 2,
-                fill: true
+                type: "line",
+                fill: false
             }]
         };
 
-        const chartOptions = {
-            responsive: true,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Projected Stock Levels Over Next 12 Months'
-                }
-            },
-            scales: {
-                x: { title: { display: true, text: "Months" } },
-                y: { title: { display: true, text: "Stock Levels" }, beginAtZero: true }
-            }
+        const stackedBarData = JSON.parse('{{ stacked_bar_data|escapejs }}');
+        stackedBarData.datasets.forEach(dataset => {
+            dataset.type = "bar";
+            dataset.backgroundColor = [
+                "rgba(255, 99, 132, 0.6)",  // nogi
+                "rgba(54, 162, 235, 0.6)",  // gi
+                "rgba(255, 206, 86, 0.6)",  // apparel
+                "rgba(75, 192, 192, 0.6)"   // accessories
+            ][stackedBarData.datasets.indexOf(dataset)]; // Assign different colors
+            dataset.stack = "stack";
+        });
+
+        const combinedData = {
+            labels: stackedBarData.labels,
+            datasets: stackedBarData.datasets.concat(lineChartData.datasets)
         };
 
-        new Chart(ctx, { type: "line", data: chartData, options: chartOptions });
+        new Chart(ctx, {
+            type: "bar",
+            data: combinedData,
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: "Projected Stock Levels (Total + Style Breakdown)"
+                    }
+                },
+                scales: {
+                    x: { stacked: true, title: { display: true, text: "Months" } },
+                    y: { stacked: true, title: { display: true, text: "Stock Levels" }, beginAtZero: true }
+                }
+            }
+        });
     });
 </script>
 {% endblock %}

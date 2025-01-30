@@ -33,11 +33,11 @@ def dashboard(request):
     # Fetch product variants with latest stock level
     variants = ProductVariant.objects.annotate(latest_inventory=models.Subquery(latest_snapshot_subquery))
 
-    # Calculate sales speed per variant (average over last 3 months)
-    three_months_ago = today - relativedelta(months=6)
+    # Calculate sales speed per variant (average over last 6 months)
+    six_months_ago = today - relativedelta(months=6)
     sales_speed_per_variant = {
         variant.id: (
-            variant.sales.filter(date__gte=three_months_ago)
+            variant.sales.filter(date__gte=six_months_ago)
             .aggregate(total_sales=Sum('sold_quantity'))['total_sales'] or 0
         ) / 6  # Average sales per month
         for variant in variants
@@ -47,26 +47,28 @@ def dashboard(request):
     future_orders = OrderItem.objects.filter(date_expected__gte=today).values('date_expected', 'product_variant', 'quantity')
 
     restock_schedule = {}
-
     for order in future_orders:
         restock_month = order['date_expected'].replace(day=1)  # Normalize to first of the month
         restock_schedule.setdefault(restock_month, {}).setdefault(order['product_variant'], 0)
         restock_schedule[restock_month][order['product_variant']] += order['quantity']
 
-    print(restock_schedule)
+    print(restock_schedule)  # Debugging: Check restocks
 
-    # Project stock levels for the next 12 months
+    # Initialize stock projections categorized by style
     projected_stock_levels = {month.strftime('%b %Y'): {} for month in next_12_months}
+    styles = ['nogi', 'gi', 'apparel', 'accessories']
+    style_stock_levels = {month.strftime('%b %Y'): {style: 0 for style in styles} for month in next_12_months}
 
     for variant in variants:
         stock = variant.latest_inventory or 0  # Start with the latest inventory count
         sales_speed = sales_speed_per_variant.get(variant.id, 0)  # Default sales speed to 0 if no sales data
+        variant_style = variant.style if variant.style in styles else 'accessories'  # Default unknown styles to 'accessories'
 
         for month in next_12_months:
             month_str = month.strftime('%b %Y')
             stock -= sales_speed  # Decrease stock by projected sales
 
-            # Debugging: Check if this month has restocks
+            # Add restocks if applicable
             normalized_month = month.date()  # Ensure month is in datetime.date format
             if normalized_month in restock_schedule:
                 restock_amount = restock_schedule[normalized_month].get(variant.id, 0)
@@ -75,20 +77,31 @@ def dashboard(request):
                 stock += restock_amount
 
             projected_stock_levels[month_str][variant.variant_code] = max(stock, 0)  # Ensure stock doesn't go negative
-
+            style_stock_levels[month_str][variant_style] += max(stock, 0)  # Categorized stock by style
 
     # Convert projected stock levels into data for the graph
     chart_labels = list(projected_stock_levels.keys())
-    chart_data = [
+    total_stock_data = [
         sum(variant_stock.values()) for variant_stock in projected_stock_levels.values()
     ]
 
+    # Prepare dataset for stacked bar chart
+    stacked_bar_data = {
+        'labels': chart_labels,
+        'datasets': [
+            {'label': style, 'data': [style_stock_levels[month][style] for month in chart_labels]}
+            for style in styles
+        ]
+    }
+
     context = {
         'labels': json.dumps(chart_labels),
-        'stock_levels': json.dumps(chart_data),
-        'projected_stock_levels': projected_stock_levels.items(),  # Data for table
+        'stock_levels': json.dumps(total_stock_data),
+        'stacked_bar_data': json.dumps(stacked_bar_data),
+        'projected_stock_levels': json.dumps(projected_stock_levels),  # Convert dict to JSON to prevent None errors
     }
     return render(request, 'inventory/dashboard.html', context)
+
 
 
 
