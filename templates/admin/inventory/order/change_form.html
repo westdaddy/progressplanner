@@ -1,0 +1,13 @@
+{# templates/admin/yourapp/order/change_form.html #}
+{% extends "admin/change_form.html" %}
+{% load i18n %}
+
+{% block object-tools-items %}
+  {# Add your custom link before the default items #}
+  {% if add_products_url %}
+    <li>
+      <a href="{{ add_products_url }}" class="addlink">{% trans "Add Products" %}</a>
+    </li>
+  {% endif %}
+  {{ block.super }}
+{% endblock %}

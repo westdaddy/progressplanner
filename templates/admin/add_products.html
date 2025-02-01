@@ -1,0 +1,15 @@
+{# templates/admin/add_products.html #}
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block content %}
+  <h1>{% trans "Add Products to Order" %} #{{ order.id }}</h1>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="{% trans 'Add Products' %}">
+  </form>
+  <p>
+    <a href="{% url 'admin:inventory_order_change' order.id %}">« {% trans "Back to Order" %}</a>
+  </p>
+{% endblock %}
