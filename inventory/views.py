@@ -304,6 +304,19 @@ def product_detail(request, product_id):
         .order_by('-total_sales')
     )
 
+    # Calculate total sales across all sizes
+    total_sales_sizes = sum((size['total_sales'] or 0) for size in top_selling_sizes)
+
+    # Add percentage calculation with safe handling of None values
+    top_selling_sizes = [
+        {
+            'size': size['size'],
+            'total_sales': size['total_sales'] or 0,  # Ensure total_sales is at least 0
+            'percentage': round(((size['total_sales'] or 0) / total_sales_sizes) * 100, 2) if total_sales_sizes > 0 else 0
+        }
+        for size in top_selling_sizes
+    ]
+
     # Calculate top-selling colors over the last 12 months
     top_selling_colors = (
         variants.filter(primary_color__isnull=False)  # Exclude variants without a primary color

@@ -44,10 +44,13 @@
                     <div class="card-stacked">
                         <div class="card-content">
                           <!-- Top Selling Sizes -->
-                          <p>Top Selling Sizes (Last 12 Months)</p>
+                          <p><strong>Top Selling Sizes (Last 12 Months)</strong></p>
                           <ol>
                               {% for size in top_selling_sizes %}
-                                  <li>{{ size.size }} - {{ size.total_sales|default:0 }} units sold</li>
+                                  <li>
+                                      {{ size.size }} - {{ size.total_sales|default:0 }} 
+                                      ({{ size.percentage|default:"0" }}% )
+                                  </li>
                               {% endfor %}
                           </ol>
                         </div>
