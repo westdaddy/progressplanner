@@ -1,4 +1,5 @@
 {% extends 'inventory/base.html' %}
+{% load inventory_extras %}
 
 {% block title %}Product List{% endblock %}
 
@@ -6,12 +7,24 @@
 <div class="section">
     <h1 class="center-align">Product List</h1>
 
-    <!-- Filter Toggle -->
+    <!-- Filter Form -->
     <form method="get" class="center-align">
+        <!-- Hide Zero Inventory Items -->
         <label>
             <input type="checkbox" name="hide_zero_inventory" value="true" {% if hide_zero_inventory %}checked{% endif %} onchange="this.form.submit()">
             <span>Hide Items with Zero Inventory</span>
         </label>
+        <br>
+        <!-- Filter by Product Variant Type -->
+        <label for="type_filter">Filter by Category:</label>
+        <select name="type_filter" id="type_filter" onchange="this.form.submit()">
+            <option value="">All</option>
+            {% for value, display in type_choices %}
+                <option value="{{ value }}" {% if type_filter == value %}selected{% endif %}>
+                    {{ display }}
+                </option>
+            {% endfor %}
+        </select>
     </form>
 
     <!-- Summary -->
@@ -27,7 +40,7 @@
     {% for product in products %}
         <li class="collection-item avatar">
             {% if product.product_photo %}
-                <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" class="circle">
+                <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" class="circle product-photo-large">
             {% endif %}
             <span class="title">
                 <a href="{% url 'product_detail' product.id %}">
@@ -47,8 +60,35 @@
                 <br>
                 - Last 30 days: {{ product.sales_speed_30_days|floatformat:2 }} units/month
             </p>
+
+
+            <!-- Variant Stock Dots -->
+            <p class="variant-stock">
+                {% for variant in product.variants_with_inventory %}
+                    {% with stock=variant.latest_inventory|default:0 %}
+                        {% if stock|floatformat:0|to_int > 4 %}
+                            <span class="stock-dot green" data-size="{{ variant.size|default:'N/A' }}" data-stock="{{ stock }}"></span>
+                        {% elif stock|floatformat:0|to_int > 0 %}
+                            <span class="stock-dot orange" data-size="{{ variant.size|default:'N/A' }}" data-stock="{{ stock }}"></span>
+                        {% else %}
+                            <span class="stock-dot red" data-size="{{ variant.size|default:'N/A' }}" data-stock="{{ stock }}"></span>
+                        {% endif %}
+                    {% endwith %}
+                {% endfor %}
+            </p>
+
         </li>
     {% endfor %}
     </ul>
 </div>
+{% endblock %}
+
+
+{% block extrajs %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var elems = document.querySelectorAll('select');
+    var instances = M.FormSelect.init(elems);
+  });
+</script>
 {% endblock %}

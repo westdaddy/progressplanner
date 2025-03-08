@@ -1,0 +1,1239 @@
+id,product_id,product_name,variant_code,primary_color,secondary_color,size,type,style,age,gender
+1238,PG205,Academy Gi Adults Forest Green,PG205-F3,#00FF00,#FFFFFF,F3,gi,gi,adult,womens
+1237,PG205,Academy Gi Adults Forest Green,PG205-F2,#00FF00,#FFFFFF,F2,gi,gi,adult,womens
+1236,PG205,Academy Gi Adults Forest Green,PG205-F1,#00FF00,#FFFFFF,F1,gi,gi,adult,womens
+1235,PG205,Academy Gi Adults Forest Green,PG205-A3,#00FF00,#FFFFFF,A3,gi,gi,adult,mens
+1234,PG205,Academy Gi Adults Forest Green,PG205-A2L,#00FF00,#FFFFFF,A2L,gi,gi,adult,mens
+1233,PG205,Academy Gi Adults Forest Green,PG205-A2,#00FF00,#FFFFFF,A2,gi,gi,adult,mens
+1232,PG205,Academy Gi Adults Forest Green,PG205-A1L,#00FF00,#FFFFFF,A1L,gi,gi,adult,mens
+1231,PG205,Academy Gi Adults Forest Green,PG205-A1,#00FF00,#FFFFFF,A1,gi,gi,adult,mens
+1230,PG205,Academy Gi Adults Forest Green,PG205-A0,#00FF00,#FFFFFF,A0,gi,gi,adult,mens
+1227,PG204,Womens Seamless Navy Leggings,PG204-S,#0000FF,#FFFFFF,S,dk,ng,adult,womens
+1228,PG204,Womens Seamless Navy Leggings,PG204-M,#0000FF,#FFFFFF,M,dk,ng,adult,womens
+1229,PG204,Womens Seamless Navy Leggings,PG204-L,#0000FF,#FFFFFF,L,dk,ng,adult,womens
+1224,PG203,Womens Seamless Navy Shorts,PG203-S,#0000FF,#FFFFFF,S,dk,ng,adult,womens
+1225,PG203,Womens Seamless Navy Shorts,PG203-M,#0000FF,#FFFFFF,M,dk,ng,adult,womens
+1226,PG203,Womens Seamless Navy Shorts,PG203-L,#0000FF,#FFFFFF,L,dk,ng,adult,womens
+1221,PG202,Womens Seamless Navy Bra,PG202-S,#0000FF,#FFFFFF,S,dk,ng,adult,womens
+1222,PG202,Womens Seamless Navy Bra,PG202-M,#0000FF,#FFFFFF,M,dk,ng,adult,womens
+1223,PG202,Womens Seamless Navy Bra,PG202-L,#0000FF,#FFFFFF,L,dk,ng,adult,womens
+1216,PG201,Smoked Ink Spats,PG201-XS,#808080,#FFFFFF,XS,ck,ng,adult,
+1220,PG201,Smoked Ink Spats,PG201-XL,#808080,#FFFFFF,XL,ck,ng,adult,male
+1217,PG201,Smoked Ink Spats,PG201-S,#808080,#FFFFFF,S,ck,ng,adult,mens
+1218,PG201,Smoked Ink Spats,PG201-M,#808080,#FFFFFF,M,ck,ng,adult,mens
+1219,PG201,Smoked Ink Spats,PG201-L,#808080,#FFFFFF,L,ck,ng,adult,mens
+1211,PG200,Smoked Ink Shorts,PG200-XS,#808080,#FFFFFF,XS,dk,ng,adult,mens
+1215,PG200,Smoked Ink Shorts,PG200-XL,#808080,#FFFFFF,XL,dk,ng,adult,mens
+1212,PG200,Smoked Ink Shorts,PG200-S,#808080,#FFFFFF,S,dk,ng,adult,mens
+1213,PG200,Smoked Ink Shorts,PG200-M,#808080,#FFFFFF,M,dk,ng,adult,mens
+1214,PG200,Smoked Ink Shorts,PG200-L,#808080,#FFFFFF,L,dk,ng,adult,mens
+1206,PG199,Smoked Ink Rashguard,PG199-XS,#808080,#FFFFFF,XS,rg,ng,adult,mens
+1210,PG199,Smoked Ink Rashguard,PG199-XL,#808080,#FFFFFF,XL,rg,ng,adult,mens
+1207,PG199,Smoked Ink Rashguard,PG199-S,#808080,#FFFFFF,S,rg,ng,adult,mens
+1208,PG199,Smoked Ink Rashguard,PG199-M,#808080,#FFFFFF,M,rg,ng,adult,mens
+1209,PG199,Smoked Ink Rashguard,PG199-L,#808080,#FFFFFF,L,rg,ng,adult,mens
+1202,PG198,Swim Shorts Black,PG198-XS,#000000,#FFFFFF,XS,dk,ap,adult,mens
+1203,PG198,Swim Shorts Black,PG198-S,#000000,#FFFFFF,S,dk,ap,adult,mens
+1204,PG198,Swim Shorts Black,PG198-M,#000000,#FFFFFF,M,dk,ap,adult,mens
+1205,PG198,Swim Shorts Black,PG198-L,#000000,#FFFFFF,L,dk,ap,adult,mens
+1198,PG197,Swim Shorts Green,PG197-XS,#000000,#FFFFFF,XS,dk,ap,adult,mens
+1199,PG197,Swim Shorts Green,PG197-S,#000000,#FFFFFF,S,dk,ap,adult,mens
+1200,PG197,Swim Shorts Green,PG197-M,#000000,#FFFFFF,M,dk,ap,adult,mens
+1201,PG197,Swim Shorts Green,PG197-L,#000000,#FFFFFF,L,dk,ap,adult,mens
+1193,PG196,Creonte Rashguard,PG196-XS,#000000,#FFFFFF,XS,rg,ng,adult,mens
+1197,PG196,Creonte Rashguard,PG196-XL,#000000,#FFFFFF,XL,rg,ng,adult,mens
+1194,PG196,Creonte Rashguard,PG196-S,#000000,#FFFFFF,S,rg,ng,adult,mens
+1195,PG196,Creonte Rashguard,PG196-M,#000000,#FFFFFF,M,rg,ng,adult,mens
+1196,PG196,Creonte Rashguard,PG196-L,#000000,#FFFFFF,L,rg,ng,adult,mens
+1188,PG195,Calavera Shorts Adult Green,PG195-XS,#00FF00,#FFFFFF,XS,dk,ng,adult,mens
+1192,PG195,Calavera Shorts Adult Green,PG195-XL,#00FF00,#FFFFFF,XL,dk,ng,adult,mens
+1189,PG195,Calavera Shorts Adult Green,PG195-S,#00FF00,#FFFFFF,S,dk,ng,adult,mens
+1190,PG195,Calavera Shorts Adult Green,PG195-M,#00FF00,#FFFFFF,M,dk,ng,adult,mens
+1191,PG195,Calavera Shorts Adult Green,PG195-L,#00FF00,#FFFFFF,L,dk,ng,adult,mens
+1183,PG194,Calavera Rashguard Adults Green,PG194-XS,#00FF00,#FFFFFF,XS,rg,ng,adult,mens
+1187,PG194,Calavera Rashguard Adults Green,PG194-XL,#00FF00,#FFFFFF,XL,rg,ng,adult,mens
+1184,PG194,Calavera Rashguard Adults Green,PG194-S,#00FF00,#FFFFFF,S,rg,ng,adult,mens
+1185,PG194,Calavera Rashguard Adults Green,PG194-M,#00FF00,#FFFFFF,M,rg,ng,adult,mens
+1186,PG194,Calavera Rashguard Adults Green,PG194-L,#00FF00,#FFFFFF,L,rg,ng,adult,mens
+1182,PG193,Calavera Gi Adults Green,PG193-F3,#00FF00,#FFFFFF,F3,gi,gi,adult,womens
+1181,PG193,Calavera Gi Adults Green,PG193-F2,#00FF00,#FFFFFF,F2,gi,gi,adult,womens
+1180,PG193,Calavera Gi Adults Green,PG193-F1,#00FF00,#FFFFFF,F1,gi,gi,adult,womens
+1179,PG193,Calavera Gi Adults Green,PG193-A3,#00FF00,#FFFFFF,A3,gi,gi,adult,mens
+1178,PG193,Calavera Gi Adults Green,PG193-A2L,#00FF00,#FFFFFF,A2L,gi,gi,adult,mens
+1177,PG193,Calavera Gi Adults Green,PG193-A2,#00FF00,#FFFFFF,A2,gi,gi,adult,mens
+1176,PG193,Calavera Gi Adults Green,PG193-A1L,#00FF00,#FFFFFF,A1L,gi,gi,adult,mens
+1175,PG193,Calavera Gi Adults Green,PG193-A1,#00FF00,#FFFFFF,A1,gi,gi,adult,mens
+1174,PG193,Calavera Gi Adults Green,PG193-A0,#00FF00,#FFFFFF,A0,gi,gi,adult,mens
+1173,PG192,Academy Gi Kids Navy,PG192-M4,#FFFFFF,#FFFFFF,M4,gi,gi,kids,mens
+1172,PG192,Academy Gi Kids Navy,PG192-M3,#FFFFFF,#FFFFFF,M3,gi,gi,kids,mens
+1171,PG192,Academy Gi Kids Navy,PG192-M2,#FFFFFF,#FFFFFF,M2,gi,gi,kids,mens
+1170,PG192,Academy Gi Kids Navy,PG192-M1,#FFFFFF,#FFFFFF,M1,gi,gi,kids,mens
+1169,PG192,Academy Gi Kids Navy,PG192-M000,#FFFFFF,#FFFFFF,M000,gi,gi,kids,mens
+1168,PG192,Academy Gi Kids Navy,PG192-M00,#FFFFFF,#FFFFFF,M00,gi,gi,kids,mens
+1167,PG192,Academy Gi Kids Navy,PG192-M0,#FFFFFF,#FFFFFF,M0,gi,gi,kids,mens
+1166,PG191,Academy Gi Kids Grey,PG191-M4,#808080,#FFFFFF,M4,gi,gi,kids,mens
+1165,PG191,Academy Gi Kids Grey,PG191-M3,#808080,#FFFFFF,M3,gi,gi,kids,mens
+1164,PG191,Academy Gi Kids Grey,PG191-M2,#808080,#FFFFFF,M2,gi,gi,kids,mens
+1163,PG191,Academy Gi Kids Grey,PG191-M1,#808080,#FFFFFF,M1,gi,gi,kids,mens
+1162,PG191,Academy Gi Kids Grey,PG191-M000,#808080,#FFFFFF,M000,gi,gi,kids,mens
+1161,PG191,Academy Gi Kids Grey,PG191-M00,#808080,#FFFFFF,M00,gi,gi,kids,mens
+1160,PG191,Academy Gi Kids Grey,PG191-M0,#808080,#FFFFFF,M0,gi,gi,kids,mens
+1159,PG190,Academy Gi Adults Navy,PG190-F3,#FFFFFF,#FFFFFF,F3,gi,gi,adult,womens
+1158,PG190,Academy Gi Adults Navy,PG190-F2,#FFFFFF,#FFFFFF,F2,gi,gi,adult,womens
+1157,PG190,Academy Gi Adults Navy,PG190-F1,#FFFFFF,#FFFFFF,F1,gi,gi,adult,womens
+1156,PG190,Academy Gi Adults Navy,PG190-A4,#FFFFFF,#FFFFFF,A4,gi,gi,adult,mens
+1155,PG190,Academy Gi Adults Navy,PG190-A3,#FFFFFF,#FFFFFF,A3,gi,gi,adult,mens
+1154,PG190,Academy Gi Adults Navy,PG190-A2L,#FFFFFF,#FFFFFF,A2L,gi,gi,adult,mens
+1153,PG190,Academy Gi Adults Navy,PG190-A2,#FFFFFF,#FFFFFF,A2,gi,gi,adult,mens
+1152,PG190,Academy Gi Adults Navy,PG190-A1L,#FFFFFF,#FFFFFF,A1L,gi,gi,adult,mens
+1151,PG190,Academy Gi Adults Navy,PG190-A1,#FFFFFF,#FFFFFF,A1,gi,gi,adult,mens
+1150,PG190,Academy Gi Adults Navy,PG190-A0,#FFFFFF,#FFFFFF,A0,gi,gi,adult,mens
+1149,PG189,Academy Gi Adults Grey,PG189-F3,#808080,#FFFFFF,F3,gi,gi,adult,womens
+1148,PG189,Academy Gi Adults Grey,PG189-F2,#808080,#FFFFFF,F2,gi,gi,adult,womens
+1147,PG189,Academy Gi Adults Grey,PG189-F1,#808080,#FFFFFF,F1,gi,gi,adult,womens
+1146,PG189,Academy Gi Adults Grey,PG189-A4,#808080,#FFFFFF,A4,gi,gi,adult,mens
+1145,PG189,Academy Gi Adults Grey,PG189-A3,#808080,#FFFFFF,A3,gi,gi,adult,mens
+1144,PG189,Academy Gi Adults Grey,PG189-A2L,#808080,#FFFFFF,A2L,gi,gi,adult,mens
+1143,PG189,Academy Gi Adults Grey,PG189-A2,#808080,#FFFFFF,A2,gi,gi,adult,mens
+1142,PG189,Academy Gi Adults Grey,PG189-A1L,#808080,#FFFFFF,A1L,gi,gi,adult,mens
+1141,PG189,Academy Gi Adults Grey,PG189-A1,#808080,#FFFFFF,A1,gi,gi,adult,mens
+1140,PG189,Academy Gi Adults Grey,PG189-A0,#808080,#FFFFFF,A0,gi,gi,adult,mens
+1131,PG188,Classico Rashguard Burnt Orange,PG188-XS,#FFFFFF,#FFFFFF,XS,rg,ng,adult,male
+1135,PG188,Classico Rashguard Burnt Orange,PG188-XL,#FFFFFF,#FFFFFF,XL,rg,ng,adult,mens
+1132,PG188,Classico Rashguard Burnt Orange,PG188-S,#FFFFFF,#FFFFFF,S,rg,ng,adult,mens
+1133,PG188,Classico Rashguard Burnt Orange,PG188-M,#FFFFFF,#FFFFFF,M,rg,ng,adult,mens
+1134,PG188,Classico Rashguard Burnt Orange,PG188-L,#FFFFFF,#FFFFFF,L,rg,ng,adult,mens
+1127,PG187,Forest Green Shorts Womens,PG187-XS,#00FF00,#FFFFFF,XS,dk,ng,adult,womens
+1128,PG187,Forest Green Shorts Womens,PG187-S,#00FF00,#FFFFFF,S,dk,ng,adult,womens
+1129,PG187,Forest Green Shorts Womens,PG187-M,#00FF00,#FFFFFF,M,dk,ng,adult,womens
+1130,PG187,Forest Green Shorts Womens,PG187-L,#00FF00,#FFFFFF,L,dk,ng,adult,womens
+1123,PG186,Forest Green Rashguard Womens,PG186-XS,#00FF00,#FFFFFF,XS,rg,ng,adult,womens
+1124,PG186,Forest Green Rashguard Womens,PG186-S,#00FF00,#FFFFFF,S,rg,ng,adult,womens
+1125,PG186,Forest Green Rashguard Womens,PG186-M,#00FF00,#FFFFFF,M,rg,ng,adult,womens
+1126,PG186,Forest Green Rashguard Womens,PG186-L,#00FF00,#FFFFFF,L,rg,ng,adult,womens
+1119,PG185,Peach Shorts Womens,PG185-XS,#FFFFFF,#00FF00,XS,dk,ng,adult,womens
+1120,PG185,Peach Shorts Womens,PG185-S,#FFFFFF,#00FF00,S,dk,ng,adult,womens
+1121,PG185,Peach Shorts Womens,PG185-M,#FFFFFF,#00FF00,M,dk,ng,adult,womens
+1122,PG185,Peach Shorts Womens,PG185-L,#FFFFFF,#00FF00,L,dk,ng,adult,womens
+1115,PG184,Peach Rashguard Womens,PG184-XS,#FFFFFF,#00FF00,XS,rg,ng,adult,womens
+1116,PG184,Peach Rashguard Womens,PG184-S,#FFFFFF,#00FF00,S,rg,ng,adult,womens
+1117,PG184,Peach Rashguard Womens,PG184-M,#FFFFFF,#00FF00,M,rg,ng,adult,womens
+1118,PG184,Peach Rashguard Womens,PG184-L,#FFFFFF,#00FF00,L,rg,ng,adult,womens
+1110,PG183,Forest Green Shorts,PG183-XS,#00FF00,#FFFFFF,XS,dk,ng,adult,mens
+1114,PG183,Forest Green Shorts,PG183-XL,#00FF00,#FFFFFF,XL,dk,ng,adult,mens
+1111,PG183,Forest Green Shorts,PG183-S,#00FF00,#FFFFFF,S,dk,ng,adult,mens
+1112,PG183,Forest Green Shorts,PG183-M,#00FF00,#FFFFFF,M,dk,ng,adult,mens
+1113,PG183,Forest Green Shorts,PG183-L,#00FF00,#FFFFFF,L,dk,ng,adult,mens
+1105,PG182,Forest Green Rashguard,PG182-XS,#00FF00,#FFFFFF,XS,rg,ng,adult,mens
+1109,PG182,Forest Green Rashguard,PG182-XL,#00FF00,#FFFFFF,XL,rg,ng,adult,mens
+1106,PG182,Forest Green Rashguard,PG182-S,#00FF00,#FFFFFF,S,rg,ng,adult,mens
+1107,PG182,Forest Green Rashguard,PG182-M,#00FF00,#FFFFFF,M,rg,ng,adult,mens
+1108,PG182,Forest Green Rashguard,PG182-L,#00FF00,#FFFFFF,L,rg,ng,adult,mens
+1100,PG181,Peach Shorts,PG181-XS,#FFFFFF,#00FF00,XS,dk,ng,adult,mens
+1104,PG181,Peach Shorts,PG181-XL,#FFFFFF,#00FF00,XL,dk,ng,adult,mens
+1101,PG181,Peach Shorts,PG181-S,#FFFFFF,#00FF00,S,dk,ng,adult,mens
+1102,PG181,Peach Shorts,PG181-M,#FFFFFF,#00FF00,M,dk,ng,adult,mens
+1103,PG181,Peach Shorts,PG181-L,#FFFFFF,#00FF00,L,dk,ng,adult,mens
+1095,PG180,Peach Rashguard,PG180-XS,#FFFFFF,#00FF00,XS,rg,ng,adult,mens
+1099,PG180,Peach Rashguard,PG180-XL,#FFFFFF,#00FF00,XL,rg,ng,adult,mens
+1096,PG180,Peach Rashguard,PG180-S,#FFFFFF,#00FF00,S,rg,ng,adult,mens
+1097,PG180,Peach Rashguard,PG180-M,#FFFFFF,#00FF00,M,rg,ng,adult,mens
+1098,PG180,Peach Rashguard,PG180-L,#FFFFFF,#00FF00,L,rg,ng,adult,mens
+1091,PG179,Psychedelic Hoodie,PG179-XS,#000000,#000000,XS,ho,ap,adult,mens
+1092,PG179,Psychedelic Hoodie,PG179-S,#000000,#000000,S,ho,ap,adult,mens
+1093,PG179,Psychedelic Hoodie,PG179-M,#000000,#000000,M,ho,ap,adult,mens
+1094,PG179,Psychedelic Hoodie,PG179-L,#000000,#000000,L,ho,ap,adult,mens
+1087,PG178,Psychedelic Tee Black,PG178-XS,#000000,#000000,XS,te,ap,adult,mens
+1088,PG178,Psychedelic Tee Black,PG178-S,#000000,#000000,S,te,ap,adult,mens
+1089,PG178,Psychedelic Tee Black,PG178-M,#000000,#000000,M,te,ap,adult,mens
+1090,PG178,Psychedelic Tee Black,PG178-L,#000000,#000000,L,te,ap,adult,mens
+1083,PG177,Psychedelic Tee White,PG177-XS,#FFFFFF,#FFFFFF,XS,te,ap,adult,mens
+1084,PG177,Psychedelic Tee White,PG177-S,#FFFFFF,#FFFFFF,S,te,ap,adult,mens
+1085,PG177,Psychedelic Tee White,PG177-M,#FFFFFF,#FFFFFF,M,te,ap,adult,mens
+1086,PG177,Psychedelic Tee White,PG177-L,#FFFFFF,#FFFFFF,L,te,ap,adult,mens
+1079,PG176,Ranked 2025,PG176-XS-ZONG,#FFFFFF,#FFFFFF,XS,rg,ng,adult,mens
+1075,PG176,Ranked 2025,PG176-XS-ZI,#800080,#800080,XS,rg,ng,adult,mens
+1066,PG176,Ranked 2025,PG176-XS-LAN,#0000FF,#0000FF,XS,rg,ng,adult,mens
+1071,PG176,Ranked 2025,PG176-XS-BAI,#FFFFFF,#000000,XS,rg,ng,adult,mens
+1070,PG176,Ranked 2025,PG176-XL-LAN,#0000FF,#0000FF,XL,rg,ng,adult,mens
+1080,PG176,Ranked 2025,PG176-S-ZONG,#FFFFFF,#FFFFFF,S,rg,ng,adult,mens
+1076,PG176,Ranked 2025,PG176-S-ZI,#800080,#800080,S,rg,ng,adult,mens
+1067,PG176,Ranked 2025,PG176-S-LAN,#0000FF,#0000FF,S,rg,ng,adult,mens
+1072,PG176,Ranked 2025,PG176-S-BAI,#FFFFFF,#000000,S,rg,ng,adult,mens
+1081,PG176,Ranked 2025,PG176-MS-ZONG,#FFFFFF,#FFFFFF,M,rg,ng,adult,mens
+1077,PG176,Ranked 2025,PG176-MS-ZI,#800080,#800080,M,rg,ng,adult,mens
+1068,PG176,Ranked 2025,PG176-MS-LAN,#0000FF,#0000FF,M,rg,ng,adult,mens
+1073,PG176,Ranked 2025,PG176-MS-BAI,#FFFFFF,#000000,M,rg,ng,adult,mens
+1082,PG176,Ranked 2025,PG176-L-ZONG,#FFFFFF,#FFFFFF,L,rg,ng,adult,mens
+1078,PG176,Ranked 2025,PG176-L-ZI,#800080,#800080,L,rg,ng,adult,mens
+1069,PG176,Ranked 2025,PG176-L-LAN,#0000FF,#0000FF,L,rg,ng,adult,mens
+1074,PG176,Ranked 2025,PG176-L-BAI,#FFFFFF,#000000,L,rg,ng,adult,mens
+1062,PG175,PRG Core Tech Pants,PG175-XS,#000000,#000000,XS,tr,ap,adult,mens
+1063,PG175,PRG Core Tech Pants,PG175-S,#000000,#000000,S,tr,ap,adult,mens
+1064,PG175,PRG Core Tech Pants,PG175-M,#000000,#000000,M,tr,ap,adult,mens
+1065,PG175,PRG Core Tech Pants,PG175-L,#000000,#000000,L,tr,ap,adult,mens
+1058,PG174,PRG Core Tech Shorts,PG174-XS,#000000,#000000,XS,dk,ap,adult,mens
+1059,PG174,PRG Core Tech Shorts,PG174-S,#000000,#000000,S,dk,ap,adult,mens
+1060,PG174,PRG Core Tech Shorts,PG174-M,#000000,#000000,M,dk,ap,adult,mens
+1061,PG174,PRG Core Tech Shorts,PG174-L,#000000,#000000,L,dk,ap,adult,mens
+1054,PG173,PRG Core Tech Tee,PG173-XS,#000000,#000000,XS,te,ap,adult,mens
+1055,PG173,PRG Core Tech Tee,PG173-S,#000000,#000000,S,te,ap,adult,mens
+1056,PG173,PRG Core Tech Tee,PG173-M,#000000,#000000,M,te,ap,adult,mens
+1057,PG173,PRG Core Tech Tee,PG173-L,#000000,#000000,L,te,ap,adult,mens
+923,PG172,Psychedelic RG Kids,PG172-XS,#FFFFFF,#FFFFFF,XS,dk,ng,kids,mens
+927,PG172,Psychedelic RG Kids,PG172-XL,#FFFFFF,#FFFFFF,XL,dk,ng,kids,mens
+924,PG172,Psychedelic RG Kids,PG172-S,#FFFFFF,#FFFFFF,S,dk,ng,kids,mens
+925,PG172,Psychedelic RG Kids,PG172-M,#FFFFFF,#FFFFFF,M,dk,ng,kids,mens
+926,PG172,Psychedelic RG Kids,PG172-L,#FFFFFF,#FFFFFF,L,dk,ng,kids,mens
+918,PG171,Psychedelic RG Adult,PG171-XS,#FFFFFF,#FFFFFF,XS,rg,ng,adult,mens
+922,PG171,Psychedelic RG Adult,PG171-XL,#FFFFFF,#FFFFFF,XL,rg,ng,adult,mens
+919,PG171,Psychedelic RG Adult,PG171-S,#FFFFFF,#FFFFFF,S,rg,ng,adult,mens
+920,PG171,Psychedelic RG Adult,PG171-M,#FFFFFF,#FFFFFF,M,rg,ng,adult,mens
+921,PG171,Psychedelic RG Adult,PG171-L,#FFFFFF,#FFFFFF,L,rg,ng,adult,mens
+913,PG170,Academy DK Navy,PG170-XS,#0000FF,#FFFFFF,XS,dk,ng,adult,mens
+917,PG170,Academy DK Navy,PG170-XL,#0000FF,#FFFFFF,XL,dk,ng,adult,mens
+914,PG170,Academy DK Navy,PG170-S,#0000FF,#FFFFFF,S,dk,ng,adult,mens
+915,PG170,Academy DK Navy,PG170-M,#0000FF,#FFFFFF,M,dk,ng,adult,mens
+916,PG170,Academy DK Navy,PG170-L,#0000FF,#FFFFFF,L,dk,ng,adult,mens
+908,PG169,Academy RG L/S Navy,PG169-XS,#0000FF,#FFFFFF,XS,rg,ng,adult,mens
+912,PG169,Academy RG L/S Navy,PG169-XL,#0000FF,#FFFFFF,XL,rg,ng,adult,mens
+909,PG169,Academy RG L/S Navy,PG169-S,#0000FF,#FFFFFF,S,rg,ng,adult,mens
+910,PG169,Academy RG L/S Navy,PG169-M,#0000FF,#FFFFFF,M,rg,ng,adult,mens
+911,PG169,Academy RG L/S Navy,PG169-L,#0000FF,#FFFFFF,L,rg,ng,adult,mens
+903,PG168,Academy RG S/S Navy,PG168-XS,#0000FF,#FFFFFF,XS,rg,ng,adult,mens
+907,PG168,Academy RG S/S Navy,PG168-XL,#0000FF,#FFFFFF,XL,rg,ng,adult,mens
+904,PG168,Academy RG S/S Navy,PG168-S,#0000FF,#FFFFFF,S,rg,ng,adult,mens
+905,PG168,Academy RG S/S Navy,PG168-M,#0000FF,#FFFFFF,M,rg,ng,adult,mens
+906,PG168,Academy RG S/S Navy,PG168-L,#0000FF,#FFFFFF,L,rg,ng,adult,mens
+898,PG167,Sugar Skull 2.0 Kids RG,PG167-XS,#0000FF,#0000FF,XS,rg,ng,kids,mens
+902,PG167,Sugar Skull 2.0 Kids RG,PG167-XL,#0000FF,#0000FF,XL,rg,ng,kids,mens
+899,PG167,Sugar Skull 2.0 Kids RG,PG167-S,#0000FF,#0000FF,S,rg,ng,kids,mens
+900,PG167,Sugar Skull 2.0 Kids RG,PG167-M,#0000FF,#0000FF,M,rg,ng,kids,mens
+901,PG167,Sugar Skull 2.0 Kids RG,PG167-L,#0000FF,#0000FF,L,rg,ng,kids,mens
+897,PG166,Academy Kids Teal,PG166-M4,#0000FF,#FFFFFF,M4,gi,gi,kids,mens
+896,PG166,Academy Kids Teal,PG166-M3,#0000FF,#FFFFFF,M3,gi,gi,kids,mens
+895,PG166,Academy Kids Teal,PG166-M2,#0000FF,#FFFFFF,M2,gi,gi,kids,mens
+894,PG166,Academy Kids Teal,PG166-M1,#0000FF,#FFFFFF,M1,gi,gi,kids,mens
+893,PG166,Academy Kids Teal,PG166-M000,#0000FF,#FFFFFF,M000,gi,gi,kids,mens
+892,PG166,Academy Kids Teal,PG166-M00,#0000FF,#FFFFFF,M00,gi,gi,kids,mens
+891,PG166,Academy Kids Teal,PG166-M0,#0000FF,#FFFFFF,M0,gi,gi,kids,mens
+888,PG165,Zipper Jacket,PG165-S,#000000,#000000,S,jk,ap,adult,mens
+889,PG165,Zipper Jacket,PG165-M,#000000,#000000,M,jk,ap,adult,mens
+890,PG165,Zipper Jacket,PG165-L,#000000,#000000,L,jk,ap,adult,mens
+885,PG164,Panther Hoodie,PG164-S,#000000,#000000,S,ho,ap,adult,mens
+886,PG164,Panther Hoodie,PG164-M,#000000,#000000,M,ho,ap,adult,mens
+887,PG164,Panther Hoodie,PG164-L,#000000,#000000,L,ho,ap,adult,mens
+884,PG163,Panther Gi,PG163-F3,#FFFFFF,#FFFFFF,F3,gi,gi,adult,womens
+883,PG163,Panther Gi,PG163-F2,#FFFFFF,#FFFFFF,F2,gi,gi,adult,womens
+882,PG163,Panther Gi,PG163-F1,#FFFFFF,#FFFFFF,F1,gi,gi,adult,womens
+881,PG163,Panther Gi,PG163-A3,#FFFFFF,#FFFFFF,A3,gi,gi,adult,mens
+880,PG163,Panther Gi,PG163-A2L,#FFFFFF,#FFFFFF,A2L,gi,gi,adult,mens
+879,PG163,Panther Gi,PG163-A2,#FFFFFF,#FFFFFF,A2,gi,gi,adult,mens
+878,PG163,Panther Gi,PG163-A1L,#FFFFFF,#FFFFFF,A1L,gi,gi,adult,mens
+877,PG163,Panther Gi,PG163-A1,#FFFFFF,#FFFFFF,A1,gi,gi,adult,mens
+876,PG163,Panther Gi,PG163-A0,#FFFFFF,#FFFFFF,A0,gi,gi,adult,mens
+871,PG162,Panther RG,PG162-XS,#000000,#000000,XS,rg,ng,adult,mens
+875,PG162,Panther RG,PG162-XL,#000000,#000000,XL,rg,ng,adult,mens
+872,PG162,Panther RG,PG162-S,#000000,#000000,S,rg,ng,adult,mens
+873,PG162,Panther RG,PG162-M,#000000,#000000,M,rg,ng,adult,mens
+874,PG162,Panther RG,PG162-L,#000000,#000000,L,rg,ng,adult,mens
+868,PG161,Eagle Crew Neck,PG161-S,#000000,#000000,S,cn,ap,adult,mens
+869,PG161,Eagle Crew Neck,PG161-M,#000000,#000000,M,cn,ap,adult,mens
+870,PG161,Eagle Crew Neck,PG161-L,#000000,#000000,L,cn,ap,adult,mens
+863,PG160,Eagle RG,PG160-XS,#000000,#000000,XS,rg,ng,adult,mens
+867,PG160,Eagle RG,PG160-XL,#000000,#000000,XL,rg,ng,adult,mens
+864,PG160,Eagle RG,PG160-S,#000000,#000000,S,rg,ng,adult,mens
+865,PG160,Eagle RG,PG160-M,#000000,#000000,M,rg,ng,adult,mens
+866,PG160,Eagle RG,PG160-L,#000000,#000000,L,rg,ng,adult,mens
+862,PG159,Sugar Skull 2.0 Gi,PG159-F3,#0000FF,#0000FF,F3,gi,gi,adult,womens
+861,PG159,Sugar Skull 2.0 Gi,PG159-F2,#0000FF,#0000FF,F2,gi,gi,adult,womens
+860,PG159,Sugar Skull 2.0 Gi,PG159-F1,#0000FF,#0000FF,F1,gi,gi,adult,womens
+859,PG159,Sugar Skull 2.0 Gi,PG159-A3,#0000FF,#0000FF,A3,gi,gi,adult,mens
+858,PG159,Sugar Skull 2.0 Gi,PG159-A2L,#0000FF,#0000FF,A2L,gi,gi,adult,mens
+857,PG159,Sugar Skull 2.0 Gi,PG159-A2,#0000FF,#0000FF,A2,gi,gi,adult,mens
+856,PG159,Sugar Skull 2.0 Gi,PG159-A1L,#0000FF,#0000FF,A1L,gi,gi,adult,mens
+855,PG159,Sugar Skull 2.0 Gi,PG159-A1,#0000FF,#0000FF,A1,gi,gi,adult,mens
+854,PG159,Sugar Skull 2.0 Gi,PG159-A0,#0000FF,#0000FF,A0,gi,gi,adult,mens
+849,PG158,Sugar Skull 2.0 RG,PG158-XS,#0000FF,#0000FF,XS,rg,ng,adult,mens
+853,PG158,Sugar Skull 2.0 RG,PG158-XL,#0000FF,#0000FF,XL,rg,ng,adult,mens
+850,PG158,Sugar Skull 2.0 RG,PG158-S,#0000FF,#0000FF,S,rg,ng,adult,mens
+851,PG158,Sugar Skull 2.0 RG,PG158-M,#0000FF,#0000FF,M,rg,ng,adult,mens
+852,PG158,Sugar Skull 2.0 RG,PG158-L,#0000FF,#0000FF,L,rg,ng,adult,mens
+848,PG157,A+ Black/Maroon DK Men,PG157-XS,#000000,#000000,XS,dk,ng,adult,mens
+847,PG157,A+ Black/Maroon DK Men,PG157-XL,#000000,#000000,XL,dk,ng,adult,mens
+846,PG157,A+ Black/Maroon DK Men,PG157-S,#000000,#000000,S,dk,ng,adult,mens
+845,PG157,A+ Black/Maroon DK Men,PG157-M,#000000,#000000,M,dk,ng,adult,mens
+844,PG157,A+ Black/Maroon DK Men,PG157-L,#000000,#000000,L,dk,ng,adult,mens
+843,PG156,A+ Black/Maroon RG Men,PG156-XS,#000000,#000000,XS,rg,ng,adult,mens
+842,PG156,A+ Black/Maroon RG Men,PG156-XL,#000000,#000000,XL,rg,ng,adult,mens
+841,PG156,A+ Black/Maroon RG Men,PG156-S,#000000,#000000,S,rg,ng,adult,mens
+840,PG156,A+ Black/Maroon RG Men,PG156-M,#000000,#000000,M,rg,ng,adult,mens
+839,PG156,A+ Black/Maroon RG Men,PG156-L,#000000,#000000,L,rg,ng,adult,mens
+834,PG155,Academy Shorts Black,PG155-XS,#000000,#000000,XS,dk,ng,adult,mens
+838,PG155,Academy Shorts Black,PG155-XL,#000000,#000000,XL,dk,ng,adult,mens
+835,PG155,Academy Shorts Black,PG155-S,#000000,#000000,S,dk,ng,adult,mens
+836,PG155,Academy Shorts Black,PG155-M,#000000,#000000,M,dk,ng,adult,mens
+837,PG155,Academy Shorts Black,PG155-L,#000000,#000000,L,dk,ng,adult,mens
+831,PG154,Kids Spats Black,PG154-XS,#000000,#000000,XS,ck,ng,kids,mens
+833,PG154,Kids Spats Black,PG154-XL,#000000,#000000,XL,ck,ng,kids,mens
+830,PG154,Kids Spats Black,PG154-S,#000000,#000000,S,ck,ng,kids,mens
+829,PG154,Kids Spats Black,PG154-M,#000000,#000000,M,ck,ng,kids,mens
+832,PG154,Kids Spats Black,PG154-L,#000000,#000000,L,ck,ng,kids,mens
+828,PG153,A+ Maroon DK Men,PG153-XS,#FF0000,#FFFFFF,XS,dk,ng,adult,mens
+827,PG153,A+ Maroon DK Men,PG153-XL,#FF0000,#FFFFFF,XL,dk,ng,adult,mens
+826,PG153,A+ Maroon DK Men,PG153-S,#FF0000,#FFFFFF,S,dk,ng,adult,mens
+825,PG153,A+ Maroon DK Men,PG153-M,#FF0000,#FFFFFF,M,dk,ng,adult,mens
+824,PG153,A+ Maroon DK Men,PG153-L,#FF0000,#FFFFFF,L,dk,ng,adult,mens
+823,PG152,A+ Maroon RG Men,PG152-XS,#FF0000,#FFFFFF,XS,rg,ng,adult,mens
+822,PG152,A+ Maroon RG Men,PG152-XL,#FF0000,#FFFFFF,XL,rg,ng,adult,mens
+821,PG152,A+ Maroon RG Men,PG152-S,#FF0000,#FFFFFF,S,rg,ng,adult,mens
+820,PG152,A+ Maroon RG Men,PG152-M,#FF0000,#FFFFFF,M,rg,ng,adult,mens
+819,PG152,A+ Maroon RG Men,PG152-L,#FF0000,#FFFFFF,L,rg,ng,adult,mens
+818,PG151,PRG Crewneck Black,PG151-S,#000000,#000000,S,cn,ap,adult,mens
+817,PG151,PRG Crewneck Black,PG151-M,#000000,#000000,M,cn,ap,adult,mens
+816,PG151,PRG Crewneck Black,PG151-L,#000000,#000000,L,cn,ap,adult,mens
+815,PG150,Tech Tee Green,PG150-XS,#00FF00,#FFFFFF,XS,rg,ng,adult,mens
+814,PG150,Tech Tee Green,PG150-S,#00FF00,#FFFFFF,S,rg,ng,adult,mens
+813,PG150,Tech Tee Green,PG150-M,#00FF00,#FFFFFF,M,rg,ng,adult,mens
+812,PG150,Tech Tee Green,PG150-L,#00FF00,#FFFFFF,L,rg,ng,adult,mens
+811,PG149,Tech Tee Navy,PG149-XS,#0000FF,#FFFFFF,XS,rg,ng,adult,mens
+810,PG149,Tech Tee Navy,PG149-S,#0000FF,#FFFFFF,S,rg,ng,adult,mens
+809,PG149,Tech Tee Navy,PG149-M,#0000FF,#FFFFFF,M,rg,ng,adult,mens
+808,PG149,Tech Tee Navy,PG149-L,#0000FF,#FFFFFF,L,rg,ng,adult,mens
+807,PG148,Classico Green RG,PG148-XS,#00FF00,#FFFFFF,XS,rg,ng,adult,mens
+806,PG148,Classico Green RG,PG148-XL,#00FF00,#FFFFFF,XL,rg,ng,adult,mens
+805,PG148,Classico Green RG,PG148-S,#00FF00,#FFFFFF,S,rg,ng,adult,mens
+804,PG148,Classico Green RG,PG148-M,#00FF00,#FFFFFF,M,rg,ng,adult,mens
+803,PG148,Classico Green RG,PG148-L,#00FF00,#FFFFFF,L,rg,ng,adult,mens
+802,PG147,Flex Shorts Womens,PG147-XS,#000000,#000000,XS,dk,ng,adult,mens
+801,PG147,Flex Shorts Womens,PG147-S,#000000,#000000,S,dk,ng,adult,mens
+800,PG147,Flex Shorts Womens,PG147-M,#000000,#000000,M,dk,ng,adult,mens
+799,PG146,Flex Shorts Mens,PG146-XXL,#000000,#000000,XXL,dk,ng,adult,mens
+798,PG146,Flex Shorts Mens,PG146-XS,#000000,#000000,XS,dk,ng,adult,mens
+797,PG146,Flex Shorts Mens,PG146-XL,#000000,#000000,XL,dk,ng,adult,mens
+796,PG146,Flex Shorts Mens,PG146-S,#000000,#000000,S,dk,ng,adult,mens
+795,PG146,Flex Shorts Mens,PG146-M,#000000,#000000,M,dk,ng,adult,mens
+794,PG146,Flex Shorts Mens,PG146-L,#000000,#000000,L,dk,ng,adult,mens
+793,PG145,PRG Green Jogger,PG145-S,#00FF00,#FFFFFF,S,tr,ap,adult,mens
+792,PG145,PRG Green Jogger,PG145-M,#00FF00,#FFFFFF,M,tr,ap,adult,mens
+791,PG145,PRG Green Jogger,PG145-L,#00FF00,#FFFFFF,L,tr,ap,adult,mens
+790,PG144,PRG Green Hoodie,PG144-S,#00FF00,#FFFFFF,S,ho,ap,adult,mens
+789,PG144,PRG Green Hoodie,PG144-M,#00FF00,#FFFFFF,M,ho,ap,adult,mens
+788,PG144,PRG Green Hoodie,PG144-L,#00FF00,#FFFFFF,L,ho,ap,adult,mens
+787,PG143,PRG Black Jogger,PG143-S,#000000,#000000,S,tr,ap,adult,mens
+786,PG143,PRG Black Jogger,PG143-M,#000000,#000000,M,tr,ap,adult,mens
+785,PG143,PRG Black Jogger,PG143-L,#000000,#000000,L,tr,ap,adult,mens
+784,PG142,PRG Black Hoodie,PG142-S,#000000,#000000,S,ho,ap,adult,mens
+783,PG142,PRG Black Hoodie,PG142-M,#000000,#000000,M,ho,ap,adult,mens
+782,PG142,PRG Black Hoodie,PG142-L,#000000,#000000,L,ho,ap,adult,mens
+781,PG141,PRG Green Tee,PG141-S,#00FF00,#FFFFFF,S,te,ap,adult,mens
+780,PG141,PRG Green Tee,PG141-M,#00FF00,#FFFFFF,M,te,ap,adult,mens
+779,PG141,PRG Green Tee,PG141-L,#00FF00,#FFFFFF,L,te,ap,adult,mens
+778,PG140,PRG Black Tee,PG140-S,#000000,#000000,S,te,ap,adult,mens
+777,PG140,PRG Black Tee,PG140-M,#000000,#000000,M,te,ap,adult,mens
+776,PG140,PRG Black Tee,PG140-L,#000000,#000000,L,te,ap,adult,mens
+775,PG139,PRG White Tee,PG139-S,#FFFFFF,#FFFFFF,S,te,ap,adult,mens
+774,PG139,PRG White Tee,PG139-M,#FFFFFF,#FFFFFF,M,te,ap,adult,mens
+773,PG139,PRG White Tee,PG139-L,#FFFFFF,#FFFFFF,L,te,ap,adult,mens
+772,PG138,Kids Academy Black Shorts,PG138-XS,#000000,#000000,XS,dk,ng,kids,mens
+771,PG138,Kids Academy Black Shorts,PG138-S,#000000,#000000,S,dk,ng,kids,mens
+770,PG138,Kids Academy Black Shorts,PG138-M,#000000,#000000,M,dk,ng,kids,mens
+769,PG138,Kids Academy Black Shorts,PG138-L,#000000,#000000,L,dk,ng,kids,mens
+768,PG137,Kids Bengal RG,PG137-XS,#000000,#000000,XS,rg,ng,kids,mens
+767,PG137,Kids Bengal RG,PG137-S,#000000,#000000,S,rg,ng,kids,mens
+766,PG137,Kids Bengal RG,PG137-M,#000000,#000000,M,rg,ng,kids,mens
+765,PG137,Kids Bengal RG,PG137-L,#000000,#000000,L,rg,ng,kids,mens
+764,PG136,Rolling Tee Navy,PG136-XS,#0000FF,#FFFFFF,XS,rg,ng,adult,mens
+763,PG136,Rolling Tee Navy,PG136-XL,#0000FF,#FFFFFF,XL,rg,ng,adult,mens
+762,PG136,Rolling Tee Navy,PG136-S,#0000FF,#FFFFFF,S,rg,ng,adult,mens
+761,PG136,Rolling Tee Navy,PG136-M,#0000FF,#FFFFFF,M,rg,ng,adult,mens
+760,PG136,Rolling Tee Navy,PG136-L,#0000FF,#FFFFFF,L,rg,ng,adult,mens
+759,PG135,M6 Petroleum,PG135-F3,#0000FF,#FFFFFF,F3,gi,gi,adult,womens
+758,PG135,M6 Petroleum,PG135-F2,#0000FF,#FFFFFF,F2,gi,gi,adult,womens
+757,PG135,M6 Petroleum,PG135-F1,#0000FF,#FFFFFF,F1,gi,gi,adult,womens
+756,PG135,M6 Petroleum,PG135-A3,#0000FF,#FFFFFF,A3,gi,gi,adult,mens
+755,PG135,M6 Petroleum,PG135-A2L,#0000FF,#FFFFFF,A2L,gi,gi,adult,mens
+754,PG135,M6 Petroleum,PG135-A2,#0000FF,#FFFFFF,A2,gi,gi,adult,mens
+753,PG135,M6 Petroleum,PG135-A1L,#0000FF,#FFFFFF,A1L,gi,gi,adult,mens
+752,PG135,M6 Petroleum,PG135-A1,#0000FF,#FFFFFF,A1,gi,gi,adult,mens
+751,PG135,M6 Petroleum,PG135-A0,#0000FF,#FFFFFF,A0,gi,gi,adult,mens
+750,PG134,M6 Olive,PG134-F4,#00FF00,#FFFFFF,F4,gi,gi,adult,womens
+749,PG134,M6 Olive,PG134-F3,#00FF00,#FFFFFF,F3,gi,gi,adult,womens
+748,PG134,M6 Olive,PG134-F2,#00FF00,#FFFFFF,F2,gi,gi,adult,womens
+747,PG134,M6 Olive,PG134-F1,#00FF00,#FFFFFF,F1,gi,gi,adult,womens
+746,PG134,M6 Olive,PG134-A3,#00FF00,#FFFFFF,A3,gi,gi,adult,mens
+745,PG134,M6 Olive,PG134-A2L,#00FF00,#FFFFFF,A2L,gi,gi,adult,mens
+744,PG134,M6 Olive,PG134-A2,#00FF00,#FFFFFF,A2,gi,gi,adult,mens
+743,PG134,M6 Olive,PG134-A1L,#00FF00,#FFFFFF,A1L,gi,gi,adult,mens
+742,PG134,M6 Olive,PG134-A1,#00FF00,#FFFFFF,A1,gi,gi,adult,mens
+741,PG134,M6 Olive,PG134-A0,#00FF00,#FFFFFF,A0,gi,gi,adult,mens
+740,PG133,A+ Bone DK Women,PG133-XS,#FFFFFF,#FFFFFF,XS,dk,ng,adult,mens
+739,PG133,A+ Bone DK Women,PG133-S,#FFFFFF,#FFFFFF,S,dk,ng,adult,mens
+738,PG133,A+ Bone DK Women,PG133-M,#FFFFFF,#FFFFFF,M,dk,ng,adult,mens
+737,PG132,A+ Bone RG Women,PG132-XS,#FFFFFF,#FFFFFF,XS,rg,ng,adult,mens
+736,PG132,A+ Bone RG Women,PG132-S,#FFFFFF,#FFFFFF,S,rg,ng,adult,mens
+735,PG132,A+ Bone RG Women,PG132-M,#FFFFFF,#FFFFFF,M,rg,ng,adult,mens
+734,PG131,A+ Bone DK Men,PG131-XS,#FFFFFF,#FFFFFF,XS,dk,ng,adult,mens
+733,PG131,A+ Bone DK Men,PG131-XL,#FFFFFF,#FFFFFF,XL,dk,ng,adult,mens
+732,PG131,A+ Bone DK Men,PG131-S,#FFFFFF,#FFFFFF,S,dk,ng,adult,mens
+731,PG131,A+ Bone DK Men,PG131-M,#FFFFFF,#FFFFFF,M,dk,ng,adult,mens
+730,PG131,A+ Bone DK Men,PG131-L,#FFFFFF,#FFFFFF,L,dk,ng,adult,mens
+729,PG130,A+ Bone RG Men,PG130-XS,#FFFFFF,#FFFFFF,XS,rg,ng,adult,mens
+728,PG130,A+ Bone RG Men,PG130-XL,#FFFFFF,#FFFFFF,XL,rg,ng,adult,mens
+727,PG130,A+ Bone RG Men,PG130-S,#FFFFFF,#FFFFFF,S,rg,ng,adult,mens
+726,PG130,A+ Bone RG Men,PG130-M,#FFFFFF,#FFFFFF,M,rg,ng,adult,mens
+725,PG130,A+ Bone RG Men,PG130-L,#FFFFFF,#FFFFFF,L,rg,ng,adult,mens
+724,PG129,A+ Mint DK Women,PG129-XS,#00FF00,#FFFFFF,XS,dk,ng,adult,mens
+723,PG129,A+ Mint DK Women,PG129-S,#00FF00,#FFFFFF,S,dk,ng,adult,mens
+722,PG129,A+ Mint DK Women,PG129-M,#00FF00,#FFFFFF,M,dk,ng,adult,mens
+721,PG128,A+ Mint RG Women,PG128-XS,#00FF00,#FFFFFF,XS,rg,ng,adult,mens
+720,PG128,A+ Mint RG Women,PG128-S,#00FF00,#FFFFFF,S,rg,ng,adult,mens
+719,PG128,A+ Mint RG Women,PG128-M,#00FF00,#FFFFFF,M,rg,ng,adult,mens
+718,PG127,A+ Mint DK Men,PG127-XS,#00FF00,#FFFFFF,XS,dk,ng,adult,mens
+717,PG127,A+ Mint DK Men,PG127-XL,#00FF00,#FFFFFF,XL,dk,ng,adult,mens
+716,PG127,A+ Mint DK Men,PG127-S,#00FF00,#FFFFFF,S,dk,ng,adult,mens
+715,PG127,A+ Mint DK Men,PG127-M,#00FF00,#FFFFFF,M,dk,ng,adult,mens
+714,PG127,A+ Mint DK Men,PG127-L,#00FF00,#FFFFFF,L,dk,ng,adult,mens
+713,PG126,A+ Mint RG Men,PG126-XS,#00FF00,#FFFFFF,XS,rg,ng,adult,mens
+712,PG126,A+ Mint RG Men,PG126-XL,#00FF00,#FFFFFF,XL,rg,ng,adult,mens
+711,PG126,A+ Mint RG Men,PG126-S,#00FF00,#FFFFFF,S,rg,ng,adult,mens
+710,PG126,A+ Mint RG Men,PG126-M,#00FF00,#FFFFFF,M,rg,ng,adult,mens
+709,PG126,A+ Mint RG Men,PG126-L,#00FF00,#FFFFFF,L,rg,ng,adult,mens
+708,PG125,VASCO Black Shorts,PG125-XS,#000000,#000000,XS,dk,ng,adult,mens
+707,PG125,VASCO Black Shorts,PG125-XL,#000000,#000000,XL,dk,ng,adult,mens
+706,PG125,VASCO Black Shorts,PG125-S,#000000,#000000,S,dk,ng,adult,mens
+705,PG125,VASCO Black Shorts,PG125-M,#000000,#000000,M,dk,ng,adult,mens
+704,PG125,VASCO Black Shorts,PG125-L,#000000,#000000,L,dk,ng,adult,mens
+703,PG124,Academy White Board Shorts 2024,PG124-XS,#FFFFFF,#FFFFFF,XS,dk,ng,adult,mens
+702,PG124,Academy White Board Shorts 2024,PG124-XL,#FFFFFF,#FFFFFF,XL,dk,ng,adult,mens
+701,PG124,Academy White Board Shorts 2024,PG124-S,#FFFFFF,#FFFFFF,S,dk,ng,adult,mens
+700,PG124,Academy White Board Shorts 2024,PG124-M,#FFFFFF,#FFFFFF,M,dk,ng,adult,mens
+699,PG124,Academy White Board Shorts 2024,PG124-L,#FFFFFF,#FFFFFF,L,dk,ng,adult,mens
+698,PG123,Red Rashguard,PG123-XS,#FF0000,#FF0000,XS,rg,ng,adult,mens
+697,PG123,Red Rashguard,PG123-S,#FF0000,#FF0000,S,rg,ng,adult,mens
+696,PG123,Red Rashguard,PG123-M,#FF0000,#FF0000,M,rg,ng,adult,mens
+1053,PG122,Ffion Compression Spats,PG122-XS,#800080,#C8A2C8,XS,ck,ng,adult,mens
+1052,PG122,Ffion Compression Spats,PG122-S,#800080,#C8A2C8,S,ck,ng,adult,mens
+1051,PG122,Ffion Compression Spats,PG122-M,#800080,#C8A2C8,M,ck,ng,adult,mens
+1050,PG122,Ffion Compression Spats,PG122-L,#800080,#C8A2C8,L,ck,ng,adult,mens
+1049,PG121,Ffion Compression Shorts,PG121-XS,#800080,#C8A2C8,XS,dk,ng,adult,mens
+1048,PG121,Ffion Compression Shorts,PG121-S,#800080,#C8A2C8,S,dk,ng,adult,mens
+1047,PG121,Ffion Compression Shorts,PG121-M,#800080,#C8A2C8,M,dk,ng,adult,mens
+1046,PG121,Ffion Compression Shorts,PG121-L,#800080,#C8A2C8,L,dk,ng,adult,mens
+1045,PG120,Ffion Compression Bra,PG120-XS,#800080,#C8A2C8,XS,br,ng,adult,mens
+1044,PG120,Ffion Compression Bra,PG120-S,#800080,#C8A2C8,S,br,ng,adult,mens
+1043,PG120,Ffion Compression Bra,PG120-M,#800080,#C8A2C8,M,br,ng,adult,mens
+1042,PG120,Ffion Compression Bra,PG120-L,#800080,#C8A2C8,L,br,ng,adult,mens
+695,PG119,Kids RG White,PG119-XS,#FFFFFF,#FFFFFF,XS,rg,ng,kids,mens
+694,PG119,Kids RG White,PG119-XL,#FFFFFF,#FFFFFF,XL,rg,ng,kids,mens
+693,PG119,Kids RG White,PG119-S,#FFFFFF,#FFFFFF,S,rg,ng,kids,mens
+692,PG119,Kids RG White,PG119-M,#FFFFFF,#FFFFFF,M,rg,ng,kids,mens
+691,PG119,Kids RG White,PG119-L,#FFFFFF,#FFFFFF,L,rg,ng,kids,mens
+690,PG118,M6 Unbleached,PG118-F3,#FFFFFF,#FFFFFF,F3,gi,gi,adult,womens
+689,PG118,M6 Unbleached,PG118-F2,#FFFFFF,#FFFFFF,F2,gi,gi,adult,womens
+688,PG118,M6 Unbleached,PG118-F1,#FFFFFF,#FFFFFF,F1,gi,gi,adult,womens
+687,PG118,M6 Unbleached,PG118-A3,#FFFFFF,#FFFFFF,A3,gi,gi,adult,mens
+686,PG118,M6 Unbleached,PG118-A2L,#FFFFFF,#FFFFFF,A2L,gi,gi,adult,mens
+685,PG118,M6 Unbleached,PG118-A2,#FFFFFF,#FFFFFF,A2,gi,gi,adult,mens
+684,PG118,M6 Unbleached,PG118-A1L,#FFFFFF,#FFFFFF,A1L,gi,gi,adult,mens
+683,PG118,M6 Unbleached,PG118-A1,#FFFFFF,#FFFFFF,A1,gi,gi,adult,mens
+682,PG118,M6 Unbleached,PG118-A0,#FFFFFF,#FFFFFF,A0,gi,gi,adult,mens
+681,PG117,Dragon DK,PG117-XS,#000000,#000000,XS,dk,ng,adult,mens
+680,PG117,Dragon DK,PG117-XL,#000000,#000000,XL,dk,ng,adult,mens
+679,PG117,Dragon DK,PG117-S,#000000,#000000,S,dk,ng,adult,mens
+678,PG117,Dragon DK,PG117-M,#000000,#000000,M,dk,ng,adult,mens
+677,PG117,Dragon DK,PG117-L,#000000,#000000,L,dk,ng,adult,mens
+676,PG116,Dragon RG,PG116-XS,#000000,#000000,XS,rg,ng,adult,mens
+675,PG116,Dragon RG,PG116-XL,#000000,#000000,XL,rg,ng,adult,mens
+674,PG116,Dragon RG,PG116-S,#000000,#000000,S,rg,ng,adult,mens
+673,PG116,Dragon RG,PG116-M,#000000,#000000,M,rg,ng,adult,mens
+672,PG116,Dragon RG,PG116-L,#000000,#000000,L,rg,ng,adult,mens
+1041,PG115,Jungle Camo DK,PG115-XS,#FFFFFF,#FFFFFF,XS,dk,ng,adult,mens
+1040,PG115,Jungle Camo DK,PG115-XL,#FFFFFF,#FFFFFF,XL,dk,ng,adult,mens
+1039,PG115,Jungle Camo DK,PG115-S,#FFFFFF,#FFFFFF,S,dk,ng,adult,mens
+1038,PG115,Jungle Camo DK,PG115-M,#FFFFFF,#FFFFFF,M,dk,ng,adult,mens
+1037,PG115,Jungle Camo DK,PG115-L,#FFFFFF,#FFFFFF,L,dk,ng,adult,mens
+1036,PG114,Jungle Camo RG,PG114-XS,#FFFFFF,#FFFFFF,XS,rg,ng,adult,mens
+1035,PG114,Jungle Camo RG,PG114-XL,#FFFFFF,#FFFFFF,XL,rg,ng,adult,mens
+1034,PG114,Jungle Camo RG,PG114-S,#FFFFFF,#FFFFFF,S,rg,ng,adult,mens
+1033,PG114,Jungle Camo RG,PG114-M,#FFFFFF,#FFFFFF,M,rg,ng,adult,mens
+1032,PG114,Jungle Camo RG,PG114-L,#FFFFFF,#FFFFFF,L,rg,ng,adult,mens
+671,PG113,Classico DK,PG113-XS,#000000,#000000,XS,dk,ng,adult,mens
+670,PG113,Classico DK,PG113-XL,#000000,#000000,XL,dk,ng,adult,mens
+669,PG113,Classico DK,PG113-S,#000000,#000000,S,dk,ng,adult,mens
+668,PG113,Classico DK,PG113-M,#000000,#000000,M,dk,ng,adult,mens
+667,PG113,Classico DK,PG113-L,#000000,#000000,L,dk,ng,adult,mens
+666,PG112,Classico RG,PG112-XS,#000000,#000000,XS,rg,ng,adult,mens
+665,PG112,Classico RG,PG112-XL,#000000,#000000,XL,rg,ng,adult,mens
+664,PG112,Classico RG,PG112-S,#000000,#000000,S,rg,ng,adult,mens
+663,PG112,Classico RG,PG112-M,#000000,#000000,M,rg,ng,adult,mens
+662,PG112,Classico RG,PG112-L,#000000,#000000,L,rg,ng,adult,mens
+1031,PG111,Sugar Skull DK Women,PG111-XS,#FFFFFF,#FFFFFF,XS,dk,ng,adult,womens
+1030,PG111,Sugar Skull DK Women,PG111-S,#FFFFFF,#FFFFFF,S,dk,ng,adult,womens
+1029,PG111,Sugar Skull DK Women,PG111-M,#FFFFFF,#FFFFFF,M,dk,ng,adult,womens
+661,PG110,Sugar Skull RG Women,PG110-XS,#000000,#000000,XS,rg,ng,adult,womens
+660,PG110,Sugar Skull RG Women,PG110-S,#000000,#000000,S,rg,ng,adult,womens
+659,PG110,Sugar Skull RG Women,PG110-M,#000000,#000000,M,rg,ng,adult,womens
+658,PG109,Sugar Skull DK Men,PG109-XS,#000000,#000000,XS,dk,ng,adult,mens
+657,PG109,Sugar Skull DK Men,PG109-XL,#000000,#000000,XL,dk,ng,adult,mens
+656,PG109,Sugar Skull DK Men,PG109-S,#000000,#000000,S,dk,ng,adult,mens
+655,PG109,Sugar Skull DK Men,PG109-M,#000000,#000000,M,dk,ng,adult,mens
+654,PG109,Sugar Skull DK Men,PG109-L,#000000,#000000,L,dk,ng,adult,mens
+1028,PG108,Sugar Skull Men,PG108-XS,#FFFFFF,#FFFFFF,XS,rg,ng,adult,mens
+1027,PG108,Sugar Skull Men,PG108-XL,#FFFFFF,#FFFFFF,XL,rg,ng,adult,mens
+1026,PG108,Sugar Skull Men,PG108-S,#FFFFFF,#FFFFFF,S,rg,ng,adult,mens
+1025,PG108,Sugar Skull Men,PG108-M,#FFFFFF,#FFFFFF,M,rg,ng,adult,mens
+1024,PG108,Sugar Skull Men,PG108-L,#FFFFFF,#FFFFFF,L,rg,ng,adult,mens
+650,PG107,Progressinho,PG107-M4-HEI,#000000,#000000,M4,gi,gi,kids,mens
+653,PG107,Progressinho,PG107-M4-BAI,#FFFFFF,#FFFFFF,M4,gi,gi,kids,mens
+649,PG107,Progressinho,PG107-M3-HEI,#000000,#000000,M3,gi,gi,kids,mens
+652,PG107,Progressinho,PG107-M3-BAI,#FFFFFF,#FFFFFF,M3,gi,gi,kids,mens
+648,PG107,Progressinho,PG107-M2-HEI,#000000,#000000,M2,gi,gi,kids,mens
+651,PG107,Progressinho,PG107-M2-BAI,#FFFFFF,#FFFFFF,M2,gi,gi,kids,mens
+647,PG107,Progressinho,PG107-M1-HEI,#000000,#000000,M1,gi,gi,kids,mens
+646,PG107,Progressinho,PG107-M000-HEI,#000000,#000000,M000,gi,gi,kids,mens
+645,PG107,Progressinho,PG107-M00-HEI,#000000,#000000,M00,gi,gi,kids,mens
+644,PG107,Progressinho,PG107-M0-HEI,#000000,#000000,M0,gi,gi,kids,mens
+643,PG106,Kit Bag,PG106,#000000,#000000,,bg,,adult,mens
+633,PG105,Featherlight 2.0,PG105-F3-LAN,#0000FF,#0000FF,F3,gi,gi,adult,mens
+625,PG105,Featherlight 2.0,PG105-F3-HEI,#000000,#000000,F3,gi,gi,adult,mens
+642,PG105,Featherlight 2.0,PG105-F3-BAI,#FFFFFF,#FFFFFF,F3,gi,gi,adult,mens
+632,PG105,Featherlight 2.0,PG105-F2-LAN,#0000FF,#0000FF,F2,gi,gi,adult,mens
+624,PG105,Featherlight 2.0,PG105-F2-HEI,#000000,#000000,F2,gi,gi,adult,mens
+641,PG105,Featherlight 2.0,PG105-F2-BAI,#FFFFFF,#FFFFFF,F2,gi,gi,adult,mens
+631,PG105,Featherlight 2.0,PG105-F1-LAN,#0000FF,#0000FF,F1,gi,gi,adult,mens
+623,PG105,Featherlight 2.0,PG105-F1-HEI,#000000,#000000,F1,gi,gi,adult,mens
+640,PG105,Featherlight 2.0,PG105-F1-BAI,#FFFFFF,#FFFFFF,F1,gi,gi,adult,mens
+1139,PG105,Featherlight 2.0,PG105-A3-LAN,#0000FF,,A3,gi,gi,adult,male
+622,PG105,Featherlight 2.0,PG105-A3-HEI,#000000,#000000,A3,gi,gi,adult,mens
+639,PG105,Featherlight 2.0,PG105-A3-BAI,#FFFFFF,#FFFFFF,A3,gi,gi,adult,mens
+630,PG105,Featherlight 2.0,PG105-A2L-LAN,#0000FF,#0000FF,A2L,gi,gi,adult,mens
+621,PG105,Featherlight 2.0,PG105-A2L-HEI,#000000,#000000,A2L,gi,gi,adult,mens
+638,PG105,Featherlight 2.0,PG105-A2L-BAI,#FFFFFF,#FFFFFF,A2L,gi,gi,adult,mens
+629,PG105,Featherlight 2.0,PG105-A2-LAN,#0000FF,#0000FF,A2,gi,gi,adult,mens
+620,PG105,Featherlight 2.0,PG105-A2-HEI,#000000,#000000,A2,gi,gi,adult,mens
+637,PG105,Featherlight 2.0,PG105-A2-BAI,#FFFFFF,#FFFFFF,A2,gi,gi,adult,mens
+628,PG105,Featherlight 2.0,PG105-A1L-LAN,#0000FF,#0000FF,A1L,gi,gi,adult,mens
+619,PG105,Featherlight 2.0,PG105-A1L-HEI,#000000,#000000,A1L,gi,gi,adult,mens
+636,PG105,Featherlight 2.0,PG105-A1L-BAI,#FFFFFF,#FFFFFF,A1L,gi,gi,adult,mens
+627,PG105,Featherlight 2.0,PG105-A1-LAN,#0000FF,#0000FF,A1,gi,gi,adult,mens
+618,PG105,Featherlight 2.0,PG105-A1-HEI,#000000,#000000,A1,gi,gi,adult,mens
+635,PG105,Featherlight 2.0,PG105-A1-BAI,#FFFFFF,#FFFFFF,A1,gi,gi,adult,mens
+626,PG105,Featherlight 2.0,PG105-A0-LAN,#0000FF,#0000FF,A0,gi,gi,adult,mens
+617,PG105,Featherlight 2.0,PG105-A0-HEI,#000000,#000000,A0,gi,gi,adult,mens
+634,PG105,Featherlight 2.0,PG105-A0-BAI,#FFFFFF,#FFFFFF,A0,gi,gi,adult,mens
+616,PG104,Womens Compression Bra,PG104-XS,#000000,#000000,XS,br,ng,adult,womens
+615,PG104,Womens Compression Bra,PG104-S,#000000,#000000,S,br,ng,adult,womens
+614,PG104,Womens Compression Bra,PG104-M,#000000,#000000,M,br,ng,adult,womens
+613,PG104,Womens Compression Bra,PG104-L,#000000,#000000,L,br,ng,adult,womens
+612,PG103,Womens Compression Spats,PG103-XS,#000000,#000000,XS,ck,ng,adult,womens
+611,PG103,Womens Compression Spats,PG103-S,#000000,#000000,S,ck,ng,adult,womens
+610,PG103,Womens Compression Spats,PG103-M,#000000,#000000,M,ck,ng,adult,womens
+609,PG103,Womens Compression Spats,PG103-L,#000000,#000000,L,ck,ng,adult,womens
+608,PG102,Womens Compression Shorts,PG102-XS,#000000,#000000,XS,dk,ng,adult,womens
+607,PG102,Womens Compression Shorts,PG102-S,#000000,#000000,S,dk,ng,adult,womens
+606,PG102,Womens Compression Shorts,PG102-M,#000000,#000000,M,dk,ng,adult,womens
+605,PG102,Womens Compression Shorts,PG102-L,#000000,#000000,L,dk,ng,adult,womens
+604,PG101,A+ Black Womens DK,PG101-XS,#000000,#000000,XS,dk,ng,adult,womens
+603,PG101,A+ Black Womens DK,PG101-S,#000000,#000000,S,dk,ng,adult,womens
+602,PG101,A+ Black Womens DK,PG101-M,#000000,#000000,M,dk,ng,adult,womens
+601,PG100,A+ Black Womens RG,PG100-XS,#000000,#000000,XS,rg,ng,adult,womens
+600,PG100,A+ Black Womens RG,PG100-S,#000000,#000000,S,rg,ng,adult,womens
+599,PG100,A+ Black Womens RG,PG100-M,#000000,#000000,M,rg,ng,adult,womens
+598,PG099,Academy RG L/S White,PG099-XS,#FFFFFF,#FFFFFF,XS,rg,ng,adult,mens
+597,PG099,Academy RG L/S White,PG099-XL,#FFFFFF,#FFFFFF,XL,rg,ng,adult,mens
+596,PG099,Academy RG L/S White,PG099-S,#FFFFFF,#FFFFFF,S,rg,ng,adult,mens
+595,PG099,Academy RG L/S White,PG099-M,#FFFFFF,#FFFFFF,M,rg,ng,adult,mens
+594,PG099,Academy RG L/S White,PG099-L,#FFFFFF,#FFFFFF,L,rg,ng,adult,mens
+593,PG098,Bengal Black Gi,PG098-F3,#000000,#000000,F3,gi,gi,adult,womens
+592,PG098,Bengal Black Gi,PG098-F2,#000000,#000000,F2,gi,gi,adult,womens
+591,PG098,Bengal Black Gi,PG098-F1,#000000,#000000,F1,gi,gi,adult,womens
+590,PG098,Bengal Black Gi,PG098-A3,#000000,#000000,A3,gi,gi,adult,mens
+589,PG098,Bengal Black Gi,PG098-A2L,#000000,#000000,A2L,gi,gi,adult,mens
+588,PG098,Bengal Black Gi,PG098-A2,#000000,#000000,A2,gi,gi,adult,mens
+587,PG098,Bengal Black Gi,PG098-A1L,#000000,#000000,A1L,gi,gi,adult,mens
+586,PG098,Bengal Black Gi,PG098-A1,#000000,#000000,A1,gi,gi,adult,mens
+585,PG098,Bengal Black Gi,PG098-A0,#000000,#000000,A0,gi,gi,adult,mens
+584,PG097,NPND DK,PG097-XS,#000000,#000000,XS,dk,ng,adult,mens
+583,PG097,NPND DK,PG097-XL,#000000,#000000,XL,dk,ng,adult,mens
+582,PG097,NPND DK,PG097-S,#000000,#000000,S,dk,ng,adult,mens
+581,PG097,NPND DK,PG097-M,#000000,#000000,M,dk,ng,adult,mens
+580,PG097,NPND DK,PG097-L,#000000,#000000,L,dk,ng,adult,mens
+579,PG096,NPND RG,PG096-XS,#000000,#000000,XS,rg,ng,adult,mens
+578,PG096,NPND RG,PG096-XL,#000000,#000000,XL,rg,ng,adult,mens
+577,PG096,NPND RG,PG096-S,#000000,#000000,S,rg,ng,adult,mens
+576,PG096,NPND RG,PG096-M,#000000,#000000,M,rg,ng,adult,mens
+575,PG096,NPND RG,PG096-L,#000000,#000000,L,rg,ng,adult,mens
+574,PG095,NPND GI,PG095-F2,#000000,#000000,F2,gi,gi,adult,womens
+573,PG095,NPND GI,PG095-F1,#000000,#000000,F1,gi,gi,adult,womens
+572,PG095,NPND GI,PG095-A2L,#000000,#000000,A2L,gi,gi,adult,mens
+571,PG095,NPND GI,PG095-A2,#000000,#000000,A2,gi,gi,adult,mens
+570,PG095,NPND GI,PG095-A1L,#000000,#000000,A1L,gi,gi,adult,mens
+569,PG095,NPND GI,PG095-A1,#000000,#000000,A1,gi,gi,adult,mens
+568,PG095,NPND GI,PG095-A0,#000000,#000000,A0,gi,gi,adult,mens
+567,PG094,Academy+ Yellow-Navy DK,PG094-XS,#FFFF00,#FFFF00,XS,dk,ng,adult,mens
+566,PG094,Academy+ Yellow-Navy DK,PG094-XL,#FFFF00,#FFFF00,XL,dk,ng,adult,mens
+565,PG094,Academy+ Yellow-Navy DK,PG094-S,#FFFF00,#FFFF00,S,dk,ng,adult,mens
+564,PG094,Academy+ Yellow-Navy DK,PG094-M,#FFFF00,#FFFF00,M,dk,ng,adult,mens
+563,PG094,Academy+ Yellow-Navy DK,PG094-L,#FFFF00,#FFFF00,L,dk,ng,adult,mens
+562,PG093,Academy+ Yellow-Navy RG,PG093-XS,#FFFF00,#FFFF00,XS,rg,ng,adult,mens
+561,PG093,Academy+ Yellow-Navy RG,PG093-XL,#FFFF00,#FFFF00,XL,rg,ng,adult,mens
+560,PG093,Academy+ Yellow-Navy RG,PG093-S,#FFFF00,#FFFF00,S,rg,ng,adult,mens
+559,PG093,Academy+ Yellow-Navy RG,PG093-M,#FFFF00,#FFFF00,M,rg,ng,adult,mens
+558,PG093,Academy+ Yellow-Navy RG,PG093-L,#FFFF00,#FFFF00,L,rg,ng,adult,mens
+557,PG092,Academy+ Navy-Yellow DK,PG092-XS,#0000FF,#FFFFFF,XS,dk,ng,adult,mens
+556,PG092,Academy+ Navy-Yellow DK,PG092-XL,#0000FF,#FFFFFF,XL,dk,ng,adult,mens
+555,PG092,Academy+ Navy-Yellow DK,PG092-S,#0000FF,#FFFFFF,S,dk,ng,adult,mens
+554,PG092,Academy+ Navy-Yellow DK,PG092-M,#0000FF,#FFFFFF,M,dk,ng,adult,mens
+553,PG092,Academy+ Navy-Yellow DK,PG092-L,#0000FF,#FFFFFF,L,dk,ng,adult,mens
+552,PG091,Academy+ Navy-Yellow RG,PG091-XS,#0000FF,#FFFFFF,XS,rg,ng,adult,mens
+551,PG091,Academy+ Navy-Yellow RG,PG091-XL,#0000FF,#FFFFFF,XL,rg,ng,adult,mens
+550,PG091,Academy+ Navy-Yellow RG,PG091-S,#0000FF,#FFFFFF,S,rg,ng,adult,mens
+549,PG091,Academy+ Navy-Yellow RG,PG091-M,#0000FF,#FFFFFF,M,rg,ng,adult,mens
+548,PG091,Academy+ Navy-Yellow RG,PG091-L,#0000FF,#FFFFFF,L,rg,ng,adult,mens
+547,PG090,Academy + Grey,PG090-F3,#808080,#808080,F3,gi,gi,adult,womens
+546,PG090,Academy + Grey,PG090-F2,#808080,#808080,F2,gi,gi,adult,womens
+545,PG090,Academy + Grey,PG090-F1,#808080,#808080,F1,gi,gi,adult,womens
+544,PG090,Academy + Grey,PG090-A3,#808080,#808080,A3,gi,gi,adult,mens
+543,PG090,Academy + Grey,PG090-A2L,#808080,#808080,A2L,gi,gi,adult,mens
+542,PG090,Academy + Grey,PG090-A2,#808080,#808080,A2,gi,gi,adult,mens
+541,PG090,Academy + Grey,PG090-A1L,#808080,#808080,A1L,gi,gi,adult,mens
+540,PG090,Academy + Grey,PG090-A1,#808080,#808080,A1,gi,gi,adult,mens
+539,PG090,Academy + Grey,PG090-A0,#808080,#808080,A0,gi,gi,adult,mens
+538,PG089,Academy + Army Green,PG089-F3,#00FF00,#FFFFFF,F3,gi,gi,adult,womens
+537,PG089,Academy + Army Green,PG089-F2,#00FF00,#FFFFFF,F2,gi,gi,adult,womens
+536,PG089,Academy + Army Green,PG089-F1,#00FF00,#FFFFFF,F1,gi,gi,adult,womens
+535,PG089,Academy + Army Green,PG089-A3,#00FF00,#FFFFFF,A3,gi,gi,adult,mens
+534,PG089,Academy + Army Green,PG089-A2L,#00FF00,#FFFFFF,A2L,gi,gi,adult,mens
+533,PG089,Academy + Army Green,PG089-A2,#00FF00,#FFFFFF,A2,gi,gi,adult,mens
+532,PG089,Academy + Army Green,PG089-A1L,#00FF00,#FFFFFF,A1L,gi,gi,adult,mens
+531,PG089,Academy + Army Green,PG089-A1,#00FF00,#FFFFFF,A1,gi,gi,adult,mens
+530,PG089,Academy + Army Green,PG089-A0,#00FF00,#FFFFFF,A0,gi,gi,adult,mens
+1023,PG088,M6 Peach,PG088-F3,#FFFFFF,#FFFFFF,F3,gi,gi,adult,womens
+1022,PG088,M6 Peach,PG088-F2,#FFFFFF,#FFFFFF,F2,gi,gi,adult,womens
+1021,PG088,M6 Peach,PG088-F1,#FFFFFF,#FFFFFF,F1,gi,gi,adult,womens
+1020,PG088,M6 Peach,PG088-A2L,#FFFFFF,#FFFFFF,A2L,gi,gi,adult,mens
+1019,PG088,M6 Peach,PG088-A2,#FFFFFF,#FFFFFF,A2,gi,gi,adult,mens
+1018,PG088,M6 Peach,PG088-A1L,#FFFFFF,#FFFFFF,A1L,gi,gi,adult,mens
+1017,PG088,M6 Peach,PG088-A1,#FFFFFF,#FFFFFF,A1,gi,gi,adult,mens
+1016,PG088,M6 Peach,PG088-A0,#FFFFFF,#FFFFFF,A0,gi,gi,adult,mens
+529,PG087,M6 White,PG087-F3,#FFFFFF,#FFFFFF,F3,gi,gi,adult,womens
+528,PG087,M6 White,PG087-F2,#FFFFFF,#FFFFFF,F2,gi,gi,adult,womens
+527,PG087,M6 White,PG087-F1,#FFFFFF,#FFFFFF,F1,gi,gi,adult,womens
+526,PG087,M6 White,PG087-A3,#FFFFFF,#FFFFFF,A3,gi,gi,adult,mens
+525,PG087,M6 White,PG087-A2L,#FFFFFF,#FFFFFF,A2L,gi,gi,adult,mens
+524,PG087,M6 White,PG087-A2,#FFFFFF,#FFFFFF,A2,gi,gi,adult,mens
+523,PG087,M6 White,PG087-A1L,#FFFFFF,#FFFFFF,A1L,gi,gi,adult,mens
+522,PG087,M6 White,PG087-A1,#FFFFFF,#FFFFFF,A1,gi,gi,adult,mens
+521,PG087,M6 White,PG087-A0,#FFFFFF,#FFFFFF,A0,gi,gi,adult,mens
+520,PG086,M6 Black,PG086-F3,#000000,#000000,F3,gi,gi,adult,womens
+519,PG086,M6 Black,PG086-F2,#000000,#000000,F2,gi,gi,adult,womens
+518,PG086,M6 Black,PG086-F1,#000000,#000000,F1,gi,gi,adult,womens
+517,PG086,M6 Black,PG086-A3,#000000,#000000,A3,gi,gi,adult,mens
+516,PG086,M6 Black,PG086-A2L,#000000,#000000,A2L,gi,gi,adult,mens
+515,PG086,M6 Black,PG086-A2,#000000,#000000,A2,gi,gi,adult,mens
+514,PG086,M6 Black,PG086-A1L,#000000,#000000,A1L,gi,gi,adult,mens
+513,PG086,M6 Black,PG086-A1,#000000,#000000,A1,gi,gi,adult,mens
+512,PG086,M6 Black,PG086-A0,#000000,#000000,A0,gi,gi,adult,mens
+511,PG085,NSNP 2.0 Tee,PG085-XS,#FFFFFF,#FFFFFF,XS,te,ng,adult,mens
+510,PG085,NSNP 2.0 Tee,PG085-XL,#FFFFFF,#FFFFFF,XL,te,ng,adult,mens
+509,PG085,NSNP 2.0 Tee,PG085-S,#FFFFFF,#FFFFFF,S,te,ng,adult,mens
+508,PG085,NSNP 2.0 Tee,PG085-M,#FFFFFF,#FFFFFF,M,te,ng,adult,mens
+507,PG085,NSNP 2.0 Tee,PG085-L,#FFFFFF,#FFFFFF,L,te,ng,adult,mens
+506,PG084,Tech Tee Aqua,PG084-XS,#0000FF,#FFFFFF,XS,rg,ng,adult,mens
+505,PG084,Tech Tee Aqua,PG084-XL,#0000FF,#FFFFFF,XL,rg,ng,adult,mens
+504,PG084,Tech Tee Aqua,PG084-S,#0000FF,#FFFFFF,S,rg,ng,adult,mens
+503,PG084,Tech Tee Aqua,PG084-M,#0000FF,#FFFFFF,M,rg,ng,adult,mens
+502,PG084,Tech Tee Aqua,PG084-L,#0000FF,#FFFFFF,L,rg,ng,adult,mens
+1015,PG083,Tech Tee Camo,PG083-XS,#FFFFFF,#FFFFFF,XS,rg,ng,adult,mens
+1014,PG083,Tech Tee Camo,PG083-XL,#FFFFFF,#FFFFFF,XL,rg,ng,adult,mens
+1013,PG083,Tech Tee Camo,PG083-S,#FFFFFF,#FFFFFF,S,rg,ng,adult,mens
+1012,PG083,Tech Tee Camo,PG083-M,#FFFFFF,#FFFFFF,M,rg,ng,adult,mens
+1011,PG083,Tech Tee Camo,PG083-L,#FFFFFF,#FFFFFF,L,rg,ng,adult,mens
+501,PG082,Profile Red DK,PG082-XS,#FF0000,#FF0000,XS,dk,ng,adult,mens
+500,PG082,Profile Red DK,PG082-S,#FF0000,#FF0000,S,dk,ng,adult,mens
+499,PG082,Profile Red DK,PG082-M,#FF0000,#FF0000,M,dk,ng,adult,mens
+498,PG082,Profile Red DK,PG082-L,#FF0000,#FF0000,L,dk,ng,adult,mens
+497,PG081,Profile Red RG,PG081-XS,#FF0000,#FF0000,XS,rg,ng,adult,mens
+496,PG081,Profile Red RG,PG081-XL,#FF0000,#FF0000,XL,rg,ng,adult,mens
+495,PG081,Profile Red RG,PG081-S,#FF0000,#FF0000,S,rg,ng,adult,mens
+494,PG081,Profile Red RG,PG081-M,#FF0000,#FF0000,M,rg,ng,adult,mens
+493,PG081,Profile Red RG,PG081-L,#FF0000,#FF0000,L,rg,ng,adult,mens
+492,PG080,Wave DK,PG080-XS,#000000,#000000,XS,dk,ng,adult,mens
+491,PG080,Wave DK,PG080-XL,#000000,#000000,XL,dk,ng,adult,mens
+490,PG080,Wave DK,PG080-S,#000000,#000000,S,dk,ng,adult,mens
+489,PG080,Wave DK,PG080-M,#000000,#000000,M,dk,ng,adult,mens
+488,PG080,Wave DK,PG080-L,#000000,#000000,L,dk,ng,adult,mens
+487,PG079,Wave RG,PG079-XS,#000000,#000000,XS,rg,ng,adult,mens
+486,PG079,Wave RG,PG079-XL,#000000,#000000,XL,rg,ng,adult,mens
+485,PG079,Wave RG,PG079-S,#000000,#000000,S,rg,ng,adult,mens
+484,PG079,Wave RG,PG079-M,#000000,#000000,M,rg,ng,adult,mens
+483,PG079,Wave RG,PG079-L,#000000,#000000,L,rg,ng,adult,mens
+482,PG078,Wave Gi,PG078-F4,#FFFFFF,#FFFFFF,F4,gi,gi,adult,womens
+481,PG078,Wave Gi,PG078-F3,#FFFFFF,#FFFFFF,F3,gi,gi,adult,womens
+480,PG078,Wave Gi,PG078-F2,#FFFFFF,#FFFFFF,F2,gi,gi,adult,womens
+479,PG078,Wave Gi,PG078-F1,#FFFFFF,#FFFFFF,F1,gi,gi,adult,womens
+478,PG078,Wave Gi,PG078-A3,#FFFFFF,#FFFFFF,A3,gi,gi,adult,mens
+477,PG078,Wave Gi,PG078-A2L,#FFFFFF,#FFFFFF,A2L,gi,gi,adult,mens
+476,PG078,Wave Gi,PG078-A2,#FFFFFF,#FFFFFF,A2,gi,gi,adult,mens
+475,PG078,Wave Gi,PG078-A1L,#FFFFFF,#FFFFFF,A1L,gi,gi,adult,mens
+474,PG078,Wave Gi,PG078-A1,#FFFFFF,#FFFFFF,A1,gi,gi,adult,mens
+473,PG078,Wave Gi,PG078-A0,#FFFFFF,#FFFFFF,A0,gi,gi,adult,mens
+472,PG077,Stork DK,PG077-XS,#000000,#000000,XS,dk,ng,adult,mens
+471,PG077,Stork DK,PG077-XL,#000000,#000000,XL,dk,ng,adult,mens
+470,PG077,Stork DK,PG077-S,#000000,#000000,S,dk,ng,adult,mens
+469,PG077,Stork DK,PG077-M,#000000,#000000,M,dk,ng,adult,mens
+468,PG077,Stork DK,PG077-L,#000000,#000000,L,dk,ng,adult,mens
+467,PG076,Stork RG,PG076-XS,#000000,#000000,XS,rg,ng,adult,mens
+466,PG076,Stork RG,PG076-XL,#000000,#000000,XL,rg,ng,adult,mens
+465,PG076,Stork RG,PG076-S,#000000,#000000,S,rg,ng,adult,mens
+464,PG076,Stork RG,PG076-M,#000000,#000000,M,rg,ng,adult,mens
+463,PG076,Stork RG,PG076-L,#000000,#000000,L,rg,ng,adult,mens
+462,PG075,Koi DK,PG075-XS,#000000,#000000,XS,dk,ng,adult,mens
+461,PG075,Koi DK,PG075-XL,#000000,#000000,XL,dk,ng,adult,mens
+460,PG075,Koi DK,PG075-S,#000000,#000000,S,dk,ng,adult,mens
+459,PG075,Koi DK,PG075-M,#000000,#000000,M,dk,ng,adult,mens
+458,PG075,Koi DK,PG075-L,#000000,#000000,L,dk,ng,adult,mens
+457,PG074,Koi RG,PG074-XS,#000000,#000000,XS,rg,ng,adult,mens
+456,PG074,Koi RG,PG074-XL,#000000,#000000,XL,rg,ng,adult,mens
+455,PG074,Koi RG,PG074-S,#000000,#000000,S,rg,ng,adult,mens
+454,PG074,Koi RG,PG074-M,#000000,#000000,M,rg,ng,adult,mens
+453,PG074,Koi RG,PG074-L,#000000,#000000,L,rg,ng,adult,mens
+452,PG073,Koi Gi,PG073-F3,#0000FF,#FFFFFF,F3,gi,gi,adult,womens
+451,PG073,Koi Gi,PG073-F2,#0000FF,#FFFFFF,F2,gi,gi,adult,womens
+450,PG073,Koi Gi,PG073-F1,#0000FF,#FFFFFF,F1,gi,gi,adult,womens
+449,PG073,Koi Gi,PG073-A3,#0000FF,#FFFFFF,A3,gi,gi,adult,mens
+448,PG073,Koi Gi,PG073-A2L,#0000FF,#FFFFFF,A2L,gi,gi,adult,mens
+447,PG073,Koi Gi,PG073-A2,#0000FF,#FFFFFF,A2,gi,gi,adult,mens
+446,PG073,Koi Gi,PG073-A1L,#0000FF,#FFFFFF,A1L,gi,gi,adult,mens
+445,PG073,Koi Gi,PG073-A1,#0000FF,#FFFFFF,A1,gi,gi,adult,mens
+444,PG073,Koi Gi,PG073-A0,#0000FF,#FFFFFF,A0,gi,gi,adult,mens
+443,PG070,A+ Grey Women,PG070-XS,#808080,#808080,XS,dk,ng,adult,womens
+442,PG070,A+ Grey Women,PG070-XL,#808080,#808080,XL,dk,ng,adult,womens
+441,PG070,A+ Grey Women,PG070-S,#808080,#808080,S,dk,ng,adult,womens
+440,PG070,A+ Grey Women,PG070-M,#808080,#808080,M,dk,ng,adult,womens
+439,PG070,A+ Grey Women,PG070-L,#808080,#808080,L,dk,ng,adult,womens
+438,PG069,A+ Grey Women ,PG069-XS,#808080,#808080,XS,rg,ng,adult,womens
+437,PG069,A+ Grey Women ,PG069-XL,#808080,#808080,XL,rg,ng,adult,womens
+436,PG069,A+ Grey Women ,PG069-S,#808080,#808080,S,rg,ng,adult,womens
+435,PG069,A+ Grey Women ,PG069-M,#808080,#808080,M,rg,ng,adult,womens
+434,PG069,A+ Grey Women ,PG069-L,#808080,#808080,L,rg,ng,adult,womens
+433,PG068,A+ Grey Men ,PG068-XS,#808080,#808080,XS,dk,ng,adult,mens
+432,PG068,A+ Grey Men ,PG068-XL,#808080,#808080,XL,dk,ng,adult,mens
+431,PG068,A+ Grey Men ,PG068-S,#808080,#808080,S,dk,ng,adult,mens
+430,PG068,A+ Grey Men ,PG068-M,#808080,#808080,M,dk,ng,adult,mens
+429,PG068,A+ Grey Men ,PG068-L,#808080,#808080,L,dk,ng,adult,mens
+428,PG067,A+ Grey Men ,PG067-XS,#808080,#808080,XS,rg,ng,adult,mens
+427,PG067,A+ Grey Men ,PG067-XL,#808080,#808080,XL,rg,ng,adult,mens
+426,PG067,A+ Grey Men ,PG067-S,#808080,#808080,S,rg,ng,adult,mens
+425,PG067,A+ Grey Men ,PG067-M,#808080,#808080,M,rg,ng,adult,mens
+424,PG067,A+ Grey Men ,PG067-L,#808080,#808080,L,rg,ng,adult,mens
+423,PG066,Bengal DK,PG066-XS,#000000,#000000,XS,dk,ng,adult,mens
+422,PG066,Bengal DK,PG066-XL,#000000,#000000,XL,dk,ng,adult,mens
+421,PG066,Bengal DK,PG066-S,#000000,#000000,S,dk,ng,adult,mens
+420,PG066,Bengal DK,PG066-M,#000000,#000000,M,dk,ng,adult,mens
+419,PG066,Bengal DK,PG066-L,#000000,#000000,L,dk,ng,adult,mens
+418,PG065,Bengal RG,PG065-XS,#000000,#000000,XS,rg,ng,adult,mens
+417,PG065,Bengal RG,PG065-XL,#000000,#000000,XL,rg,ng,adult,mens
+416,PG065,Bengal RG,PG065-S,#000000,#000000,S,rg,ng,adult,mens
+415,PG065,Bengal RG,PG065-M,#000000,#000000,M,rg,ng,adult,mens
+414,PG065,Bengal RG,PG065-L,#000000,#000000,L,rg,ng,adult,mens
+413,PG064,Pro Black ,PG064-XS,#000000,#000000,XS,ck,ng,adult,mens
+412,PG064,Pro Black ,PG064-XL,#000000,#000000,XL,ck,ng,adult,mens
+411,PG064,Pro Black ,PG064-S,#000000,#000000,S,ck,ng,adult,mens
+410,PG064,Pro Black ,PG064-M,#000000,#000000,M,ck,ng,adult,mens
+409,PG064,Pro Black ,PG064-L,#000000,#000000,L,ck,ng,adult,mens
+408,PG063,Academy Kids Black RG,PG063-XS,#000000,#000000,XS,rg,ng,kids,mens
+407,PG063,Academy Kids Black RG,PG063-XL,#000000,#000000,XL,rg,ng,kids,mens
+406,PG063,Academy Kids Black RG,PG063-S,#000000,#000000,S,rg,ng,kids,mens
+405,PG063,Academy Kids Black RG,PG063-M,#000000,#000000,M,rg,ng,kids,mens
+404,PG063,Academy Kids Black RG,PG063-L,#000000,#000000,L,rg,ng,kids,mens
+403,PG062,Golden,PG062-XS,#FFFF00,#FFFFFF,XS,dk,ng,adult,mens
+402,PG062,Golden,PG062-S,#FFFF00,#FFFFFF,S,dk,ng,adult,mens
+401,PG062,Golden,PG062-M,#FFFF00,#FFFFFF,M,dk,ng,adult,mens
+400,PG062,Golden,PG062-L,#FFFF00,#FFFFFF,L,dk,ng,adult,mens
+399,PG061,Golden ,PG061-XS,#FFFF00,#FFFFFF,XS,rg,ng,adult,mens
+398,PG061,Golden ,PG061-S,#FFFF00,#FFFFFF,S,rg,ng,adult,mens
+397,PG061,Golden ,PG061-M,#FFFF00,#FFFFFF,M,rg,ng,adult,mens
+396,PG061,Golden ,PG061-L,#FFFF00,#FFFFFF,L,rg,ng,adult,mens
+395,PG060,Owen Livesey DK,PG060-XS,#000000,#000000,XS,dk,ng,adult,mens
+394,PG060,Owen Livesey DK,PG060-S,#000000,#000000,S,dk,ng,adult,mens
+393,PG060,Owen Livesey DK,PG060-M,#000000,#000000,M,dk,ng,adult,mens
+392,PG060,Owen Livesey DK,PG060-L,#000000,#000000,L,dk,ng,adult,mens
+391,PG059,Owen Livesey RG,PG059-XS,#000000,#000000,XS,rg,ng,adult,mens
+390,PG059,Owen Livesey RG,PG059-S,#000000,#000000,S,rg,ng,adult,mens
+389,PG059,Owen Livesey RG,PG059-M,#000000,#000000,M,rg,ng,adult,mens
+388,PG059,Owen Livesey RG,PG059-L,#000000,#000000,L,rg,ng,adult,mens
+387,PG058,Bengal Gi,PG058-F2,#FFFFFF,#FFFFFF,F2,gi,gi,adult,womens
+386,PG058,Bengal Gi,PG058-F1,#FFFFFF,#FFFFFF,F1,gi,gi,adult,womens
+385,PG058,Bengal Gi,PG058-A2L,#FFFFFF,#FFFFFF,A2L,gi,gi,adult,mens
+384,PG058,Bengal Gi,PG058-A2,#FFFFFF,#FFFFFF,A2,gi,gi,adult,mens
+383,PG058,Bengal Gi,PG058-A1L,#FFFFFF,#FFFFFF,A1L,gi,gi,adult,mens
+382,PG058,Bengal Gi,PG058-A1,#FFFFFF,#FFFFFF,A1,gi,gi,adult,mens
+381,PG058,Bengal Gi,PG058-A0,#FFFFFF,#FFFFFF,A0,gi,gi,adult,mens
+380,PG057,Academy Black L/S,PG057-XS,#000000,#000000,XS,rg,ng,adult,mens
+379,PG057,Academy Black L/S,PG057-XL,#000000,#000000,XL,rg,ng,adult,mens
+378,PG057,Academy Black L/S,PG057-S,#000000,#000000,S,rg,ng,adult,mens
+377,PG057,Academy Black L/S,PG057-M,#000000,#000000,M,rg,ng,adult,mens
+376,PG057,Academy Black L/S,PG057-L,#000000,#000000,L,rg,ng,adult,mens
+375,PG056,Ffion RG,PG056-XS,#FFFFFF,#FFFFFF,XS,rg,ng,adult,mens
+374,PG056,Ffion RG,PG056-S,#FFFFFF,#FFFFFF,S,rg,ng,adult,mens
+373,PG056,Ffion RG,PG056-M,#FFFFFF,#FFFFFF,M,rg,ng,adult,mens
+372,PG056,Ffion RG,PG056-L,#FFFFFF,#FFFFFF,L,rg,ng,adult,mens
+1010,PG055,M6 Khaki,PG055-F2,#FFFFFF,#FFFFFF,F2,gi,gi,adult,womens
+1009,PG055,M6 Khaki,PG055-F1,#FFFFFF,#FFFFFF,F1,gi,gi,adult,womens
+1008,PG055,M6 Khaki,PG055-A3L,#FFFFFF,#FFFFFF,A3L,gi,gi,adult,mens
+1007,PG055,M6 Khaki,PG055-A3,#FFFFFF,#FFFFFF,A3,gi,gi,adult,mens
+1006,PG055,M6 Khaki,PG055-A2L,#FFFFFF,#FFFFFF,A2L,gi,gi,adult,mens
+1005,PG055,M6 Khaki,PG055-A2,#FFFFFF,#FFFFFF,A2,gi,gi,adult,mens
+1004,PG055,M6 Khaki,PG055-A1L,#FFFFFF,#FFFFFF,A1L,gi,gi,adult,mens
+1003,PG055,M6 Khaki,PG055-A1,#FFFFFF,#FFFFFF,A1,gi,gi,adult,mens
+1002,PG055,M6 Khaki,PG055-A0,#FFFFFF,#FFFFFF,A0,gi,gi,adult,mens
+371,PG054,Academy+ Black ,PG054-XS,#000000,#000000,XS,dk,ng,adult,mens
+370,PG054,Academy+ Black ,PG054-S,#000000,#000000,S,dk,ng,adult,mens
+369,PG054,Academy+ Black ,PG054-M,#000000,#000000,M,dk,ng,adult,mens
+368,PG054,Academy+ Black ,PG054-L,#000000,#000000,L,dk,ng,adult,mens
+367,PG053,Academy+ Black ,PG053-XS,#000000,#000000,XS,rg,ng,adult,mens
+366,PG053,Academy+ Black ,PG053-S,#000000,#000000,S,rg,ng,adult,mens
+365,PG053,Academy+ Black ,PG053-M,#000000,#000000,M,rg,ng,adult,mens
+364,PG053,Academy+ Black ,PG053-L,#000000,#000000,L,rg,ng,adult,mens
+363,PG052,Academy+ Khaki DK,PG052-XS,#00FF00,#FFFFFF,XS,dk,ng,adult,mens
+362,PG052,Academy+ Khaki DK,PG052-S,#00FF00,#FFFFFF,S,dk,ng,adult,mens
+361,PG052,Academy+ Khaki DK,PG052-M,#00FF00,#FFFFFF,M,dk,ng,adult,mens
+360,PG052,Academy+ Khaki DK,PG052-L,#00FF00,#FFFFFF,L,dk,ng,adult,mens
+359,PG051,Academy+ Khaki RG,PG051-XS,#00FF00,#FFFFFF,XS,rg,ng,adult,mens
+358,PG051,Academy+ Khaki RG,PG051-S,#00FF00,#FFFFFF,S,rg,ng,adult,mens
+357,PG051,Academy+ Khaki RG,PG051-M,#00FF00,#FFFFFF,M,rg,ng,adult,mens
+356,PG051,Academy+ Khaki RG,PG051-L,#00FF00,#FFFFFF,L,rg,ng,adult,mens
+355,PG050,Profile Green Shorts,PG050-XS,#00FF00,#FFFFFF,XS,dk,ng,adult,mens
+354,PG050,Profile Green Shorts,PG050-S,#00FF00,#FFFFFF,S,dk,ng,adult,mens
+353,PG050,Profile Green Shorts,PG050-M,#00FF00,#FFFFFF,M,dk,ng,adult,mens
+352,PG050,Profile Green Shorts,PG050-L,#00FF00,#FFFFFF,L,dk,ng,adult,mens
+351,PG049,Profile Green RG,PG049-XS,#00FF00,#FFFFFF,XS,rg,ng,adult,mens
+350,PG049,Profile Green RG,PG049-S,#00FF00,#FFFFFF,S,rg,ng,adult,mens
+349,PG049,Profile Green RG,PG049-M,#00FF00,#FFFFFF,M,rg,ng,adult,mens
+348,PG049,Profile Green RG,PG049-L,#00FF00,#FFFFFF,L,rg,ng,adult,mens
+347,PG048,Shorts Camo,PG048-XS,#000000,#000000,XS,dk,ng,adult,mens
+346,PG048,Shorts Camo,PG048-S,#000000,#000000,S,dk,ng,adult,mens
+345,PG048,Shorts Camo,PG048-M,#000000,#000000,M,dk,ng,adult,mens
+344,PG048,Shorts Camo,PG048-L,#000000,#000000,L,dk,ng,adult,mens
+343,PG047,RG Camo,PG047-XS,#000000,#000000,XS,rg,ng,adult,mens
+342,PG047,RG Camo,PG047-S,#000000,#000000,S,rg,ng,adult,mens
+341,PG047,RG Camo,PG047-M,#000000,#000000,M,rg,ng,adult,mens
+340,PG047,RG Camo,PG047-L,#000000,#000000,L,rg,ng,adult,mens
+339,PG046,Finger Tape x4,PG046-HEI,#000000,#000000,,ft,ap,adult,mens
+338,PG045,Finger Tape x5,PG045,#000000,#000000,,ft,ap,adult,mens
+337,PG044,Finger Tape x2,PG044,#000000,#000000,,ft,ap,adult,mens
+336,PG043,Technical Tee Black,PG043-S,#000000,#000000,S,rg,ng,adult,mens
+335,PG043,Technical Tee Black,PG043-M,#000000,#000000,M,rg,ng,adult,mens
+334,PG042,Technical Tee Blue,PG042-S,#0000FF,#0000FF,S,rg,ng,adult,mens
+333,PG042,Technical Tee Blue,PG042-M,#0000FF,#0000FF,M,rg,ng,adult,mens
+332,PG041,Academy Black Shorts 2022,PG041-XXS,#000000,#000000,XXS,dk,ng,adult,mens
+331,PG041,Academy Black Shorts 2022,PG041-XS,#000000,#000000,XS,dk,ng,adult,mens
+330,PG041,Academy Black Shorts 2022,PG041-S,#000000,#000000,S,dk,ng,adult,mens
+329,PG041,Academy Black Shorts 2022,PG041-M,#000000,#000000,M,dk,ng,adult,mens
+328,PG041,Academy Black Shorts 2022,PG041-L,#000000,#000000,L,dk,ng,adult,mens
+327,PG040,Bag,PG040,#000000,#000000,,bg,ap,adult,mens
+326,PG039,Mexicana RG,PG039-XS,#000000,#000000,XS,dk,ng,adult,mens
+325,PG039,Mexicana RG,PG039-S,#000000,#000000,S,dk,ng,adult,mens
+324,PG039,Mexicana RG,PG039-M,#000000,#000000,M,dk,ng,adult,mens
+323,PG039,Mexicana RG,PG039-L,#000000,#000000,L,dk,ng,adult,mens
+322,PG038,Mexicana Shorts,PG038-XXL,#000000,#000000,XXL,rg,ng,adult,mens
+321,PG038,Mexicana Shorts,PG038-XS,#000000,#000000,XS,rg,ng,adult,mens
+320,PG038,Mexicana Shorts,PG038-XL,#000000,#000000,XL,rg,ng,adult,mens
+319,PG038,Mexicana Shorts,PG038-S,#000000,#000000,S,rg,ng,adult,mens
+318,PG038,Mexicana Shorts,PG038-M,#000000,#000000,M,rg,ng,adult,mens
+317,PG038,Mexicana Shorts,PG038-L,#000000,#000000,L,rg,ng,adult,mens
+316,PG037,Mexicana ,PG037-F2,#000000,#000000,F2,gi,gi,adult,womens
+315,PG037,Mexicana ,PG037-F1,#000000,#000000,F1,gi,gi,adult,womens
+314,PG037,Mexicana ,PG037-A2L,#000000,#000000,A2L,gi,gi,adult,mens
+313,PG037,Mexicana ,PG037-A2,#000000,#000000,A2,gi,gi,adult,mens
+312,PG037,Mexicana ,PG037-A1L,#000000,#000000,A1L,gi,gi,adult,mens
+311,PG037,Mexicana ,PG037-A1,#000000,#000000,A1,gi,gi,adult,mens
+310,PG037,Mexicana ,PG037-A0,#000000,#000000,A0,gi,gi,adult,mens
+309,PG036,Academy White Shorts,PG036-XXS,#FFFFFF,#FFFFFF,XXS,dk,ng,adult,mens
+308,PG036,Academy White Shorts,PG036-XS,#FFFFFF,#FFFFFF,XS,dk,ng,adult,mens
+307,PG036,Academy White Shorts,PG036-S,#FFFFFF,#FFFFFF,S,dk,ng,adult,mens
+306,PG036,Academy White Shorts,PG036-M,#FFFFFF,#FFFFFF,M,dk,ng,adult,mens
+305,PG036,Academy White Shorts,PG036-L,#FFFFFF,#FFFFFF,L,dk,ng,adult,mens
+997,PG035,Ranked 2022,PG035-ZONG-XS,#FFFFFF,#FFFFFF,XS,rg,ng,adult,mens
+996,PG035,Ranked 2022,PG035-ZONG-S,#FFFFFF,#FFFFFF,S,rg,ng,adult,mens
+995,PG035,Ranked 2022,PG035-ZONG-M,#FFFFFF,#FFFFFF,M,rg,ng,adult,mens
+994,PG035,Ranked 2022,PG035-ZONG-L,#FFFFFF,#FFFFFF,L,rg,ng,adult,mens
+1001,PG035,Ranked 2022,PG035-ZI-XS,#800080,#800080,XS,rg,ng,adult,mens
+1000,PG035,Ranked 2022,PG035-ZI-S,#800080,#800080,S,rg,ng,adult,mens
+999,PG035,Ranked 2022,PG035-ZI-M,#800080,#800080,M,rg,ng,adult,mens
+998,PG035,Ranked 2022,PG035-ZI-L,#800080,#800080,L,rg,ng,adult,mens
+300,PG035,Ranked 2022,PG035-LAN-XS,#0000FF,#0000FF,XS,rg,ng,adult,mens
+299,PG035,Ranked 2022,PG035-LAN-S,#0000FF,#0000FF,S,rg,ng,adult,mens
+298,PG035,Ranked 2022,PG035-LAN-M,#0000FF,#0000FF,M,rg,ng,adult,mens
+297,PG035,Ranked 2022,PG035-LAN-L,#0000FF,#0000FF,L,rg,ng,adult,mens
+296,PG035,Ranked 2022,PG035-HEI-XS,#000000,#000000,XS,rg,ng,adult,mens
+295,PG035,Ranked 2022,PG035-HEI-S,#000000,#000000,S,rg,ng,adult,mens
+294,PG035,Ranked 2022,PG035-HEI-M,#000000,#000000,M,rg,ng,adult,mens
+293,PG035,Ranked 2022,PG035-HEI-L,#000000,#000000,L,rg,ng,adult,mens
+304,PG035,Ranked 2022,PG035-BAI-XS,#FFFFFF,#FFFFFF,XS,rg,ng,adult,mens
+303,PG035,Ranked 2022,PG035-BAI-S,#FFFFFF,#FFFFFF,S,rg,ng,adult,mens
+302,PG035,Ranked 2022,PG035-BAI-M,#FFFFFF,#FFFFFF,M,rg,ng,adult,mens
+301,PG035,Ranked 2022,PG035-BAI-L,#FFFFFF,#FFFFFF,L,rg,ng,adult,mens
+993,PG034,Spats Camo,PG034-XS,#FFFFFF,#FFFFFF,XS,ck,ng,adult,mens
+992,PG034,Spats Camo,PG034-XL,#FFFFFF,#FFFFFF,L,ck,ng,adult,mens
+991,PG034,Spats Camo,PG034-S,#FFFFFF,#FFFFFF,S,ck,ng,adult,mens
+990,PG034,Spats Camo,PG034-M,#FFFFFF,#FFFFFF,M,ck,ng,adult,mens
+989,PG034,Spats Camo,PG034-L,#FFFFFF,#FFFFFF,L,ck,ng,adult,mens
+292,PG033,Academy Womens Blue,PG033-XS,#0000FF,#FFFFFF,XS,rg,ng,adult,womens
+291,PG033,Academy Womens Blue,PG033-XL,#0000FF,#FFFFFF,XL,rg,ng,adult,womens
+290,PG033,Academy Womens Blue,PG033-S,#0000FF,#FFFFFF,S,rg,ng,adult,womens
+289,PG033,Academy Womens Blue,PG033-M,#0000FF,#FFFFFF,M,rg,ng,adult,womens
+288,PG033,Academy Womens Blue,PG033-L,#0000FF,#FFFFFF,L,rg,ng,adult,womens
+988,PG032,Academy Womens Pink,PG032-XS,#FFFFFF,#FFFFFF,XS,rg,ng,adult,womens
+987,PG032,Academy Womens Pink,PG032-XL,#FFFFFF,#FFFFFF,XL,rg,ng,adult,womens
+986,PG032,Academy Womens Pink,PG032-S,#FFFFFF,#FFFFFF,S,rg,ng,adult,womens
+985,PG032,Academy Womens Pink,PG032-M,#FFFFFF,#FFFFFF,M,rg,ng,adult,womens
+984,PG032,Academy Womens Pink,PG032-L,#FFFFFF,#FFFFFF,L,rg,ng,adult,womens
+287,PG031,Technical Tee Red,PG031-S,#FF0000,#FF0000,S,rg,ng,adult,mens
+286,PG031,Technical Tee Red,PG031-M,#FF0000,#FF0000,M,rg,ng,adult,mens
+285,PG030,Shorts Hybrid Navy,PG030-XXL,#0000FF,#FFFFFF,XXL,dk,ng,adult,mens
+284,PG030,Shorts Hybrid Navy,PG030-XS,#0000FF,#FFFFFF,XS,dk,ng,adult,mens
+283,PG030,Shorts Hybrid Navy,PG030-XL,#0000FF,#FFFFFF,XL,dk,ng,adult,mens
+282,PG030,Shorts Hybrid Navy,PG030-S,#0000FF,#FFFFFF,S,dk,ng,adult,mens
+281,PG030,Shorts Hybrid Navy,PG030-M,#0000FF,#FFFFFF,M,dk,ng,adult,mens
+280,PG030,Shorts Hybrid Navy,PG030-L,#0000FF,#FFFFFF,L,dk,ng,adult,mens
+279,PG029,Academy Rashguard White,PG029-XXL,#FFFFFF,#FFFFFF,XXL,rg,ng,adult,mens
+278,PG029,Academy Rashguard White,PG029-XS,#FFFFFF,#FFFFFF,XS,rg,ng,adult,mens
+277,PG029,Academy Rashguard White,PG029-XL,#FFFFFF,#FFFFFF,XL,rg,ng,adult,mens
+276,PG029,Academy Rashguard White,PG029-S,#FFFFFF,#FFFFFF,S,rg,ng,adult,mens
+275,PG029,Academy Rashguard White,PG029-M,#FFFFFF,#FFFFFF,M,rg,ng,adult,mens
+274,PG029,Academy Rashguard White,PG029-L,#FFFFFF,#FFFFFF,L,rg,ng,adult,mens
+273,PG028,Academy Rashguard Black,PG028-XXL,#000000,#000000,XXL,rg,ng,adult,mens
+272,PG028,Academy Rashguard Black,PG028-XS,#000000,#000000,XS,rg,ng,adult,mens
+271,PG028,Academy Rashguard Black,PG028-XL,#000000,#000000,XL,rg,ng,adult,mens
+270,PG028,Academy Rashguard Black,PG028-S,#000000,#000000,S,rg,ng,adult,mens
+269,PG028,Academy Rashguard Black,PG028-M,#000000,#000000,M,rg,ng,adult,mens
+268,PG028,Academy Rashguard Black,PG028-L,#000000,#000000,L,rg,ng,adult,mens
+251,PG027,Trousers,PG027-M3-HEI,#000000,#000000,M3,tr,gi,kids,
+250,PG027,Trousers,PG027-M2-HEI,#000000,#000000,M2,tr,gi,kids,mens
+249,PG027,Trousers,PG027-M1-HEI,#000000,#000000,M1,tr,gi,kids,mens
+259,PG027,Trousers,PG027-F3-LAN,#0000FF,#0000FF,F3,tr,gi,adult,
+248,PG027,Trousers,PG027-F3-HEI,#000000,#000000,F3,tr,gi,adult,womens
+267,PG027,Trousers,PG027-F3-BAI,#FFFFFF,#FFFFFF,F3,tr,gi,adult,womens
+258,PG027,Trousers,PG027-F2-LAN,#0000FF,#0000FF,F2,tr,gi,adult,womens
+247,PG027,Trousers,PG027-F2-HEI,#000000,#000000,F2,tr,gi,adult,womens
+266,PG027,Trousers,PG027-F2-BAI,#FFFFFF,#FFFFFF,F2,tr,gi,adult,womens
+257,PG027,Trousers,PG027-F1-LAN,#0000FF,#0000FF,F1,tr,gi,adult,womens
+246,PG027,Trousers,PG027-F1-HEI,#000000,#000000,F1,tr,gi,adult,womens
+265,PG027,Trousers,PG027-F1-BAI,#FFFFFF,#FFFFFF,F1,tr,gi,adult,womens
+256,PG027,Trousers,PG027-A3-LAN,#0000FF,#0000FF,A3,tr,gi,adult,mens
+245,PG027,Trousers,PG027-A3-HEI,#000000,#000000,A3,tr,gi,adult,mens
+264,PG027,Trousers,PG027-A3-BAI,#FFFFFF,#FFFFFF,A3,tr,gi,adult,mens
+1136,PG027,Trousers,PG027-A2L-LAN,#0000FF,#0000FF,A2L,tr,gi,adult,male
+1138,PG027,Trousers,PG027-A2L-HEI,#000000,#000000,A2L,tr,gi,adult,male
+1137,PG027,Trousers,PG027-A2L-BAI,#000000,#000000,A2L,tr,gi,adult,male
+255,PG027,Trousers,PG027-A2-LAN,#0000FF,#0000FF,A2,tr,gi,adult,mens
+244,PG027,Trousers,PG027-A2-HEI,#000000,#000000,A2,tr,gi,adult,mens
+263,PG027,Trousers,PG027-A2-BAI,#FFFFFF,#FFFFFF,A2,tr,gi,adult,mens
+254,PG027,Trousers,PG027-A1L-LAN,#0000FF,#0000FF,A0,tr,gi,adult,mens
+243,PG027,Trousers,PG027-A1L-HEI,#000000,#000000,A0,tr,gi,adult,mens
+262,PG027,Trousers,PG027-A1L-BAI,#FFFFFF,#FFFFFF,A0,tr,gi,adult,mens
+253,PG027,Trousers,PG027-A1-LAN,#0000FF,#0000FF,A1,tr,gi,adult,mens
+242,PG027,Trousers,PG027-A1-HEI,#000000,#000000,A1,tr,gi,adult,mens
+261,PG027,Trousers,PG027-A1-BAI,#FFFFFF,#FFFFFF,A1,tr,gi,adult,mens
+252,PG027,Trousers,PG027-A0-LAN,#0000FF,#0000FF,A0,tr,gi,adult,mens
+241,PG027,Trousers,PG027-A0-HEI,#000000,#000000,A0,tr,gi,adult,mens
+260,PG027,Trousers,PG027-A0-BAI,#FFFFFF,#FFFFFF,A0,tr,gi,adult,mens
+240,PG026,Foundation 3,PG026-F2-LAN,#0000FF,#0000FF,F2,gi,gi,adult,womens
+239,PG026,Foundation 3,PG026-F2-HEI,#0000FF,#0000FF,A0,gi,gi,adult,womens
+238,PG026,Foundation 3,PG026-F1-LAN,#0000FF,#0000FF,F1,gi,gi,adult,womens
+237,PG026,Foundation 3,PG026-A2L-LAN,#0000FF,#0000FF,A2L,gi,gi,adult,mens
+236,PG026,Foundation 3,PG026-A2-LAN,#0000FF,#0000FF,A2,gi,gi,adult,mens
+235,PG026,Foundation 3,PG026-A1L-LAN,#0000FF,#0000FF,A1L,gi,gi,adult,mens
+234,PG026,Foundation 3,PG026-A1-LAN,#0000FF,#0000FF,A1,gi,gi,adult,mens
+233,PG026,Foundation 3,PG026-A0-LAN,#0000FF,#0000FF,A0,gi,gi,adult,mens
+232,PG025,Shorts Hybrid Black,PG025-XS,#000000,#000000,XS,dk,ng,adult,mens
+231,PG025,Shorts Hybrid Black,PG025-XL,#000000,#000000,XL,dk,ng,adult,mens
+230,PG025,Shorts Hybrid Black,PG025-S,#000000,#000000,S,dk,ng,adult,mens
+229,PG025,Shorts Hybrid Black,PG025-M,#000000,#000000,M,dk,ng,adult,mens
+228,PG025,Shorts Hybrid Black,PG025-L,#000000,#000000,L,dk,ng,adult,mens
+223,PG023,Ffion Gi,PG023-F2,#00FF00,#FFFFFF,F2,gi,gi,adult,womens
+222,PG023,Ffion Gi,PG023-F1,#00FF00,#FFFFFF,F1,gi,gi,adult,womens
+221,PG022,Black Spats,PG022-XS,#000000,#000000,XS,ck,ng,adult,mens
+220,PG022,Black Spats,PG022-XL,#000000,#000000,XL,ck,ng,adult,mens
+219,PG022,Black Spats,PG022-S,#000000,#000000,S,ck,ng,adult,mens
+218,PG022,Black Spats,PG022-M,#000000,#000000,M,ck,ng,adult,mens
+217,PG022,Black Spats,PG022-L,#000000,#000000,L,ck,ng,adult,mens
+216,PG021,Puma L/S,PG021-XS,#000000,#000000,XS,rg,ng,adult,mens
+215,PG021,Puma L/S,PG021-XL,#000000,#000000,XL,rg,ng,adult,mens
+214,PG021,Puma L/S,PG021-S,#000000,#000000,S,rg,ng,adult,mens
+213,PG021,Puma L/S,PG021-M,#000000,#000000,M,rg,ng,adult,mens
+212,PG021,Puma L/S,PG021-L,#000000,#000000,L,rg,ng,adult,mens
+204,PG020,Featherlight,PG020-F2-LAN,#0000FF,#0000FF,F2,gi,gi,adult,womens
+199,PG020,Featherlight,PG020-F2-HEI,#000000,#000000,F2,gi,gi,adult,womens
+211,PG020,Featherlight,PG020-F2-BAI,#FFFFFF,#FFFFFF,F2,gi,gi,adult,womens
+203,PG020,Featherlight,PG020-F1-LAN,#0000FF,#0000FF,F1,gi,gi,adult,womens
+198,PG020,Featherlight,PG020-F1-HEI,#000000,#000000,F1,gi,gi,adult,womens
+210,PG020,Featherlight,PG020-F1-BAI,#FFFFFF,#FFFFFF,F1,gi,gi,adult,womens
+197,PG020,Featherlight,PG020-A3-HEI,#000000,#000000,A3,gi,gi,adult,mens
+196,PG020,Featherlight,PG020-A2L-HEI,#000000,#000000,A2L,gi,gi,adult,mens
+209,PG020,Featherlight,PG020-A2L-BAI,#FFFFFF,#FFFFFF,A2L,gi,gi,adult,mens
+202,PG020,Featherlight,PG020-A2-LAN,#0000FF,#0000FF,A2,gi,gi,adult,mens
+195,PG020,Featherlight,PG020-A2-HEI,#000000,#000000,A2,gi,gi,adult,mens
+208,PG020,Featherlight,PG020-A2-BAI,#FFFFFF,#FFFFFF,A2,gi,gi,adult,mens
+194,PG020,Featherlight,PG020-A1L-HEI,#000000,#000000,A1L,gi,gi,adult,mens
+207,PG020,Featherlight,PG020-A1L-BAI,#FFFFFF,#FFFFFF,A1L,gi,gi,adult,mens
+201,PG020,Featherlight,PG020-A1-LAN,#0000FF,#0000FF,A1,gi,gi,adult,mens
+193,PG020,Featherlight,PG020-A1-HEI,#000000,#000000,A1,gi,gi,adult,mens
+206,PG020,Featherlight,PG020-A1-BAI,#FFFFFF,#FFFFFF,A1,gi,gi,adult,mens
+200,PG020,Featherlight,PG020-A0-LAN,#0000FF,#0000FF,A0,gi,gi,adult,mens
+192,PG020,Featherlight,PG020-A0-HEI,#000000,#000000,A0,gi,gi,adult,mens
+205,PG020,Featherlight,PG020-A0-BAI,#FFFFFF,#FFFFFF,A0,gi,gi,adult,mens
+191,PG019,Sportif Orange,PG019-XS,#000000,#000000,XS,rg,ng,adult,mens
+190,PG019,Sportif Orange,PG019-XL,#000000,#000000,XL,rg,ng,adult,mens
+189,PG019,Sportif Orange,PG019-S,#000000,#000000,S,rg,ng,adult,mens
+188,PG019,Sportif Orange,PG019-M,#000000,#000000,M,rg,ng,adult,mens
+187,PG019,Sportif Orange,PG019-L,#000000,#000000,L,rg,ng,adult,mens
+186,PG018,Ink,PG018S,#000000,#000000,S,rg,ng,adult,mens
+185,PG018,Ink,PG018-XS,#000000,#000000,XS,rg,ng,adult,mens
+184,PG018,Ink,PG018-XL,#000000,#000000,XL,rg,ng,adult,mens
+183,PG018,Ink,PG018-M,#000000,#000000,M,rg,ng,adult,mens
+182,PG018,Ink,PG018-L,#000000,#000000,L,rg,ng,adult,mens
+181,PG017,Lightning,PG017-XS,#000000,#000000,XS,rg,ng,adult,mens
+180,PG017,Lightning,PG017-XL,#000000,#000000,XL,rg,ng,adult,mens
+179,PG017,Lightning,PG017-S,#000000,#000000,S,rg,ng,adult,mens
+178,PG017,Lightning,PG017-M,#000000,#000000,M,rg,ng,adult,mens
+177,PG017,Lightning,PG017-L,#000000,#000000,L,rg,ng,adult,mens
+176,PG016,Supernova,PG016-XS,#000000,#000000,XS,rg,ng,adult,mens
+175,PG016,Supernova,PG016-XL,#000000,#000000,XL,rg,ng,adult,mens
+174,PG016,Supernova,PG016-S,#000000,#000000,S,rg,ng,adult,mens
+173,PG016,Supernova,PG016-M,#000000,#000000,M,rg,ng,adult,mens
+172,PG016,Supernova,PG016-L,#000000,#000000,L,rg,ng,adult,mens
+171,PG015,Crew,PG015-XS,#000000,#000000,XS,cn,ap,adult,mens
+170,PG015,Crew,PG015-XL,#000000,#000000,XL,cn,ap,adult,mens
+169,PG015,Crew,PG015-S,#000000,#000000,S,cn,ap,adult,mens
+168,PG015,Crew,PG015-M,#000000,#000000,M,cn,ap,adult,mens
+167,PG015,Crew,PG015-L,#000000,#000000,L,cn,ap,adult,mens
+166,PG014,Tee,PG014-XS,#FFFFFF,#FFFFFF,XS,te,ap,adult,mens
+165,PG014,Tee,PG014-XL,#FFFFFF,#FFFFFF,XL,te,ap,adult,mens
+164,PG014,Tee,PG014-S,#FFFFFF,#FFFFFF,S,te,ap,adult,mens
+163,PG014,Tee,PG014-M,#FFFFFF,#FFFFFF,M,te,ap,adult,mens
+162,PG014,Tee,PG014-L,#FFFFFF,#FFFFFF,L,te,ap,adult,mens
+161,PG013,Tee,PG013-XS,#000000,#000000,XS,te,ap,adult,mens
+160,PG013,Tee,PG013-XL,#000000,#000000,XL,te,ap,adult,mens
+159,PG013,Tee,PG013-S,#000000,#000000,S,te,ap,adult,mens
+158,PG013,Tee,PG013-M,#000000,#000000,M,te,ap,adult,mens
+157,PG013,Tee,PG013-L,#000000,#000000,L,te,ap,adult,mens
+149,PG012,Academy Gi Kids,PG012-M4-LAN,#0000FF,#0000FF,M4,gi,gi,kids,mens
+142,PG012,Academy Gi Kids,PG012-M4-HEI,#000000,#000000,M4,gi,gi,kids,mens
+156,PG012,Academy Gi Kids,PG012-M4-BAI,#FFFFFF,#FFFFFF,M4,gi,gi,kids,mens
+148,PG012,Academy Gi Kids,PG012-M3-LAN,#0000FF,#0000FF,M3,gi,gi,kids,mens
+141,PG012,Academy Gi Kids,PG012-M3-HEI,#000000,#000000,M3,gi,gi,kids,mens
+155,PG012,Academy Gi Kids,PG012-M3-BAI,#FFFFFF,#FFFFFF,M3,gi,gi,kids,mens
+147,PG012,Academy Gi Kids,PG012-M2-LAN,#0000FF,#0000FF,M2,gi,gi,kids,mens
+140,PG012,Academy Gi Kids,PG012-M2-HEI,#000000,#000000,M2,gi,gi,kids,mens
+154,PG012,Academy Gi Kids,PG012-M2-BAI,#FFFFFF,#FFFFFF,M2,gi,gi,kids,mens
+146,PG012,Academy Gi Kids,PG012-M1-LAN,#0000FF,#0000FF,M1,gi,gi,kids,mens
+139,PG012,Academy Gi Kids,PG012-M1-HEI,#000000,#000000,M1,gi,gi,kids,mens
+153,PG012,Academy Gi Kids,PG012-M1-BAI,#FFFFFF,#FFFFFF,M1,gi,gi,kids,mens
+145,PG012,Academy Gi Kids,PG012-M000-LAN,#0000FF,#0000FF,M000,gi,gi,kids,mens
+138,PG012,Academy Gi Kids,PG012-M000-HEI,#000000,#000000,M000,gi,gi,kids,mens
+152,PG012,Academy Gi Kids,PG012-M000-BAI,#FFFFFF,#FFFFFF,M000,gi,gi,kids,mens
+144,PG012,Academy Gi Kids,PG012-M00-LAN,#0000FF,#0000FF,M00,gi,gi,kids,mens
+137,PG012,Academy Gi Kids,PG012-M00-HEI,#000000,#000000,M00,gi,gi,kids,mens
+151,PG012,Academy Gi Kids,PG012-M00-BAI,#FFFFFF,#FFFFFF,M00,gi,gi,kids,mens
+143,PG012,Academy Gi Kids,PG012-M0-LAN,#0000FF,#0000FF,M0,gi,gi,kids,mens
+136,PG012,Academy Gi Kids,PG012-M0-HEI,#000000,#000000,M0,gi,gi,kids,mens
+150,PG012,Academy Gi Kids,PG012-M0-BAI,#FFFFFF,#FFFFFF,M0,gi,gi,kids,mens
+126,PG011,Academy Gi Adults ,PG011-F3-LAN,#0000FF,#0000FF,F3,gi,gi,adult,womens
+117,PG011,Academy Gi Adults ,PG011-F3-HEI,#000000,#000000,F3,gi,gi,adult,womens
+135,PG011,Academy Gi Adults ,PG011-F3-BAI,#FFFFFF,#FFFFFF,F3,gi,gi,adult,womens
+125,PG011,Academy Gi Adults ,PG011-F2-LAN,#0000FF,#0000FF,F2,gi,gi,adult,womens
+116,PG011,Academy Gi Adults ,PG011-F2-HEI,#000000,#000000,F2,gi,gi,adult,womens
+134,PG011,Academy Gi Adults ,PG011-F2-BAI,#FFFFFF,#FFFFFF,F2,gi,gi,adult,womens
+124,PG011,Academy Gi Adults ,PG011-F1-LAN,#0000FF,#0000FF,F1,gi,gi,adult,womens
+115,PG011,Academy Gi Adults ,PG011-F1-HEI,#000000,#000000,F1,gi,gi,adult,womens
+133,PG011,Academy Gi Adults ,PG011-F1-BAI,#FFFFFF,#FFFFFF,F1,gi,gi,adult,womens
+114,PG011,Academy Gi Adults ,PG011-A4-HEI,#000000,#000000,A4,gi,gi,adult,mens
+123,PG011,Academy Gi Adults ,PG011-A3-LAN,#0000FF,#0000FF,A3,gi,gi,adult,mens
+113,PG011,Academy Gi Adults ,PG011-A3-HEI,#000000,#000000,A3,gi,gi,adult,mens
+132,PG011,Academy Gi Adults ,PG011-A3-BAI,#FFFFFF,#FFFFFF,A3,gi,gi,adult,mens
+122,PG011,Academy Gi Adults ,PG011-A2L-LAN,#0000FF,#0000FF,A2L,gi,gi,adult,mens
+112,PG011,Academy Gi Adults ,PG011-A2L-HEI,#000000,#000000,A2L,gi,gi,adult,mens
+131,PG011,Academy Gi Adults ,PG011-A2L-BAI,#FFFFFF,#FFFFFF,A2L,gi,gi,adult,mens
+121,PG011,Academy Gi Adults ,PG011-A2-LAN,#0000FF,#0000FF,A2,gi,gi,adult,mens
+111,PG011,Academy Gi Adults ,PG011-A2-HEI,#000000,#000000,A2,gi,gi,adult,mens
+130,PG011,Academy Gi Adults ,PG011-A2-BAI,#FFFFFF,#FFFFFF,A2,gi,gi,adult,mens
+120,PG011,Academy Gi Adults ,PG011-A1L-LAN,#0000FF,#0000FF,A1L,gi,gi,adult,mens
+110,PG011,Academy Gi Adults ,PG011-A1L-HEI,#000000,#000000,A1L,gi,gi,adult,mens
+129,PG011,Academy Gi Adults ,PG011-A1L-BAI,#FFFFFF,#FFFFFF,A1L,gi,gi,adult,mens
+119,PG011,Academy Gi Adults ,PG011-A1-LAN,#0000FF,#0000FF,A1,gi,gi,adult,mens
+2,PG011,Academy Gi Adults ,PG011-A1-HEI,#000000,#000000,A1,gi,gi,adult,mens
+128,PG011,Academy Gi Adults ,PG011-A1-BAI,#FFFFFF,#FFFFFF,A1,gi,gi,adult,mens
+118,PG011,Academy Gi Adults ,PG011-A0-LAN,#0000FF,#0000FF,A0,gi,gi,adult,mens
+1,PG011,Academy Gi Adults ,PG011-A0-HEI,#000000,#000000,A0,gi,gi,adult,mens
+127,PG011,Academy Gi Adults ,PG011-A0-BAI,#FFFFFF,#FFFFFF,A0,gi,gi,adult,mens
+101,PG010,Ranked,PG010-XS,#000000,#000000,XS,rg,ng,adult,mens
+100,PG010,Ranked,PG010-XL,#000000,#000000,XL,rg,ng,adult,mens
+99,PG010,Ranked,PG010-S,#000000,#000000,S,rg,ng,adult,mens
+979,PG010,Ranked,PG010-RANK-ZON-XL,#FFFFFF,#FFFFFF,XL,rg,ng,adult,mens
+978,PG010,Ranked,PG010-RANK-ZON-S,#FFFFFF,#FFFFFF,S,rg,ng,adult,mens
+977,PG010,Ranked,PG010-RANK-ZON-M,#FFFFFF,#FFFFFF,M,rg,ng,adult,mens
+976,PG010,Ranked,PG010-RANK-ZON-L,#FFFFFF,#FFFFFF,L,rg,ng,adult,mens
+983,PG010,Ranked,PG010-RANK-ZI-XL,#800080,#800080,XL,rg,ng,adult,mens
+982,PG010,Ranked,PG010-RANK-ZI-S,#800080,#800080,S,rg,ng,adult,mens
+981,PG010,Ranked,PG010-RANK-ZI-M,#800080,#800080,M,rg,ng,adult,mens
+980,PG010,Ranked,PG010-RANK-ZI-L,#800080,#800080,L,rg,ng,adult,mens
+105,PG010,Ranked,PG010-RANK-LAN-XL,#0000FF,#0000FF,XL,rg,ng,adult,mens
+104,PG010,Ranked,PG010-RANK-LAN-S,#0000FF,#0000FF,S,rg,ng,adult,mens
+103,PG010,Ranked,PG010-RANK-LAN-M,#0000FF,#0000FF,M,rg,ng,adult,mens
+102,PG010,Ranked,PG010-RANK-LAN-L,#0000FF,#0000FF,L,rg,ng,adult,mens
+109,PG010,Ranked,PG010-RANK-BAI-XL,#FFFFFF,#FFFFFF,XL,rg,ng,adult,mens
+108,PG010,Ranked,PG010-RANK-BAI-S,#FFFFFF,#FFFFFF,S,rg,ng,adult,mens
+107,PG010,Ranked,PG010-RANK-BAI-M,#FFFFFF,#FFFFFF,M,rg,ng,adult,mens
+106,PG010,Ranked,PG010-RANK-BAI-L,#FFFFFF,#FFFFFF,L,rg,ng,adult,mens
+98,PG010,Ranked,PG010-M,#000000,#000000,M,rg,ng,adult,mens
+97,PG010,Ranked,PG010-L,#000000,#000000,L,rg,ng,adult,mens
+87,PG009,M6 Mk 5,PG009-LAN-F2,#0000FF,#0000FF,F2,gi,gi,adult,womens
+86,PG009,M6 Mk 5,PG009-LAN-F1,#0000FF,#0000FF,F1,gi,gi,adult,womens
+85,PG009,M6 Mk 5,PG009-LAN-A3,#0000FF,#0000FF,A3,gi,gi,adult,mens
+84,PG009,M6 Mk 5,PG009-LAN-A2L,#0000FF,#0000FF,A2L,gi,gi,adult,mens
+83,PG009,M6 Mk 5,PG009-LAN-A2,#0000FF,#0000FF,A2,gi,gi,adult,mens
+82,PG009,M6 Mk 5,PG009-LAN-A1L,#0000FF,#0000FF,A1L,gi,gi,adult,mens
+81,PG009,M6 Mk 5,PG009-LAN-A1,#0000FF,#0000FF,A1,gi,gi,adult,mens
+80,PG009,M6 Mk 5,PG009-LAN-A0,#0000FF,#0000FF,A0,gi,gi,adult,mens
+79,PG009,M6 Mk 5,PG009-HEI-F3,#000000,#000000,F3,gi,gi,adult,womens
+78,PG009,M6 Mk 5,PG009-HEI-F2,#000000,#000000,F2,gi,gi,adult,womens
+77,PG009,M6 Mk 5,PG009-HEI-F1,#000000,#000000,F1,gi,gi,adult,womens
+76,PG009,M6 Mk 5,PG009-HEI-A3,#000000,#000000,A3,gi,gi,adult,mens
+75,PG009,M6 Mk 5,PG009-HEI-A2L,#000000,#000000,A2L,gi,gi,adult,mens
+74,PG009,M6 Mk 5,PG009-HEI-A2,#000000,#000000,A2,gi,gi,adult,mens
+73,PG009,M6 Mk 5,PG009-HEI-A1L,#000000,#000000,A1L,gi,gi,adult,mens
+72,PG009,M6 Mk 5,PG009-HEI-A1,#000000,#000000,A1,gi,gi,adult,mens
+71,PG009,M6 Mk 5,PG009-HEI-A0,#000000,#000000,A0,gi,gi,adult,mens
+96,PG009,M6 Mk 5,PG009-BAI-F3,#FFFFFF,#FFFFFF,F3,gi,gi,adult,mens
+95,PG009,M6 Mk 5,PG009-BAI-F2,#FFFFFF,#FFFFFF,F2,gi,gi,adult,mens
+94,PG009,M6 Mk 5,PG009-BAI-F1,#FFFFFF,#FFFFFF,F1,gi,gi,adult,mens
+93,PG009,M6 Mk 5,PG009-BAI-A3,#FFFFFF,#FFFFFF,A3,gi,gi,adult,mens
+92,PG009,M6 Mk 5,PG009-BAI-A2L,#FFFFFF,#FFFFFF,A2L,gi,gi,adult,mens
+91,PG009,M6 Mk 5,PG009-BAI-A2,#FFFFFF,#FFFFFF,A2,gi,gi,adult,mens
+90,PG009,M6 Mk 5,PG009-BAI-A1L,#FFFFFF,#FFFFFF,A1L,gi,gi,adult,mens
+89,PG009,M6 Mk 5,PG009-BAI-A1,#FFFFFF,#FFFFFF,A1,gi,gi,adult,mens
+88,PG009,M6 Mk 5,PG009-BAI-A0,#FFFFFF,#FFFFFF,A0,gi,gi,adult,mens
+70,PG008,Sportif Green,PG008-RG-SPTG-XS,#000000,#000000,XS,rg,ng,adult,mens
+69,PG008,Sportif Green,PG008-RG-SPTG-XL,#000000,#000000,XL,rg,ng,adult,mens
+68,PG008,Sportif Green,PG008-RG-SPTG-S,#000000,#000000,S,rg,ng,adult,mens
+67,PG008,Sportif Green,PG008-RG-SPTG-M,#000000,#000000,M,rg,ng,adult,mens
+66,PG008,Sportif Green,PG008-RG-SPTG-L,#000000,#000000,L,rg,ng,adult,mens
+65,PG008,Sportif Green,PG008-DK-SPTG-XS,#000000,#000000,XS,dk,ng,adult,mens
+64,PG008,Sportif Green,PG008-DK-SPTG-XL,#000000,#000000,XL,dk,ng,adult,mens
+63,PG008,Sportif Green,PG008-DK-SPTG-S,#000000,#000000,S,dk,ng,adult,mens
+62,PG008,Sportif Green,PG008-DK-SPTG-M,#000000,#000000,M,dk,ng,adult,mens
+61,PG008,Sportif Green,PG008-DK-SPTG-L,#000000,#000000,L,dk,ng,adult,mens
+965,PG007,Physics,PG007-RG-TIEDIE-XS,#FFFFFF,#FFFFFF,XS,rg,ng,adult,mens
+964,PG007,Physics,PG007-RG-TIEDIE-XL,#FFFFFF,#FFFFFF,XL,rg,ng,adult,mens
+963,PG007,Physics,PG007-RG-TIEDIE-S,#FFFFFF,#FFFFFF,S,rg,ng,adult,mens
+962,PG007,Physics,PG007-RG-TIEDIE-M,#FFFFFF,#FFFFFF,M,rg,ng,adult,mens
+961,PG007,Physics,PG007-RG-TIEDIE-L,#FFFFFF,#FFFFFF,L,rg,ng,adult,mens
+975,PG007,Physics,PG007-RG-SPACE-XS,#FFFFFF,#FFFFFF,XS,rg,ng,adult,mens
+974,PG007,Physics,PG007-RG-SPACE-XL,#FFFFFF,#FFFFFF,XL,rg,ng,adult,mens
+973,PG007,Physics,PG007-RG-SPACE-S,#FFFFFF,#FFFFFF,S,rg,ng,adult,mens
+972,PG007,Physics,PG007-RG-SPACE-M,#FFFFFF,#FFFFFF,M,rg,ng,adult,mens
+971,PG007,Physics,PG007-RG-SPACE-L,#FFFFFF,#FFFFFF,L,rg,ng,adult,mens
+960,PG007,Physics,PG007-RG-LAKE-XS,#FFFFFF,#FFFFFF,XS,rg,ng,adult,mens
+959,PG007,Physics,PG007-RG-LAKE-XL,#FFFFFF,#FFFFFF,XL,rg,ng,adult,mens
+958,PG007,Physics,PG007-RG-LAKE-S,#FFFFFF,#FFFFFF,S,rg,ng,adult,mens
+957,PG007,Physics,PG007-RG-LAKE-M,#FFFFFF,#FFFFFF,M,rg,ng,adult,mens
+956,PG007,Physics,PG007-RG-LAKE-L,#FFFFFF,#FFFFFF,L,rg,ng,adult,mens
+945,PG007,Physics,PG007-RG-GRAN-XS,#FFFFFF,#FFFFFF,XS,rg,ng,adult,mens
+944,PG007,Physics,PG007-RG-GRAN-XL,#FFFFFF,#FFFFFF,XL,rg,ng,adult,mens
+943,PG007,Physics,PG007-RG-GRAN-S,#FFFFFF,#FFFFFF,S,rg,ng,adult,mens
+942,PG007,Physics,PG007-RG-GRAN-M,#FFFFFF,#FFFFFF,M,rg,ng,adult,mens
+941,PG007,Physics,PG007-RG-GRAN-L,#FFFFFF,#FFFFFF,L,rg,ng,adult,mens
+955,PG007,Physics,PG007-DK-TIEDIE-XS,#FFFFFF,#FFFFFF,XS,dk,ng,adult,mens
+954,PG007,Physics,PG007-DK-TIEDIE-XL,#FFFFFF,#FFFFFF,XL,dk,ng,adult,mens
+953,PG007,Physics,PG007-DK-TIEDIE-S,#FFFFFF,#FFFFFF,S,dk,ng,adult,mens
+952,PG007,Physics,PG007-DK-TIEDIE-M,#FFFFFF,#FFFFFF,M,dk,ng,adult,mens
+951,PG007,Physics,PG007-DK-TIEDIE-L,#FFFFFF,#FFFFFF,L,dk,ng,adult,mens
+970,PG007,Physics,PG007-DK-SPACE-XS,#FFFFFF,#FFFFFF,XS,dk,ng,adult,mens
+969,PG007,Physics,PG007-DK-SPACE-XL,#FFFFFF,#FFFFFF,XL,dk,ng,adult,mens
+968,PG007,Physics,PG007-DK-SPACE-S,#FFFFFF,#FFFFFF,S,dk,ng,adult,mens
+967,PG007,Physics,PG007-DK-SPACE-M,#FFFFFF,#FFFFFF,M,dk,ng,adult,mens
+966,PG007,Physics,PG007-DK-SPACE-L,#FFFFFF,#FFFFFF,L,dk,ng,adult,mens
+950,PG007,Physics,PG007-DK-LAKE-XS,#FFFFFF,#FFFFFF,XS,dk,ng,adult,mens
+949,PG007,Physics,PG007-DK-LAKE-XL,#FFFFFF,#FFFFFF,XL,dk,ng,adult,mens
+948,PG007,Physics,PG007-DK-LAKE-S,#FFFFFF,#FFFFFF,S,dk,ng,adult,mens
+947,PG007,Physics,PG007-DK-LAKE-M,#FFFFFF,#FFFFFF,M,dk,ng,adult,mens
+946,PG007,Physics,PG007-DK-LAKE-L,#FFFFFF,#FFFFFF,L,dk,ng,adult,mens
+940,PG007,Physics,PG007-DK-GRAN-XS,#FFFFFF,#FFFFFF,XS,dk,ng,adult,mens
+939,PG007,Physics,PG007-DK-GRAN-XL,#FFFFFF,#FFFFFF,XL,dk,ng,adult,mens
+938,PG007,Physics,PG007-DK-GRAN-S,#FFFFFF,#FFFFFF,S,dk,ng,adult,mens
+937,PG007,Physics,PG007-DK-GRAN-M,#FFFFFF,#FFFFFF,M,dk,ng,adult,mens
+936,PG007,Physics,PG007-DK-GRAN-L,#FFFFFF,#FFFFFF,L,dk,ng,adult,mens
+60,PG004,China Spats,PG004-T-XS-CHINA,#FF0000,#FF0000,XS,rg,ng,adult,mens
+59,PG004,China Spats,PG004-T-XL-CHINA,#FF0000,#FF0000,XL,rg,ng,adult,mens
+58,PG004,China Spats,PG004-T-S-CHINA,#FF0000,#FF0000,S,rg,ng,adult,mens
+57,PG004,China Spats,PG004-T-M-CHINA,#FF0000,#FF0000,M,rg,ng,adult,mens
+56,PG004,China Spats,PG004-T-L-CHINA,#FF0000,#FF0000,L,rg,ng,adult,mens
+55,PG004,China Spats,PG004-B-XS-CHINA,#FF0000,#FF0000,XS,ck,ng,adult,mens
+54,PG004,China Spats,PG004-B-XL-CHINA,#FF0000,#FF0000,XL,ck,ng,adult,mens
+53,PG004,China Spats,PG004-B-S-CHINA,#FF0000,#FF0000,S,ck,ng,adult,mens
+52,PG004,China Spats,PG004-B-M-CHINA,#FF0000,#FF0000,M,ck,ng,adult,mens
+51,PG004,China Spats,PG004-B-L-CHINA,#FF0000,#FF0000,L,ck,ng,adult,mens
+50,PG003,Belt,PG003-F3-BAI,#FFFFFF,#FFFFFF,F3,bt,gi,adult,mens
+49,PG003,Belt,PG003-F2-BAI,#FFFFFF,#FFFFFF,F2,bt,gi,adult,mens
+48,PG003,Belt,PG003-F1-BAI,#FFFFFF,#FFFFFF,F1,bt,gi,adult,mens
+39,PG003,Belt,PG003-A3-HEI,#000000,#000000,A3,bt,gi,adult,mens
+47,PG003,Belt,PG003-A2L-BAI,#FFFFFF,#FFFFFF,A2L,bt,gi,adult,mens
+38,PG003,Belt,PG003-A2-HEI,#000000,#000000,A2,bt,gi,adult,mens
+46,PG003,Belt,PG003-A1L-BAI,#FFFFFF,#FFFFFF,A1L,bt,gi,adult,mens
+37,PG003,Belt,PG003-A1-HEI,#000000,#000000,A1,bt,gi,adult,mens
+45,PG003,Belt,PG003-A0-BAI,#FFFFFF,#FFFFFF,A0,bt,gi,adult,mens
+931,PG003,Belt,PG003--A3-ZONG,#FFFFFF,#FFFFFF,A3,bt,gi,adult,mens
+935,PG003,Belt,PG003--A3-ZI,#800080,#800080,A3,bt,gi,adult,mens
+41,PG003,Belt,PG003--A3-LAN,#0000FF,#0000FF,A3,bt,gi,adult,mens
+44,PG003,Belt,PG003--A3-BAI,#FFFFFF,#FFFFFF,A3,bt,gi,adult,mens
+930,PG003,Belt,PG003--A2-ZONG,#FFFFFF,#FFFFFF,A2,bt,gi,adult,mens
+934,PG003,Belt,PG003--A2-ZI,#800080,#800080,A2,bt,gi,adult,mens
+40,PG003,Belt,PG003--A2-LAN,#0000FF,#0000FF,A2,bt,gi,adult,mens
+43,PG003,Belt,PG003--A2-BAI,#FFFFFF,#FFFFFF,A2,bt,gi,adult,mens
+929,PG003,Belt,PG003--A1-ZONG,#FFFFFF,#FFFFFF,A1,bt,gi,adult,mens
+933,PG003,Belt,PG003--A1-ZI,#800080,#800080,A1,bt,gi,adult,mens
+36,PG003,Belt,PG003--A1-LAN,#0000FF,#0000FF,A1,bt,gi,adult,mens
+42,PG003,Belt,PG003--A1-BAI,#FFFFFF,#FFFFFF,A1,bt,gi,adult,mens
+928,PG003,Belt,PG003--A0-ZONG,#FFFFFF,#FFFFFF,A0,bt,gi,adult,mens
+932,PG003,Belt,PG003--A0-ZI,#800080,#800080,A0,bt,gi,adult,mens
+35,PG003,Belt,PG003--A0-LAN,#0000FF,#0000FF,A0,bt,gi,adult,mens
+26,PG002,Foundation2,PG002-F2-LAN,#0000FF,#0000FF,F2,gi,gi,adult,womens
+18,PG002,Foundation2,PG002-F2-HEI,#000000,#000000,F2,gi,gi,adult,womens
+34,PG002,Foundation2,PG002-F2-BAI,#FFFFFF,#FFFFFF,F2,gi,gi,adult,womens
+25,PG002,Foundation2,PG002-F1-LAN,#0000FF,#0000FF,F1,gi,gi,adult,womens
+17,PG002,Foundation2,PG002-F1-HEI,#000000,#000000,F1,gi,gi,adult,womens
+33,PG002,Foundation2,PG002-F1-BAI,#FFFFFF,#FFFFFF,F1,gi,gi,adult,womens
+24,PG002,Foundation2,PG002-F0-LAN,#0000FF,#0000FF,F0,gi,gi,adult,womens
+16,PG002,Foundation2,PG002-F0-HEI,#000000,#000000,F0,gi,gi,adult,womens
+32,PG002,Foundation2,PG002-F0-BAI,#FFFFFF,#FFFFFF,F0,gi,gi,adult,womens
+23,PG002,Foundation2,PG002-A2L-LAN,#0000FF,#0000FF,A2L,gi,gi,adult,mens
+15,PG002,Foundation2,PG002-A2L-HEI,#000000,#000000,A2L,gi,gi,adult,mens
+31,PG002,Foundation2,PG002-A2L-BAI,#FFFFFF,#FFFFFF,A2L,gi,gi,adult,mens
+22,PG002,Foundation2,PG002-A2-LAN,#0000FF,#0000FF,A2,gi,gi,adult,mens
+14,PG002,Foundation2,PG002-A2-HEI,#000000,#000000,A2,gi,gi,adult,mens
+30,PG002,Foundation2,PG002-A2-BAI,#FFFFFF,#FFFFFF,A2,gi,gi,adult,mens
+21,PG002,Foundation2,PG002-A1L-LAN,#0000FF,#0000FF,A1L,gi,gi,adult,mens
+13,PG002,Foundation2,PG002-A1L-HEI,#000000,#000000,A1L,gi,gi,adult,mens
+29,PG002,Foundation2,PG002-A1L-BAI,#FFFFFF,#FFFFFF,A1L,gi,gi,adult,mens
+20,PG002,Foundation2,PG002-A1-LAN,#0000FF,#0000FF,A1,gi,gi,adult,mens
+12,PG002,Foundation2,PG002-A1-HEI,#000000,#000000,A1,gi,gi,adult,mens
+28,PG002,Foundation2,PG002-A1-BAI,#FFFFFF,#FFFFFF,A1,gi,gi,adult,mens
+19,PG002,Foundation2,PG002-A0-LAN,#0000FF,#0000FF,A0,gi,gi,adult,mens
+11,PG002,Foundation2,PG002-A0-HEI,#000000,#000000,A0,gi,gi,adult,mens
+27,PG002,Foundation2,PG002-A0-BAI,#FFFFFF,#FFFFFF,A0,gi,gi,adult,mens
+10,PG001,Kids Belt,PG001-M4-BAI,#FFFFFF,#FFFFFF,M4,bt,gi,kids,mens
+9,PG001,Kids Belt,PG001-M3-BAI,#FFFFFF,#FFFFFF,M3,bt,gi,kids,mens
+8,PG001,Kids Belt,PG001-M2-BAI,#FFFFFF,#FFFFFF,M2,bt,gi,kids,mens
+7,PG001,Kids Belt,PG001-M1-BAI,#FFFFFF,#FFFFFF,M1,bt,gi,kids,mens
+6,PG001,Kids Belt,PG001-M000-BAI,#FFFFFF,#FFFFFF,M000,bt,gi,kids,mens
+5,PG001,Kids Belt,PG001-M00-BAI,#FFFFFF,#FFFFFF,M00,bt,gi,kids,mens
+4,PG001,Kids Belt,PG001-M0-BAI,#FFFFFF,#FFFFFF,M0,bt,gi,kids,mens
+3,5060998008032,Water Bottle,5060998008032,#000000,#000000,L,bo,ap,adult,mens
+227,PG024,Vale Tudo,4988129430141,#000000,#000000,L,dk,ng,adult,mens
+226,PG024,Vale Tudo,4988129430140,#000000,#000000,M,dk,ng,adult,mens
+225,PG024,Vale Tudo,4988129430139,#000000,#000000,S,dk,ng,adult,mens
+224,PG024,Vale Tudo,4988129430138,#000000,#000000,XS,dk,ng,adult,mens

@@ -4,8 +4,7 @@
 
 {% block content %}
 <div class="section">
-    <h1 class="center-align">Order #{{ order.id }}</h1>
-    <p><strong>Order Date:</strong> {{ order.order_date }}</p>
+    <h1 class="center-align">#{{ order.invoice_id }} - {{ order.order_date }}</h1>
     {% if order.invoice_id %}
         <p><strong>Invoice ID:</strong> {{ order.invoice_id }} {% if order.invoice %}<a href="{{ order.invoice.url }}" target="_blank">(Download)</a>{% endif %}</p>
     {% endif %}

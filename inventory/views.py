@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, date, timedelta
 from django.utils.timezone import now
 from dateutil.relativedelta import relativedelta
 import json
@@ -7,7 +7,7 @@ import calendar
 
 from django.shortcuts import render, get_object_or_404
 from django.db import models
-from django.db.models import Count, Sum, Max, F, Subquery, OuterRef, Avg
+from django.db.models import Count, Sum, Max, F, Q, Subquery, OuterRef, Avg, Prefetch
 from django.http import HttpResponse
 from django.db.models.functions import TruncMonth
 
@@ -16,10 +16,46 @@ from .models import Product, ProductVariant, InventorySnapshot, Sale, Order, Ord
 
 
 
-def home(request):
-    context = {}
-    return render(request, 'inventory/home.html', context)
+# Create a mapping from size code to its order index.
+SIZE_ORDER = {code: index for index, (code, label) in enumerate(ProductVariant.SIZE_CHOICES)}
 
+
+
+
+def home(request):
+    # Determine the first and last day of last month.
+    today = date.today()
+    first_day_current = today.replace(day=1)
+    last_day_previous = first_day_current - timedelta(days=1)
+    first_day_previous = last_day_previous.replace(day=1)
+
+    # Filter sales from last month.
+    sales_last_month = Sale.objects.filter(date__range=(first_day_previous, last_day_previous))
+
+    # Calculate total sales value and total returns for last month.
+    total_sales = sales_last_month.aggregate(total_sold_value=Sum('sold_value'))['total_sold_value'] or 0
+    total_returns = sales_last_month.aggregate(total_return_value=Sum('return_value'))['total_return_value'] or 0
+
+    # Get top ten sold products by summing sold quantity for each product.
+    top_products = sales_last_month.values(
+        'variant__product__product_id',
+        'variant__product__product_name'
+    ).annotate(
+        total_quantity=Sum('sold_quantity'),
+        total_sales=Sum('sold_value')
+    ).order_by('-total_quantity')[:10]
+
+
+    context = {
+        'total_sales': total_sales,
+        'total_returns': total_returns,
+        'top_products': top_products,
+        'last_month_range': {
+            'start': first_day_previous,
+            'end': last_day_previous,
+        }
+    }
+    return render(request, 'inventory/home.html', context)
 
 def dashboard(request):
     today = datetime.today().replace(day=1)  # Normalize to first of the month
@@ -52,8 +88,6 @@ def dashboard(request):
         restock_schedule.setdefault(restock_month, {}).setdefault(order['product_variant'], 0)
         restock_schedule[restock_month][order['product_variant']] += order['quantity']
 
-    print(restock_schedule)  # Debugging: Check restocks
-
     # Initialize stock projections categorized by style
     projected_stock_levels = {month.strftime('%b %Y'): {} for month in next_12_months}
     styles = ['nogi', 'gi', 'apparel', 'accessories']
@@ -73,8 +107,7 @@ def dashboard(request):
             if normalized_month in restock_schedule:
                 restock_amount = restock_schedule[normalized_month].get(variant.id, 0)
                 if restock_amount > 0:
-                    print(f"Restocking {restock_amount} units of {variant.variant_code} in {month_str}")
-                stock += restock_amount
+                    stock += restock_amount
 
             projected_stock_levels[month_str][variant.variant_code] = max(stock, 0)  # Ensure stock doesn't go negative
             style_stock_levels[month_str][variant_style] += max(stock, 0)  # Categorized stock by style
@@ -103,19 +136,18 @@ def dashboard(request):
     return render(request, 'inventory/dashboard.html', context)
 
 
-
-
 def product_list(request):
-    # Get the filter parameter from the request
+    # Get filter parameters
     hide_zero_inventory = request.GET.get('hide_zero_inventory', 'false').lower() == 'true'
+    type_filter = request.GET.get('type_filter', None)
 
     # Subquery to fetch the latest inventory snapshot for each variant
     latest_snapshot = InventorySnapshot.objects.filter(
         product_variant=OuterRef('pk')
     ).order_by('-date').values('inventory_count')[:1]
 
-    # Annotate variants with their latest inventory count
-    variants_with_inventory = ProductVariant.objects.annotate(
+    # Build a queryset of variants annotated with their latest inventory.
+    variants_with_inventory_qs = ProductVariant.objects.annotate(
         latest_inventory=Subquery(latest_snapshot)
     )
 
@@ -124,42 +156,52 @@ def product_list(request):
     last_12_months = today - timedelta(days=365)
     last_30_days = today - timedelta(days=30)
 
-    # Fetch all products
-    products = Product.objects.annotate(
+    # Fetch all products with a prefetch of variants_with_inventory.
+    products = Product.objects.all().prefetch_related(
+        Prefetch('variants', queryset=variants_with_inventory_qs, to_attr='variants_with_inventory')
+    ).annotate(
         variant_count=Count('variants', distinct=True),
         total_sales=Sum('variants__sales__sold_quantity', default=0),
         total_sales_value=Sum('variants__sales__sold_value', default=0),
-        # Total sales in the last 12 months
         sales_last_12_months=Sum(
             'variants__sales__sold_quantity',
-            filter=models.Q(variants__sales__date__gte=last_12_months),
+            filter=Q(variants__sales__date__gte=last_12_months),
             default=0
         ),
-        # Total sales in the last 30 days
         sales_last_30_days=Sum(
             'variants__sales__sold_quantity',
-            filter=models.Q(variants__sales__date__gte=last_30_days),
+            filter=Q(variants__sales__date__gte=last_30_days),
             default=0
         )
     )
 
-    # Calculate total inventory for each product
+    # Filter by type if provided.
+    if type_filter:
+        products = products.filter(variants__type=type_filter).distinct()
+
+    # Create size order mapping
+    SIZE_ORDER = {code: index for index, (code, label) in enumerate(ProductVariant.SIZE_CHOICES)}
+
+    # Process each product
     for product in products:
+        # Sort the variants using the defined order.
+        if hasattr(product, 'variants_with_inventory'):
+            product.variants_with_inventory.sort(
+                key=lambda variant: SIZE_ORDER.get(variant.size, 9999)
+            )
+
         product.total_inventory = sum(
             variant.latest_inventory or 0
-            for variant in variants_with_inventory.filter(product=product)
+            for variant in getattr(product, 'variants_with_inventory', [])
         )
-        # Calculate sales speed for 12 months and 30 days in units per month
         product.sales_speed_12_months = (
-            product.sales_last_12_months / 12
-            if product.sales_last_12_months > 0 else 0
+            product.sales_last_12_months / 12 if product.sales_last_12_months else 0
         )
         product.sales_speed_30_days = (
-            product.sales_last_30_days / (30 / 30)  # Always monthly
-            if product.sales_last_30_days > 0 else 0
+            product.sales_last_30_days if product.sales_last_30_days else 0
         )
 
-    # Apply filtering for zero inventory products
+    # Apply filtering for zero inventory products if requested.
     if hide_zero_inventory:
         products = [product for product in products if product.total_inventory > 0]
 
@@ -170,6 +212,9 @@ def product_list(request):
         product for product in products if product.total_inventory == 0
     ])
 
+    # Pass the TYPE_CHOICES to the context so the template can render the filter dropdown.
+    type_choices = ProductVariant.TYPE_CHOICES
+
     context = {
         'products': products,
         'summary': {
@@ -179,8 +224,11 @@ def product_list(request):
             'total_zero_inventory_items': total_zero_inventory_items,
         },
         'hide_zero_inventory': hide_zero_inventory,
+        'type_filter': type_filter,
+        'type_choices': type_choices,
     }
     return render(request, 'inventory/product_list.html', context)
+
 
 
 
@@ -381,12 +429,41 @@ def order_detail(request, order_id):
 
 
 def inventory_snapshots(request):
-    # Aggregate inventory levels for each snapshot date
-    snapshots = (
-        InventorySnapshot.objects.values('date')
-        .annotate(total_inventory=Sum('inventory_count'))
-        .order_by('-date')
-    )
+    # Get all snapshots for display, prefetching the related product_variant.
+    snapshots_qs = InventorySnapshot.objects.select_related('product_variant').order_by('-date')
+
+    # Use a dictionary to aggregate data by date.
+    snapshots_by_date = defaultdict(lambda: {'total_inventory': 0, 'total_cost': 0, 'total_retail': 0})
+
+    # Assuming you have some functions to get the unit cost and retail for a variant.
+    def get_unit_cost(variant):
+        # You may derive this from related OrderItems or other logic
+        # For demonstration, we simply return a constant or computed value.
+        return 100  # Replace with your logic
+
+    def get_unit_retail(variant):
+        # Similarly derive retail price.
+        return 150  # Replace with your logic
+
+    for snapshot in snapshots_qs:
+        date_key = snapshot.date
+        unit_cost = get_unit_cost(snapshot.product_variant)
+        unit_retail = get_unit_retail(snapshot.product_variant)
+        snapshots_by_date[date_key]['total_inventory'] += snapshot.inventory_count
+        snapshots_by_date[date_key]['total_cost'] += snapshot.inventory_count * unit_cost
+        snapshots_by_date[date_key]['total_retail'] += snapshot.inventory_count * unit_retail
+
+    # Convert the dictionary into a sorted list
+    snapshots = [
+        {
+            'date': date,
+            'total_inventory': data['total_inventory'],
+            'total_cost': data['total_cost'],
+            'total_retail': data['total_retail'],
+        }
+        for date, data in snapshots_by_date.items()
+    ]
+    snapshots.sort(key=lambda x: x['date'], reverse=True)
 
     context = {'snapshots': snapshots}
     return render(request, 'inventory/inventory_snapshots.html', context)

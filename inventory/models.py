@@ -15,7 +15,7 @@ class Product(models.Model):
 
 class ProductVariant(models.Model):
     SIZE_CHOICES = [
-        ('XS', 'Extra-Extra-Small'),
+        ('XXS', 'Extra-Extra-Small'),
         ('XS', 'Extra-Small'),
         ('S', 'Small'),
         ('M', 'Medium'),

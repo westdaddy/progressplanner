@@ -24,3 +24,82 @@
 .order-table .right-column td {
     width: 15%;
 }
+
+
+
+/* Container for variant dots */
+.variant-stock {
+  display: inline-block;
+  margin-top: 10px;
+  position: relative; /* Ensure that tooltips are positioned relative to the container */
+}
+
+/* Common styles for all stock dots */
+.stock-dot {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  margin-right: -10px;
+  box-shadow: 0 0 2px rgba(0,0,0,0.5);
+  vertical-align: middle;
+  transition: transform 0.2s ease-out;
+  position: relative; /* Needed for the tooltip positioning */
+}
+
+/* Hover effect for movement */
+.stock-dot:hover {
+  transform: translateY(-2px);
+}
+
+/* Custom tooltip styling */
+.stock-dot:hover::after {
+  content: "Size: " attr(data-size) ", Stock: " attr(data-stock);
+  position: absolute;
+  bottom: 120%; /* Position tooltip above the dot */
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #333;
+  color: #fff;
+  padding: 3px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+  font-size: 12px;
+  z-index: 10;
+  opacity: 1;
+}
+
+/* Optional: Tooltip arrow */
+.stock-dot:hover::before {
+  content: "";
+  position: absolute;
+  bottom: 110%; /* Adjust to connect with the tooltip */
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent #333 transparent;
+  z-index: 10;
+}
+
+/* Color definitions */
+.stock-dot.green {
+  background-color: #4CAF50;
+}
+.stock-dot.orange {
+  background-color: #FF9800;
+}
+.stock-dot.red {
+  background-color: #F44336;
+}
+
+
+
+.product-photo-large {
+    width: 150px;   /* Adjust as needed */
+    height: 100px;  /* Adjust as needed */
+    /* Optional: if you want to ensure the image remains circular: */
+    border-radius: 50%;
+    object-fit: cover;  /* Keep the aspect ratio and fill the circle */
+}

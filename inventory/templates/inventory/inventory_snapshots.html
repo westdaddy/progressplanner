@@ -10,6 +10,8 @@
                 <tr>
                     <th>Date</th>
                     <th>Total Inventory</th>
+                    <th>Total Cost</th>
+                    <th>Total Retail</th>
                 </tr>
             </thead>
             <tbody>
@@ -17,6 +19,8 @@
                     <tr>
                         <td>{{ snapshot.date }}</td>
                         <td>{{ snapshot.total_inventory }}</td>
+                        <td>{{ snapshot.total_cost }}</td>
+                        <td>{{ snapshot.total_retail }}</td>
                     </tr>
                 {% endfor %}
             </tbody>

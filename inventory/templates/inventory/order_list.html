@@ -4,17 +4,14 @@
 
 {% block content %}
 <div class="section">
-    <h1 class="center-align">Orders</h1>
+    <h1 class="center-align">Stock Orders</h1>
 
     <ul class="collection">
         {% for order in orders %}
             <li class="collection-item">
                 <a href="{% url 'order_detail' order.id %}">
-                    <strong>Order #{{ order.id }}</strong> - {{ order.order_date }}
+                    <strong>#{{ order.invoice_id }}</strong> - {{ order.order_date }}
                 </a>
-                {% if order.invoice_id %}
-                    <p>Invoice ID: {{ order.invoice_id }}</p>
-                {% endif %}
                 <p>Total Value: {{ order.total_value }}</p>
             </li>
         {% endfor %}

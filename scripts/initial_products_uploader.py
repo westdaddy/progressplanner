@@ -14,7 +14,7 @@ import csv
 from inventory.models import Product
 
 # Define the path to your CSV file
-CSV_FILE_PATH = 'initialdata/product_list.csv'
+CSV_FILE_PATH = 'data/initialdata/product_list.csv'
 
 def import_products():
     with open(CSV_FILE_PATH, newline='', encoding='utf-8') as csvfile:
