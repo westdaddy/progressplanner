@@ -4,52 +4,133 @@
 
 {% block content %}
 <div class="section">
-    <h1 class="center-align">Dashboard</h1>
-    <h4>Sales Statistics for {{ last_month_range.start }} to {{ last_month_range.end }}</h4>
-
-    <div class="row">
-        <div class="col s12 m6">
-            <div class="card blue lighten-4">
-                <div class="card-content">
-                    <span class="card-title">Total Sales (Value)</span>
-                    <h4>¥{{ total_sales|floatformat:0 }}</h4>
-                </div>
-            </div>
+  <div class="row">
+    <!-- Sales Card with Line Chart -->
+    <div class="col s9" id="sales">
+      <div class="card teal lighten-2">
+        <div class="card-title teal white-text">
+          <span class="small">Total Sales (Value)</span>
         </div>
-        <div class="col s12 m6">
-            <div class="card red lighten-4">
-                <div class="card-content">
-                    <span class="card-title">Total Returns (Value)</span>
-                    <h4>¥{{ total_returns|floatformat:0 }}</h4>
-                </div>
-            </div>
+        <div class="card-content">
+          <div class="chart-container">
+            <canvas id="monthlySalesChart" style="width: 100%; height: 200px;"></canvas>
+          </div>
         </div>
+      </div>
     </div>
+    <div class="col s3">
+      <div class="card red lighten-2">
+        <div class="card-title red white-text">
+          <span class="small">{{ last_month_range.start }} - {{ last_month_range.end }}</span>
+        </div>
+        <div class="card-content">
+          <h4>¥{{ total_returns|floatformat:0 }}</h4>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    <h4>Top 10 Sold Products</h4>
-    <table class="highlight">
-        <thead>
-            <tr>
-                <th>Product Code</th>
-                <th>Product Name</th>
-                <th>Quantity Sold</th>
-                <th>Sales Value</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for product in top_products %}
-            <tr>
-                <td>{{ product.variant__product__product_id }}</td>
-                <td>{{ product.variant__product__product_name }}</td>
-                <td>{{ product.total_quantity|floatformat:0 }}</td>
-                <td>¥{{ product.total_sales|floatformat:0 }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="4">No sales data available for last month.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+  <!-- (Rest of your content remains unchanged) -->
+  <div class="row">
+    <div class="col s2">
+      <h5>Top 10 Sold Products</h5>
+    </div>
+    {% for entry in top_products %}
+      <div class="col s1">
+        <div class="card">
+          <div class="card-image">
+            {% if entry.product_variant.product.product_photo %}
+              <img src="{{ entry.product_variant.product.product_photo.url }}"
+                   alt="{{ entry.product_variant.product.product_name }}"
+                   class="circle small">
+            {% else %}
+              <img src="/media/product_photos/1.jpg">
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <table class="highlight">
+    <thead>
+      <tr>
+        <th>Product Code</th>
+        <th>Product Name</th>
+        <th>Quantity Sold</th>
+        <th>Sales Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for product in top_products %}
+      <tr>
+        <td>{{ product.variant__product__product_id }}</td>
+        <td>{{ product.variant__product__product_name }}</td>
+        <td>{{ product.total_quantity|floatformat:0 }}</td>
+        <td>¥{{ product.total_sales|floatformat:0 }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="4">No sales data available for last month.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
+{% endblock %}
+
+{% block extrajs %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var ctx = document.getElementById("monthlySalesChart").getContext("2d");
+  var monthlySalesChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: JSON.parse('{{ monthly_labels|escapejs }}'),
+      datasets: [{
+        label: "Sales per Month (Value)",
+        data: JSON.parse('{{ monthly_sales|escapejs }}'),
+        backgroundColor: "rgba(190, 251, 244, 0.2)", // Fill under the line
+        borderColor: "rgba(190, 251, 244, 1)",       // Line color
+        borderWidth: 2,                             // Line width
+        fill: true,                                 // Fill area below line
+        tension: 0.3,                               // Smooth curve
+        pointBackgroundColor: "rgba(75, 192, 192, 1)",
+        pointBorderColor: "#fff",
+        pointRadius: 4,                             // Size of data points
+        pointHoverRadius: 6                         // Size when hovering
+        // borderDash: [5, 5]                       // Dashed line style (optional)
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        title: { display: false, text: 'Sales per Month (Last 12 Months)' }
+      },
+      scales: {
+  x: {
+    ticks: { color: 'white' },
+    title: { display: false, text: 'Month', color: 'white' }
+  },
+  y: {
+    ticks: {
+      color: 'white',
+      callback: function(value, index, values) {
+        if (value >= 1000) {
+          return (value / 1000) + 'k';
+        }
+        return value;
+      }
+    },
+    title: { display: false, text: 'Sales Value (¥)', color: 'white' },
+    beginAtZero: true
+  }
+}
+    }
+  });
+});
+</script>
+
 {% endblock %}

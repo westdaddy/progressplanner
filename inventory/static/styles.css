@@ -1,5 +1,24 @@
 
 
+body {
+    display: flex;
+    min-height: 100vh;
+    flex-direction: column;
+    font-family: "Noto Sans Display", sans-serif;
+    font-weight: 500;
+}
+
+
+
+  main {
+    flex: 1 0 auto;
+  }
+
+
+a.brand-logo img {
+  width: 150px;
+  margin: 20px 0;
+}
 
 
 
@@ -25,6 +44,37 @@
     width: 15%;
 }
 
+/* HOME PAGE STYLES */
+.card-title  {
+  padding: 10px 15px;
+}
+
+.card-title span.small {
+  font-size:0.8em;
+}
+
+.chart-container {
+  padding: 15px;
+}
+
+
+
+/* PRODUCT_DETAIL PAGE STYLES */
+.product-photo {
+  max-width: 300px;
+  width: 100%;
+}
+
+tr.bold {
+  font-weight: bold;
+  font-size:1.2em;
+}
+
+tr.small {
+  font-size: 0.9em;
+  color: grey;
+}
+
 
 
 /* Container for variant dots */
@@ -40,12 +90,13 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  border: 2px solid #fff;
+  border: 1px solid #fff;
   margin-right: -10px;
   box-shadow: 0 0 2px rgba(0,0,0,0.5);
   vertical-align: middle;
   transition: transform 0.2s ease-out;
   position: relative; /* Needed for the tooltip positioning */
+  top: -2px;
 }
 
 /* Hover effect for movement */
@@ -94,12 +145,184 @@
   background-color: #F44336;
 }
 
+.collection {
+  border: none;
+}
+
+.collection .collection-item.avatar {
+  border-bottom: 1px solid #f1f1f1;
+  padding: 0px 0 0px 0;
+  margin: 20px 0 ;
+}
 
 
-.product-photo-large {
-    width: 150px;   /* Adjust as needed */
-    height: 100px;  /* Adjust as needed */
-    /* Optional: if you want to ensure the image remains circular: */
-    border-radius: 50%;
-    object-fit: cover;  /* Keep the aspect ratio and fill the circle */
+
+.collection .collection-item.avatar:not(.circle-clipper)>.circle, .collection .collection-item.avatar :not(.circle-clipper)>.circle {
+  height: 145px;
+  width: 145px;
+  border-radius: 10px;
+  }
+
+.collection-item .row.item {
+  margin: 0 0 20px 0;
+  min-height: 145px;
+}
+
+.collection-item .row.title {
+  padding: 0px 0 5px;
+  margin: 15px 0px 5px;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.collection .collection-item.avatar span.title {
+  font-size: 20px;
+}
+
+.row .col.content, .row .col.content .row.title .col {
+  padding-left: 0;
+}
+
+.collection-item .row {
+  margin: 0;
+}
+
+.collection-item .row.table {
+  padding: 0px 0;
+}
+
+.collection-item #last-order, .collection-item #stock {
+  display: flex;
+  align-items: center;    /* vertical centering */
+  justify-content: center; /* horizontal centering */
+  height: 100px;          /* ensure a fixed height for vertical centering */
+}
+
+
+.collection-item table thead tr th {
+  padding: 0px;
+  margin: 0 0 10px 0;
+  font-weight: normal;
+  font-size: 12px;
+}
+
+.collection-item table tbody tr td {
+  padding: 10px 0px;
+}
+
+.collection-item table tr {
+  border: none;
+}
+
+.collection-item table td, .collection-item table th {
+  position: relative;
+}
+
+.collection-item table td.ordered, .collection-item table td.sold, .collection-item table td.stock {
+  width: 100px;
+}
+
+
+.collection-item  span.number {
+  font-size: 30px;
+}
+
+.collection-item span.float {
+  font-size: 10px;
+  position: absolute;
+  top: 40px;
+}
+
+.collection-item span.float.top {
+  top:0;
+}
+
+.collection-item span.float.middle {
+  top: 20px;
+}
+
+
+
+/* Container for tables */
+.table-container {
+  margin: 20px auto;
+  max-width: 1200px;
+  padding: 20px;
+}
+
+/* Main dashboard table */
+.dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 14px;
+}
+
+.dashboard-table th,
+.dashboard-table td {
+  border: 1px solid #ddd;
+  padding: 12px 15px;
+  text-align: left;
+}
+
+.dashboard-table th {
+  background-color: #f7f7f7;
+  font-weight: bold;
+}
+
+.dashboard-table tr:nth-child(even) {
+  background-color: #fdfdfd;
+}
+
+.dashboard-table tr:hover {
+  background-color: #eef9ff;
+}
+
+/* Expandable row style */
+.expandable-row {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.expandable-row:hover {
+  background-color: #ddeeff;
+}
+
+/* Child (expandable) table */
+.child-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px 0 20px 0;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 13px;
+}
+
+.child-table th,
+.child-table td {
+  border: 1px solid #ccc;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.child-table th {
+  background-color: #f9f9f9;
+  font-weight: bold;
+}
+
+.child-table tr:nth-child(even) {
+  background-color: #f6f6f6;
+}
+
+.child-table tr:hover {
+  background-color: #e0f0ff;
+}
+
+/* Toggle icon styling */
+.toggle-icon {
+  font-size: 18px;
+  font-weight: bold;
+  display: inline-block;
+  width: 30px;
+  text-align: center;
+  color: #333;
 }

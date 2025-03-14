@@ -7,82 +7,114 @@
 <div class="section">
     <h1 class="center-align">Product List</h1>
 
-    <!-- Filter Form -->
-    <form method="get" class="center-align">
-        <!-- Hide Zero Inventory Items -->
-        <label>
-            <input type="checkbox" name="hide_zero_inventory" value="true" {% if hide_zero_inventory %}checked{% endif %} onchange="this.form.submit()">
-            <span>Hide Items with Zero Inventory</span>
-        </label>
-        <br>
-        <!-- Filter by Product Variant Type -->
-        <label for="type_filter">Filter by Category:</label>
-        <select name="type_filter" id="type_filter" onchange="this.form.submit()">
-            <option value="">All</option>
-            {% for value, display in type_choices %}
+    <div class="row filters">
+      <!-- Filter Form -->
+      <form method="get" class="center-align">
+          <!-- Show Retired Products -->
+          <p>
+            <label>
+              <input type="checkbox" name="show_retired" value="true" {% if show_retired %}checked{% endif %} onchange="this.form.submit()">
+              <span>Show Retired Products</span>
+            </label>
+          </p>
+          <!-- Filter by Product Variant Type -->
+          <div class="input-field inline">
+            <select name="type_filter" id="type_filter" onchange="this.form.submit()">
+              <option value="" {% if not type_filter %}selected{% endif %}>All</option>
+              {% for value, display in type_choices %}
                 <option value="{{ value }}" {% if type_filter == value %}selected{% endif %}>
-                    {{ display }}
+                  {{ display }}
                 </option>
-            {% endfor %}
-        </select>
-    </form>
-
-    <!-- Summary -->
-    <div class="summary">
-        <p><strong>Date of Latest Snapshot:</strong> {{ summary.latest_snapshot_date }}</p>
-        <p><strong>Total Products:</strong> {{ summary.total_products }}</p>
-        <p><strong>Total Inventory:</strong> {{ summary.total_inventory }}</p>
-        <p><strong>Items with Zero Inventory:</strong> {{ summary.total_zero_inventory_items }}</p>
+              {% endfor %}
+            </select>
+            <label for="type_filter">Filter by Category</label>
+          </div>
+      </form>
     </div>
 
     <!-- Product List -->
     <ul class="collection">
-    {% for product in products %}
-        <li class="collection-item avatar">
-            {% if product.product_photo %}
+      {% for product in products %}
+        <li class="collection-item avatar lighten-4">
+          <div class="row item">
+            <div class="col s2 photo">
+              {% if product.product_photo %}
                 <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" class="circle product-photo-large">
-            {% endif %}
-            <span class="title">
-                <a href="{% url 'product_detail' product.id %}">
-                    <strong>{{ product.product_name }}</strong>
-                </a> - {{ product.product_id }}
-            </span>
-            <p>
-                {{ product.variant_count }} variant{{ product.variant_count|pluralize }},
-                total sales: {{ product.total_sales|default:0 }}
-                (value: {{ product.total_sales_value|floatformat:2|default:"0.00" }}),
-                total inventory: {{ product.total_inventory|default:0 }}
-            </p>
-            <p>
-                <strong>Sales Speed:</strong>
-                <br>
-                - Last 12 months: {{ product.sales_speed_12_months|floatformat:2 }} units/month
-                <br>
-                - Last 30 days: {{ product.sales_speed_30_days|floatformat:2 }} units/month
-            </p>
-
-
-            <!-- Variant Stock Dots -->
-            <p class="variant-stock">
-                {% for variant in product.variants_with_inventory %}
-                    {% with stock=variant.latest_inventory|default:0 %}
+              {% endif %}
+            </div>
+            <div class="col s10 content">
+              <div class="row title">
+                <div class="col s12">
+                  <span class="title">
+                    <a href="{% url 'product_detail' product.id %}">
+                      <strong>{{ product.product_name }}</strong>
+                    </a>
+                  </span>
+                  ({{ product.product_id }})
+                  <!-- Variant Stock Dots -->
+                  <p class="variant-stock">
+                    {% for variant in product.variants_with_inventory %}
+                      {% with stock=variant.latest_inventory|default:0 %}
                         {% if stock|floatformat:0|to_int > 4 %}
-                            <span class="stock-dot green" data-size="{{ variant.size|default:'N/A' }}" data-stock="{{ stock }}"></span>
+                          <span class="stock-dot green" data-size="{{ variant.size|default:'N/A' }}" data-stock="{{ stock }}"></span>
                         {% elif stock|floatformat:0|to_int > 0 %}
-                            <span class="stock-dot orange" data-size="{{ variant.size|default:'N/A' }}" data-stock="{{ stock }}"></span>
+                          <span class="stock-dot orange" data-size="{{ variant.size|default:'N/A' }}" data-stock="{{ stock }}"></span>
                         {% else %}
-                            <span class="stock-dot red" data-size="{{ variant.size|default:'N/A' }}" data-stock="{{ stock }}"></span>
+                          <span class="stock-dot red" data-size="{{ variant.size|default:'N/A' }}" data-stock="{{ stock }}"></span>
                         {% endif %}
-                    {% endwith %}
-                {% endfor %}
-            </p>
+                      {% endwith %}
+                    {% endfor %}
+                  </p>
+                </div>
+              </div>
+              <div class="row table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Ordered</th>
+                      <th>Sold</th>
+                      <th>Current Stock</th>
+                      <th>Cost / Sales</th>
+                      <th>Profit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="ordered">
+                        {% if product.last_order_label %}
+                          {% if product.last_order_date %}
+                            <span class="float grey-text">{{ product.last_order_date }}</span>
+                          {% endif %}
+                          <span class="number">{{ product.last_order_qty }}</span>
+                        {% else %}
+                          <span class="number">-</span>
+                        {% endif %}
+                      </td>
+                      <td class="sold">
+                        <span class="number">{{ product.total_sales|default:0 }}</span>
+                      </td>
+                      <td class="stock">
+                        <span class="number">{{ product.total_inventory|default:0 }}</span>
+                      </td>
+                      <td>
+                        <span class="float middle">¥{{ product.total_sales_value|floatformat:2|default:"0.00" }}</span>
+                        <span class="float top">¥{{ product.last_order_cost|floatformat:2|default:"0.00" }}</span>
+                      </td>
+                      <td class="profit">
+                        <span class="number">¥{{ product.profit|floatformat:2|default:"0.00" }}</span>
+                      </td>
 
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </li>
-    {% endfor %}
+      {% endfor %}
     </ul>
 </div>
 {% endblock %}
-
 
 {% block extrajs %}
 <script>

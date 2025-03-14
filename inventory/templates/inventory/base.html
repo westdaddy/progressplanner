@@ -3,51 +3,79 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
-    <title>{% block title %}Inventory{% endblock %}</title>
-    <!-- Materialize CSS -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+  <meta charset="UTF-8">
+  <title>{% block title %}My Materialize Dashboard{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Materialize CSS -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+  <!-- Material Icons (optional) -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <!-- Your custom CSS -->
+  <link rel="stylesheet" href="{% static 'styles.css' %}">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Display:ital,wght@0,100..900;1,100..900&family=Noto+Sans:ital,wdth,wght@0,75,100..900;1,75,100..900&display=swap" rel="stylesheet">
 </head>
-<body class="has-fixed-sidenav">
 
+<body>
 
+<header>
+  <!-- Top Navbar -->
+  <nav class="cyan lighten-1">
+    <div class="nav-wrapper container">
+      <a href="{% url 'home' %}" class="brand-logo"><img src="/media/logo.png"></a>
+      <ul class="right hide-on-med-and-down">
+        <li class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}"><a href="{% url 'home' %}">Home</a></li>
+        <li class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+        <li class="{% if request.resolver_match.url_name == 'product_list' %}active{% endif %}"><a href="{% url 'product_list' %}">Products</a></li>
+        <li class="{% if request.resolver_match.url_name == 'inventory_snapshots' %}active{% endif %}"><a href="{% url 'inventory_snapshots' %}">Inventory Snapshots</a></li>
+        <li class="{% if request.resolver_match.url_name == 'order_list' %}active{% endif %}"><a href="{% url 'order_list' %}">Orders</a></li>
+        <li class=""><a href="{% url 'admin:index' %}" class="active">Admin</a></li>
+      </ul>
+    </div>
+  </nav>
+</header>
 
-  <ul id="sidenav-left" class="sidenav sidenav-fixed" style="transform: translateX(0px);">
-      <li><a href="{% url 'home' %}">Home</a></li>
-      <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
-      <li><a href="{% url 'product_list' %}">Products</a></li>
-      <li><a href="{% url 'inventory_snapshots' %}">Inventory Snapshots</a></li>
-      <li><a href="{% url 'order_list' %}">Orders</a></li>
-      <li><a href="{% url 'admin:index' %}">Admin</a></li>
-  </ul>
-
-
-    <nav>
-        <div class="nav-wrapper teal">
-            <a href="#" class="brand-logo center">Inventory</a>
-            <ul id="nav-mobile" class="left">
-                <li><a href="{% url 'home' %}">Home</a></li>
-                <li><a href="{% url 'product_list' %}">Products</a></li>
-
-            </ul>
-        </div>
-    </nav>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <div class="container">
-        {% block content %}
-        {% endblock %}
+<main>
+  <!-- Main Layout: Sidebar (for desktop) + Main Content -->
+  <div class="container">
+    <div class="row">
+      <div class="col s3">
+      </div>
+      <div class="col s9">
+      </div>
     </div>
 
+    <!-- Main Content Area -->
+    <div class="col s12 m9 l10">
+      {% block content %}
+      <!-- Your page-specific content goes here -->
+      {% endblock %}
+    </div>
+  </div>
+  </main>
 
+  <!-- (Optional) Footer -->
+  <footer class="page-footer teal lighten-1">
+    <div class="footer-copyright teal">
+      <div class="container">
+      © 2014 Copyright Text
+      <a class="grey-text text-lighten-4 right" href="#!">More Links</a>
+      </div>
+  </footer>
 
-    <!-- Materialize JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
-
-    {% block extrajs %}{% endblock %}
-
+  <!-- Materialize JavaScript + Initialization -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  {% block extrajs %}{% endblock %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize Mobile Sidenav
+      var elems = document.querySelectorAll('.sidenav');
+      var instances = M.Sidenav.init(elems);
+    });
+  </script>
 </body>
 </html>

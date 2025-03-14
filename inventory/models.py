@@ -5,7 +5,11 @@ from datetime import date
 class Product(models.Model):
     product_id = models.CharField(max_length=50, unique=True)  # Text/number code
     product_name = models.CharField(max_length=200)  # Product name
-    product_photo = models.ImageField(upload_to='product_photos/')  # Image field for product photo
+    product_photo = models.ImageField(upload_to='product_photos/', blank=True, null=True)  # Image field for product photo
+    decommissioned = models.BooleanField(
+        default=False,
+        help_text="Select if this product is old and retired."
+    )
 
     def __str__(self):
         return self.product_name
