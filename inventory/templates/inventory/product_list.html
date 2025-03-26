@@ -35,7 +35,7 @@
     <!-- Product List -->
     <ul class="collection">
       {% for product in products %}
-        <li class="collection-item avatar lighten-4">
+      <li class="collection-item avatar lighten-4 {% if product.total_sales|default:0 == 0 and product.total_inventory|default:0 == 0 %}new{% endif %}">
           <div class="row item">
             <div class="col s2 photo">
               {% if product.product_photo %}

@@ -156,6 +156,10 @@ tr.small {
 }
 
 
+.collection .collection-item.new {
+  opacity: 0.7;
+}
+
 
 .collection .collection-item.avatar:not(.circle-clipper)>.circle, .collection .collection-item.avatar :not(.circle-clipper)>.circle {
   height: 145px;
