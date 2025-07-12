@@ -626,6 +626,7 @@ def product_list(request):
     if age_filter:
         products_qs = products_qs.filter(age=age_filter)
 
+
     if group_filter:
         products_qs = products_qs.filter(groups__id=group_filter).distinct()
 
