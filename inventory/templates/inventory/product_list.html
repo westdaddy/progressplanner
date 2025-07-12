@@ -32,57 +32,60 @@
     </div>
 
     <div class="filters">
-  <form method="get">
+  <form method="get" style="display:flex; flex-wrap:wrap; align-items:center; gap:10px;">
 
-    <div class="col s3" style="margin-top: 1rem;">
-      <!-- Show retired products checkbox -->
-      <label>
-        <input
-          type="checkbox"
-          name="show_retired"
-          value="true"
-          class="filled-in"
-          {% if show_retired %}checked{% endif %}
-          onchange="this.form.submit()"
-        />
-        <span>Show old products</span>
-      </label>
-
-      <!-- Out of stock only checkbox -->
-      <label>
-        <input
-          type="checkbox"
-          name="zero_inventory"
-          value="true"
-          class="filled-in"
-          {% if zero_inventory %}checked{% endif %}
-          onchange="this.form.submit()"
-        />
-        <span>Out of stock only</span>
-      </label>
-    </div>
-
-    <!-- Type filter select -->
-    <div class="input-field inline col s4">
-      <select
-        name="type_filter"
-        id="type_filter"
+    <label style="margin-right:10px;">
+      <input
+        type="checkbox"
+        name="show_retired"
+        value="true"
+        class="filled-in"
+        {% if show_retired %}checked{% endif %}
         onchange="this.form.submit()"
-      >
+      />
+      <span>Show old products</span>
+    </label>
+
+    <label style="margin-right:20px;">
+      <input
+        type="checkbox"
+        name="zero_inventory"
+        value="true"
+        class="filled-in"
+        {% if zero_inventory %}checked{% endif %}
+        onchange="this.form.submit()"
+      />
+      <span>Out of stock only</span>
+    </label>
+
+    <div class="input-field" style="min-width:150px;">
+      <select name="type_filter" onchange="this.form.submit()">
         <option value="" {% if not type_filter %}selected{% endif %}>All types</option>
         {% for value, label in type_choices %}
-          <option
-            value="{{ value }}"
-            {% if type_filter == value %}selected{% endif %}
-          >
-            {{ label }}
-          </option>
+          <option value="{{ value }}" {% if type_filter == value %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
     </div>
 
-    <!-- Group filter select -->
-    <div class="input-field inline col s3">
+    <div class="input-field" style="min-width:150px;">
+      <select name="style_filter" onchange="this.form.submit()">
+        <option value="" {% if not style_filter %}selected{% endif %}>All styles</option>
+        {% for value, label in style_choices %}
+          <option value="{{ value }}" {% if style_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="input-field" style="min-width:150px;">
+      <select name="age_filter" onchange="this.form.submit()">
+        <option value="" {% if not age_filter %}selected{% endif %}>All ages</option>
+        {% for value, label in age_choices %}
+          <option value="{{ value }}" {% if age_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="input-field" style="min-width:150px;">
       <select name="group_filter" onchange="this.form.submit()">
         <option value="" {% if not group_filter %}selected{% endif %}>All groups</option>
         {% for group in group_choices %}
@@ -91,8 +94,7 @@
       </select>
     </div>
 
-    <!-- Series filter select -->
-    <div class="input-field inline col s3">
+    <div class="input-field" style="min-width:150px;">
       <select name="series_filter" onchange="this.form.submit()">
         <option value="" {% if not series_filter %}selected{% endif %}>All series</option>
         {% for ser in series_choices %}
@@ -101,12 +103,8 @@
       </select>
     </div>
 
-    <!-- Preserve view mode when submitting -->
-    <input
-      type="hidden"
-      name="view_mode"
-      value="{{ view_mode }}"
-    />
+    <input type="hidden" name="view_mode" value="{{ view_mode }}" />
+
   </form>
 </div>
   </div>

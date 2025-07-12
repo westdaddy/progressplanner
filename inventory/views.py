@@ -41,6 +41,8 @@ from .models import (
     Group,
     Series,
     PRODUCT_TYPE_CHOICES,
+    PRODUCT_STYLE_CHOICES,
+    PRODUCT_AGE_CHOICES,
 )
 from .utils import (
     calculate_size_order_mix,
@@ -582,6 +584,8 @@ def product_list(request):
     # ─── Filter flags ───────────────────────────────────────────────────────────
     show_retired = request.GET.get("show_retired", "false").lower() == "true"
     type_filter = request.GET.get("type_filter", None)
+    style_filter = request.GET.get("style_filter", None)
+    age_filter = request.GET.get("age_filter", None)
     group_filter = request.GET.get("group_filter", None)
     series_filter = request.GET.get("series_filter", None)
     zero_inventory = request.GET.get("zero_inventory", "false").lower() == "true"
@@ -615,6 +619,13 @@ def product_list(request):
 
     if type_filter:
         products_qs = products_qs.filter(type=type_filter)
+
+    if style_filter:
+        products_qs = products_qs.filter(style=style_filter)
+
+    if age_filter:
+        products_qs = products_qs.filter(age=age_filter)
+
 
     if group_filter:
         products_qs = products_qs.filter(groups__id=group_filter).distinct()
@@ -722,10 +733,14 @@ def product_list(request):
         "products": products,
         "show_retired": show_retired,
         "type_filter": type_filter,
+        "style_filter": style_filter,
+        "age_filter": age_filter,
         "group_filter": group_filter,
         "series_filter": series_filter,
         "zero_inventory": zero_inventory,
         "type_choices": PRODUCT_TYPE_CHOICES,
+        "style_choices": PRODUCT_STYLE_CHOICES,
+        "age_choices": PRODUCT_AGE_CHOICES,
         "group_choices": Group.objects.all(),
         "series_choices": Series.objects.all(),
         "view_mode": view_mode,
