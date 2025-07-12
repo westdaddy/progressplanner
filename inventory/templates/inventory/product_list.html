@@ -13,6 +13,8 @@
         <a href="?view_mode=list
                  {% if show_retired %}&show_retired=true{% endif %}
                  {% if type_filter  %}&type_filter={{ type_filter }}{% endif %}
+                 {% if group_filter %}&group_filter={{ group_filter }}{% endif %}
+                 {% if series_filter %}&series_filter={{ series_filter }}{% endif %}
                  {% if zero_inventory %}&zero_inventory=true{% endif %}"
            class="view-icon {% if view_mode == 'list' %}active{% endif %}">
           <i class="material-icons">view_list</i>
@@ -20,6 +22,8 @@
         <a href="?view_mode=card
                  {% if show_retired %}&show_retired=true{% endif %}
                  {% if type_filter  %}&type_filter={{ type_filter }}{% endif %}
+                 {% if group_filter %}&group_filter={{ group_filter }}{% endif %}
+                 {% if series_filter %}&series_filter={{ series_filter }}{% endif %}
                  {% if zero_inventory %}&zero_inventory=true{% endif %}"
            class="view-icon {% if view_mode == 'card' %}active{% endif %}">
           <i class="material-icons">view_module</i>
@@ -73,6 +77,26 @@
           >
             {{ label }}
           </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Group filter select -->
+    <div class="input-field inline col s3">
+      <select name="group_filter" onchange="this.form.submit()">
+        <option value="" {% if not group_filter %}selected{% endif %}>All groups</option>
+        {% for group in group_choices %}
+          <option value="{{ group.id }}" {% if group_filter|add:"" == group.id|stringformat:"s" %}selected{% endif %}>{{ group.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Series filter select -->
+    <div class="input-field inline col s3">
+      <select name="series_filter" onchange="this.form.submit()">
+        <option value="" {% if not series_filter %}selected{% endif %}>All series</option>
+        {% for ser in series_choices %}
+          <option value="{{ ser.id }}" {% if series_filter|add:"" == ser.id|stringformat:"s" %}selected{% endif %}>{{ ser.name }}</option>
         {% endfor %}
       </select>
     </div>
