@@ -2,6 +2,22 @@ from django.db import models
 from datetime import date
 
 
+class Group(models.Model):
+    """Top level product grouping."""
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class Series(models.Model):
+    """Collection of related products within a group."""
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class Product(models.Model):
     product_id = models.CharField(max_length=50, unique=True)  # Text/number code
     product_name = models.CharField(max_length=200)  # Product name
@@ -20,6 +36,16 @@ class Product(models.Model):
     discounted = models.BooleanField(
         default=False,
         help_text="Check if this product is currently discounted."
+    )
+    groups = models.ManyToManyField(
+        Group,
+        related_name="products",
+        blank=True,
+    )
+    series = models.ManyToManyField(
+        Series,
+        related_name="products",
+        blank=True,
     )
 
     def __str__(self):

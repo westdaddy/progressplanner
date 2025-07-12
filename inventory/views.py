@@ -17,7 +17,16 @@ from django.db.models.functions import Coalesce
 from django.http import HttpResponse
 from django.db.models.functions import TruncMonth
 
-from .models import Product, ProductVariant, InventorySnapshot, Sale, Order, OrderItem
+from .models import (
+    Product,
+    ProductVariant,
+    InventorySnapshot,
+    Sale,
+    Order,
+    OrderItem,
+    Group,
+    Series,
+)
 from .utils import calculate_size_order_mix, compute_safe_stock, SIZE_ORDER, compute_variant_projection, compute_sales_aggregates, get_product_sales_data, calculate_estimated_inventory_sales_value, calculate_on_paper_inventory_value, compute_inventory_health_scores, get_product_health_metrics, calculate_dynamic_product_score, compute_product_health
 
 
@@ -445,6 +454,8 @@ def product_list(request):
     # ─── Filter flags ───────────────────────────────────────────────────────────
     show_retired   = request.GET.get('show_retired', 'false').lower()   == 'true'
     type_filter    = request.GET.get('type_filter', None)
+    group_filter   = request.GET.get('group_filter', None)
+    series_filter  = request.GET.get('series_filter', None)
     zero_inventory = request.GET.get('zero_inventory', 'false').lower()  == 'true'
 
     # ─── Date ranges ────────────────────────────────────────────────────────────
@@ -470,6 +481,12 @@ def product_list(request):
 
     if type_filter:
         products_qs = products_qs.filter(variants__type=type_filter).distinct()
+
+    if group_filter:
+        products_qs = products_qs.filter(groups__id=group_filter).distinct()
+
+    if series_filter:
+        products_qs = products_qs.filter(series__id=series_filter).distinct()
 
     if not show_retired:
         products_qs = products_qs.filter(decommissioned=False)
@@ -562,8 +579,12 @@ def product_list(request):
         'products':       products,
         'show_retired':   show_retired,
         'type_filter':    type_filter,
+        'group_filter':   group_filter,
+        'series_filter':  series_filter,
         'zero_inventory': zero_inventory,
         'type_choices':   ProductVariant.TYPE_CHOICES,
+        'group_choices':  Group.objects.all(),
+        'series_choices': Series.objects.all(),
         'view_mode':      view_mode,
     }
 
