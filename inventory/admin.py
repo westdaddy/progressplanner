@@ -1,5 +1,14 @@
 from django.contrib import admin
-from .models import Product, ProductVariant, Sale, InventorySnapshot, Order, OrderItem
+from .models import (
+    Product,
+    ProductVariant,
+    Sale,
+    InventorySnapshot,
+    Order,
+    OrderItem,
+    Group,
+    Series,
+)
 
 from datetime import datetime, timedelta, date
 from django.utils.timezone import now
@@ -16,7 +25,8 @@ from django.contrib.admin.widgets import FilteredSelectMultiple
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('product_id', 'product_name', 'retail_price')  # Customize columns in the admin list view
+    list_display = ('product_id', 'product_name', 'retail_price')
+    list_filter = ('groups', 'series')
 
 
 @admin.register(ProductVariant)
@@ -34,6 +44,16 @@ class SaleAdmin(admin.ModelAdmin):
 class InventorySnapshotAdmin(admin.ModelAdmin):
     list_display = ('product_variant', 'date', 'inventory_count')
     list_filter = ('product_variant', 'date', 'inventory_count')  # Add filters for easy management
+
+
+@admin.register(Group)
+class GroupAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+
+
+@admin.register(Series)
+class SeriesAdmin(admin.ModelAdmin):
+    list_display = ('name',)
 
 
 
