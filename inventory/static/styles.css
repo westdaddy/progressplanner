@@ -21,6 +21,14 @@ a.brand-logo img {
 }
 
 
+div.metadata {
+  padding: 10px;
+  font-size: 0.8rem;
+  margin: -20px 0 20px 0;
+}
+
+
+/* ORDER DETAIL PAGE */
 
 .order-table {
     width: 100%;
@@ -33,7 +41,7 @@ a.brand-logo img {
 }
 
 .order-table .left-column {
-    width: 25%;
+    width: 15%;
 }
 
 .order-table .right-column {
@@ -75,6 +83,13 @@ tr.small {
   color: grey;
 }
 
+
+/* HOME PAGE STYLING */
+
+.center-vertically {
+  display: flex;
+  align-items: center;
+}
 
 
 /* Container for variant dots */
@@ -153,6 +168,13 @@ tr.small {
   border-bottom: 1px solid #f1f1f1;
   padding: 0px 0 0px 0;
   margin: 20px 0 ;
+  vertical-align: top;
+  background: none;
+}
+
+.collection .collection-item.avatar img {
+
+  top: 15px;
 }
 
 
@@ -162,9 +184,10 @@ tr.small {
 
 
 .collection .collection-item.avatar:not(.circle-clipper)>.circle, .collection .collection-item.avatar :not(.circle-clipper)>.circle {
-  height: 145px;
-  width: 145px;
+  height: 150px;
+  width: 150px;
   border-radius: 10px;
+  position: relative;
   }
 
 .collection-item .row.item {
@@ -329,4 +352,102 @@ tr.small {
   width: 30px;
   text-align: center;
   color: #333;
+}
+
+label.hide {
+  visibility: hidden;
+}
+
+#controls .view-toggle {
+    text-align: center;
+    margin: 10px 0 0;
+  }
+
+#controls .view-toggle .view-icon {
+    margin: 0px;
+    cursor: pointer;
+    color: #9e9e9e;
+    transition: color 0.3s ease;
+  }
+#controls .view-toggle .view-icon.active {
+    color: #2196f3; /* Active icon color */
+  }
+
+
+
+/* INVENTORY PAGE STYLES */
+
+/* increase the dropdown’s width and add a subtle box-shadow */
+.select-wrapper input.select-dropdown {
+  border-bottom: none;
+  font-size: 0.9rem;
+  box-shadow: none;
+  transition: border-color .2s;
+  background-color: #26c6da;
+}
+.select-wrapper input.select-dropdown:focus {
+  border-bottom: none;
+}
+
+/* the UL that Materialize generates for the select */
+.select-wrapper .dropdown-content {
+  max-height: 240px;     /* limit height */
+  overflow-y: auto;      /* enable vertical scroll */
+  border-radius: 4px;
+  padding: 4px 0;
+}
+
+/* style individual options */
+.select-wrapper .dropdown-content li > span {
+  padding: 8px 16px;
+}
+
+/* hover/focus states */
+.select-wrapper .dropdown-content li:hover,
+.select-wrapper .dropdown-content li.active > span {
+  background-color: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+#filterForm label {
+  visibility: hidden;
+}
+
+
+
+/* PRODUCT DETAIL STYLES */
+
+#product_card span.title {
+  font-size: 1.5rem;
+}
+
+#product_card span.price {
+  font-size: 1.3rem;
+}
+
+.salesFigure {
+  font-size:1.4rem;
+  width: 100%;
+}
+
+
+.gauge-container {
+  width: 200px;
+  height: 100px;
+  position: relative;
+  margin: auto;
+}
+.gauge-container canvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+.gauge-value {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  font-size: 1.6rem;
+  font-weight: bold;
+  pointer-events: none;
 }

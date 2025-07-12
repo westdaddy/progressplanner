@@ -1,0 +1,169 @@
+{% load inventory_extras %}
+<style>
+  /* Container for the grid of product cards */
+  .product-cards-container {
+    text-align: center;
+  }
+  /* Each card is 100x100px with a margin for spacing */
+  .product-card {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    margin: 10px;
+    display: inline-block;
+  }
+  /* Use Materialize’s card for the structure */
+  .product-card .card {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+  }
+  /* The image fills the card, using object-fit to maintain aspect ratio */
+  .product-card .card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  /* Floating badge in the top left */
+  .stock-badge {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    background: rgba(33, 150, 243, 0.8); /* blue with transparency */
+    color: white;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 0.75em;
+    z-index: 10;
+  }
+  /* Floating on order badge in the top right for current products */
+  .on-order-badge {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: red;
+    color: white;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 0.75em;
+    z-index: 10;
+  }
+  /* Hidden overlay for extra info, styled with a dark transparent background */
+  .product-card .product-details {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
+    color: #fff;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    padding: 5px;
+    font-size: 0.8em;
+  }
+  /* On hover, reveal the overlay */
+  .product-card:hover .product-details {
+    opacity: 1;
+  }
+</style>
+
+<div class="row">
+  <!-- Discounted Column -->
+  <div class="col s2">
+    <h5>Discounted</h5>
+    <div class="product-cards-container">
+      {% for product in discounted_products %}
+        <div class="product-card">
+          <div class="card">
+            <div class="card-image">
+              <!-- For discounted products, show in-stock count -->
+              <div class="stock-badge">{{ product.total_inventory|default:"0" }}</div>
+              {% if product.product_photo %}
+                <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}">
+              {% else %}
+                <img src="https://via.placeholder.com/100" alt="No Image">
+              {% endif %}
+            </div>
+            <div class="product-details">
+              <span class="card-title" style="font-size:1em;">{{ product.product_name }}</span>
+              <p>ID: {{ product.product_id }}</p>
+              <p>Sales: {{ product.total_sales|default:"0" }}</p>
+              <p>Stock: {{ product.total_inventory|default:"0" }}</p>
+              <p>Profit: ¥{{ product.profit|floatformat:2|default:"0.00" }}</p>
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <p>No discounted products</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Current Column -->
+  <div class="col s6">
+    <h5>Current</h5>
+    <div class="product-cards-container">
+      {% for product in current_products %}
+        <div class="product-card">
+          <div class="card">
+            <div class="card-image">
+              <!-- Blue badge shows in-stock count -->
+              <div class="stock-badge">{{ product.total_inventory|default:"0" }}</div>
+              {% if product.product_photo %}
+                <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}">
+              {% else %}
+                <img src="https://via.placeholder.com/100" alt="No Image">
+              {% endif %}
+              <!-- Red badge shows on order count only if not delivered -->
+              {% if product.last_order_label == "On Order" and product.last_order_qty %}
+                <div class="on-order-badge">{{ product.last_order_qty }}</div>
+              {% endif %}
+            </div>
+            <div class="product-details">
+              <span class="card-title" style="font-size:1em;">{{ product.product_name }}</span>
+              <p>ID: {{ product.product_id }}</p>
+              <p>Sales: {{ product.total_sales|default:"0" }}</p>
+              <p>Stock: {{ product.total_inventory|default:"0" }}</p>
+              <p>Profit: ¥{{ product.profit|floatformat:2|default:"0.00" }}</p>
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <p>No current products</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- On Order Column -->
+  <div class="col s4">
+    <h5>On Order</h5>
+    <div class="product-cards-container">
+      {% for product in on_order_products %}
+        <div class="product-card">
+          <div class="card">
+            <div class="card-image">
+              <!-- For on order products, badge shows on order count -->
+              <div class="stock-badge">{{ product.last_order_qty|default:"0" }}</div>
+              {% if product.product_photo %}
+                <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}">
+              {% else %}
+                <img src="https://via.placeholder.com/100" alt="No Image">
+              {% endif %}
+            </div>
+            <div class="product-details">
+              <span class="card-title" style="font-size:1em;">{{ product.product_name }}</span>
+              <p>ID: {{ product.product_id }}</p>
+              <p>Sales: {{ product.total_sales|default:"0" }}</p>
+              <p>Stock: {{ product.total_inventory|default:"0" }}</p>
+              <p>Profit: ¥{{ product.profit|floatformat:2|default:"0.00" }}</p>
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <p>No products on order</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>

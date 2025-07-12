@@ -1,221 +1,359 @@
 {% extends 'inventory/base.html' %}
-
 {% block title %}{{ product.product_name }} Details{% endblock %}
-
 {% block content %}
 
+<!-- SUMMARY CARDS -->
+<div class="section">
 
+  <div class="row">
+    <!-- Photo and name -->
+    <div class="col s3">
+      <div class="card z-depth-2" style="overflow: hidden; ">
+        <div class="card-image">
+          {% if product.product_photo %}
+            <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" />
+          {% endif %}
+        </div>
+        <div class="card-content" id="product_card">
+          <span class="title">{{ product.product_name }}</span>
+          <p>
+            <span class="price teal-text text-darken-2">
+              ¥{{ product.retail_price|floatformat:"0" }}
+            </span>
+            /
+            <span class="price red-text text-darken-4">
+              ¥{{ avg_price|floatformat:"0" }}
+            </span>
+            {% if discount_pct and discount_pct > 0 %}
+              <small class="grey-text">({{ discount_pct }}% off)</small>
+            {% endif %}
+          </p>
+          <p><strong>Total Sold:</strong> {{ total_qty }} units (¥{{ total_value|floatformat:"0" }})</p>
 
-<!-- Product Details Card -->
-<div class="row">
-  <div class="col l3 m6 s12">
-    <div class="card large">
-      <div class="card-image">
-        {% if product.product_photo %}
-          <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" style="max-width: 300px;"/>
-        {% endif %}
-      </div>
-      <div class="card-content">
-        <span class="card-title">{{ product.product_name }}</span>
-        <p>{{ product.product_id }}</p>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div class="col l3 m6 s12">
-    <div class="card large horizontal">
-      <div class="card-stacked">
-        <div class="card-content">
-          <p><strong>Top 80% of Sales (by Variant)</strong></p>
-          <ol>
-            {% for variant in top_selling_variants %}
-              <li>{{ variant.variant_code }} - {{ variant.total_sales|default:0 }}</li>
-            {% endfor %}
-          </ol>
+    <!-- Product-level Stock Forecast -->
+    <div class="col s9">
+      <div class="card z-depth-2" style="overflow: hidden;">
+        <div class="card-content cyan darken-2 white-text" style="padding: 0;">
+          <div style="padding: 20px;">
+            <!-- Place this where you want the 12-month past/future inventory chart -->
+            <canvas id="inventoryLineChart" height="130"></canvas>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="col l3 m6 s12">
-    <div class="card large horizontal">
-      <div class="card-stacked">
-        <div class="card-content">
-          <p><strong>Top Selling Sizes (Last 12 Months)</strong></p>
-          <ol>
-            {% for size in top_selling_sizes %}
-              <li>
-                {{ size.size }} - {{ size.total_sales|default:0 }}
-                ({{ size.percentage|default:"0" }}% )
-              </li>
-            {% endfor %}
-          </ol>
-        </div>
-      </div>
-    </div>
-  </div>
+  <div class="row">
+  <div class="health-card">
+  <!-- gauge: you can draw with Chart.js or a simple SVG -->
 
-  <div class="col l3 m6 s12">
-    <div class="card large horizontal">
-      <div class="card-stacked">
-        <div class="card-content">
-          <p><strong>Top Selling Colors (Last 12 Months)</strong></p>
-          <ol>
-            {% for color in top_selling_colors %}
-              <li>
-                <span style="background-color: {{ color.primary_color }}; display: inline-block; width: 20px; height: 20px; border: 1px solid #000;"></span>
-                {{ color.primary_color }} - {{ color.total_sales|default:0 }} units sold
-              </li>
-            {% endfor %}
-          </ol>
-        </div>
-      </div>
-    </div>
-  </div>
+
+
+
+</div>
+
 </div>
 
 
 
+
+
+  <div class="row">
+    <div class="col s3">
+
+      <div style="width:200px; height:200px; margin:auto;">
+        <canvas id="healthDonut"></canvas>
+      </div>
+
+      <div class="gauge-container">
+        <canvas id="healthGauge"></canvas>
+        <div class="gauge-value">{{ health.overall_score }}</div>
+      </div>
+
+    </div>
+
+
+    <div class="col s3" style="border-left: 1px dashed #111; height: 150px;">
+      <!-- bullet list -->
+      <ul class="health-bullets">
+        <li>🚀 Sales Velocity: {{ health.subscores.sales_velocity }}</li>
+        <li>📈 Sell-Through: {{ health.subscores.sell_through }}</li>
+        <li>⏱ Coverage Days: {{ health.subscores.coverage_days }}</li>
+        <li>🕒 Stock Age: {{ health.subscores.stock_age }}</li>
+        <li>⭐ Core Coverage: {{ health.subscores.core_coverage }}</li>
+        <li>🔁 Restocks: {{ health.subscores.restocks }}</li>
+        <li>↩️ Return Rate: {{ health.subscores.return_rate }}</li>
+        {# <li>💰 Margin: {{ health.subscores.margin }}</li> #}
+      </ul>
+    </div>
+
+    <!-- SALES STATISTICS SECTION -->
+    <div class="col s6">
+      <div class="card z-depth-2" style="overflow: hidden;">
+        <div class="card-content cyan lighten-2 white-text" ">
+          <p>Stuff in here about sales statistics - how many have been given away, how many discounted, how many full price. Time on the market, number of restocks, speed compared to similar products</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+
+<h3>Order History & Profitability</h3>
+<table class="highlight">
+  <thead>
+    <tr>
+      <th>Date Ordered</th>
+      <th>Date Delivered</th>
+      <th>Qty Ord/Del</th>
+      <th>Cost Value</th>
+      <th>No. Sold</th>
+      <th>In Stock</th>
+      <th>Sold Value</th>
+      <th>Profit</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for o in prev_orders %}
+      <tr>
+        <td>{{ o.date_ordered|date:"Y-m-d" }}</td>
+        <td>
+          {% if o.date_delivered %}
+            {{ o.date_delivered|date:"Y-m-d" }}
+          {% else %}&ndash;{% endif %}
+        </td>
+        <td>{{ o.qty_ordered }}/{{ o.qty_delivered }}</td>
+        <td>¥{{ o.cost_value|floatformat:"2" }}</td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="8">No previous orders.</td></tr>
+    {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr class="totals-row green-text">
+      <td colspan="3"><strong>Lifetime Totals</strong></td>
+      <td>¥{{ total_order_cost|floatformat:"2" }}</td>
+      <td>{{ lifetime_sold_qty }}</td>
+      <td>{{ current_inventory }}</td>
+      <td>¥{{ lifetime_sold_val|floatformat:"2" }}</td>
+      <td>¥{{ lifetime_profit|floatformat:"2" }}</td>
+    </tr>
+  </tfoot>
+</table>
+
+
+<!-- Safe Stock & Sales Speed -->
 <div class="section">
-  <!-- Overall Product Aggregates -->
-  <h3>Product Sales & Stock Summary</h3>
+  <h3>Safe Stock & Sales Speed</h3>
   <table class="highlight">
     <thead>
       <tr>
-        <th>Item</th>
-        <th>Sold (Last Year)</th>
-        <th>Av. Sold/Month (Last Year)</th>
-        <th>Av. Sold/Month (Last Quarter)</th>
-        <th>Items in Stock Now</th>
-        <th>Items on Order</th>
+        <th>Variant</th>
+        <th>Current Stock</th>
+        <th>Avg Speed</th>
+        <th>Min Threshold</th>
+        <th>Restock (6m)</th>
       </tr>
     </thead>
     <tbody>
-      <tr class="bold">
-        <td>{{ product.product_name }}</td>
-        <td>{{ aggregates.total_sold_12 }}</td>
-        <td>{{ aggregates.avg_sold_12|floatformat:1 }}</td>
-        <td>{{ aggregates.avg_sold_3|floatformat:1 }}</td>
-        <td>{{ aggregates.items_in_stock }}</td>
-        <td>{{ aggregates.items_on_order }}</td>
+      <tr class="product-summary">
+        <td><strong>Product Total</strong></td>
+        <td>{{ product_safe_summary.total_current_stock }} items</td>
+        <td>{{ product_safe_summary.avg_speed }} / month</td>
+        <td></td>
+        <td>{{ product_safe_summary.total_restock_needed }}</td>
       </tr>
-
-      {% for variant in variants_detail %}
-      <tr class="small">
-        <td>&nbsp;&nbsp;{{ variant.variant_code }}</td>
-        <td>{{ variant.total_sold_12 }}</td>
-        <td>{{ variant.avg_sold_12|floatformat:1 }}</td>
-        <td>{{ variant.avg_sold_3|floatformat:1 }}</td>
-        <td>{{ variant.latest_inventory }}</td>
-        <td>{{ variant.items_on_order }}</td>
+      {% for row in safe_stock_data %}
+      <tr>
+        <td>{{ row.variant_code }}</td>
+        <td>{{ row.current_stock }}</td>
+        <td>
+          {{ row.avg_speed }}
+          {% if row.trend == 'up' %}
+            <span style="color: green;">&#9650;</span>
+          {% elif row.trend == 'down' %}
+            <span style="color: red;">&#9660;</span>
+          {% else %}
+            &#8212;
+          {% endif %}
+        </td>
+        <td>{{ row.min_threshold }}</td>
+        <td>{{ row.restock_qty }}</td>
       </tr>
       {% empty %}
-      <tr>
-        <td colspan="6">No variant data available.</td>
-      </tr>
+      <tr><td colspan="5">No data available.</td></tr>
       {% endfor %}
     </tbody>
   </table>
-
-
-
-  <!-- Historic Sales Chart -->
-  <div class="historic-sales-chart">
-    <h3>Sales by Month (Last 12 Months)</h3>
-    <canvas id="historicSalesChart"></canvas>
-  </div>
-
-  <!-- Stock Levels Chart -->
-  <div class="stock-chart">
-    <h3>Stock Levels Projection</h3>
-    <canvas id="stockChart"></canvas>
-  </div>
-
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Variant-level Stock Projection Chart -->
+<div class="section">
+  <div class="row">
+    <div class="col s12">
+      <div class="card z-depth-2" style="overflow: hidden;">
+        <div style="padding: 20px;">
+          <h5>Variant Stock Projection</h5>
+          <canvas id="stockChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+{% endblock %}
+
+{% block extrajs %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- 2) Luxon + adapter (for the line chart) -->
+<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.3/build/global/luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
+
+
 <script>
-  // Create Stock Projection Chart
-  const stockChartData = JSON.parse('{{ stock_chart_data|escapejs }}');
+
+  // Variant-level Stock Projection Chart
+  const stockChartData = {{ stock_chart_data|safe }};
   const stockCtx = document.getElementById('stockChart').getContext('2d');
-  const stockChart = new Chart(stockCtx, {
+  new Chart(stockCtx, {
     type: 'line',
     data: {
       labels: stockChartData.months,
-      datasets: stockChartData.variant_lines.map(variant => ({
-        label: variant.variant_name,
-        data: variant.stock_levels,
-        borderWidth: 2,
-        fill: false
-      }))
+      datasets: stockChartData.variant_lines.map(v => ({ label: v.variant_name, data: v.stock_levels, borderWidth: 2, fill: false }))
     },
-    options: {
-      responsive: true,
-      plugins: {
-        title: {
-          display: true,
-          text: 'Projected Stock Levels'
-        }
-      },
-      scales: {
-        x: {
-          title: {
-            display: true,
-            text: 'Months'
-          }
-        },
-        y: {
-          title: {
-            display: true,
-            text: 'Stock Levels'
-          },
-          beginAtZero: true
-        }
-      }
-    }
-  });
-
-  // Create Historic Sales Chart (stacked bar chart)
-  const historicChartData = JSON.parse('{{ historic_chart_data|escapejs }}');
-  const historicCtx = document.getElementById('historicSalesChart').getContext('2d');
-  const historicSalesChart = new Chart(historicCtx, {
-    type: 'bar',
-    data: {
-      labels: historicChartData.months,
-      datasets: historicChartData.datasets.map(dataset => ({
-        label: dataset.label,
-        data: dataset.data,
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-        borderColor: 'rgba(75, 192, 192, 1)',
-        borderWidth: 1
-      }))
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        title: {
-          display: true,
-          text: 'Monthly Sales by Variant (Last 12 Months)'
-        }
-      },
-      scales: {
-        x: {
-          stacked: true,
-          title: {
-            display: true,
-            text: 'Months'
-          }
-        },
-        y: {
-          stacked: true,
-          title: {
-            display: true,
-            text: 'Sales Quantity'
-          },
-          beginAtZero: true
-        }
-      }
-    }
+    options: { responsive: true }
   });
 </script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // 1) Grab our live data
+  const score    = Number('{{ health.overall_score }}') || 0;
+  const maxScore = 100;
+  const remainder = Math.max(0, maxScore - score);
+
+  // 2) Pick an accent color for the “filled” slice
+  let accent = '#43a047';          // green
+  if      (score <  maxScore * 0.4) accent = '#e53935'; // red
+  else if (score <  maxScore * 0.6) accent = '#fb8c00'; // orange
+
+  // 3) Render a simple donut
+  const ctx = document.getElementById('healthDonut').getContext('2d');
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Score','Remaining'],
+      datasets: [{
+        data: [score, remainder],
+        backgroundColor: [accent, '#eee'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,  // full circle for now
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false }
+      }
+    }
+  });
+});
+</script>
+
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const lineCtx = document.getElementById("inventoryLineChart").getContext("2d");
+  // Data arrays from context
+  const actual = {{ actual_data|safe }};
+  const forecast = {{ forecast_data|safe }};
+
+  // Merge actual and forecast (skip duplicate first forecast point)
+  const merged = actual.concat(forecast.slice(1));
+
+  // Compute threshold line data at the min threshold value
+  // Assuming you pass a 'threshold_value' in context
+  const thresholdValue = {{ threshold_value }};
+  const thresholdData = merged.map(point => ({ x: point.x, y: thresholdValue }));
+
+  new Chart(lineCtx, {
+    type: 'line',
+    data: {
+      datasets: [
+        {
+          label: 'Min Threshold',
+          data: thresholdData,
+          borderWidth: 0,
+          backgroundColor: 'rgba(255,165,0,0.2)',
+          fill: '-1', // fill area between this and the next dataset
+          pointRadius: 0,
+        },
+        {
+          label: 'Inventory',
+          data: merged,
+          segment: {
+            borderColor: ctx => ctx.p1DataIndex < actual.length ? '#29b6f6' : '#ffca28',
+            borderDash: ctx => ctx.p1DataIndex < actual.length ? [] : [6,4]
+          },
+          backgroundColor: 'rgba(41,182,246,0.2)',
+          borderWidth: 2,
+          fill: false,
+          tension: 0.3,
+          pointRadius: 3,
+          pointBackgroundColor: '#fff'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { labels: { color: 'white' } },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${Math.round(ctx.parsed.y)} units`
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: {
+            unit: 'month',
+            tooltipFormat: 'dd LLL yyyy',
+            displayFormats: { month: 'MMM yyyy' }
+          },
+          ticks: { color: 'white', maxTicksLimit: 13 },
+          title: { display: true, text: 'Date', color: 'black' },
+          grid: { color: 'rgba(0,0,0,0.1)' }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: { color: 'white' },
+          title: { display: true, text: 'Units in Stock', color: 'black' },
+          grid: { color: 'rgba(0,0,0,0.1)' }
+        }
+      }
+    }
+  });
+});
+</script>
+
+
+
+
 {% endblock %}

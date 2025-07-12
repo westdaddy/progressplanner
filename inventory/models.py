@@ -6,6 +6,13 @@ class Product(models.Model):
     product_id = models.CharField(max_length=50, unique=True)  # Text/number code
     product_name = models.CharField(max_length=200)  # Product name
     product_photo = models.ImageField(upload_to='product_photos/', blank=True, null=True)  # Optional product photo
+    retail_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Recommended retail price."
+    )
     decommissioned = models.BooleanField(
         default=False,
         help_text="Select if this product is old and retired."
@@ -16,7 +23,12 @@ class Product(models.Model):
     )
 
     def __str__(self):
-        return self.product_name
+        return f"({self.product_id}) {self.product_name}"
+
+    class Meta:
+        # Example: primary sort by name ascending,
+        # then by creation date descending
+        ordering = ['product_id']
 
 
 
@@ -105,6 +117,7 @@ class ProductVariant(models.Model):
 
 class Sale(models.Model):
     sale_id = models.AutoField(primary_key=True)
+    order_number  = models.CharField(max_length=50, db_index=True) # the 内部订单号
     date = models.DateField()
     variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE, related_name='sales')
     sold_quantity = models.IntegerField()
@@ -126,14 +139,19 @@ class InventorySnapshot(models.Model):
 
 
 
-
 class Order(models.Model):
     order_date = models.DateField(default=date.today, verbose_name="Order Date")
     invoice_id = models.CharField(max_length=100, blank=True, null=True, verbose_name="Invoice ID")
     invoice = models.FileField(upload_to='invoices/', blank=True, null=True, verbose_name="Invoice File")
 
     def __str__(self):
-        return f"Order {self.invoice_id} - {self.order_date}"
+        return f"{self.invoice_id} - {self.order_date}"
+
+    class Meta:
+        # Example: primary sort by name ascending,
+        # then by creation date descending
+        ordering = ['-order_date']
+
 
 class OrderItem(models.Model):
     product_variant = models.ForeignKey('inventory.ProductVariant', on_delete=models.CASCADE, related_name='order_items', verbose_name="Product Variant")

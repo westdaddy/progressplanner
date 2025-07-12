@@ -3,40 +3,43 @@
 {% block title %}Order #{{ order.id }}{% endblock %}
 
 {% block content %}
+
+<h2 class="">#{{ order.invoice_id }} </h2>
+
 <div class="section">
-    <h1 class="center-align">#{{ order.invoice_id }} - {{ order.order_date }}</h1>
-    {% if order.invoice_id %}
-        <p><strong>Invoice ID:</strong> {{ order.invoice_id }} {% if order.invoice %}<a href="{{ order.invoice.url }}" target="_blank">(Download)</a>{% endif %}</p>
-    {% endif %}
 
-    Total Order Value: {{ total_value }}
+    <div class="metadata grey lighten-2">
+      {% if order.invoice_id %}
+          <strong>Invoice ID:</strong> {{ order.invoice_id }} {% if order.invoice %}<a href="{{ order.invoice.url }}" target="_blank">(Download)</a>{% endif %}
+      {% endif %} |
 
-    <h2>Order Items</h2>
+      ¥{{ total_value|floatformat:"0" }} |
+      {{ total_items }} items |
+      {{ order.order_date }}
+    </div>
+
     <table class="striped order-table">
-      <thead>
-          <tr>
-            <th class="left-column">Product</th>
-            <th class="right-column">Items</th>
-          </tr>
-      </thead>
 
       <tbody>
         {% for product, data in grouped_items.items %}
-          <tr class="collection">
+          <tr>
+            <td colspan="2">
+                <strong>{{ product.product_name }}</strong> ({{ product.product_id }}) |
+                <strong>{{ data.total_quantity }}</strong> items |
+                <strong>¥{{ data.total_value }}</strong>
+            </td>
+          </tr>
+          <tr class="collection" >
             <td class="collection-item avatar left-column">
               {% if product.product_photo %}
                   <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" class="circle">
               {% endif %}
-              <strong>{{ product.product_name }}</strong> ({{ product.product_id }})<br/>
-              Total Quantity: <strong>{{ data.total_quantity }}</strong>
-              <p>Total Value: {{ data.total_value }}</p> <!-- Display total value for each product -->
             </td>
             <td class="right-column">
                 <table class="striped sub-table">
                 {% for item in data.items %}
                   <tr>
-
-                      <td>{{ item.quantity }} x {{ item.product_variant.variant_code }}</td>
+                      <td>{{ item.quantity }} x {{ item.product_variant.size }}</td>
                       <td>Cost Price: {{ item.item_cost_price }} CNY</td>
                       <td>Expected: {{ item.date_expected }}</td>
                       <td>
@@ -52,9 +55,8 @@
           </tr>
         {% endfor %}
     </tbody>
+  </table>
 
-    <div class="center-align">
-        <a href="{% url 'order_list' %}" class="btn">Back to Orders</a>
-    </div>
+
 </div>
 {% endblock %}

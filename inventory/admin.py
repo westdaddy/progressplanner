@@ -16,7 +16,7 @@ from django.contrib.admin.widgets import FilteredSelectMultiple
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('product_id', 'product_name')  # Customize columns in the admin list view
+    list_display = ('product_id', 'product_name', 'retail_price')  # Customize columns in the admin list view
 
 
 @admin.register(ProductVariant)
@@ -52,7 +52,7 @@ class OrderItemInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'order_date', 'invoice_id')
+    list_display = ('invoice_id', 'order_date', )
     search_fields = ('id', 'invoice_id')
     inlines = [OrderItemInline]
 
@@ -70,6 +70,7 @@ class OrderAdmin(admin.ModelAdmin):
     def add_products_view(self, request, order_id):
         order = get_object_or_404(Order, pk=order_id)
         if request.method == 'POST':
+            print('here')
             form = AddProductsForm(request.POST)
             if form.is_valid():
                 products = form.cleaned_data['products']

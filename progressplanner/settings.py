@@ -115,6 +115,8 @@ USE_I18N = True
 
 USE_TZ = True
 
+# Maximum number of GET/POST parameters before raising TooManyFieldsSent.
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10_000
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/

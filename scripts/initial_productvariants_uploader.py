@@ -1,20 +1,25 @@
 import os
 import django
 import sys
+import csv
+
+# ─── Bootstrapping Django ───────────────────────────────────────────────────────
 
 # Set the path to the project root (where manage.py is located)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(BASE_DIR)
 
 # Set the Django settings module
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'progressplanner.settings')  # Adjust if your settings module differs
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'progressplanner.settings')
 django.setup()
 
 
-import csv
 from inventory.models import Product, ProductVariant
 
-# Define the path to your CSV file
+
+# ─── Configuration ──────────────────────────────────────────────────────────────
+
+# Path to your CSV file
 CSV_FILE_PATH = 'data/initialdata/variants_list.csv'
 
 # Map color names to hex codes
@@ -30,64 +35,122 @@ COLOR_TO_HEX = {
     'lilac': '#C8A2C8',
 }
 
+
 def map_color_to_hex(color_name):
-    """Map color names to hex codes, or return a default value."""
-    return COLOR_TO_HEX.get(color_name.lower(), '#FFFFFF')  # Default to white
+    """Map a human color name to a hex code, defaulting to white if unknown."""
+    return COLOR_TO_HEX.get(color_name.lower(), '#FFFFFF')
+
+
+# ─── Build “invert CHOICES” lookup maps ──────────────────────────────────────────
+
+def make_choice_map(choices):
+    """
+    Given a list like [('gi','Gi'),('rg','Rashguard'),…],
+    return a dict mapping both key and label (lowercased) → key.
+    """
+    m = {}
+    for key, label in choices:
+        m[key.lower()]   = key
+        m[label.lower()] = key
+    return m
+
+TYPE_MAP   = make_choice_map(ProductVariant.TYPE_CHOICES)
+STYLE_MAP  = make_choice_map(ProductVariant.STYLE_CHOICES)
+AGE_MAP    = make_choice_map(ProductVariant.AGE_CHOICES)
+GENDER_MAP = make_choice_map(ProductVariant.GENDER_CHOICES)
+# handle your “mens” / “women” CSV oddities:
+GENDER_MAP.update({
+    'mens':   'male',
+    'women':  'female',
+    'male':   'male',
+    'female': 'female',
+    'm':      'male',
+    'f':      'female',
+})
+
+
+def norm(map_, raw_value):
+    """
+    Normalize a raw CSV value to the choice-key via the given map,
+    or return None if blank/unknown.
+    """
+    if not raw_value:
+        return None
+    return map_.get(raw_value.strip().lower())
+
+
+# ─── Main import routine ────────────────────────────────────────────────────────
 
 def import_variants():
-    # Load the CSV file
     with open(CSV_FILE_PATH, newline='', encoding='latin1') as csvfile:
         reader = csv.DictReader(csvfile)
+        print("CSV columns detected:", reader.fieldnames)
 
         for row in reader:
-            try:
-                # Ensure the product exists
-                product = Product.objects.filter(product_id=row['product_code']).first()
-                if not product:
-                    print(f"Skipping: Product with code '{row['product_code']}' not found.")
-                    continue
+            product = Product.objects.filter(
+                product_id=row.get('product_code')
+            ).first()
+            if not product:
+                print(f"→ SKIP: no Product with code '{row.get('product_code')}'")
+                continue
 
-                # Map colors to hex
-                primary_color_hex = map_color_to_hex(row['primary_color'])
-                secondary_color_hex = map_color_to_hex(row['color'])
+            # Color hex mapping
+            pc = map_color_to_hex(row.get('primary_color', ''))
+            sc = map_color_to_hex(row.get('secondary_color') or row.get('color', ''))
 
-                if not primary_color_hex:
-                    print(f"Skipping row due to unknown primary color: {row}")
-                    continue
+            # Size comes through as the code already (e.g. 'M0', 'L', etc.)
+            size_code = row.get('size', '').strip() or None
 
-                # Check for existing variant
-                variant = ProductVariant.objects.filter(variant_code=row['variant_code']).first()
+            # Normalize the human labels into your choice-keys:
+            type_code   = norm(TYPE_MAP,  row.get('type'))
+            style_code  = norm(STYLE_MAP, row.get('style'))
+            age_code    = norm(AGE_MAP,   row.get('age'))
+            gender_code = norm(GENDER_MAP,row.get('gender'))
 
-                if variant:
-                    # Handle duplicate logic here
-                    variant.primary_color = primary_color_hex or variant.primary_color
-                    variant.secondary_color = secondary_color_hex or variant.secondary_color
-                    # Update other fields...
+            variant, created = ProductVariant.objects.get_or_create(
+                variant_code=row.get('variant_code'),
+                defaults={
+                    'product':         product,
+                    'primary_color':   pc,
+                    'secondary_color': sc,
+                    'size':            size_code,
+                    'type':            type_code,
+                    'style':           style_code,
+                    'age':             age_code,
+                    'gender':          gender_code,
+                }
+            )
+
+            if created:
+                print(
+                    f"CREATED {variant.variant_code} "
+                    f"(type={type_code}, style={style_code}, "
+                    f"age={age_code}, gender={gender_code})"
+                )
+            else:
+                updated = []
+                for attr, newval in [
+                    ('primary_color',   pc),
+                    ('secondary_color', sc),
+                    ('size',            size_code),
+                    ('type',            type_code),
+                    ('style',           style_code),
+                    ('age',             age_code),
+                    ('gender',          gender_code),
+                ]:
+                    if getattr(variant, attr) != newval:
+                        setattr(variant, attr, newval)
+                        updated.append(attr)
+
+                if updated:
                     variant.save()
-                    print(f"Updated: Variant {variant.variant_code}")
+                    print(f"UPDATED {variant.variant_code}: {', '.join(updated)}")
                 else:
-                    # Create a new variant
-                    ProductVariant.objects.create(
-                        product=product,
-                        variant_code=row['variant_code'],
-                        primary_color=primary_color_hex,
-                        secondary_color=secondary_color_hex,
-                        size=row['size'] or None,
-                        type=row['type'] or None,
-                        style=row['style'] or None,
-                        age=row['age'] or None,
-                        gender=row['gender'] or None,
-                    )
-                    print(f"Created: Variant {row['variant_code']}")
+                    print(f"SKIPPED {variant.variant_code}: no changes")
 
-            except Exception as e:
-                print(f"Error processing row {row}: {e}")
 
+# ─── Run if invoked as a script ────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    import django
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'inventory.settings')  # Update with your project name
-    django.setup()
-
     import_variants()
     print("Variant import completed!")

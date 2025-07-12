@@ -3,27 +3,202 @@
 {% block title %}Inventory Snapshots{% endblock %}
 
 {% block content %}
-    <div class="section">
-        <h1 class="center-align">Inventory Snapshots</h1>
-        <table class="highlight">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Total Inventory</th>
-                    <th>Total Cost</th>
-                    <th>Total Retail</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for snapshot in snapshots %}
-                    <tr>
-                        <td>{{ snapshot.date }}</td>
-                        <td>{{ snapshot.total_inventory }}</td>
-                        <td>{{ snapshot.total_cost }}</td>
-                        <td>{{ snapshot.total_retail }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<div class="section">
+  <div class="row">
+    <div class="col s12">
+      <div class="card z-depth-2" style="overflow: hidden;">
+
+        <!-- Top: Chart Title with teal background -->
+        <div class="card-content cyan darken-2 white-text" style="padding: 0;">
+          <div style="padding: 20px;">
+            <div id="chartHeader">
+                <div class="row" style="margin: 0;">
+                  <div class="col s6">
+                    <span>Inventory Forecast – Last 6 Months + 12 Month Projection</span>
+                  </div>
+                  <div class="col s6">
+                    <form method="get" id="filterForm">
+                      <div class="dropdown">
+                        <select name="type">
+                          <option value="all" {% if selected_type == 'all' %}selected{% endif %}>All Categories</option>
+                          {% for ct in categories %}
+                            <option value="{{ ct }}" {% if ct == selected_type %}selected{% endif %}>
+                              {{ ct }}
+                            </option>
+                          {% endfor %}
+                        </select>
+                        <label>Filter by Category</label>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+            </div>
+            <canvas id="inventoryLineChart" height="100"></canvas>
+          </div>
+        </div>
+
+      </div>
     </div>
+  </div>
+</div>
+
+
+  <div class="section">
+    <h5>Size Order Mix (Last 6 Months)</h5>
+    <table class="highlight">
+      <thead>
+        <tr>
+          <th>Size</th>
+          <th>Ideal %</th>
+          <th>Demand</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in size_mix %}
+          <tr>
+            <td>{{ item.size }}</td>
+            <td>{{ item.ideal_pct }}&#37;</td>
+            <td>{{ item.demand_score }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
+
+{% block extrajs %}
+  <!-- 1) Chart.js core (UMD) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- 2) Luxon + adapter (for the line chart) -->
+  <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.3/build/global/luxon.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
+
+  <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // ——— Inventory Line Chart —————————————————————————
+    const lineCtx = document.getElementById("inventoryLineChart").getContext("2d");
+    new Chart(lineCtx, {
+      type: 'line',
+      data: {
+        datasets: [{
+          label: 'Actual Inventory',
+          data: {{ actual_data|safe }},
+          borderColor: '#29b6f6',
+          backgroundColor: 'rgba(41,182,246,0.2)',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.3,
+          pointRadius: 3,
+          pointBackgroundColor: '#fff'
+        },{
+          label: 'Forecasted Inventory',
+          data: {{ forecast_data|safe }},
+          borderColor: '#ffca28',
+          borderDash: [6,4],
+          borderWidth: 2,
+          fill: false,
+          tension: 0.3,
+          pointRadius: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { labels: { color: 'white' } },
+          tooltip: {
+            callbacks: {
+              label: ctx => `${ctx.dataset.label}: ${Math.round(ctx.parsed.y)} units`
+            }
+          }
+        },
+        scales: {
+          x: {
+            type: 'time',
+            time: {
+              unit: 'day',
+              tooltipFormat: 'dd LLL yyyy',
+              displayFormats: { month: 'MMM yyyy' }
+            },
+            ticks: { color: 'white', maxTicksLimit: 13 },
+            title: { display: true, text: 'Month', color: 'white' },
+            grid: { color: 'rgba(255,255,255,0.1)' }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { color: 'white' },
+            title: { display: true, text: 'Units in Stock', color: 'white' },
+            grid: { color: 'rgba(255,255,255,0.1)' }
+          }
+        }
+      }
+    });
+
+    // ——— Materialize Select Dropdown ———————————————————————
+    var elems = document.querySelectorAll('select');
+    M.FormSelect.init(elems);
+    document.querySelector('#filterForm select')
+            .addEventListener('change', ()=> document.getElementById('filterForm').submit());
+
+    // ——— Size‐Mix Bar Chart —————————————————————————————
+    const sizeData = {{ size_mix|safe }};
+    console.log("size_mix:", sizeData);      // verify data
+    const labels = sizeData.map(d => d.size);
+    const values = sizeData.map(d => d.pct);
+    const colors = sizeData.map(d => d.color);
+    const indicators = Object.fromEntries(sizeData.map(d => [d.size, d.indicator]));
+
+    const barCanvas = document.getElementById("sizeMixChart");
+    if (barCanvas && values.length) {
+      const barCtx = barCanvas.getContext("2d");
+      new Chart(barCtx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Ideal Order Mix (%)',
+            data: values,
+            backgroundColor: colors,
+            borderColor: colors,
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: {
+              ticks: { color: 'white' },
+              title: { display: true, text: 'Size', color: 'white' },
+              grid: { display: false }
+            },
+            y: {
+              beginAtZero: true,
+              max: 100,
+              ticks: {
+                callback: v => v + '%',
+                color: 'white'
+              },
+              title: { display: true, text: 'Percentage', color: 'white' },
+              grid: { color: 'rgba(255,255,255,0.1)' }
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => {
+                  const size = ctx.label;
+                  const pct  = ctx.parsed.y.toFixed(1) + '%';
+                  const ind  = indicators[size];
+                  return ind
+                    ? `${size}: ${pct} — ${ind}`
+                    : `${size}: ${pct}`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+  });
+  </script>
 {% endblock %}

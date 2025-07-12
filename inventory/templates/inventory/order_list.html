@@ -3,6 +3,38 @@
 {% block title %}Orders{% endblock %}
 
 {% block content %}
+
+
+<div class="section">
+  <div class="row">
+{% for block in calendar_data %}
+  <div class="col s3">
+    <div class="card red lighten-4 z-depth-2" style="height:500px;">
+      <div class="card-content center-align">
+        <span class="grey-text">{{ block.month_label }}</span>
+        {% if block.events %}
+          <ul>
+            {% for ev in block.events %}
+              <li>
+                <img src="{% if ev.product.product_photo %}{{ ev.product.product_photo.url }}{% endif %}"
+                     alt="{{ ev.product.product_name }}"
+                     style="width:24px; height:24px; object-fit:cover; border-radius:2px; margin-right:4px;">
+                {{ ev.product.product_name }} × {{ ev.quantity }}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p><em>No arrivals</em></p>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+{% endfor %}
+</div>
+</div> <!-- END OF SECTION -->
+
+
 <div class="section">
     <h1 class="center-align">Stock Orders</h1>
 

@@ -5,78 +5,146 @@
 {% block content %}
 <div class="section">
   <div class="row">
-    <!-- Sales Card with Line Chart -->
-    <div class="col s9" id="sales">
-      <div class="card teal lighten-2">
-        <div class="card-title teal white-text">
-          <span class="small">Total Sales (Value)</span>
-        </div>
-        <div class="card-content">
-          <div class="chart-container">
-            <canvas id="monthlySalesChart" style="width: 100%; height: 200px;"></canvas>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col s3">
-      <div class="card red lighten-2">
-        <div class="card-title red white-text">
-          <span class="small">{{ last_month_range.start }} - {{ last_month_range.end }}</span>
-        </div>
-        <div class="card-content">
-          <h4>¥{{ total_returns|floatformat:0 }}</h4>
-        </div>
-      </div>
-    </div>
-  </div>
 
-  <!-- (Rest of your content remains unchanged) -->
-  <div class="row">
-    <div class="col s2">
-      <h5>Top 10 Sold Products</h5>
-    </div>
-    {% for entry in top_products %}
-      <div class="col s1">
-        <div class="card">
-          <div class="card-image">
-            {% if entry.product_variant.product.product_photo %}
-              <img src="{{ entry.product_variant.product.product_photo.url }}"
-                   alt="{{ entry.product_variant.product.product_name }}"
-                   class="circle small">
-            {% else %}
-              <img src="/media/product_photos/1.jpg">
-            {% endif %}
-          </div>
-        </div>
-      </div>
-    {% endfor %}
-  </div>
+    <!-- Left Column: Line Chart -->
+    <div class="col s12">
+      <div class="card z-depth-2" style="overflow: hidden;">
 
-  <table class="highlight">
-    <thead>
-      <tr>
-        <th>Product Code</th>
-        <th>Product Name</th>
-        <th>Quantity Sold</th>
-        <th>Sales Value</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for product in top_products %}
-      <tr>
-        <td>{{ product.variant__product__product_id }}</td>
-        <td>{{ product.variant__product__product_name }}</td>
-        <td>{{ product.total_quantity|floatformat:0 }}</td>
-        <td>¥{{ product.total_sales|floatformat:0 }}</td>
-      </tr>
-      {% empty %}
-      <tr>
-        <td colspan="4">No sales data available for last month.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+          <!-- Top: Line Chart with colored background -->
+          <div class="card-content cyan darken-2 white-text" style="padding: 0;">
+            <div style="padding: 20px;">
+              <span>Sales Revenue - {{ last_month_name }}</span>
+              <canvas id="monthlySalesChart" style="width: 100%; height: 250px;"></canvas>
+            </div>
+          </div>
+
+          <!-- Bottom: White section with donut chart + legend -->
+          <div class="card-content white">
+            <div class="row" style="margin: 0;">
+
+              <!-- Left: Donut Chart (1/3) -->
+              <div class="col s12 m2">
+                <div style="position: relative; width: 150px; height: 150px;">
+                  <canvas id="categoryDonutChart" width="150" height="150"></canvas>
+                  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+                    <span style="font-size: 1.4rem; font-weight: bold;">{{ total_items_sold }}</span><br>
+                    <span style="font-size: 0.9rem;">Items Sold</span>
+                  </div>
+                </div>
+              </div>
+
+            <!-- Custom Legend -->
+            <div class="col s12 m2" style="position: relative; height: 150px;">
+
+                <ul class="" style="list-style: none; padding-left: 0; margin-top:30px;">
+                  <li><span style="background:#43a047; display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:8px;"></span>Gi</li>
+                  <li><span style="background:#1e88e5; display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:8px;"></span>Rashguard</li>
+                  <li><span style="background:#fb8c00; display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:8px;"></span>Shorts</li>
+                  <li><span style="background:#9e9e9e; display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:8px;"></span>Other</li>
+                </ul>
+            </div>
+
+              <!-- Right: Summary Cards (2/3) -->
+              <div class="col s12 m8">
+                <div class="row" style="margin: 0;">
+                  <!-- Sales -->
+                  <div class="col s4 m4 l4">
+                    <div class="card green lighten-2 z-depth-1" style="margin-bottom: 10px;">
+                      <div class="card-content white-text center-align">
+                        <span class="green-text text-darken-4"  style="font-size: 1.1rem; font-weight: 600;">Gross Sales</span>
+                        <h5 style="margin: 0px; font-weight: 500;">¥{{ total_sales|floatformat:0 }}</h5>
+                      </div>
+                      <div class="green lighten-1 center-align" style="padding: 8px; ">
+                        <a href="#" class="white-text" style="font-weight: 500;">View Details</a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Returns -->
+                  <div class="col s4 m4 l4">
+                    <div class="card red lighten-2 z-depth-1" style="margin-bottom: 10px;">
+                      <div class="card-content white-text center-align">
+                        <span class="red-text text-darken-4" style="font-size: 1.1rem; font-weight: 600;">Returns</span>
+                        <h5 style="margin: 0px; font-weight: 500;">¥{{ total_returns|floatformat:0 }}</h5>
+                      </div>
+                      <div class="red lighten-1 center-align" style="padding: 8px; ">
+                        <a href="{% url 'returns' %}" class="white-text" style="font-weight: 500;">View Details</a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Net Sales -->
+                  <div class="col s4 m4 l4">
+                    <div class="card blue lighten-2 z-depth-1">
+                      <div class="card-content white-text center-align">
+                        <span class="blue-text text-darken-4" style="font-size: 1.1rem; font-weight: 600;">Net Sales</span>
+                        <h5 style="margin: 0px; font-weight: 500;">¥{{ net_sales|floatformat:0 }}</h5>
+                      </div>
+                      <div class="blue lighten-1 center-align" style="padding: 8px; ">
+                        <a href="#" class="white-text" style="font-weight: 500;">View Details</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div> <!-- end of card content -->
+
+      </div>
+    </div> <!-- end of col s12 -->
+
+
+    <div class="col s12 m6 l6">
+      <div class="card teal lighten-2 z-depth-1">
+        <div class="card-content white-text center-align">
+          <span class="teal-text text-darken-4" style="font-size: 1.1rem; font-weight: 600;">Inventory</span>
+          <h5 style="margin: 0px; font-weight: 500;">{{ inventory_count }} items</h5>
+          <span class="details teal-text text-darken-2">cost value ¥{{ inventory_value|floatformat:0 }}</span><br/>
+          <span class="details green-text text-darken-2">on paper value ¥{{ on_paper_value|floatformat:0 }}</span><br/>
+          <span class="details pink-text text-darken-2">estimated sales value ¥{{ estimated_inventory_sales_value|floatformat:0 }}</span>
+        </div>
+        <div class="teal darken-1 center-align" style="padding: 8px;">
+          <a href="{% url 'inventory_snapshots' %}"
+             class="white-text"
+             style="font-weight:500;">
+            View Inventory
+          </a>
+        </div>
+
+
+      </div>
+    </div>
+
+    <div class="col s12 m6 l6">
+      <div class="card pink lighten-2 z-depth-1">
+
+        <div class="card-content white-text center-align">
+          <span class="pink-text text-darken-4" style="font-size: 1.1rem; font-weight: 600;">On Order</span>
+          <h5 style="margin: 0px; font-weight: 500;">{{ on_order_count }} items</h5>
+          <span class="details pink-text text-darken-2">cost value ¥{{ on_order_value|floatformat:0 }}</span>
+
+        </div>
+
+        <div class="pink darken-1 center-align" style="padding: 8px;">
+          <a href="{% url 'order_list' %}"
+             class="white-text"
+             style="font-weight:500;">
+            View Orders
+          </a>
+        </div>
+
+
+      </div>
+    </div>
+
+  </div>
 </div>
+
+
+
+
+
 {% endblock %}
 
 {% block extrajs %}
@@ -84,53 +152,115 @@
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   var ctx = document.getElementById("monthlySalesChart").getContext("2d");
+
   var monthlySalesChart = new Chart(ctx, {
     type: 'line',
     data: {
       labels: JSON.parse('{{ monthly_labels|escapejs }}'),
-      datasets: [{
-        label: "Sales per Month (Value)",
-        data: JSON.parse('{{ monthly_sales|escapejs }}'),
-        backgroundColor: "rgba(190, 251, 244, 0.2)", // Fill under the line
-        borderColor: "rgba(190, 251, 244, 1)",       // Line color
-        borderWidth: 2,                             // Line width
-        fill: true,                                 // Fill area below line
-        tension: 0.3,                               // Smooth curve
-        pointBackgroundColor: "rgba(75, 192, 192, 1)",
-        pointBorderColor: "#fff",
-        pointRadius: 4,                             // Size of data points
-        pointHoverRadius: 6                         // Size when hovering
-        // borderDash: [5, 5]                       // Dashed line style (optional)
-      }]
+      datasets: [
+        {
+          label: "Sales per Month (Value)",
+          data: JSON.parse('{{ monthly_sales|escapejs }}'),
+          backgroundColor: "rgba(190, 251, 244, 0.2)",
+          borderColor: "rgba(190, 251, 244, 1)",
+          borderWidth: 2,
+          fill: true,
+          tension: 0.3,
+          pointBackgroundColor: "rgba(75, 192, 192, 1)",
+          pointBorderColor: "#fff",
+          pointRadius: 4,
+          pointHoverRadius: 6
+        },
+        {
+          label: "Sales Last Year",
+          data: JSON.parse('{{ monthly_sales_last_year|escapejs }}'),
+          backgroundColor: "rgba(255, 255, 255, 0)",  // no fill
+          borderColor: "rgba(255, 255, 255, 0.5)",
+          borderWidth: 2,
+          fill: false,
+          tension: 0.3,
+          borderDash: [5, 5],
+          pointBackgroundColor: "rgba(255, 255, 255, 0.5)",
+          pointBorderColor: "#fff",
+          pointRadius: 3,
+          pointHoverRadius: 5
+        }
+      ]
     },
     options: {
       responsive: true,
       plugins: {
-        legend: { display: false },
-        title: { display: false, text: 'Sales per Month (Last 12 Months)' }
+        legend: {
+          display: true,
+          labels: { color: 'white' }
+        },
+        title: {
+          display: false,
+          text: 'Sales per Month (Last 12 Months)'
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const value = context.parsed.y;
+              return context.dataset.label + ': ¥' + value.toLocaleString();
+            }
+          }
+        }
       },
       scales: {
-  x: {
-    ticks: { color: 'white' },
-    title: { display: false, text: 'Month', color: 'white' }
-  },
-  y: {
-    ticks: {
-      color: 'white',
-      callback: function(value, index, values) {
-        if (value >= 1000) {
-          return (value / 1000) + 'k';
+        x: {
+          ticks: { color: 'white' },
+          title: { display: false, text: 'Month', color: 'white' }
+        },
+        y: {
+          ticks: {
+            color: 'white',
+            callback: function(value, index, values) {
+              return value >= 1000 ? (value / 1000) + 'k' : value;
+            }
+          },
+          title: { display: false, text: 'Sales Value (¥)', color: 'white' },
+          beginAtZero: true
         }
-        return value;
       }
-    },
-    title: { display: false, text: 'Sales Value (¥)', color: 'white' },
-    beginAtZero: true
-  }
-}
     }
   });
 });
 </script>
+
+
+
+<script>
+  const donutCtx = document.getElementById('categoryDonutChart').getContext('2d');
+
+  new Chart(donutCtx, {
+    type: 'doughnut',
+    data: {
+      labels: {{ category_labels|safe }},
+      datasets: [{
+        data: {{ category_values|safe }},
+        backgroundColor: {{ category_colors|safe }},
+        borderColor: '#fff',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '65%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return context.label + ': ' + context.parsed + ' items';
+            }
+          }
+        }
+      }
+    }
+  });
+</script>
+
 
 {% endblock %}

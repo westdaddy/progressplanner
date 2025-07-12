@@ -1,0 +1,113 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}Returns{% endblock %}
+
+{% block content %}
+<div class="section">
+
+  <!-- Chart Card -->
+  <div class="card z-depth-2">
+    <div class="card-content cyan darken-2 white-text" style="padding: 20px;">
+      <span>Sales vs. Returns (Last 12 Months)</span>
+      <canvas id="salesReturnsChart" style="width:100%; height:250px;"></canvas>
+    </div>
+  </div>
+
+
+<!-- Returns › Top Products Section -->
+<div class="card z-depth-2" style="margin: 2rem 0;">
+  <div class="card-content">
+    <h5>Average Return Rate: {{ average_return_rate }}%</h5>
+
+    <h6>Top 10 Products by Return Rate</h6>
+    <table class="highlight responsive-table">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Sold Qty</th>
+          <th>Returned Qty</th>
+          <th>Return Rate</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in top_products %}
+        <tr>
+          <td>{{ p.name }}</td>
+          <td>{{ p.sold_qty }}</td>
+          <td>{{ p.returned_qty }}</td>
+          <td>{{ p.return_rate }}%</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extrajs %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const ctx = document.getElementById("salesReturnsChart").getContext("2d");
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: JSON.parse('{{ monthly_labels|escapejs }}'),
+      datasets: [
+        {
+          label: "Sales Value",
+          data: JSON.parse('{{ monthly_sales|escapejs }}'),
+          backgroundColor: "rgba(190, 251, 244, 0.2)",
+          borderColor: "rgba(190, 251, 244, 1)",
+          borderWidth: 2,
+          fill: true,
+          tension: 0.3,
+          pointBackgroundColor: "rgba(75, 192, 192, 1)",
+          pointBorderColor: "#fff",
+          pointRadius: 4,
+          pointHoverRadius: 6
+        },
+        {
+          label: "Returns Value",
+          data: JSON.parse('{{ monthly_returns|escapejs }}'),
+          backgroundColor: "rgba(255, 205, 210, 0.2)",
+          borderColor: "rgba(255, 205, 210, 1)",
+          borderWidth: 2,
+          fill: true,
+          tension: 0.3,
+          pointBackgroundColor: "rgba(244, 67, 54, 1)",
+          pointBorderColor: "#fff",
+          pointRadius: 4,
+          pointHoverRadius: 6
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { labels: { color: 'white' } },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ¥${ctx.parsed.y.toLocaleString()}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: 'white' }
+        },
+        y: {
+          ticks: {
+            color: 'white',
+            callback: v => v >= 1000 ? (v/1000) + 'k' : v
+          },
+          beginAtZero: true
+        }
+      }
+    }
+  });
+});
+</script>
+{% endblock %}

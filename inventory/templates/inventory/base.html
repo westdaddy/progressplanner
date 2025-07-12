@@ -14,12 +14,15 @@
   <!-- Your custom CSS -->
   <link rel="stylesheet" href="{% static 'styles.css' %}">
 
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Display:ital,wght@0,100..900;1,100..900&family=Noto+Sans:ital,wdth,wght@0,75,100..900;1,75,100..900&display=swap" rel="stylesheet">
 </head>
 
-<body>
+<body class="grey lighten-5">
 
 <header>
   <!-- Top Navbar -->
@@ -30,7 +33,7 @@
         <li class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}"><a href="{% url 'home' %}">Home</a></li>
         <li class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"><a href="{% url 'dashboard' %}">Dashboard</a></li>
         <li class="{% if request.resolver_match.url_name == 'product_list' %}active{% endif %}"><a href="{% url 'product_list' %}">Products</a></li>
-        <li class="{% if request.resolver_match.url_name == 'inventory_snapshots' %}active{% endif %}"><a href="{% url 'inventory_snapshots' %}">Inventory Snapshots</a></li>
+        <li class="{% if request.resolver_match.url_name == 'inventory_snapshots' %}active{% endif %}"><a href="{% url 'inventory_snapshots' %}">Inventory</a></li>
         <li class="{% if request.resolver_match.url_name == 'order_list' %}active{% endif %}"><a href="{% url 'order_list' %}">Orders</a></li>
         <li class=""><a href="{% url 'admin:index' %}" class="active">Admin</a></li>
       </ul>
@@ -41,12 +44,6 @@
 <main>
   <!-- Main Layout: Sidebar (for desktop) + Main Content -->
   <div class="container">
-    <div class="row">
-      <div class="col s3">
-      </div>
-      <div class="col s9">
-      </div>
-    </div>
 
     <!-- Main Content Area -->
     <div class="col s12 m9 l10">
@@ -54,8 +51,9 @@
       <!-- Your page-specific content goes here -->
       {% endblock %}
     </div>
+
   </div>
-  </main>
+</main>
 
   <!-- (Optional) Footer -->
   <footer class="page-footer teal lighten-1">
