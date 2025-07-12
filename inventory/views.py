@@ -40,6 +40,7 @@ from .models import (
     OrderItem,
     Group,
     Series,
+    PRODUCT_TYPE_CHOICES,
 )
 from .utils import (
     calculate_size_order_mix,
