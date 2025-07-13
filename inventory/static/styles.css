@@ -358,10 +358,21 @@ label.hide {
   visibility: hidden;
 }
 
+#controls {
+  padding: 20px;
+}
+
 #controls .view-toggle {
-    text-align: center;
-    margin: 10px 0 0;
+    width:20px;
   }
+
+#controls .col {
+  border-right: 1px solid #e5e5e5;
+}
+
+#controls .view-toggle a {
+  float: left;
+}
 
 #controls .view-toggle .view-icon {
     margin: 0px;
@@ -369,21 +380,14 @@ label.hide {
     color: #9e9e9e;
     transition: color 0.3s ease;
   }
-#controls .view-toggle .view-icon.active {
-    color: #2196f3; /* Active icon color */
-  }
-
 
 
 /* INVENTORY PAGE STYLES */
 
 /* increase the dropdown’s width and add a subtle box-shadow */
 .select-wrapper input.select-dropdown {
-  border-bottom: none;
-  font-size: 0.9rem;
-  box-shadow: none;
-  transition: border-color .2s;
-  background-color: #26c6da;
+  font-size: 12px;
+  height:2rem;
 }
 .select-wrapper input.select-dropdown:focus {
   border-bottom: none;
@@ -405,39 +409,28 @@ label.hide {
 /* hover/focus states */
 .select-wrapper .dropdown-content li:hover,
 .select-wrapper .dropdown-content li.active > span {
-  background-color: rgba(255,255,255,0.1);
   color: #fff;
 }
 
-#filterForm label {
-  visibility: hidden;
-}
+
 
 #productFilterForm {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 15px;
   margin: 0;
 }
 
-#productFilterForm label {
-  visibility: hidden;
-}
 
 #productFilterForm .checkbox-field {
-  display: flex;
-  align-items: center;
   margin-right: 20px;
 }
 
 #productFilterForm .checkbox-set {
-  display: flex;
-  align-items: center;
+
+  align-items: left;
 }
 
 #productFilterForm .checkbox-set > span {
-  margin-right: 10px;
+  float:left;
+  width:100%;
 }
 
 #productFilterForm .input-field {
