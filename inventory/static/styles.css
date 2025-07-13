@@ -474,3 +474,61 @@ label.hide {
   font-weight: bold;
   pointer-events: none;
 }
+
+/* Minimal grid system replacing Materialize */
+.container {
+  margin: 0 auto;
+  max-width: 1200px;
+  padding: 0 16px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-left: -8px;
+  margin-right: -8px;
+}
+
+.col {
+  padding-left: 8px;
+  padding-right: 8px;
+  box-sizing: border-box;
+}
+
+.s12 { flex: 0 0 100%; max-width: 100%; }
+.s6 { flex: 0 0 50%; max-width: 50%; }
+.s4 { flex: 0 0 33.333%; max-width: 33.333%; }
+.s3 { flex: 0 0 25%; max-width: 25%; }
+.s2 { flex: 0 0 16.666%; max-width: 16.666%; }
+
+@media (min-width: 600px) {
+  .m12 { flex: 0 0 100%; max-width: 100%; }
+  .m9 { flex: 0 0 75%; max-width: 75%; }
+  .m8 { flex: 0 0 66.666%; max-width: 66.666%; }
+  .m6 { flex: 0 0 50%; max-width: 50%; }
+  .m4 { flex: 0 0 33.333%; max-width: 33.333%; }
+  .m3 { flex: 0 0 25%; max-width: 25%; }
+  .m2 { flex: 0 0 16.666%; max-width: 16.666%; }
+}
+
+@media (min-width: 992px) {
+  .l12 { flex: 0 0 100%; max-width: 100%; }
+  .l10 { flex: 0 0 83.333%; max-width: 83.333%; }
+  .l9 { flex: 0 0 75%; max-width: 75%; }
+  .l8 { flex: 0 0 66.666%; max-width: 66.666%; }
+  .l6 { flex: 0 0 50%; max-width: 50%; }
+  .l4 { flex: 0 0 33.333%; max-width: 33.333%; }
+}
+
+.mdc-top-app-bar {
+  background-color: #00acc1;
+}
+
+.nav-button {
+  color: white;
+  text-transform: none;
+}
+
+.nav-button + .nav-button {
+  margin-left: 8px;
+}
