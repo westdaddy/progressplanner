@@ -15,3 +15,4 @@ db.sqlite3
 /static/
 media/
 data/
+*.csv
