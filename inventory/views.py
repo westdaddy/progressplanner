@@ -254,8 +254,14 @@ def home(request):
         }
     )
 
-    low_stock_products = get_low_stock_products(ProductVariant.objects.all())
-    context["low_stock_products"] = low_stock_products
+    low_stock_variants = get_low_stock_products(
+        ProductVariant.objects.select_related("product").all()
+    )
+    grouped = defaultdict(list)
+    for v in low_stock_variants:
+        grouped[v.product].append(v)
+    # Convert to a regular dict so Django templates can iterate over .items
+    context["low_stock_by_product"] = dict(grouped)
 
     return render(request, "inventory/home.html", context)
 

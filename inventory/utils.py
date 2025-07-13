@@ -3,7 +3,7 @@ import math
 import json
 
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import List, Optional, Sequence, Dict, Any, Iterable
 from decimal import Decimal
 
@@ -882,10 +882,14 @@ def compute_product_health(product, variants, simplify_type):
 
 
 def get_low_stock_products(queryset):
-    """Return items with less than 3 months of stock remaining."""
+    """Return items with less than 3 months of stock remaining.
+
+    This uses an adjusted sales speed that ignores months where the variant was
+    completely out of stock.  It averages the speed over the last 12, 6 and
+    3 months and compares current stock against that average.
+    """
 
     today = date.today()
-    six_months_ago = today - relativedelta(months=6)
 
     if queryset.model == ProductVariant:
         variant_qs = queryset
@@ -896,44 +900,72 @@ def get_low_stock_products(queryset):
     else:
         raise ValueError("Queryset must be for Product or ProductVariant")
 
-    latest_inv = (
-        InventorySnapshot.objects.filter(product_variant=OuterRef("pk"))
-        .order_by("-date")
-        .values("inventory_count")[:1]
+    # Prefetch related objects so all calculations happen in Python without
+    # triggering additional queries.
+    variants = list(
+        variant_qs.prefetch_related("sales", "snapshots", "product")
     )
 
-    variant_qs = variant_qs.annotate(
-        latest_inventory=Coalesce(Subquery(latest_inv), Value(0)),
-        sold_6=Coalesce(
-            Sum(
-                "sales__sold_quantity",
-                filter=Q(sales__date__gte=six_months_ago),
-            ),
-            Value(0),
-            output_field=IntegerField(),
-        ),
-    ).annotate(
-        avg_monthly_sales=ExpressionWrapper(
-            F("sold_6") / Value(6.0), output_field=FloatField()
-        )
-    ).annotate(
-        months_left=Case(
-            When(
-                avg_monthly_sales__gt=0,
-                then=ExpressionWrapper(
-                    F("latest_inventory") / F("avg_monthly_sales"),
-                    output_field=FloatField(),
-                ),
-            ),
-            default=Value(None),
-            output_field=FloatField(),
-        )
-    )
+    month_start = today.replace(day=1)
 
-    low_stock_variants = variant_qs.filter(
-        avg_monthly_sales__gt=0, months_left__lt=3
-    )
+    low_variants = []
+    for v in variants:
+        # Determine the latest inventory count from snapshots
+        latest_inv = 0
+        latest_dt = None
+        for snap in v.snapshots.all():
+            if latest_dt is None or snap.date > latest_dt:
+                latest_dt = snap.date
+                latest_inv = snap.inventory_count
+        v.latest_inventory = latest_inv
+
+        # Build per-month sales totals and stock levels
+        sales_by_month = {}
+        events = []
+        for snap in v.snapshots.all():
+            events.append((snap.date, 'snapshot', snap.inventory_count))
+        for sale in v.sales.all():
+            events.append((sale.date, 'sale', sale.sold_quantity))
+            m = sale.date.replace(day=1)
+            sales_by_month[m] = sales_by_month.get(m, 0) + (sale.sold_quantity or 0)
+        events.sort(key=lambda x: x[0])
+
+        inventory_by_month = {}
+        idx = 0
+        current_inv = 0
+        months = [month_start - relativedelta(months=i) for i in reversed(range(12))]
+        for m in months:
+            month_end = (m + relativedelta(months=1)) - timedelta(days=1)
+            while idx < len(events) and events[idx][0] <= month_end:
+                dt, typ, qty = events[idx]
+                if typ == 'snapshot':
+                    current_inv = qty
+                else:  # sale
+                    current_inv -= qty
+                idx += 1
+            inventory_by_month[m] = current_inv
+
+        def _avg_speed(months):
+            total = 0
+            periods = 0
+            for i in range(months):
+                m = month_start - relativedelta(months=i)
+                sold = sales_by_month.get(m, 0)
+                had_stock = inventory_by_month.get(m, 0) > 0
+                if sold or had_stock:
+                    periods += 1
+                    total += sold
+            return (total / periods) if periods else 0.0
+
+        avg12 = _avg_speed(12)
+        avg6 = _avg_speed(6)
+        avg3 = _avg_speed(3)
+        avg_speed = (avg12 + avg6 + avg3) / 3.0
+
+        v.months_left = (v.latest_inventory / avg_speed) if avg_speed > 0 else None
+        if v.months_left is not None and v.months_left < 3:
+            low_variants.append(v)
 
     if return_products:
-        return queryset.filter(variants__in=low_stock_variants).distinct()
-    return low_stock_variants
+        return list({v.product for v in low_variants})
+    return low_variants
