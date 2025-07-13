@@ -9,6 +9,7 @@
 
   <div id="controls" class="row grey lighten-3">
     <div class="col s1">
+
       <div class="view-toggle">
         <a href="?view_mode=list
                  {% if show_retired %}&show_retired=true{% endif %}
@@ -35,32 +36,11 @@
       </div>
     </div>
 
-    <div class="filters col s11">
-      <form id="productFilterForm" method="get">
 
-        <label class="checkbox-field">
-          <input
-            type="checkbox"
-            name="show_retired"
-            value="true"
-            class="filled-in"
-            {% if show_retired %}checked{% endif %}
-            onchange="this.form.submit()"
-          />
-          <span>Show old products</span>
-        </label>
+    <form id="productFilterForm" method="get">
 
-        <label class="checkbox-field">
-          <input
-            type="checkbox"
-            name="zero_inventory"
-            value="true"
-            class="filled-in"
-            {% if zero_inventory %}checked{% endif %}
-            onchange="this.form.submit()"
-          />
-          <span>Out of stock only</span>
-        </label>
+
+      <div class="col s2">
 
         <div class="input-field">
           <select name="type_filter" onchange="this.form.submit()">
@@ -69,7 +49,7 @@
               <option value="{{ value }}" {% if type_filter == value %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
           </select>
-          <label>Type</label>
+          <label class="hide">Type</label>
         </div>
 
         <div class="input-field">
@@ -79,7 +59,7 @@
               <option value="{{ value }}" {% if style_filter == value %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
           </select>
-          <label>Style</label>
+          <label class="hide">Style</label>
         </div>
 
         <div class="input-field">
@@ -89,8 +69,11 @@
               <option value="{{ value }}" {% if age_filter == value %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
           </select>
-          <label>Age</label>
+          <label class="hide">Age</label>
         </div>
+
+      </div>
+      <div class="col s9">
 
         <div class="checkbox-set">
           <span>Group:</span>
@@ -127,8 +110,9 @@
         </div>
 
         <input type="hidden" name="view_mode" value="{{ view_mode }}" />
-      </form>
-    </div>
+
+      </div>
+    </form>
 
   </div>
 
