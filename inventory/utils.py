@@ -20,6 +20,9 @@ from django.db.models import (
     DecimalField,
     Prefetch,
     ExpressionWrapper,
+    FloatField,
+    Case,
+    When,
 )
 from django.db.models.functions import Coalesce
 
@@ -876,3 +879,61 @@ def compute_product_health(product, variants, simplify_type):
         },
         "overall_score": round(overall, 1),
     }
+
+
+def get_low_stock_products(queryset):
+    """Return items with less than 3 months of stock remaining."""
+
+    today = date.today()
+    six_months_ago = today - relativedelta(months=6)
+
+    if queryset.model == ProductVariant:
+        variant_qs = queryset
+        return_products = False
+    elif queryset.model == Product:
+        variant_qs = ProductVariant.objects.filter(product__in=queryset)
+        return_products = True
+    else:
+        raise ValueError("Queryset must be for Product or ProductVariant")
+
+    latest_inv = (
+        InventorySnapshot.objects.filter(product_variant=OuterRef("pk"))
+        .order_by("-date")
+        .values("inventory_count")[:1]
+    )
+
+    variant_qs = variant_qs.annotate(
+        latest_inventory=Coalesce(Subquery(latest_inv), Value(0)),
+        sold_6=Coalesce(
+            Sum(
+                "sales__sold_quantity",
+                filter=Q(sales__date__gte=six_months_ago),
+            ),
+            Value(0),
+            output_field=IntegerField(),
+        ),
+    ).annotate(
+        avg_monthly_sales=ExpressionWrapper(
+            F("sold_6") / Value(6.0), output_field=FloatField()
+        )
+    ).annotate(
+        months_left=Case(
+            When(
+                avg_monthly_sales__gt=0,
+                then=ExpressionWrapper(
+                    F("latest_inventory") / F("avg_monthly_sales"),
+                    output_field=FloatField(),
+                ),
+            ),
+            default=Value(None),
+            output_field=FloatField(),
+        )
+    )
+
+    low_stock_variants = variant_qs.filter(
+        avg_monthly_sales__gt=0, months_left__lt=3
+    )
+
+    if return_products:
+        return queryset.filter(variants__in=low_stock_variants).distinct()
+    return low_stock_variants
