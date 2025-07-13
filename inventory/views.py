@@ -727,7 +727,8 @@ def product_list(request):
         products = [p for p in products if p.total_inventory == 0]
 
     # ─── Prepare context & render ───────────────────────────────────────────────
-    view_mode = request.GET.get("view_mode", "list").strip()
+    view_mode = request.GET.get("view_mode", "card").strip()
+
 
     params = []
     if show_retired:
