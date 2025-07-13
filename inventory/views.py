@@ -851,13 +851,20 @@ def product_detail(request, product_id):
         # fallback to the start of the 12-month window
         last_snapshot_date = twelve_months_ago
 
-    # Preload all future-order quantities per variant per month:
+    # Preload all future-order quantities per variant per month using a
+    # single grouped query instead of iterating over OrderItems
     future_orders = defaultdict(lambda: defaultdict(int))
-    for oi in OrderItem.objects.filter(
-        product_variant__product=product, date_expected__gt=last_snapshot_date
-    ):
-        month = oi.date_expected.replace(day=1)
-        future_orders[month][oi.product_variant.variant_code] += oi.quantity
+    future_qs = (
+        OrderItem.objects.filter(
+            product_variant__product=product, date_expected__gt=last_snapshot_date
+        )
+        .annotate(month=TruncMonth("date_expected"))
+        .values("product_variant__variant_code", "month")
+        .annotate(total_qty=Sum("quantity"))
+    )
+    for row in future_qs:
+        month = row["month"]
+        future_orders[month][row["product_variant__variant_code"]] += row["total_qty"]
 
     # Now simulate month-by-month
     cursor = last_snapshot_date.replace(day=1)
