@@ -431,6 +431,15 @@ label.hide {
   margin-right: 20px;
 }
 
+#productFilterForm .checkbox-set {
+  display: flex;
+  align-items: center;
+}
+
+#productFilterForm .checkbox-set > span {
+  margin-right: 10px;
+}
+
 #productFilterForm .input-field {
   margin: 0;
   min-width: 150px;

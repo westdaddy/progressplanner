@@ -6,6 +6,7 @@ from collections import defaultdict, namedtuple, OrderedDict
 import calendar
 import statistics
 import math
+from urllib.parse import urlencode
 
 
 from decimal import Decimal
@@ -586,8 +587,8 @@ def product_list(request):
     type_filter = request.GET.get("type_filter", None)
     style_filter = request.GET.get("style_filter", None)
     age_filter = request.GET.get("age_filter", None)
-    group_filters = [gid for gid in request.GET.getlist("group_filter") if gid]
-    series_filters = [sid for sid in request.GET.getlist("series_filter") if sid]
+    group_filters = [gid.strip() for gid in request.GET.getlist("group_filter") if gid]
+    series_filters = [sid.strip() for sid in request.GET.getlist("series_filter") if sid]
     zero_inventory = request.GET.get("zero_inventory", "false").lower() == "true"
 
     # ─── Date ranges ────────────────────────────────────────────────────────────
@@ -726,7 +727,26 @@ def product_list(request):
         products = [p for p in products if p.total_inventory == 0]
 
     # ─── Prepare context & render ───────────────────────────────────────────────
-    view_mode = request.GET.get("view_mode", "list")
+    view_mode = request.GET.get("view_mode", "card").strip()
+
+    params = []
+    if show_retired:
+        params.append(("show_retired", "true"))
+    if type_filter:
+        params.append(("type_filter", type_filter))
+    if style_filter:
+        params.append(("style_filter", style_filter))
+    if age_filter:
+        params.append(("age_filter", age_filter))
+    for gid in group_filters:
+        params.append(("group_filter", gid))
+    for sid in series_filters:
+        params.append(("series_filter", sid))
+    if zero_inventory:
+        params.append(("zero_inventory", "true"))
+
+    list_query = urlencode(params + [("view_mode", "list")])
+    card_query = urlencode(params + [("view_mode", "card")])
 
     context = {
         "products": products,
@@ -743,6 +763,8 @@ def product_list(request):
         "group_choices": Group.objects.all(),
         "series_choices": Series.objects.all(),
         "view_mode": view_mode,
+        "list_query": list_query,
+        "card_query": card_query,
     }
 
     # optional groupings (discounted/current/on‐order)

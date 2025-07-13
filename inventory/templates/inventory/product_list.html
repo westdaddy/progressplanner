@@ -10,25 +10,11 @@
   <div id="controls" class="row grey lighten-3">
     <div class="col s1">
       <div class="view-toggle">
-        <a href="?view_mode=list
-                 {% if show_retired %}&show_retired=true{% endif %}
-                 {% if type_filter  %}&type_filter={{ type_filter }}{% endif %}
-                 {% if style_filter %}&style_filter={{ style_filter }}{% endif %}
-                 {% if age_filter   %}&age_filter={{ age_filter }}{% endif %}
-                 {% for gid in group_filters %}&group_filter={{ gid }}{% endfor %}
-                 {% for sid in series_filters %}&series_filter={{ sid }}{% endfor %}
-                 {% if zero_inventory %}&zero_inventory=true{% endif %}"
+        <a href="?{{ list_query }}"
            class="view-icon {% if view_mode == 'list' %}active{% endif %}">
           <i class="material-icons">view_list</i>
         </a>
-        <a href="?view_mode=card
-                 {% if show_retired %}&show_retired=true{% endif %}
-                 {% if type_filter  %}&type_filter={{ type_filter }}{% endif %}
-                 {% if style_filter %}&style_filter={{ style_filter }}{% endif %}
-                 {% if age_filter   %}&age_filter={{ age_filter }}{% endif %}
-                 {% for gid in group_filters %}&group_filter={{ gid }}{% endfor %}
-                 {% for sid in series_filters %}&series_filter={{ sid }}{% endfor %}
-                 {% if zero_inventory %}&zero_inventory=true{% endif %}"
+        <a href="?{{ card_query }}"
            class="view-icon {% if view_mode == 'card' %}active{% endif %}">
           <i class="material-icons">view_module</i>
         </a>
@@ -92,13 +78,21 @@
           <label>Age</label>
         </div>
 
-        <div class="input-field">
-          <select name="group_filter" multiple onchange="this.form.submit()">
-            {% for group in group_choices %}
-              <option value="{{ group.id }}" {% if group.id|stringformat:'s' in group_filters %}selected{% endif %}>{{ group.name }}</option>
-            {% endfor %}
-          </select>
-          <label>Group</label>
+        <div class="checkbox-set">
+          <span>Group:</span>
+          {% for group in group_choices %}
+            <label class="checkbox-field">
+              <input
+                type="checkbox"
+                name="group_filter"
+                value="{{ group.id }}"
+                class="filled-in"
+                {% if group.id|stringformat:'s' in group_filters %}checked{% endif %}
+                onchange="this.form.submit()"
+              />
+              <span>{{ group.name }}</span>
+            </label>
+          {% endfor %}
         </div>
 
         <div class="input-field">
