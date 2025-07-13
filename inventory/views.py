@@ -729,6 +729,7 @@ def product_list(request):
     # ─── Prepare context & render ───────────────────────────────────────────────
     view_mode = request.GET.get("view_mode", "card").strip()
 
+
     params = []
     if show_retired:
         params.append(("show_retired", "true"))
