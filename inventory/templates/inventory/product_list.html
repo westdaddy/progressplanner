@@ -13,6 +13,10 @@
         <a href="?view_mode=list
                  {% if show_retired %}&show_retired=true{% endif %}
                  {% if type_filter  %}&type_filter={{ type_filter }}{% endif %}
+                 {% if style_filter %}&style_filter={{ style_filter }}{% endif %}
+                 {% if age_filter   %}&age_filter={{ age_filter }}{% endif %}
+                 {% for gid in group_filters %}&group_filter={{ gid }}{% endfor %}
+                 {% for sid in series_filters %}&series_filter={{ sid }}{% endfor %}
                  {% if zero_inventory %}&zero_inventory=true{% endif %}"
            class="view-icon {% if view_mode == 'list' %}active{% endif %}">
           <i class="material-icons">view_list</i>
@@ -20,6 +24,10 @@
         <a href="?view_mode=card
                  {% if show_retired %}&show_retired=true{% endif %}
                  {% if type_filter  %}&type_filter={{ type_filter }}{% endif %}
+                 {% if style_filter %}&style_filter={{ style_filter }}{% endif %}
+                 {% if age_filter   %}&age_filter={{ age_filter }}{% endif %}
+                 {% for gid in group_filters %}&group_filter={{ gid }}{% endfor %}
+                 {% for sid in series_filters %}&series_filter={{ sid }}{% endfor %}
                  {% if zero_inventory %}&zero_inventory=true{% endif %}"
            class="view-icon {% if view_mode == 'card' %}active{% endif %}">
           <i class="material-icons">view_module</i>
@@ -27,64 +35,84 @@
       </div>
     </div>
 
-    <div class="filters">
-  <form method="get">
+    <div class="filters col s11">
+      <form id="productFilterForm" method="get">
 
-    <div class="col s3" style="margin-top: 1rem;">
-      <!-- Show retired products checkbox -->
-      <label>
-        <input
-          type="checkbox"
-          name="show_retired"
-          value="true"
-          class="filled-in"
-          {% if show_retired %}checked{% endif %}
-          onchange="this.form.submit()"
-        />
-        <span>Show old products</span>
-      </label>
+        <label class="checkbox-field">
+          <input
+            type="checkbox"
+            name="show_retired"
+            value="true"
+            class="filled-in"
+            {% if show_retired %}checked{% endif %}
+            onchange="this.form.submit()"
+          />
+          <span>Show old products</span>
+        </label>
 
-      <!-- Out of stock only checkbox -->
-      <label>
-        <input
-          type="checkbox"
-          name="zero_inventory"
-          value="true"
-          class="filled-in"
-          {% if zero_inventory %}checked{% endif %}
-          onchange="this.form.submit()"
-        />
-        <span>Out of stock only</span>
-      </label>
+        <label class="checkbox-field">
+          <input
+            type="checkbox"
+            name="zero_inventory"
+            value="true"
+            class="filled-in"
+            {% if zero_inventory %}checked{% endif %}
+            onchange="this.form.submit()"
+          />
+          <span>Out of stock only</span>
+        </label>
+
+        <div class="input-field">
+          <select name="type_filter" onchange="this.form.submit()">
+            <option value="" {% if not type_filter %}selected{% endif %}>All types</option>
+            {% for value, label in type_choices %}
+              <option value="{{ value }}" {% if type_filter == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <label>Type</label>
+        </div>
+
+        <div class="input-field">
+          <select name="style_filter" onchange="this.form.submit()">
+            <option value="" {% if not style_filter %}selected{% endif %}>All styles</option>
+            {% for value, label in style_choices %}
+              <option value="{{ value }}" {% if style_filter == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <label>Style</label>
+        </div>
+
+        <div class="input-field">
+          <select name="age_filter" onchange="this.form.submit()">
+            <option value="" {% if not age_filter %}selected{% endif %}>All ages</option>
+            {% for value, label in age_choices %}
+              <option value="{{ value }}" {% if age_filter == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <label>Age</label>
+        </div>
+
+        <div class="input-field">
+          <select name="group_filter" multiple onchange="this.form.submit()">
+            {% for group in group_choices %}
+              <option value="{{ group.id }}" {% if group.id|stringformat:'s' in group_filters %}selected{% endif %}>{{ group.name }}</option>
+            {% endfor %}
+          </select>
+          <label>Group</label>
+        </div>
+
+        <div class="input-field">
+          <select name="series_filter" multiple onchange="this.form.submit()">
+            {% for ser in series_choices %}
+              <option value="{{ ser.id }}" {% if ser.id|stringformat:'s' in series_filters %}selected{% endif %}>{{ ser.name }}</option>
+            {% endfor %}
+          </select>
+          <label>Series</label>
+        </div>
+
+        <input type="hidden" name="view_mode" value="{{ view_mode }}" />
+      </form>
     </div>
-
-    <!-- Type filter select -->
-    <div class="input-field inline col s4">
-      <select
-        name="type_filter"
-        id="type_filter"
-        onchange="this.form.submit()"
-      >
-        <option value="" {% if not type_filter %}selected{% endif %}>All types</option>
-        {% for value, label in type_choices %}
-          <option
-            value="{{ value }}"
-            {% if type_filter == value %}selected{% endif %}
-          >
-            {{ label }}
-          </option>
-        {% endfor %}
-      </select>
-    </div>
-
-    <!-- Preserve view mode when submitting -->
-    <input
-      type="hidden"
-      name="view_mode"
-      value="{{ view_mode }}"
-    />
-  </form>
-</div>
   </div>
 
   <!-- Conditional Product List Rendering -->
