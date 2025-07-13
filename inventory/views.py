@@ -927,6 +927,7 @@ def product_detail(request, product_id):
 
     prev_orders.sort(key=lambda x: x["date_ordered"], reverse=True)
 
+    # Consolidate context in one dictionary so each key appears only once
     context = {
         "product": product,
         **safe_stock,
@@ -938,19 +939,12 @@ def product_detail(request, product_id):
         "prod_score": prod_score,
         "health": health,
         "prev_orders": prev_orders,
+        "lifetime_sold_qty": lifetime_sold_qty,
+        "lifetime_sold_val": lifetime_sold_val,
+        "total_order_cost": total_order_cost,
+        "lifetime_profit": lifetime_profit,
+        "current_inventory": current_inventory,
     }
-
-    # — Now inject all of it into context separately —
-    context.update(
-        {
-            "prev_orders": prev_orders,
-            "lifetime_sold_qty": lifetime_sold_qty,
-            "lifetime_sold_val": lifetime_sold_val,
-            "total_order_cost": total_order_cost,
-            "lifetime_profit": lifetime_profit,
-            "current_inventory": current_inventory,
-        }
-    )
 
     return render(request, "inventory/product_detail.html", context)
 
