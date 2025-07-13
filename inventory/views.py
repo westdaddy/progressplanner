@@ -980,14 +980,24 @@ def product_detail(request, product_id):
 
 
 def order_list(request):
-    # Fetch orders, ordering them by date (most recent first)
-    orders = Order.objects.all().order_by("-order_date")
-
-    # Calculate total order value for each order
-    for order in orders:
-        order.total_value = sum(
-            item.item_cost_price * item.quantity for item in order.order_items.all()
+    # Fetch orders and prefetch related items for efficiency
+    orders = (
+        Order.objects.all()
+        .prefetch_related("order_items")
+        .annotate(
+            total_value=Coalesce(
+                Sum(
+                    ExpressionWrapper(
+                        F("order_items__item_cost_price")
+                        * F("order_items__quantity"),
+                        output_field=DecimalField(),
+                    )
+                ),
+                Decimal("0.00"),
+            )
         )
+        .order_by("-order_date")
+    )
 
     # — Build calendar_data for upcoming four months —
     today = date.today()
@@ -1044,8 +1054,20 @@ def order_detail(request, order_id):
         grouped_items[product]["total_value"] += item.item_cost_price * item.quantity
 
     # Overall totals
-    total_value = sum(item.item_cost_price * item.quantity for item in order_items)
-    total_items = sum(item.quantity for item in order_items)
+    aggregates = order_items.aggregate(
+        total_value=Coalesce(
+            Sum(
+                ExpressionWrapper(
+                    F("item_cost_price") * F("quantity"),
+                    output_field=DecimalField(),
+                )
+            ),
+            Decimal("0.00"),
+        ),
+        total_items=Coalesce(Sum("quantity"), 0),
+    )
+    total_value = aggregates["total_value"]
+    total_items = aggregates["total_items"]
 
     context = {
         "order": order,
