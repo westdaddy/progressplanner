@@ -900,46 +900,54 @@ def get_low_stock_products(queryset):
     else:
         raise ValueError("Queryset must be for Product or ProductVariant")
 
-    # Prefetch sales and snapshots to minimise DB hits when iterating.
-    variant_qs = variant_qs.prefetch_related("sales", "snapshots", "product")
+    # Prefetch related objects so all calculations happen in Python without
+    # triggering additional queries.
+    variants = list(
+        variant_qs.prefetch_related("sales", "snapshots", "product")
+    )
 
     month_start = today.replace(day=1)
 
-    def _avg_speed(v, months):
-        total = 0
-        in_stock_months = 0
-        for i in range(months):
-            start = month_start - relativedelta(months=i)
-            end = start + relativedelta(months=1)
-            sold = (
-                v.sales.filter(date__gte=start, date__lt=end)
-                .aggregate(total=Coalesce(Sum("sold_quantity"), 0))["total"]
-            )
-            had_stock = v.snapshots.filter(
-                date__gte=start, date__lt=end, inventory_count__gt=0
-            ).exists()
-            if sold or had_stock:
-                in_stock_months += 1
-                total += sold
-        return (total / in_stock_months) if in_stock_months else 0.0
-
     low_variants = []
-    for v in variant_qs:
-        latest_inv = (
-            InventorySnapshot.objects.filter(product_variant=v)
-            .order_by("-date")
-            .values_list("inventory_count", flat=True)
-            .first()
-        )
-        v.latest_inventory = latest_inv or 0
+    for v in variants:
+        # Determine the latest inventory count from snapshots
+        latest_inv = 0
+        latest_dt = None
+        for snap in v.snapshots.all():
+            if latest_dt is None or snap.date > latest_dt:
+                latest_dt = snap.date
+                latest_inv = snap.inventory_count
+        v.latest_inventory = latest_inv
 
-        avg12 = _avg_speed(v, 12)
-        avg6 = _avg_speed(v, 6)
-        avg3 = _avg_speed(v, 3)
+        # Build per-month sales totals and record months with stock available
+        sales_by_month = {}
+        stock_months = set()
+        for sale in v.sales.all():
+            m = sale.date.replace(day=1)
+            sales_by_month[m] = sales_by_month.get(m, 0) + (sale.sold_quantity or 0)
+        for snap in v.snapshots.all():
+            if snap.inventory_count > 0:
+                stock_months.add(snap.date.replace(day=1))
+
+        def _avg_speed(months):
+            total = 0
+            periods = 0
+            for i in range(months):
+                m = month_start - relativedelta(months=i)
+                sold = sales_by_month.get(m, 0)
+                had_stock = m in stock_months
+                if sold or had_stock:
+                    periods += 1
+                    total += sold
+            return (total / periods) if periods else 0.0
+
+        avg12 = _avg_speed(12)
+        avg6 = _avg_speed(6)
+        avg3 = _avg_speed(3)
         avg_speed = (avg12 + avg6 + avg3) / 3.0
-        v.months_left = (
-            (v.latest_inventory / avg_speed) if avg_speed > 0 else None
-        )
+
+        v.months_left = (v.latest_inventory / avg_speed) if avg_speed > 0 else None
+
         if v.months_left is not None and v.months_left < 3:
             low_variants.append(v)
 
