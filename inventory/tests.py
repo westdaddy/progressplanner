@@ -1,4 +1,5 @@
 from datetime import date
+from dateutil.relativedelta import relativedelta
 from django.test import TestCase
 
 from .models import Product, ProductVariant, InventorySnapshot, Sale
@@ -51,14 +52,47 @@ class LowStockProductsTests(TestCase):
                 sold_value=50,
             )
 
+        # Variant that sold out quickly then restocked recently
+        self.product3 = Product.objects.create(
+            product_id="P3", product_name="Prod3"
+        )
+        self.variant3 = ProductVariant.objects.create(
+            product=self.product3,
+            variant_code="V3",
+            primary_color="#000000",
+        )
+        six_months_ago = date.today().replace(day=1) - relativedelta(months=6)
+        InventorySnapshot.objects.create(
+            product_variant=self.variant3,
+            date=six_months_ago,
+            inventory_count=10,
+        )
+        # sold everything five months ago
+        Sale.objects.create(
+            order_number="O3", 
+            date=six_months_ago + relativedelta(months=1),
+            variant=self.variant3,
+            sold_quantity=10,
+            sold_value=200,
+        )
+        # restocked at current month with 5 on hand
+        InventorySnapshot.objects.create(
+            product_variant=self.variant3,
+            date=date.today(),
+            inventory_count=5,
+        )
+
     def test_low_stock_variants(self):
         qs = ProductVariant.objects.all()
         low = list(get_low_stock_products(qs))
+        
         self.assertIn(self.variant1, low)
+        self.assertIn(self.variant3, low)
         self.assertNotIn(self.variant2, low)
 
     def test_low_stock_products(self):
         qs = Product.objects.all()
         low = list(get_low_stock_products(qs))
         self.assertIn(self.product1, low)
+        self.assertIn(self.product3, low)
         self.assertNotIn(self.product2, low)
