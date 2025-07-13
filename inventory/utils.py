@@ -947,6 +947,7 @@ def get_low_stock_products(queryset):
         avg_speed = (avg12 + avg6 + avg3) / 3.0
 
         v.months_left = (v.latest_inventory / avg_speed) if avg_speed > 0 else None
+
         if v.months_left is not None and v.months_left < 3:
             low_variants.append(v)
 
