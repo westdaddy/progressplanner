@@ -586,8 +586,9 @@ def product_list(request):
     type_filter = request.GET.get("type_filter", None)
     style_filter = request.GET.get("style_filter", None)
     age_filter = request.GET.get("age_filter", None)
-    group_filter = request.GET.get("group_filter", None)
-    series_filter = request.GET.get("series_filter", None)
+    group_filters = [gid for gid in request.GET.getlist("group_filter") if gid]
+    series_filters = [sid for sid in request.GET.getlist("series_filter") if sid]
+
     zero_inventory = request.GET.get("zero_inventory", "false").lower() == "true"
 
     # ─── Date ranges ────────────────────────────────────────────────────────────
@@ -626,12 +627,12 @@ def product_list(request):
     if age_filter:
         products_qs = products_qs.filter(age=age_filter)
 
+    if group_filters:
+        products_qs = products_qs.filter(groups__id__in=group_filters).distinct()
 
-    if group_filter:
-        products_qs = products_qs.filter(groups__id=group_filter).distinct()
+    if series_filters:
+        products_qs = products_qs.filter(series__id__in=series_filters).distinct()
 
-    if series_filter:
-        products_qs = products_qs.filter(series__id=series_filter).distinct()
 
     if not show_retired:
         products_qs = products_qs.filter(decommissioned=False)
@@ -735,8 +736,8 @@ def product_list(request):
         "type_filter": type_filter,
         "style_filter": style_filter,
         "age_filter": age_filter,
-        "group_filter": group_filter,
-        "series_filter": series_filter,
+        "group_filters": group_filters,
+        "series_filters": series_filters,
         "zero_inventory": zero_inventory,
         "type_choices": PRODUCT_TYPE_CHOICES,
         "style_choices": PRODUCT_STYLE_CHOICES,
@@ -787,7 +788,6 @@ def product_list(request):
             "discounted_stock": sum(p.total_inventory for p in discounted_products),
             "current_stock": sum(p.total_inventory for p in current_products),
             "on_order_stock": sum(p.last_order_qty or 0 for p in on_order_products),
-
         }
     )
 

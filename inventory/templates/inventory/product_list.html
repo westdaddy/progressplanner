@@ -13,8 +13,9 @@
         <a href="?view_mode=list
                  {% if show_retired %}&show_retired=true{% endif %}
                  {% if type_filter  %}&type_filter={{ type_filter }}{% endif %}
-                 {% if group_filter %}&group_filter={{ group_filter }}{% endif %}
-                 {% if series_filter %}&series_filter={{ series_filter }}{% endif %}
+                 {% for gid in group_filters %}&group_filter={{ gid }}{% endfor %}
+                 {% for sid in series_filters %}&series_filter={{ sid }}{% endfor %}
+
                  {% if zero_inventory %}&zero_inventory=true{% endif %}"
            class="view-icon {% if view_mode == 'list' %}active{% endif %}">
           <i class="material-icons">view_list</i>
@@ -22,8 +23,9 @@
         <a href="?view_mode=card
                  {% if show_retired %}&show_retired=true{% endif %}
                  {% if type_filter  %}&type_filter={{ type_filter }}{% endif %}
-                 {% if group_filter %}&group_filter={{ group_filter }}{% endif %}
-                 {% if series_filter %}&series_filter={{ series_filter }}{% endif %}
+                 {% for gid in group_filters %}&group_filter={{ gid }}{% endfor %}
+                 {% for sid in series_filters %}&series_filter={{ sid }}{% endfor %}
+
                  {% if zero_inventory %}&zero_inventory=true{% endif %}"
            class="view-icon {% if view_mode == 'card' %}active{% endif %}">
           <i class="material-icons">view_module</i>
@@ -86,19 +88,17 @@
     </div>
 
     <div class="input-field" style="min-width:150px;">
-      <select name="group_filter" onchange="this.form.submit()">
-        <option value="" {% if not group_filter %}selected{% endif %}>All groups</option>
+      <select name="group_filter" multiple onchange="this.form.submit()">
         {% for group in group_choices %}
-          <option value="{{ group.id }}" {% if group_filter|add:"" == group.id|stringformat:"s" %}selected{% endif %}>{{ group.name }}</option>
+          <option value="{{ group.id }}" {% if group.id|stringformat:'s' in group_filters %}selected{% endif %}>{{ group.name }}</option>
         {% endfor %}
       </select>
     </div>
 
     <div class="input-field" style="min-width:150px;">
-      <select name="series_filter" onchange="this.form.submit()">
-        <option value="" {% if not series_filter %}selected{% endif %}>All series</option>
+      <select name="series_filter" multiple onchange="this.form.submit()">
         {% for ser in series_choices %}
-          <option value="{{ ser.id }}" {% if series_filter|add:"" == ser.id|stringformat:"s" %}selected{% endif %}>{{ ser.name }}</option>
+          <option value="{{ ser.id }}" {% if ser.id|stringformat:'s' in series_filters %}selected{% endif %}>{{ ser.name }}</option>
 
         {% endfor %}
       </select>
