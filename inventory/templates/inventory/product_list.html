@@ -99,11 +99,13 @@
         <option value="" {% if not series_filter %}selected{% endif %}>All series</option>
         {% for ser in series_choices %}
           <option value="{{ ser.id }}" {% if series_filter|add:"" == ser.id|stringformat:"s" %}selected{% endif %}>{{ ser.name }}</option>
+
         {% endfor %}
       </select>
     </div>
 
     <input type="hidden" name="view_mode" value="{{ view_mode }}" />
+
   </form>
 </div>
   </div>
