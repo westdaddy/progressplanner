@@ -821,16 +821,19 @@ def product_detail(request, product_id):
     # ——— ACTUAL DATA FOR INVENTORY CHART ————————
     today = datetime.today().date()
     twelve_months_ago = today - relativedelta(months=12)
-    snaps = InventorySnapshot.objects.filter(
-        product_variant__product=product, date__gte=twelve_months_ago
-    ).order_by("date")
-
-    by_date = defaultdict(int)
-    for s in snaps:
-        by_date[s.date] += s.inventory_count
+    snaps = (
+        InventorySnapshot.objects.filter(
+            product_variant__product=product, date__gte=twelve_months_ago
+        )
+        .values("date")
+        .annotate(total=Sum("inventory_count"))
+        .order_by("date")
+    )
 
     # Format for Chart.js time-series
-    actual_data = [{"x": d.isoformat(), "y": by_date[d]} for d in sorted(by_date)]
+    actual_data = [
+        {"x": row["date"].isoformat(), "y": row["total"]} for row in snaps
+    ]
 
     # Suppose `safe_stock['safe_stock_data']` is a list of dicts from compute_safe_stock
     # each with 'variant_code', 'current_stock', and 'avg_speed'.
@@ -843,7 +846,7 @@ def product_detail(request, product_id):
     }
 
     if snaps:
-        last_snapshot_date = snaps.last().date
+        last_snapshot_date = snaps.last()["date"]
     else:
         # fallback to the start of the 12-month window
         last_snapshot_date = twelve_months_ago
@@ -1056,12 +1059,15 @@ def inventory_snapshots(request):
         order_qs = order_qs.filter(product_variant__product__type=selected_type)
 
     # ——— 1) Build actual_data from snapshots ————————————————————————
-    snaps = snap_qs.order_by("date")
-    by_date = defaultdict(int)
-    for s in snaps:
-        by_date[s.date] += s.inventory_count
+    snaps = (
+        snap_qs.values("date")
+        .annotate(total=Sum("inventory_count"))
+        .order_by("date")
+    )
 
-    actual_data = [{"x": d.isoformat(), "y": by_date[d]} for d in sorted(by_date)]
+    actual_data = [
+        {"x": row["date"].isoformat(), "y": row["total"]} for row in snaps
+    ]
 
     # If no snapshots exist, ensure we still have arrays
     if not actual_data:
