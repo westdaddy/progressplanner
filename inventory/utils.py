@@ -945,6 +945,7 @@ def get_low_stock_products(queryset):
                 idx += 1
             inventory_by_month[m] = current_inv
 
+
         def _avg_speed(months):
             total = 0
             periods = 0
@@ -952,6 +953,7 @@ def get_low_stock_products(queryset):
                 m = month_start - relativedelta(months=i)
                 sold = sales_by_month.get(m, 0)
                 had_stock = inventory_by_month.get(m, 0) > 0
+
                 if sold or had_stock:
                     periods += 1
                     total += sold
@@ -963,6 +965,7 @@ def get_low_stock_products(queryset):
         avg_speed = (avg12 + avg6 + avg3) / 3.0
 
         v.months_left = (v.latest_inventory / avg_speed) if avg_speed > 0 else None
+
         if v.months_left is not None and v.months_left < 3:
             low_variants.append(v)
 
