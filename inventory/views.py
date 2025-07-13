@@ -588,6 +588,7 @@ def product_list(request):
     age_filter = request.GET.get("age_filter", None)
     group_filters = [gid for gid in request.GET.getlist("group_filter") if gid]
     series_filters = [sid for sid in request.GET.getlist("series_filter") if sid]
+
     zero_inventory = request.GET.get("zero_inventory", "false").lower() == "true"
 
     # ─── Date ranges ────────────────────────────────────────────────────────────
@@ -631,6 +632,7 @@ def product_list(request):
 
     if series_filters:
         products_qs = products_qs.filter(series__id__in=series_filters).distinct()
+
 
     if not show_retired:
         products_qs = products_qs.filter(decommissioned=False)
