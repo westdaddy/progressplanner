@@ -626,6 +626,7 @@ def product_list(request):
     if age_filter:
         products_qs = products_qs.filter(age=age_filter)
 
+
     if group_filter:
         products_qs = products_qs.filter(groups__id=group_filter).distinct()
 
@@ -786,6 +787,7 @@ def product_list(request):
             "discounted_stock": sum(p.total_inventory for p in discounted_products),
             "current_stock": sum(p.total_inventory for p in current_products),
             "on_order_stock": sum(p.last_order_qty or 0 for p in on_order_products),
+
         }
     )
 
