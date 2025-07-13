@@ -3,7 +3,7 @@ import math
 import json
 
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import List, Optional, Sequence, Dict, Any, Iterable
 from decimal import Decimal
 
@@ -919,15 +919,32 @@ def get_low_stock_products(queryset):
                 latest_inv = snap.inventory_count
         v.latest_inventory = latest_inv
 
-        # Build per-month sales totals and record months with stock available
+        # Build per-month sales totals and stock levels
         sales_by_month = {}
-        stock_months = set()
+        events = []
+        for snap in v.snapshots.all():
+            events.append((snap.date, 'snapshot', snap.inventory_count))
         for sale in v.sales.all():
+            events.append((sale.date, 'sale', sale.sold_quantity))
             m = sale.date.replace(day=1)
             sales_by_month[m] = sales_by_month.get(m, 0) + (sale.sold_quantity or 0)
-        for snap in v.snapshots.all():
-            if snap.inventory_count > 0:
-                stock_months.add(snap.date.replace(day=1))
+        events.sort(key=lambda x: x[0])
+
+        inventory_by_month = {}
+        idx = 0
+        current_inv = 0
+        months = [month_start - relativedelta(months=i) for i in reversed(range(12))]
+        for m in months:
+            month_end = (m + relativedelta(months=1)) - timedelta(days=1)
+            while idx < len(events) and events[idx][0] <= month_end:
+                dt, typ, qty = events[idx]
+                if typ == 'snapshot':
+                    current_inv = qty
+                else:  # sale
+                    current_inv -= qty
+                idx += 1
+            inventory_by_month[m] = current_inv
+
 
         def _avg_speed(months):
             total = 0
@@ -935,7 +952,8 @@ def get_low_stock_products(queryset):
             for i in range(months):
                 m = month_start - relativedelta(months=i)
                 sold = sales_by_month.get(m, 0)
-                had_stock = m in stock_months
+                had_stock = inventory_by_month.get(m, 0) > 0
+
                 if sold or had_stock:
                     periods += 1
                     total += sold
