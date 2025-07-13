@@ -4,6 +4,24 @@
 
 {% block content %}
 <div class="section">
+
+  {% if low_stock_products %}
+  <div class="row">
+    <div class="col s12">
+      <div class="card red lighten-4">
+        <div class="card-content">
+          <span class="card-title">Low Stock Alert</span>
+          <ul>
+            {% for v in low_stock_products %}
+            <li>{{ v.variant_code }} ({{ v.latest_inventory }} left)</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <div class="row">
 
     <!-- Left Column: Line Chart -->

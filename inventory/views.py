@@ -61,6 +61,7 @@ from .utils import (
     get_product_health_metrics,
     calculate_dynamic_product_score,
     compute_product_health,
+    get_low_stock_products,
 )
 
 
@@ -252,6 +253,9 @@ def home(request):
             "on_paper_value": on_paper_value,
         }
     )
+
+    low_stock_products = get_low_stock_products(ProductVariant.objects.all())
+    context["low_stock_products"] = low_stock_products
 
     return render(request, "inventory/home.html", context)
 
