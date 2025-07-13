@@ -137,7 +137,7 @@
               {% endif %}
             </div>
             <div class="product-details">
-              <span class="card-title" style="font-size:1em;">{{ product.product_name }}</span>
+              <span class="card-title" style="font-size:1em;"><a href="{% url 'product_detail' product.id %}">{{ product.product_name }}</a></span>
               <p>ID: {{ product.product_id }}</p>
               <p>Sales: {{ product.total_sales|default:"0" }}</p>
               <p>Stock: {{ product.total_inventory|default:"0" }}</p>

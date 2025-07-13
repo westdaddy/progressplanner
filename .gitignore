@@ -16,3 +16,4 @@ db.sqlite3
 media/
 data/
 notes
+*.csv
