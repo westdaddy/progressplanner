@@ -11,25 +11,11 @@
     <div class="col s1">
 
       <div class="view-toggle">
-        <a href="?view_mode=list
-                 {% if show_retired %}&show_retired=true{% endif %}
-                 {% if type_filter  %}&type_filter={{ type_filter }}{% endif %}
-                 {% if style_filter %}&style_filter={{ style_filter }}{% endif %}
-                 {% if age_filter   %}&age_filter={{ age_filter }}{% endif %}
-                 {% for gid in group_filters %}&group_filter={{ gid }}{% endfor %}
-                 {% for sid in series_filters %}&series_filter={{ sid }}{% endfor %}
-                 {% if zero_inventory %}&zero_inventory=true{% endif %}"
+        <a href="?{{ list_query }}"
            class="view-icon {% if view_mode == 'list' %}active{% endif %}">
           <i class="material-icons">view_list</i>
         </a>
-        <a href="?view_mode=card
-                 {% if show_retired %}&show_retired=true{% endif %}
-                 {% if type_filter  %}&type_filter={{ type_filter }}{% endif %}
-                 {% if style_filter %}&style_filter={{ style_filter }}{% endif %}
-                 {% if age_filter   %}&age_filter={{ age_filter }}{% endif %}
-                 {% for gid in group_filters %}&group_filter={{ gid }}{% endfor %}
-                 {% for sid in series_filters %}&series_filter={{ sid }}{% endfor %}
-                 {% if zero_inventory %}&zero_inventory=true{% endif %}"
+        <a href="?{{ card_query }}"
            class="view-icon {% if view_mode == 'card' %}active{% endif %}">
           <i class="material-icons">view_module</i>
         </a>
@@ -72,8 +58,10 @@
           <label class="hide">Age</label>
         </div>
 
+
       </div>
       <div class="col s9">
+
 
         <div class="checkbox-set">
           <span>Group:</span>
