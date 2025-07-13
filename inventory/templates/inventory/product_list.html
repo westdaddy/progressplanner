@@ -17,6 +17,7 @@
                  {% if age_filter   %}&age_filter={{ age_filter }}{% endif %}
                  {% for gid in group_filters %}&group_filter={{ gid }}{% endfor %}
                  {% for sid in series_filters %}&series_filter={{ sid }}{% endfor %}
+
                  {% if zero_inventory %}&zero_inventory=true{% endif %}"
            class="view-icon {% if view_mode == 'list' %}active{% endif %}">
           <i class="material-icons">view_list</i>
@@ -28,6 +29,7 @@
                  {% if age_filter   %}&age_filter={{ age_filter }}{% endif %}
                  {% for gid in group_filters %}&group_filter={{ gid }}{% endfor %}
                  {% for sid in series_filters %}&series_filter={{ sid }}{% endfor %}
+
                  {% if zero_inventory %}&zero_inventory=true{% endif %}"
            class="view-icon {% if view_mode == 'card' %}active{% endif %}">
           <i class="material-icons">view_module</i>
@@ -59,6 +61,7 @@
         {% if zero_inventory %}checked{% endif %}
         onchange="this.form.submit()"
       />
+
       <span>Out of stock only</span>
     </label>
 
@@ -101,11 +104,13 @@
       <select name="series_filter" multiple onchange="this.form.submit()">
         {% for ser in series_choices %}
           <option value="{{ ser.id }}" {% if ser.id|stringformat:'s' in series_filters %}selected{% endif %}>{{ ser.name }}</option>
+
         {% endfor %}
       </select>
     </div>
 
     <input type="hidden" name="view_mode" value="{{ view_mode }}" />
+
   </form>
 </div>
   </div>
