@@ -13,6 +13,8 @@
         <a href="?view_mode=list
                  {% if show_retired %}&show_retired=true{% endif %}
                  {% if type_filter  %}&type_filter={{ type_filter }}{% endif %}
+                 {% if group_filter %}&group_filter={{ group_filter }}{% endif %}
+                 {% if series_filter %}&series_filter={{ series_filter }}{% endif %}
                  {% if zero_inventory %}&zero_inventory=true{% endif %}"
            class="view-icon {% if view_mode == 'list' %}active{% endif %}">
           <i class="material-icons">view_list</i>
@@ -20,6 +22,8 @@
         <a href="?view_mode=card
                  {% if show_retired %}&show_retired=true{% endif %}
                  {% if type_filter  %}&type_filter={{ type_filter }}{% endif %}
+                 {% if group_filter %}&group_filter={{ group_filter }}{% endif %}
+                 {% if series_filter %}&series_filter={{ series_filter }}{% endif %}
                  {% if zero_inventory %}&zero_inventory=true{% endif %}"
            class="view-icon {% if view_mode == 'card' %}active{% endif %}">
           <i class="material-icons">view_module</i>
@@ -28,61 +32,78 @@
     </div>
 
     <div class="filters">
-  <form method="get">
+  <form method="get" style="display:flex; flex-wrap:wrap; align-items:center; gap:10px;">
 
-    <div class="col s3" style="margin-top: 1rem;">
-      <!-- Show retired products checkbox -->
-      <label>
-        <input
-          type="checkbox"
-          name="show_retired"
-          value="true"
-          class="filled-in"
-          {% if show_retired %}checked{% endif %}
-          onchange="this.form.submit()"
-        />
-        <span>Show old products</span>
-      </label>
-
-      <!-- Out of stock only checkbox -->
-      <label>
-        <input
-          type="checkbox"
-          name="zero_inventory"
-          value="true"
-          class="filled-in"
-          {% if zero_inventory %}checked{% endif %}
-          onchange="this.form.submit()"
-        />
-        <span>Out of stock only</span>
-      </label>
-    </div>
-
-    <!-- Type filter select -->
-    <div class="input-field inline col s4">
-      <select
-        name="type_filter"
-        id="type_filter"
+    <label style="margin-right:10px;">
+      <input
+        type="checkbox"
+        name="show_retired"
+        value="true"
+        class="filled-in"
+        {% if show_retired %}checked{% endif %}
         onchange="this.form.submit()"
-      >
+      />
+      <span>Show old products</span>
+    </label>
+
+    <label style="margin-right:20px;">
+      <input
+        type="checkbox"
+        name="zero_inventory"
+        value="true"
+        class="filled-in"
+        {% if zero_inventory %}checked{% endif %}
+        onchange="this.form.submit()"
+      />
+      <span>Out of stock only</span>
+    </label>
+
+    <div class="input-field" style="min-width:150px;">
+      <select name="type_filter" onchange="this.form.submit()">
         <option value="" {% if not type_filter %}selected{% endif %}>All types</option>
         {% for value, label in type_choices %}
-          <option
-            value="{{ value }}"
-            {% if type_filter == value %}selected{% endif %}
-          >
-            {{ label }}
-          </option>
+          <option value="{{ value }}" {% if type_filter == value %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
     </div>
 
-    <!-- Preserve view mode when submitting -->
-    <input
-      type="hidden"
-      name="view_mode"
-      value="{{ view_mode }}"
-    />
+    <div class="input-field" style="min-width:150px;">
+      <select name="style_filter" onchange="this.form.submit()">
+        <option value="" {% if not style_filter %}selected{% endif %}>All styles</option>
+        {% for value, label in style_choices %}
+          <option value="{{ value }}" {% if style_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="input-field" style="min-width:150px;">
+      <select name="age_filter" onchange="this.form.submit()">
+        <option value="" {% if not age_filter %}selected{% endif %}>All ages</option>
+        {% for value, label in age_choices %}
+          <option value="{{ value }}" {% if age_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="input-field" style="min-width:150px;">
+      <select name="group_filter" onchange="this.form.submit()">
+        <option value="" {% if not group_filter %}selected{% endif %}>All groups</option>
+        {% for group in group_choices %}
+          <option value="{{ group.id }}" {% if group_filter|add:"" == group.id|stringformat:"s" %}selected{% endif %}>{{ group.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="input-field" style="min-width:150px;">
+      <select name="series_filter" onchange="this.form.submit()">
+        <option value="" {% if not series_filter %}selected{% endif %}>All series</option>
+        {% for ser in series_choices %}
+          <option value="{{ ser.id }}" {% if series_filter|add:"" == ser.id|stringformat:"s" %}selected{% endif %}>{{ ser.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <input type="hidden" name="view_mode" value="{{ view_mode }}" />
   </form>
 </div>
   </div>
