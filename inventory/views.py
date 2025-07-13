@@ -7,6 +7,9 @@ import calendar
 import statistics
 import math
 from urllib.parse import urlencode
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 from decimal import Decimal
@@ -1217,7 +1220,7 @@ def inventory_snapshots(request):
     size_order = ["XS", "S", "M", "L", "XL", "XXL"]
 
     size_mix = calculate_size_order_mix(category=selected_type, months=6)
-    print(size_mix)
+    logger.debug(size_mix)
 
     # ——— 5) Render template —————————————————————————————————————
     return render(

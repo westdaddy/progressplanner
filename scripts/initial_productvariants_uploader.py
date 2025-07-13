@@ -2,6 +2,7 @@ import os
 import django
 import sys
 import csv
+import logging
 
 # ─── Bootstrapping Django ───────────────────────────────────────────────────────
 
@@ -15,6 +16,8 @@ django.setup()
 
 
 from inventory.models import Product, ProductVariant
+
+logger = logging.getLogger(__name__)
 
 
 # ─── Configuration ──────────────────────────────────────────────────────────────
@@ -89,12 +92,14 @@ def norm(map_, raw_value):
 def import_variants():
     with open(CSV_FILE_PATH, newline="", encoding="latin1") as csvfile:
         reader = csv.DictReader(csvfile)
-        print("CSV columns detected:", reader.fieldnames)
+        logger.info("CSV columns detected: %s", reader.fieldnames)
 
         for row in reader:
             product = Product.objects.filter(product_id=row.get("product_code")).first()
             if not product:
-                print(f"→ SKIP: no Product with code '{row.get('product_code')}'")
+                logger.warning(
+                    "\u2192 SKIP: no Product with code '%s'", row.get("product_code")
+                )
                 continue
 
             # Color hex mapping
@@ -135,7 +140,7 @@ def import_variants():
             )
 
             if created:
-                print(f"CREATED {variant.variant_code} (gender={gender_code})")
+                logger.info("CREATED %s (gender=%s)", variant.variant_code, gender_code)
             else:
                 updated = []
                 for attr, newval in [
@@ -150,13 +155,14 @@ def import_variants():
 
                 if updated:
                     variant.save()
-                    print(f"UPDATED {variant.variant_code}: {', '.join(updated)}")
+                    logger.info("UPDATED %s: %s", variant.variant_code, ", ".join(updated))
                 else:
-                    print(f"SKIPPED {variant.variant_code}: no changes")
+                    logger.info("SKIPPED %s: no changes", variant.variant_code)
 
 
 # ─── Run if invoked as a script ────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     import_variants()
-    print("Variant import completed!")
+    logger.info("Variant import completed!")

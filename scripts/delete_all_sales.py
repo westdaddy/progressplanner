@@ -1,6 +1,7 @@
 import os
 import django
 import sys
+import logging
 
 # ----------------------------------------------------------------
 #  Adjust these paths/settings to point at your project correctly
@@ -14,23 +15,26 @@ django.setup()
 from django.db import transaction
 from inventory.models import Sale
 
+logger = logging.getLogger(__name__)
+
 def delete_all_sales(dry_run=True):
     """
     If dry_run is True, just print how many would be deleted.
     Otherwise, delete all Sale records.
     """
     total = Sale.objects.count()
-    print(f"Found {total} Sale records.")
+    logger.info("Found %s Sale records.", total)
     if dry_run:
-        print("Dry run mode – no records have been deleted.")
+        logger.info("Dry run mode – no records have been deleted.")
     else:
         with transaction.atomic():
             deleted, _ = Sale.objects.all().delete()
-        print(f"Deleted {deleted} Sale records.")
+        logger.info("Deleted %s Sale records.", deleted)
 
 if __name__ == "__main__":
     # Pass "go" as first arg to actually delete
     go = len(sys.argv) > 1 and sys.argv[1].lower() == "go"
+    logging.basicConfig(level=logging.INFO)
     delete_all_sales(dry_run=not go)
     if not go:
-        print("\nTo really delete, run:\n    python delete_sales.py go")
+        logger.info("\nTo really delete, run:\n    python delete_sales.py go")

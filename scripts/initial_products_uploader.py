@@ -1,6 +1,7 @@
 import os
 import django
 import sys
+import logging
 
 # Set the path to the project root (where manage.py is located)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -12,6 +13,8 @@ django.setup()
 
 import csv
 from inventory.models import Product
+
+logger = logging.getLogger(__name__)
 
 # Define the path to your CSV file
 CSV_FILE_PATH = 'data/initialdata/product_list.csv'
@@ -30,14 +33,16 @@ def import_products():
             )
 
             if created:
-                print(f"Created: {product.product_name} ({product.product_id})")
+                logger.info("Created: %s (%s)", product.product_name, product.product_id)
             else:
-                print(f"Updated: {product.product_name} ({product.product_id})")
+                logger.info("Updated: %s (%s)", product.product_name, product.product_id)
 
 if __name__ == "__main__":
     import django
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myproject.settings')  # Update with your project name
     django.setup()
 
+    logging.basicConfig(level=logging.INFO)
+
     import_products()
-    print("Product import completed!")
+    logger.info("Product import completed!")

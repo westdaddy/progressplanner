@@ -18,6 +18,9 @@ from django.contrib import messages
 from django.shortcuts import redirect, get_object_or_404, render
 from django.urls import path
 from django.http import JsonResponse
+import logging
+
+logger = logging.getLogger(__name__)
 from django.utils.safestring import mark_safe
 from django.contrib.admin.widgets import FilteredSelectMultiple
 
@@ -124,7 +127,7 @@ class OrderAdmin(admin.ModelAdmin):
     def add_products_view(self, request, order_id):
         order = get_object_or_404(Order, pk=order_id)
         if request.method == "POST":
-            print("here")
+            logger.debug("add_products_view POST called")
             form = AddProductsForm(request.POST)
             if form.is_valid():
                 products = form.cleaned_data["products"]
