@@ -752,32 +752,41 @@ def product_list(request):
     def _style_key(prod):
         return STYLE_ORDER.get(prod.style, 99)
 
+    discounted_products = sorted(
+        [p for p in products if getattr(p, "discounted", False)], key=_style_key
+    )
+    current_products = sorted(
+        [
+            p
+            for p in products
+            if not getattr(p, "discounted", False)
+            and not getattr(p, "decommissioned", False)
+            and p.total_inventory > 0
+        ],
+        key=_style_key,
+    )
+    on_order_products = sorted(
+        [
+            p
+            for p in products
+            if p.last_order_label == "On Order"
+            and p.last_order_qty
+            and p.total_inventory == 0
+        ],
+        key=_style_key,
+    )
+
     context.update(
         {
-            "discounted_products": sorted(
-                [p for p in products if getattr(p, "discounted", False)],
-                key=_style_key,
-            ),
-            "current_products": sorted(
-                [
-                    p
-                    for p in products
-                    if not getattr(p, "discounted", False)
-                    and not getattr(p, "decommissioned", False)
-                    and p.total_inventory > 0
-                ],
-                key=_style_key,
-            ),
-            "on_order_products": sorted(
-                [
-                    p
-                    for p in products
-                    if p.last_order_label == "On Order"
-                    and p.last_order_qty
-                    and p.total_inventory == 0
-                ],
-                key=_style_key,
-            ),
+            "discounted_products": discounted_products,
+            "current_products": current_products,
+            "on_order_products": on_order_products,
+            "discounted_count": len(discounted_products),
+            "current_count": len(current_products),
+            "on_order_count": len(on_order_products),
+            "discounted_stock": sum(p.total_inventory for p in discounted_products),
+            "current_stock": sum(p.total_inventory for p in current_products),
+            "on_order_stock": sum(p.last_order_qty or 0 for p in on_order_products),
 
         }
     )
