@@ -747,25 +747,38 @@ def product_list(request):
     }
 
     # optional groupings (discounted/current/on‐order)
+    STYLE_ORDER = {"gi": 0, "ng": 1, "ap": 2, "ac": 3}
+
+    def _style_key(prod):
+        return STYLE_ORDER.get(prod.style, 99)
+
     context.update(
         {
-            "discounted_products": [
-                p for p in products if getattr(p, "discounted", False)
-            ],
-            "current_products": [
-                p
-                for p in products
-                if not getattr(p, "discounted", False)
-                and not getattr(p, "decommissioned", False)
-                and p.total_inventory > 0
-            ],
-            "on_order_products": [
-                p
-                for p in products
-                if p.last_order_label == "On Order"
-                and p.last_order_qty
-                and p.total_inventory == 0
-            ],
+            "discounted_products": sorted(
+                [p for p in products if getattr(p, "discounted", False)],
+                key=_style_key,
+            ),
+            "current_products": sorted(
+                [
+                    p
+                    for p in products
+                    if not getattr(p, "discounted", False)
+                    and not getattr(p, "decommissioned", False)
+                    and p.total_inventory > 0
+                ],
+                key=_style_key,
+            ),
+            "on_order_products": sorted(
+                [
+                    p
+                    for p in products
+                    if p.last_order_label == "On Order"
+                    and p.last_order_qty
+                    and p.total_inventory == 0
+                ],
+                key=_style_key,
+            ),
+
         }
     )
 
