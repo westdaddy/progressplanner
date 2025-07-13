@@ -633,7 +633,6 @@ def product_list(request):
     if series_filters:
         products_qs = products_qs.filter(series__id__in=series_filters).distinct()
 
-
     if not show_retired:
         products_qs = products_qs.filter(decommissioned=False)
 

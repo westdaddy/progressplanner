@@ -13,6 +13,8 @@
         <a href="?view_mode=list
                  {% if show_retired %}&show_retired=true{% endif %}
                  {% if type_filter  %}&type_filter={{ type_filter }}{% endif %}
+                 {% if style_filter %}&style_filter={{ style_filter }}{% endif %}
+                 {% if age_filter   %}&age_filter={{ age_filter }}{% endif %}
                  {% for gid in group_filters %}&group_filter={{ gid }}{% endfor %}
                  {% for sid in series_filters %}&series_filter={{ sid }}{% endfor %}
 
@@ -23,6 +25,8 @@
         <a href="?view_mode=card
                  {% if show_retired %}&show_retired=true{% endif %}
                  {% if type_filter  %}&type_filter={{ type_filter }}{% endif %}
+                 {% if style_filter %}&style_filter={{ style_filter }}{% endif %}
+                 {% if age_filter   %}&age_filter={{ age_filter }}{% endif %}
                  {% for gid in group_filters %}&group_filter={{ gid }}{% endfor %}
                  {% for sid in series_filters %}&series_filter={{ sid }}{% endfor %}
 
@@ -57,6 +61,7 @@
         {% if zero_inventory %}checked{% endif %}
         onchange="this.form.submit()"
       />
+
       <span>Out of stock only</span>
     </label>
 
