@@ -1,6 +1,7 @@
 import os
 import django
 import sys
+import logging
 
 # ----------------------------------------------------------------
 #  Adjust these paths/settings to point at your project correctly
@@ -15,11 +16,13 @@ from datetime import datetime
 from django.db import transaction
 from inventory.models import Sale, ProductVariant
 
+logger = logging.getLogger(__name__)
+
 # ----------------------------------------------------------------
 #  CSV/XLSX filename and optional "test" flag
 # ----------------------------------------------------------------
 if len(sys.argv) < 2:
-    print("Usage: python upload_sales.py <filename> [test]")
+    logger.info("Usage: python upload_sales.py <filename> [test]")
     sys.exit(1)
 
 file_path = sys.argv[1]
@@ -67,20 +70,25 @@ def upload_sales(test=False):
                         return_value   = return_value,
                     )
 
-                print(f"Processed Order#{order_number}, Variant {variant_code} on {order_date}")
+                logger.info(
+                    "Processed Order#%s, Variant %s on %s",
+                    order_number,
+                    variant_code,
+                    order_date,
+                )
 
             except Exception as e:
                 msg = f"Error on row {index}: {e}"
                 errors.append(msg)
-                print(msg)
+                logger.error(msg)
 
         # rollback if in test mode
         if test:
-            print("\nTEST MODE – rolling back all changes.")
+            logger.info("\nTEST MODE – rolling back all changes.")
             transaction.savepoint_rollback(savepoint)
 
     except Exception as e:
-        print(f"Critical error: {e}")
+        logger.error("Critical error: %s", e)
         transaction.savepoint_rollback(savepoint)
 
     return errors
@@ -90,9 +98,10 @@ if __name__ == "__main__":
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'inventory.settings')  # or your settings
     django.setup()
 
+    logging.basicConfig(level=logging.INFO)
     errors = upload_sales(test=test_mode)
-    print("\nUpload completed!")
+    logger.info("\nUpload completed!")
     if errors:
-        print("The following errors were encountered:")
+        logger.info("The following errors were encountered:")
         for err in errors:
-            print(f" - {err}")
+            logger.info(" - %s", err)
