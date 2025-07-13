@@ -3,6 +3,7 @@
   /* Container for the grid of product cards */
   .product-cards-container {
     text-align: center;
+    border-right: 1px solid #e5e5e5;
   }
   /* Each card is 100x100px with a margin for spacing */
   .product-card {
@@ -10,8 +11,9 @@
     width: 100px;
     height: 100px;
     margin: 10px;
-    display: inline-block;
+    float: left;
   }
+
   /* Use Materialize’s card for the structure */
   .product-card .card {
     width: 100%;
@@ -67,13 +69,20 @@
   .product-card:hover .product-details {
     opacity: 1;
   }
+
+  h5 span.small {
+    font-size:14px;
+  }
+
 </style>
 
 <div class="row">
   <!-- Discounted Column -->
   <div class="col s2">
     <h5>
-      Discounted ({{ discounted_count }} products, {{ discounted_stock }} items)
+      Discounted
+      <br/>
+      <span class="small grey-text darken-2">{{ discounted_count }} products, {{ discounted_stock }} items</span>
     </h5>
     <div class="product-cards-container">
       {% for product in discounted_products %}
@@ -106,7 +115,9 @@
   <!-- Current Column -->
   <div class="col s6">
     <h5>
-      Current ({{ current_count }} products, {{ current_stock }} items)
+      Current
+      <br/>
+      <span class="small grey-text darken-2">{{ current_count }} products, {{ current_stock }} items</span>
     </h5>
     <div class="product-cards-container">
       {% for product in current_products %}
@@ -143,7 +154,9 @@
   <!-- On Order Column -->
   <div class="col s4">
     <h5>
-      On Order ({{ on_order_count }} products, {{ on_order_stock }} items)
+      On Order
+      <br/>
+      <span class="small grey-text darken-2">{{ on_order_count }} products, {{ on_order_stock }} items</span>
     </h5>
     <div class="product-cards-container">
       {% for product in on_order_products %}
