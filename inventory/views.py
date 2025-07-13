@@ -263,6 +263,7 @@ def home(request):
     # Convert to a regular dict so Django templates can iterate over .items
     context["low_stock_by_product"] = dict(grouped)
 
+
     return render(request, "inventory/home.html", context)
 
 

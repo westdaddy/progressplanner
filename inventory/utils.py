@@ -945,6 +945,7 @@ def get_low_stock_products(queryset):
                 idx += 1
             inventory_by_month[m] = current_inv
 
+
         def _avg_speed(months):
             total = 0
             periods = 0
