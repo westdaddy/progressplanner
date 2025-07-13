@@ -413,6 +413,29 @@ label.hide {
   visibility: hidden;
 }
 
+#productFilterForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 15px;
+  margin: 0;
+}
+
+#productFilterForm label {
+  visibility: hidden;
+}
+
+#productFilterForm .checkbox-field {
+  display: flex;
+  align-items: center;
+  margin-right: 20px;
+}
+
+#productFilterForm .input-field {
+  margin: 0;
+  min-width: 150px;
+}
+
 
 
 /* PRODUCT DETAIL STYLES */
