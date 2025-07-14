@@ -1000,6 +1000,7 @@ def get_low_stock_products(queryset):
     else:
         raise ValueError("Queryset must be for Product or ProductVariant")
 
+
     variants = list(
         variant_qs.select_related("product").prefetch_related("sales", "snapshots")
     )
@@ -1008,6 +1009,7 @@ def get_low_stock_products(queryset):
     _annotate_variant_stock(variants, month_start)
 
     low_variants = [v for v in variants if v.months_left is not None and v.months_left < 3]
+
 
     if return_products:
         return list({v.product for v in low_variants})
@@ -1047,3 +1049,4 @@ def get_restock_alerts():
             alerts.append({"product": product, "variants": vars, "total_restock": total})
 
     return alerts
+
