@@ -255,6 +255,7 @@ def home(request):
     )
 
     low_stock_variants = get_low_stock_products(Product.objects.all())
+
     grouped = defaultdict(list)
     for v in low_stock_variants:
         grouped[v.product].append(v)

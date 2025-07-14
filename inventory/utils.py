@@ -914,12 +914,14 @@ def get_low_stock_products(queryset):
         variant_qs = (
             queryset.filter(product__decommissioned=False, product__groups__in=groups)
             .distinct()
+
         )
         return_products = False
     elif queryset.model == Product:
         product_qs = queryset.filter(
             decommissioned=False,
             groups__in=groups,
+
         ).distinct()
         variant_qs = ProductVariant.objects.filter(product__in=product_qs)
         return_products = True
@@ -933,6 +935,7 @@ def get_low_stock_products(queryset):
     )
 
     month_start = today.replace(day=1)
+
 
     low_variants = []
     for v in variants:

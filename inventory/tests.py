@@ -19,6 +19,7 @@ class LowStockProductsTests(TestCase):
         self.other_group = Group.objects.create(name="other")
         restock = RestockSetting.objects.create()
         restock.groups.add(self.core_group)
+
         self.product1 = Product.objects.create(
             product_id="P1", product_name="Prod1"
         )
@@ -70,6 +71,7 @@ class LowStockProductsTests(TestCase):
             product_id="P3", product_name="Prod3"
         )
         self.product3.groups.add(self.core_group)
+        
         self.variant3 = ProductVariant.objects.create(
             product=self.product3,
             variant_code="V3",
