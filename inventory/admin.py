@@ -8,6 +8,7 @@ from .models import (
     OrderItem,
     Group,
     Series,
+    RestockSetting,
 )
 
 from datetime import datetime, timedelta, date
@@ -84,6 +85,11 @@ class GroupAdmin(admin.ModelAdmin):
 @admin.register(Series)
 class SeriesAdmin(admin.ModelAdmin):
     list_display = ("name",)
+
+
+@admin.register(RestockSetting)
+class RestockSettingAdmin(admin.ModelAdmin):
+    filter_horizontal = ("groups",)
 
 
 class OrderItemInline(admin.TabularInline):

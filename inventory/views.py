@@ -62,6 +62,7 @@ from .utils import (
     calculate_dynamic_product_score,
     compute_product_health,
     get_low_stock_products,
+    get_restock_alerts,
 )
 
 
@@ -254,8 +255,8 @@ def home(request):
         }
     )
 
-    low_stock_products = get_low_stock_products(ProductVariant.objects.all())
-    context["low_stock_products"] = low_stock_products
+    # Gather detailed restock alerts
+    context["restock_alerts"] = get_restock_alerts()
 
     return render(request, "inventory/home.html", context)
 
