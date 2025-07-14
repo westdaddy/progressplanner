@@ -1049,4 +1049,3 @@ def get_restock_alerts():
             alerts.append({"product": product, "variants": vars, "total_restock": total})
 
     return alerts
-
