@@ -11,11 +11,19 @@
     <div class="col s12">
 
       {% for alert in restock_alerts %}
-      <div class="card red lighten-4">
+      <div class="card horizontal red lighten-4">
+        <div class="card-image">
+          {% if alert.product.product_photo %}
+            <img src="{{ alert.product.product_photo.url }}" alt="{{ alert.product.product_name }}">
+          {% else %}
+            <img src="https://via.placeholder.com/100" alt="No Image">
+          {% endif %}
+        </div>
         <div class="card-content">
-          <span class="card-title">Low Stock Alert</span>
 
-            <p><strong>{{ alert.product.product_name }}</strong> &ndash; need {{ alert.total_restock }} item{{ alert.total_restock|pluralize }}</p>
+            <span class="card-title">{{ alert.product.product_name }}</span>
+
+            <p><strong></strong> &ndash; need {{ alert.total_restock }} item{{ alert.total_restock|pluralize }}</p>
             <ul>
               {% for v in alert.variants %}
               <li>
