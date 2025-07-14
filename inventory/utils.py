@@ -911,6 +911,7 @@ def get_low_stock_products(queryset):
     # triggering additional queries.
     variants = list(
         variant_qs.select_related("product").prefetch_related("sales", "snapshots")
+
     )
 
     month_start = today.replace(day=1)

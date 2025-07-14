@@ -67,6 +67,7 @@ class LowStockProductsTests(TestCase):
             product_id="P3", product_name="Prod3"
         )
         self.product3.groups.add(self.core_group)
+
         self.variant3 = ProductVariant.objects.create(
             product=self.product3,
             variant_code="V3",
@@ -142,6 +143,7 @@ class LowStockProductsTests(TestCase):
     def test_low_stock_variants(self):
         qs = ProductVariant.objects.all()
         low = list(get_low_stock_products(qs))
+
 
         self.assertIn(self.variant1, low)
         self.assertIn(self.variant3, low)
