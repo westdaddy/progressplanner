@@ -900,7 +900,7 @@ def get_low_stock_products(queryset):
     elif queryset.model == Product:
         product_qs = queryset.filter(
             decommissioned=False,
-            groups__name="core",
+            groups__name="Core",
         ).distinct()
         variant_qs = ProductVariant.objects.filter(product__in=product_qs)
         return_products = True
