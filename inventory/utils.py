@@ -892,10 +892,17 @@ def get_low_stock_products(queryset):
     today = date.today()
 
     if queryset.model == ProductVariant:
-        variant_qs = queryset
+        variant_qs = queryset.filter(
+            product__decommissioned=False,
+            product__groups__name="core",
+        )
         return_products = False
     elif queryset.model == Product:
-        variant_qs = ProductVariant.objects.filter(product__in=queryset)
+        product_qs = queryset.filter(
+            decommissioned=False,
+            groups__name="core",
+        ).distinct()
+        variant_qs = ProductVariant.objects.filter(product__in=product_qs)
         return_products = True
     else:
         raise ValueError("Queryset must be for Product or ProductVariant")
@@ -903,7 +910,8 @@ def get_low_stock_products(queryset):
     # Prefetch related objects so all calculations happen in Python without
     # triggering additional queries.
     variants = list(
-        variant_qs.prefetch_related("sales", "snapshots", "product")
+        variant_qs.select_related("product").prefetch_related("sales", "snapshots")
+
     )
 
     month_start = today.replace(day=1)
@@ -944,7 +952,6 @@ def get_low_stock_products(queryset):
                     current_inv -= qty
                 idx += 1
             inventory_by_month[m] = current_inv
-
 
         def _avg_speed(months):
             total = 0
