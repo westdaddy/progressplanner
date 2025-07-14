@@ -258,7 +258,6 @@ def home(request):
     # Gather detailed restock alerts
     context["restock_alerts"] = get_restock_alerts()
 
-
     return render(request, "inventory/home.html", context)
 
 

@@ -1000,7 +1000,6 @@ def get_low_stock_products(queryset):
     else:
         raise ValueError("Queryset must be for Product or ProductVariant")
 
-
     variants = list(
         variant_qs.select_related("product").prefetch_related("sales", "snapshots")
     )

@@ -20,14 +20,14 @@
           {% endif %}
         </div>
         <div class="card-content">
-
-            <span class="card-title">{{ alert.product.product_name }}</span>
-
-            <p><strong></strong> &ndash; need {{ alert.total_restock }} item{{ alert.total_restock|pluralize }}</p>
+          <span class="card-title">Low Stock Alert</span>
+          {% for alert in restock_alerts %}
+            <p><strong>{{ alert.product.product_name }}</strong> &ndash; need {{ alert.total_restock }} item{{ alert.total_restock|pluralize }}</p>
             <ul>
               {% for v in alert.variants %}
               <li>
-                {% if v.months_left and v.months_left <= 3 %}
+                {% if v.latest_inventory == 0 or (v.months_left is not None and v.months_left <= 3) %}
+
                   <span style="color:red;">&#9650;</span>
                 {% else %}
                   <span style="color:green;">&#10004;</span>
@@ -36,7 +36,7 @@
               </li>
               {% endfor %}
             </ul>
-
+          {% endfor %}
 
         </div>
       </div>
