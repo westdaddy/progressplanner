@@ -1009,6 +1009,7 @@ def get_low_stock_products(queryset):
 
     low_variants = [v for v in variants if v.months_left is not None and v.months_left < 3]
 
+
     if return_products:
         return list({v.product for v in low_variants})
     return low_variants

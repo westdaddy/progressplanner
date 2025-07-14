@@ -6,9 +6,19 @@
 <div class="section">
 
 {% if restock_alerts %}
+
   <div class="row">
     <div class="col s12">
-      <div class="card red lighten-4">
+
+      {% for alert in restock_alerts %}
+      <div class="card horizontal red lighten-4">
+        <div class="card-image">
+          {% if alert.product.product_photo %}
+            <img src="{{ alert.product.product_photo.url }}" alt="{{ alert.product.product_name }}">
+          {% else %}
+            <img src="https://via.placeholder.com/100" alt="No Image">
+          {% endif %}
+        </div>
         <div class="card-content">
           <span class="card-title">Low Stock Alert</span>
           {% for alert in restock_alerts %}
@@ -17,6 +27,7 @@
               {% for v in alert.variants %}
               <li>
                 {% if v.latest_inventory == 0 or (v.months_left is not None and v.months_left <= 3) %}
+
                   <span style="color:red;">&#9650;</span>
                 {% else %}
                   <span style="color:green;">&#10004;</span>
@@ -26,8 +37,11 @@
               {% endfor %}
             </ul>
           {% endfor %}
+
         </div>
       </div>
+      {% endfor %}
+
     </div>
   </div>
 {% endif %}
