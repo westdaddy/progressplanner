@@ -62,6 +62,7 @@ from .utils import (
     calculate_dynamic_product_score,
     compute_product_health,
     get_low_stock_products,
+    get_restock_alerts,
 )
 
 
@@ -254,14 +255,9 @@ def home(request):
         }
     )
 
-    # Check variants for low stock and group them by parent product
-    low_stock_variants = get_low_stock_products(ProductVariant.objects.all())
+    # Gather detailed restock alerts
+    context["restock_alerts"] = get_restock_alerts()
 
-    grouped = defaultdict(list)
-    for v in low_stock_variants:
-        grouped[v.product].append(v)
-    # Convert to a regular dict so Django templates can iterate over .items
-    context["low_stock_by_product"] = dict(grouped)
 
     return render(request, "inventory/home.html", context)
 

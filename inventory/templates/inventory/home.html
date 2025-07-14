@@ -5,7 +5,8 @@
 {% block content %}
 <div class="section">
 
-{% if low_stock_by_product %}
+{% if restock_alerts %}
+
   <div class="row">
     <div class="col s12">
 
@@ -13,13 +14,21 @@
       <div class="card red lighten-4">
         <div class="card-content">
           <span class="card-title">Low Stock Alert</span>
-
-            <p><strong>{{ product.product_name }}</strong></p>
+          {% for alert in restock_alerts %}
+            <p><strong>{{ alert.product.product_name }}</strong> &ndash; need {{ alert.total_restock }} item{{ alert.total_restock|pluralize }}</p>
             <ul>
-              {% for v in variants %}
-              <li>{{ v.variant_code }} ({{ v.latest_inventory }} left)</li>
+              {% for v in alert.variants %}
+              <li>
+                {% if v.months_left and v.months_left <= 3 %}
+                  <span style="color:red;">&#9650;</span>
+                {% else %}
+                  <span style="color:green;">&#10004;</span>
+                {% endif %}
+                {{ v.variant_code }} ({{ v.latest_inventory }} left, +{{ v.restock_to_6 }} to 6m)
+              </li>
               {% endfor %}
             </ul>
+          {% endfor %}
 
         </div>
       </div>

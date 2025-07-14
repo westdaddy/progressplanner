@@ -10,7 +10,8 @@ from .models import (
     Group,
     RestockSetting,
 )
-from .utils import get_low_stock_products
+from .utils import get_low_stock_products, get_restock_alerts
+
 
 
 class LowStockProductsTests(TestCase):
@@ -19,7 +20,7 @@ class LowStockProductsTests(TestCase):
         self.other_group = Group.objects.create(name="other")
         restock = RestockSetting.objects.create()
         restock.groups.add(self.core_group)
-        
+
         self.product1 = Product.objects.create(
             product_id="P1", product_name="Prod1"
         )
@@ -162,3 +163,13 @@ class LowStockProductsTests(TestCase):
         self.assertNotIn(self.product2, low)
         self.assertNotIn(self.product4, low)
         self.assertNotIn(self.product5, low)
+
+    def test_restock_alerts(self):
+        alerts = get_restock_alerts()
+        products = [a["product"] for a in alerts]
+        self.assertIn(self.product1, products)
+        self.assertIn(self.product3, products)
+        self.assertNotIn(self.product2, products)
+        self.assertNotIn(self.product4, products)
+        self.assertNotIn(self.product5, products)
+

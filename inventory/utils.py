@@ -898,6 +898,80 @@ def _restock_groups():
 
 
 
+def _annotate_variant_stock(variants, month_start=None):
+    """Annotate variants with stock metrics.
+
+    Adds ``latest_inventory``, ``avg_speed``, ``months_left`` and
+    ``restock_to_6`` attributes to each variant.  ``avg_speed`` is the average
+    monthly sales calculated from the last 12, 6 and 3 months, ignoring months
+    where the variant had no stock.  ``months_left`` is ``latest_inventory``
+    divided by ``avg_speed``.  ``restock_to_6`` is the quantity required to
+    reach six months of coverage based on ``avg_speed``.
+    """
+
+    month_start = month_start or date.today().replace(day=1)
+    months = [month_start - relativedelta(months=i) for i in reversed(range(12))]
+
+    for v in variants:
+        # Determine latest inventory count from snapshots
+        latest_inv = 0
+        latest_dt = None
+        for snap in v.snapshots.all():
+            if latest_dt is None or snap.date > latest_dt:
+                latest_dt = snap.date
+                latest_inv = snap.inventory_count
+        v.latest_inventory = latest_inv
+
+        # Build per-month sales totals and stock levels
+        sales_by_month = {}
+        events = []
+        for snap in v.snapshots.all():
+            events.append((snap.date, "snapshot", snap.inventory_count))
+        for sale in v.sales.all():
+            events.append((sale.date, "sale", sale.sold_quantity))
+            m = sale.date.replace(day=1)
+            sales_by_month[m] = sales_by_month.get(m, 0) + (sale.sold_quantity or 0)
+        events.sort(key=lambda x: x[0])
+
+        inventory_by_month = {}
+        idx = 0
+        current_inv = 0
+        for m in months:
+            month_end = (m + relativedelta(months=1)) - timedelta(days=1)
+            while idx < len(events) and events[idx][0] <= month_end:
+                dt, typ, qty = events[idx]
+                if typ == "snapshot":
+                    current_inv = qty
+                else:  # sale
+                    current_inv -= qty
+                idx += 1
+            inventory_by_month[m] = current_inv
+
+        def _avg_speed(num_months):
+            total = 0
+            periods = 0
+            for i in range(num_months):
+                m = month_start - relativedelta(months=i)
+                sold = sales_by_month.get(m, 0)
+                had_stock = inventory_by_month.get(m, 0) > 0
+                if sold or had_stock:
+                    periods += 1
+                    total += sold
+            return (total / periods) if periods else 0.0
+
+        avg12 = _avg_speed(12)
+        avg6 = _avg_speed(6)
+        avg3 = _avg_speed(3)
+        avg_speed = (avg12 + avg6 + avg3) / 3.0
+
+        v.avg_speed = avg_speed
+        v.months_left = (v.latest_inventory / avg_speed) if avg_speed > 0 else None
+        target_level = avg_speed * 6
+        v.restock_to_6 = max(math.ceil(target_level - v.latest_inventory), 0)
+
+    return variants
+
+
 def get_low_stock_products(queryset):
     """Return items with less than 3 months of stock remaining.
 
@@ -926,72 +1000,53 @@ def get_low_stock_products(queryset):
     else:
         raise ValueError("Queryset must be for Product or ProductVariant")
 
-    # Prefetch related objects so all calculations happen in Python without
-    # triggering additional queries.
+
     variants = list(
         variant_qs.select_related("product").prefetch_related("sales", "snapshots")
     )
 
     month_start = today.replace(day=1)
+    _annotate_variant_stock(variants, month_start)
 
-    low_variants = []
-    for v in variants:
-        # Determine the latest inventory count from snapshots
-        latest_inv = 0
-        latest_dt = None
-        for snap in v.snapshots.all():
-            if latest_dt is None or snap.date > latest_dt:
-                latest_dt = snap.date
-                latest_inv = snap.inventory_count
-        v.latest_inventory = latest_inv
+    low_variants = [v for v in variants if v.months_left is not None and v.months_left < 3]
 
-        # Build per-month sales totals and stock levels
-        sales_by_month = {}
-        events = []
-        for snap in v.snapshots.all():
-            events.append((snap.date, 'snapshot', snap.inventory_count))
-        for sale in v.sales.all():
-            events.append((sale.date, 'sale', sale.sold_quantity))
-            m = sale.date.replace(day=1)
-            sales_by_month[m] = sales_by_month.get(m, 0) + (sale.sold_quantity or 0)
-        events.sort(key=lambda x: x[0])
-
-        inventory_by_month = {}
-        idx = 0
-        current_inv = 0
-        months = [month_start - relativedelta(months=i) for i in reversed(range(12))]
-        for m in months:
-            month_end = (m + relativedelta(months=1)) - timedelta(days=1)
-            while idx < len(events) and events[idx][0] <= month_end:
-                dt, typ, qty = events[idx]
-                if typ == 'snapshot':
-                    current_inv = qty
-                else:  # sale
-                    current_inv -= qty
-                idx += 1
-            inventory_by_month[m] = current_inv
-
-        def _avg_speed(months):
-            total = 0
-            periods = 0
-            for i in range(months):
-                m = month_start - relativedelta(months=i)
-                sold = sales_by_month.get(m, 0)
-                had_stock = inventory_by_month.get(m, 0) > 0
-                if sold or had_stock:
-                    periods += 1
-                    total += sold
-            return (total / periods) if periods else 0.0
-
-        avg12 = _avg_speed(12)
-        avg6 = _avg_speed(6)
-        avg3 = _avg_speed(3)
-        avg_speed = (avg12 + avg6 + avg3) / 3.0
-
-        v.months_left = (v.latest_inventory / avg_speed) if avg_speed > 0 else None
-        if v.months_left is not None and v.months_left < 3:
-            low_variants.append(v)
 
     if return_products:
         return list({v.product for v in low_variants})
     return low_variants
+
+
+def get_restock_alerts():
+    """Return detailed restock information for products needing attention.
+
+    The result is a list of dictionaries with keys ``product``, ``variants`` and
+    ``total_restock``. ``variants`` is a list of ``ProductVariant`` objects with
+    ``months_left`` and ``restock_to_6`` attributes populated for all variants
+    of the product.
+    """
+
+    products = get_low_stock_products(Product.objects.all())
+    if not products:
+        return []
+
+    variant_qs = (
+        ProductVariant.objects.filter(product__in=products)
+        .select_related("product")
+        .prefetch_related("sales", "snapshots")
+    )
+
+    variants = list(variant_qs)
+    _annotate_variant_stock(variants)
+
+    grouped = defaultdict(list)
+    for v in variants:
+        grouped[v.product].append(v)
+
+    alerts = []
+    for product, vars in grouped.items():
+        if any(v.months_left is not None and v.months_left < 3 for v in vars):
+            total = sum(v.restock_to_6 for v in vars)
+            alerts.append({"product": product, "variants": vars, "total_restock": total})
+
+    return alerts
+
