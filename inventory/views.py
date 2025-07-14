@@ -254,10 +254,7 @@ def home(request):
         }
     )
 
-    low_stock_variants = get_low_stock_products(
-        ProductVariant.objects.select_related("product").all()
-    )
-
+    low_stock_variants = get_low_stock_products(Product.objects.all())
 
     grouped = defaultdict(list)
     for v in low_stock_variants:

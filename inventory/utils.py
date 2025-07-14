@@ -27,7 +27,15 @@ from django.db.models import (
 from django.db.models.functions import Coalesce
 
 
-from .models import Sale, InventorySnapshot, Product, ProductVariant, OrderItem
+from .models import (
+    Sale,
+    InventorySnapshot,
+    Product,
+    ProductVariant,
+    OrderItem,
+    Group,
+    RestockSetting,
+)
 
 
 # Create a mapping from size code to its order index.
@@ -881,6 +889,15 @@ def compute_product_health(product, variants, simplify_type):
     }
 
 
+# Groups used for restock checks
+def _restock_groups():
+    setting = RestockSetting.objects.first()
+    if setting:
+        return setting.groups.all()
+    return Group.objects.filter(name="core")
+
+
+
 def get_low_stock_products(queryset):
     """Return items with less than 3 months of stock remaining.
 
@@ -891,16 +908,20 @@ def get_low_stock_products(queryset):
 
     today = date.today()
 
+    groups = _restock_groups()
+
     if queryset.model == ProductVariant:
-        variant_qs = queryset.filter(
-            product__decommissioned=False,
-            product__groups__name="core",
+        variant_qs = (
+            queryset.filter(product__decommissioned=False, product__groups__in=groups)
+            .distinct()
+
         )
         return_products = False
     elif queryset.model == Product:
         product_qs = queryset.filter(
             decommissioned=False,
-            groups__name="core",
+            groups__in=groups,
+
         ).distinct()
         variant_qs = ProductVariant.objects.filter(product__in=product_qs)
         return_products = True
@@ -911,10 +932,10 @@ def get_low_stock_products(queryset):
     # triggering additional queries.
     variants = list(
         variant_qs.select_related("product").prefetch_related("sales", "snapshots")
-
     )
 
     month_start = today.replace(day=1)
+
 
     low_variants = []
     for v in variants:

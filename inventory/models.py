@@ -249,3 +249,10 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.quantity} x {self.product_variant} (Order {self.order.id})"
+
+class RestockSetting(models.Model):
+    """Configuration of groups considered for restock checks."""
+    groups = models.ManyToManyField(Group, blank=True, related_name="restock_settings")
+
+    def __str__(self):
+        return "Restock Setting"
