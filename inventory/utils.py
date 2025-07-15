@@ -158,43 +158,95 @@ def calculate_size_order_mix(
     return result
 
 
+# ---------------------------------------------------------------------------
+# Sales Speed Helper
+# ---------------------------------------------------------------------------
+
+WEEKS_PER_MONTH = 365.25 / 12 / 7
+
+
+def calculate_variant_sales_speed(
+    variant: ProductVariant, *, weeks: int = 26, today: Optional[date] = None
+) -> float:
+    """Return the average monthly sales speed of ``variant``.
+
+    The speed is calculated using weekly periods for accuracy. Weeks where the
+    variant had no stock are ignored. ``weeks`` defaults to 26 (roughly six
+    months). The returned value is expressed in units sold per month.
+    """
+
+    today = today or date.today()
+    week_start_today = today - timedelta(days=today.weekday())
+    start_week = week_start_today - timedelta(weeks=weeks - 1)
+
+    week_starts = [start_week + timedelta(weeks=i) for i in range(weeks)]
+
+    # Gather events to track inventory over time
+    events = []
+    for snap in variant.snapshots.all():
+        events.append((snap.date, "snapshot", snap.inventory_count))
+    for sale in variant.sales.all():
+        events.append((sale.date, "sale", sale.sold_quantity or 0))
+    events.sort(key=lambda x: x[0])
+
+    # Inventory level at end of each week
+    inventory_by_week = {}
+    idx = 0
+    current_inv = 0
+    for ws in week_starts:
+        we = ws + timedelta(days=6)
+        while idx < len(events) and events[idx][0] <= we:
+            dt, typ, qty = events[idx]
+            if typ == "snapshot":
+                current_inv = qty
+            else:
+                current_inv -= qty
+            idx += 1
+        inventory_by_week[ws] = current_inv
+
+    # Sales totals per week
+    sales_by_week: Dict[date, int] = defaultdict(int)
+    for sale in variant.sales.all():
+        ws = sale.date - timedelta(days=sale.date.weekday())
+        if start_week <= ws <= week_start_today:
+            sales_by_week[ws] += sale.sold_quantity or 0
+
+    total = 0
+    periods = 0
+    for ws in week_starts:
+        sold = sales_by_week.get(ws, 0)
+        had_stock = inventory_by_week.get(ws, 0) > 0
+        if sold or had_stock:
+            periods += 1
+            total += sold
+
+    if periods == 0:
+        return 0.0
+
+    avg_weekly = total / periods
+    return avg_weekly * WEEKS_PER_MONTH
+
+
 def compute_safe_stock(variants):
     """
     Compute safe stock data and product-level summary for a list of variants.
     Returns (safe_stock_data, product_safe_summary).
     """
     safe_stock_data = []
-    # Determine date thresholds
-    today = datetime.today()
-    current_month = today.replace(day=1)
-    twelve_months_ago = current_month - relativedelta(months=12)
-    six_months_ago = current_month - relativedelta(months=6)
-    three_months_ago = current_month - relativedelta(months=3)
+    today = datetime.today().date()
 
     for v in variants:
         current = v.latest_inventory
-        sold_12 = v.sales.filter(date__gte=twelve_months_ago).aggregate(
-            total=Coalesce(Sum("sold_quantity"), Value(0), output_field=IntegerField())
-        )["total"]
-        sold_6 = v.sales.filter(date__gte=six_months_ago).aggregate(
-            total=Coalesce(Sum("sold_quantity"), Value(0), output_field=IntegerField())
-        )["total"]
-        sold_3 = v.sales.filter(date__gte=three_months_ago).aggregate(
-            total=Coalesce(Sum("sold_quantity"), Value(0), output_field=IntegerField())
-        )["total"]
+        avg_speed = calculate_variant_sales_speed(v, today=today)
+        recent_speed = calculate_variant_sales_speed(v, weeks=13, today=today)
 
-        avg_12 = sold_12 / 12.0
-        avg_6 = sold_6 / 6.0
-        avg_3 = sold_3 / 3.0
-        avg_speed = (avg_12 + avg_6 + avg_3) / 3.0
-
-        min_threshold = avg_12 * 2
-        ideal_level = avg_12 * 6
+        min_threshold = avg_speed * 2
+        ideal_level = avg_speed * 6
         restock_qty = ideal_level  # requirement for 6 months
 
-        if avg_3 > avg_speed:
+        if recent_speed > avg_speed:
             trend = "up"
-        elif avg_3 < avg_speed:
+        elif recent_speed < avg_speed:
             trend = "down"
         else:
             trend = "flat"
@@ -236,7 +288,6 @@ def compute_variant_projection(variants):
     # 1) Define your date boundaries here
     today = datetime.today()
     current_month = today.replace(day=1)
-    six_months_ago = current_month - relativedelta(months=6)
 
     # 2) Build your 12-month projection exactly as on inventory page
     next_12 = [current_month + relativedelta(months=i) for i in range(13)]
@@ -246,10 +297,7 @@ def compute_variant_projection(variants):
     }
     for v in variants:
         curr = v.latest_inventory
-        sold_6 = v.sales.filter(date__gte=six_months_ago).aggregate(
-            total=Coalesce(Sum("sold_quantity"), Value(0), output_field=IntegerField())
-        )["total"]
-        speed = sold_6 / 6.0
+        speed = calculate_variant_sales_speed(v, today=current_month)
 
         # collect future restocks
         restocks = {}
@@ -902,15 +950,14 @@ def _annotate_variant_stock(variants, month_start=None):
     """Annotate variants with stock metrics.
 
     Adds ``latest_inventory``, ``avg_speed``, ``months_left`` and
-    ``restock_to_6`` attributes to each variant.  ``avg_speed`` is the average
-    monthly sales calculated from the last 12, 6 and 3 months, ignoring months
-    where the variant had no stock.  ``months_left`` is ``latest_inventory``
-    divided by ``avg_speed``.  ``restock_to_6`` is the quantity required to
-    reach six months of coverage based on ``avg_speed``.
+    ``restock_to_6`` attributes to each variant. ``avg_speed`` is computed using
+    :func:`calculate_variant_sales_speed`, which looks at the last six months of
+    weekly data and ignores weeks with no stock. ``months_left`` is
+    ``latest_inventory`` divided by ``avg_speed``. ``restock_to_6`` is the
+    quantity required to reach six months of coverage based on ``avg_speed``.
     """
 
     month_start = month_start or date.today().replace(day=1)
-    months = [month_start - relativedelta(months=i) for i in reversed(range(12))]
 
     for v in variants:
         # Determine latest inventory count from snapshots
@@ -922,47 +969,7 @@ def _annotate_variant_stock(variants, month_start=None):
                 latest_inv = snap.inventory_count
         v.latest_inventory = latest_inv
 
-        # Build per-month sales totals and stock levels
-        sales_by_month = {}
-        events = []
-        for snap in v.snapshots.all():
-            events.append((snap.date, "snapshot", snap.inventory_count))
-        for sale in v.sales.all():
-            events.append((sale.date, "sale", sale.sold_quantity))
-            m = sale.date.replace(day=1)
-            sales_by_month[m] = sales_by_month.get(m, 0) + (sale.sold_quantity or 0)
-        events.sort(key=lambda x: x[0])
-
-        inventory_by_month = {}
-        idx = 0
-        current_inv = 0
-        for m in months:
-            month_end = (m + relativedelta(months=1)) - timedelta(days=1)
-            while idx < len(events) and events[idx][0] <= month_end:
-                dt, typ, qty = events[idx]
-                if typ == "snapshot":
-                    current_inv = qty
-                else:  # sale
-                    current_inv -= qty
-                idx += 1
-            inventory_by_month[m] = current_inv
-
-        def _avg_speed(num_months):
-            total = 0
-            periods = 0
-            for i in range(num_months):
-                m = month_start - relativedelta(months=i)
-                sold = sales_by_month.get(m, 0)
-                had_stock = inventory_by_month.get(m, 0) > 0
-                if sold or had_stock:
-                    periods += 1
-                    total += sold
-            return (total / periods) if periods else 0.0
-
-        avg12 = _avg_speed(12)
-        avg6 = _avg_speed(6)
-        avg3 = _avg_speed(3)
-        avg_speed = (avg12 + avg6 + avg3) / 3.0
+        avg_speed = calculate_variant_sales_speed(v, today=month_start)
 
         v.avg_speed = avg_speed
         v.months_left = (v.latest_inventory / avg_speed) if avg_speed > 0 else None
@@ -975,9 +982,9 @@ def _annotate_variant_stock(variants, month_start=None):
 def get_low_stock_products(queryset):
     """Return items with less than 3 months of stock remaining.
 
-    This uses an adjusted sales speed that ignores months where the variant was
-    completely out of stock.  It averages the speed over the last 12, 6 and
-    3 months and compares current stock against that average.
+    This uses ``calculate_variant_sales_speed`` to determine each variant's
+    monthly sales velocity (ignoring weeks with no stock). Variants with less
+    than three months of stock remaining are returned.
     """
 
     today = date.today()
