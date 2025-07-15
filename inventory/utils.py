@@ -178,6 +178,7 @@ def calculate_variant_sales_speed(
     today = today or date.today()
     if isinstance(today, datetime):
         today = today.date()
+
     week_start_today = today - timedelta(days=today.weekday())
     start_week = week_start_today - timedelta(weeks=weeks - 1)
 
@@ -300,6 +301,7 @@ def compute_variant_projection(variants):
     for v in variants:
         curr = v.latest_inventory
         speed = calculate_variant_sales_speed(v, today=current_month.date())
+
 
         # collect future restocks
         restocks = {}
