@@ -64,6 +64,7 @@ from .utils import (
     get_low_stock_products,
     get_restock_alerts,
     calculate_variant_sales_speed,
+    get_variant_speed_map,
 )
 
 
@@ -850,9 +851,10 @@ def product_detail(request, product_id):
     )
 
     # Compute all data via helpers
-    safe_stock = compute_safe_stock(variants)
+    speed_map = get_variant_speed_map(variants)
+    safe_stock = compute_safe_stock(variants, speed_map=speed_map)
     threshold_value = safe_stock["product_safe_summary"]["avg_speed"] * 2
-    variant_proj = compute_variant_projection(variants)
+    variant_proj = compute_variant_projection(variants, speed_map=speed_map)
     sales_data = get_product_sales_data(product)
 
     # ——— ACTUAL DATA FOR INVENTORY CHART ————————
@@ -920,7 +922,7 @@ def product_detail(request, product_id):
         running = sum(initial.values())
         forecast_data.append({"x": cursor.isoformat(), "y": running})
 
-    health = compute_product_health(product, variants, _simplify_type)
+    health = compute_product_health(product, variants, _simplify_type, speed_map=speed_map)
 
     # — Fetch and group all OrderItems for this product —
     all_items = (
