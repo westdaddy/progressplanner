@@ -202,3 +202,4 @@ class LastOrderQtyTests(TestCase):
         response = self.client.get(url)
         rows = response.context["safe_stock_data"]
         self.assertEqual(rows[0]["last_order_qty"], 5)
+        self.assertEqual(rows[0]["last_order_date"], delivered_order.order_date)
