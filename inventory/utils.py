@@ -193,19 +193,23 @@ def calculate_variant_sales_speed(
     events.sort(key=lambda x: x[0])
 
     # Inventory level at end of each week
-    inventory_by_week = {}
+    inventory_by_week: Dict[date, Optional[int]] = {}
     idx = 0
     current_inv = 0
+    seen_snapshot = False
+
     for ws in week_starts:
         we = ws + timedelta(days=6)
         while idx < len(events) and events[idx][0] <= we:
             dt, typ, qty = events[idx]
             if typ == "snapshot":
                 current_inv = qty
+                seen_snapshot = True
             else:
                 current_inv -= qty
             idx += 1
-        inventory_by_week[ws] = current_inv
+        inventory_by_week[ws] = max(current_inv, 0) if seen_snapshot else None
+
 
     # Sales totals per week
     sales_by_week: Dict[date, int] = defaultdict(int)
@@ -218,7 +222,9 @@ def calculate_variant_sales_speed(
     periods = 0
     for ws in week_starts:
         sold = sales_by_week.get(ws, 0)
-        had_stock = inventory_by_week.get(ws, 0) > 0
+        inv = inventory_by_week.get(ws)
+        had_stock = True if inv is None else inv > 0
+
         if sold or had_stock:
             periods += 1
             total += sold
@@ -245,7 +251,16 @@ def compute_safe_stock(variants):
 
         min_threshold = avg_speed * 2
         ideal_level = avg_speed * 6
-        restock_qty = ideal_level  # requirement for 6 months
+        restock_qty = max(math.ceil(ideal_level - current), 0)
+        months_left = (current / avg_speed) if avg_speed > 0 else None
+
+        if current == 0:
+            status = "red"
+        elif months_left is not None and months_left > 3:
+            status = "green"
+        else:
+            status = "orange"
+
 
         if recent_speed > avg_speed:
             trend = "up"
@@ -261,7 +276,9 @@ def compute_safe_stock(variants):
                 "current_stock": current,
                 "avg_speed": round(avg_speed, 1),
                 "min_threshold": math.ceil(min_threshold),
-                "restock_qty": math.ceil(restock_qty),
+                "restock_qty": restock_qty,
+                "months_left": months_left,
+                "stock_status": status,
                 "trend": trend,
             }
         )
@@ -274,7 +291,7 @@ def compute_safe_stock(variants):
     product_safe_summary = {
         "total_current_stock": sum(r["current_stock"] for r in filtered),
         "avg_speed": round(sum(r["avg_speed"] for r in filtered), 1) if filtered else 0,
-        "total_restock_needed": math.ceil(sum(r["restock_qty"] for r in filtered)),
+        "total_restock_needed": sum(r["restock_qty"] for r in filtered),
     }
 
     return {
@@ -301,7 +318,6 @@ def compute_variant_projection(variants):
     for v in variants:
         curr = v.latest_inventory
         speed = calculate_variant_sales_speed(v, today=current_month.date())
-
 
         # collect future restocks
         restocks = {}
@@ -973,7 +989,8 @@ def _annotate_variant_stock(variants, month_start=None):
                 latest_inv = snap.inventory_count
         v.latest_inventory = latest_inv
 
-        avg_speed = calculate_variant_sales_speed(v, today=month_start)
+        avg_speed = calculate_variant_sales_speed(v)
+
 
         v.avg_speed = avg_speed
         v.months_left = (v.latest_inventory / avg_speed) if avg_speed > 0 else None
