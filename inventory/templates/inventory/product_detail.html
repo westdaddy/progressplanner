@@ -60,6 +60,7 @@
             <th>Current Stock</th>
             <th>6months stock</th>
             <th>Restock amount</th>
+            <th>On Order</th>
           </tr>
         </thead>
         <tbody>
@@ -79,18 +80,20 @@
             </td>
             <td>{{ row.current_stock }} <span class="stock-dot {{ row.stock_status }}"></span></td>
 
-            <td></td>
+            <td>{{ row.six_month_stock }}</td>
             <td>{{ row.restock_qty }}</td>
+            <td>{{ row.on_order_qty }}</td>
           </tr>
           {% empty %}
-          <tr><td colspan="5">No data available.</td></tr>
+          <tr><td colspan="6">No data available.</td></tr>
           {% endfor %}
           <tr class="product-summary">
             <td><strong>TOTALS</strong></td>
             <td>{{ product_safe_summary.total_current_stock }} items</td>
             <td>{{ product_safe_summary.avg_speed }} / month</td>
-            <td></td>
+            <td>{{ product_safe_summary.total_six_month_stock }}</td>
             <td>{{ product_safe_summary.total_restock_needed }}</td>
+            <td>{{ product_safe_summary.total_on_order_qty }}</td>
           </tr>
         </tbody>
       </table>
