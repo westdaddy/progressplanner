@@ -48,60 +48,108 @@
   </div>
 
   <div class="row">
-  <div class="health-card">
-  <!-- gauge: you can draw with Chart.js or a simple SVG -->
+    <div class="col s12">
+      <h3>Safe Stock & Sales Speed</h3>
+      <table class="highlight">
+        <thead>
+          <tr>
+            <th>Variant</th>
+            <th>Sales / month</th>
+            <th>6months stock</th>
+            <th>Current Stock</th>
+            <th>Restock amount</th>
 
+          </tr>
+        </thead>
+        <tbody>
 
+          {% for row in safe_stock_data %}
+          <tr>
+            <td>{{ row.variant_code }}</td>
+            <td>
+              {{ row.avg_speed }}
+              {% if row.trend == 'up' %}
+                <span style="color: green;">&#9650;</span>
+              {% elif row.trend == 'down' %}
+                <span style="color: red;">&#9660;</span>
+              {% else %}
+                &#8212;
+              {% endif %}
+            </td>
+            <td>{{ row.restock_qty }}</td>
+            <td>{{ row.current_stock }}</td>
+            <td></td>
 
+          </tr>
 
-</div>
+          {% empty %}
+          <tr><td colspan="5">No data available.</td></tr>
+          {% endfor %}
+          <tr class="product-summary">
+            <td><strong>TOTALS</strong></td>
+            <td>{{ product_safe_summary.avg_speed }} / month</td>
+            <td>{{ product_safe_summary.total_restock_needed }}</td>
+            <td>{{ product_safe_summary.total_current_stock }} items</td>
+            <td></td>
 
-</div>
-
-
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 
 
 
   <div class="row">
-    <div class="col s3">
+    <div class="col s12">
 
-      <div style="width:200px; height:200px; margin:auto;">
-        <canvas id="healthDonut"></canvas>
-      </div>
-
-      <div class="gauge-container">
-        <canvas id="healthGauge"></canvas>
-        <div class="gauge-value">{{ health.overall_score }}</div>
-      </div>
-
-    </div>
-
-
-    <div class="col s3" style="border-left: 1px dashed #111; height: 150px;">
-      <!-- bullet list -->
-      <ul class="health-bullets">
-        <li>🚀 Sales Velocity: {{ health.subscores.sales_velocity }}</li>
-        <li>📈 Sell-Through: {{ health.subscores.sell_through }}</li>
-        <li>⏱ Coverage Days: {{ health.subscores.coverage_days }}</li>
-        <li>🕒 Stock Age: {{ health.subscores.stock_age }}</li>
-        <li>⭐ Core Coverage: {{ health.subscores.core_coverage }}</li>
-        <li>🔁 Restocks: {{ health.subscores.restocks }}</li>
-        <li>↩️ Return Rate: {{ health.subscores.return_rate }}</li>
-        {# <li>💰 Margin: {{ health.subscores.margin }}</li> #}
-      </ul>
-    </div>
-
-    <!-- SALES STATISTICS SECTION -->
-    <div class="col s6">
-      <div class="card z-depth-2" style="overflow: hidden;">
-        <div class="card-content cyan lighten-2 white-text" ">
-          <p>Stuff in here about sales statistics - how many have been given away, how many discounted, how many full price. Time on the market, number of restocks, speed compared to similar products</p>
-        </div>
-      </div>
+      <h3>Order History & Profitability</h3>
+      <table class="highlight">
+        <thead>
+          <tr>
+            <th>Date Ordered</th>
+            <th>Date Delivered</th>
+            <th>Qty Ord/Del</th>
+            <th>Cost Value</th>
+            <th>No. Sold</th>
+            <th>In Stock</th>
+            <th>Sold Value</th>
+            <th>Profit</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for o in prev_orders %}
+            <tr>
+              <td>{{ o.date_ordered|date:"Y-m-d" }}</td>
+              <td>
+                {% if o.date_delivered %}
+                  {{ o.date_delivered|date:"Y-m-d" }}
+                {% else %}&ndash;{% endif %}
+              </td>
+              <td>{{ o.qty_ordered }}/{{ o.qty_delivered }}</td>
+              <td>¥{{ o.cost_value|floatformat:"2" }}</td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="8">No previous orders.</td></tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr class="totals-row green-text">
+            <td colspan="3"><strong>Lifetime Totals</strong></td>
+            <td>¥{{ total_order_cost|floatformat:"2" }}</td>
+            <td>{{ lifetime_sold_qty }}</td>
+            <td>{{ current_inventory }}</td>
+            <td>¥{{ lifetime_sold_val|floatformat:"2" }}</td>
+            <td>¥{{ lifetime_profit|floatformat:"2" }}</td>
+          </tr>
+        </tfoot>
+      </table>
     </div>
   </div>
-
-</div>
 
 
 
@@ -195,6 +243,8 @@
       {% endfor %}
     </tbody>
   </table>
+
+  
 </div>
 
 <!-- Variant-level Stock Projection Chart -->

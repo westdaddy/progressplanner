@@ -178,6 +178,7 @@ def calculate_variant_sales_speed(
     today = today or date.today()
     if isinstance(today, datetime):
         today = today.date()
+
     week_start_today = today - timedelta(days=today.weekday())
     start_week = week_start_today - timedelta(weeks=weeks - 1)
 
@@ -196,6 +197,7 @@ def calculate_variant_sales_speed(
     idx = 0
     current_inv = 0
     seen_snapshot = False
+
     for ws in week_starts:
         we = ws + timedelta(days=6)
         while idx < len(events) and events[idx][0] <= we:
@@ -207,6 +209,7 @@ def calculate_variant_sales_speed(
                 current_inv -= qty
             idx += 1
         inventory_by_week[ws] = max(current_inv, 0) if seen_snapshot else None
+
 
     # Sales totals per week
     sales_by_week: Dict[date, int] = defaultdict(int)
@@ -221,6 +224,7 @@ def calculate_variant_sales_speed(
         sold = sales_by_week.get(ws, 0)
         inv = inventory_by_week.get(ws)
         had_stock = True if inv is None else inv > 0
+
         if sold or had_stock:
             periods += 1
             total += sold
@@ -256,6 +260,7 @@ def compute_safe_stock(variants):
             status = "green"
         else:
             status = "orange"
+
 
         if recent_speed > avg_speed:
             trend = "up"
@@ -985,6 +990,7 @@ def _annotate_variant_stock(variants, month_start=None):
         v.latest_inventory = latest_inv
 
         avg_speed = calculate_variant_sales_speed(v)
+
 
         v.avg_speed = avg_speed
         v.months_left = (v.latest_inventory / avg_speed) if avg_speed > 0 else None
