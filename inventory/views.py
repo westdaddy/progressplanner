@@ -63,6 +63,7 @@ from .utils import (
     compute_product_health,
     get_low_stock_products,
     get_restock_alerts,
+    calculate_variant_sales_speed,
 )
 
 
@@ -461,14 +462,7 @@ def dashboard(request):
             .first()
         )
         current_stock = snapshot["inventory_count"] if snapshot else 0
-        six_months_ago = datetime.today() - relativedelta(months=6)
-        total_sales_last_6 = (
-            v.sales.filter(date__gte=six_months_ago).aggregate(
-                total_sold=Sum("sold_quantity")
-            )["total_sold"]
-            or 0
-        )
-        sales_speed = total_sales_last_6 / 6
+        sales_speed = calculate_variant_sales_speed(v)
         order_items = v.order_items.filter(date_expected__gte=chart_today).values(
             "date_expected", "quantity"
         )
@@ -837,10 +831,14 @@ def product_detail(request, product_id):
         .order_by("-date")
         .values("inventory_count")[:1]
     )
-    variants = ProductVariant.objects.filter(product=product).annotate(
-        latest_inventory=Coalesce(
-            Subquery(latest_snapshot_sq), Value(0), output_field=IntegerField()
+    variants = (
+        ProductVariant.objects.filter(product=product)
+        .annotate(
+            latest_inventory=Coalesce(
+                Subquery(latest_snapshot_sq), Value(0), output_field=IntegerField()
+            )
         )
+        .prefetch_related("sales", "snapshots", "order_items")
     )
 
     # Compute all data via helpers
@@ -914,7 +912,6 @@ def product_detail(request, product_id):
         running = sum(initial.values())
         forecast_data.append({"x": cursor.isoformat(), "y": running})
 
-    prod_score = calculate_dynamic_product_score(variants, _simplify_type)
     health = compute_product_health(product, variants, _simplify_type)
 
     # — Fetch and group all OrderItems for this product —
@@ -974,7 +971,6 @@ def product_detail(request, product_id):
         "actual_data": json.dumps(actual_data),
         "forecast_data": json.dumps(forecast_data),
         "threshold_value": json.dumps(threshold_value),
-        "prod_score": prod_score,
         "health": health,
         "prev_orders": prev_orders,
         "lifetime_sold_qty": lifetime_sold_qty,

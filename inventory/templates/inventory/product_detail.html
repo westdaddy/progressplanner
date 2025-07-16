@@ -162,7 +162,7 @@
         <th>Current Stock</th>
         <th>Avg Speed</th>
         <th>Min Threshold</th>
-        <th>Restock (6m)</th>
+        <th>Restock Amount</th>
       </tr>
     </thead>
     <tbody>
@@ -176,7 +176,7 @@
       {% for row in safe_stock_data %}
       <tr>
         <td>{{ row.variant_code }}</td>
-        <td>{{ row.current_stock }}</td>
+        <td>{{ row.current_stock }} <span class="stock-dot {{ row.stock_status }}"></span></td>
         <td>
           {{ row.avg_speed }}
           {% if row.trend == 'up' %}
