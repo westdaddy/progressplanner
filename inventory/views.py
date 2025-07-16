@@ -869,7 +869,6 @@ def product_detail(request, product_id):
         variant_proj = compute_variant_projection(variants)
         cache.set(variant_proj_key, variant_proj, cache_ttl)
 
-
     sales_data = get_product_sales_data(product)
 
     health_key = f"product_health_{product_id}"
