@@ -884,6 +884,7 @@ def product_detail(request, product_id):
 
     safe_stock["product_safe_summary"]["total_last_order_qty"] = total_last_order_qty
 
+
     threshold_value = safe_stock["product_safe_summary"]["avg_speed"] * 2
 
     variant_proj_key = f"variant_proj_{product_id}"
