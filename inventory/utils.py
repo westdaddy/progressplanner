@@ -358,7 +358,7 @@ def compute_variant_projection(variants, speed_map=None):
         levels = [curr]
         for j in range(1, 13):
             lvl = levels[-1] - speed
-            dt = (current_month + relativedelta(months=j)).date()
+            dt = current_month + relativedelta(months=j)
             lvl += restocks.get(dt, 0)
             levels.append(max(lvl, 0))
 
