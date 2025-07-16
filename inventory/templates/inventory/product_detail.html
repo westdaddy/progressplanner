@@ -2,6 +2,19 @@
 {% block title %}{{ product.product_name }} Details{% endblock %}
 {% block content %}
 
+<style>
+
+table#restock {
+  font-size:12px;
+}
+
+table#restock tr#totals {
+  font-size: 18px;
+  background: #e1e1e1;
+}
+
+</style>
+
 <!-- SUMMARY CARDS -->
 <div class="section">
 
@@ -52,7 +65,7 @@
   <div class="row">
     <div class="col s12">
       <h3>Restock Amounts</h3>
-      <table class="highlight">
+      <table id="restock" class="highlight">
         <thead>
           <tr>
             <th>Variant</th>
@@ -72,7 +85,7 @@
             <td>{{ row.variant_code }}</td>
             <td>{{ row.last_order_qty }}</td>
             <td>
-              {{ row.avg_speed }}
+              {% if row.avg_speed > 0 %}{{ row.avg_speed }}{% endif %}
               {% if row.trend == 'up' %}
                 <span style="color: green;">&#9650;</span>
               {% elif row.trend == 'down' %}
@@ -85,12 +98,12 @@
 
             <td>{{ row.six_month_stock }}</td>
             <td>{{ row.restock_qty }}</td>
-            <td>{{ row.on_order_qty }}</td>
+            <td>{% if row.on_order_qty > 0 %}{{ row.on_order_qty }}{% else %}-{% endif %}</td>
           </tr>
           {% empty %}
           <tr><td colspan="7">No data available.</td></tr>
           {% endfor %}
-          <tr class="product-summary">
+          <tr id="totals">
             <td><strong>TOTALS</strong></td>
             <td>{{ product_safe_summary.total_last_order_qty }}</td>
 

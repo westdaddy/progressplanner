@@ -308,7 +308,7 @@ def compute_safe_stock(variants, speed_map=None):
     # Product-level summary (exclude zero-speed variants)
     filtered = [r for r in safe_stock_data if r["avg_speed"] > 0]
     product_safe_summary = {
-        "total_current_stock": sum(r["current_stock"] for r in filtered),
+        "total_current_stock": sum(r["current_stock"] for r in safe_stock_data),
         "avg_speed": round(sum(r["avg_speed"] for r in filtered), 1) if filtered else 0,
         "total_restock_needed": sum(r["restock_qty"] for r in filtered),
         "total_six_month_stock": sum(r["six_month_stock"] for r in filtered),
