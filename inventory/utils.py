@@ -247,7 +247,9 @@ def get_variant_speed_map(variants, *, weeks=26, today=None):
 def compute_safe_stock(variants, speed_map=None):
     """
     Compute safe stock data and product-level summary for a list of variants.
-    Returns (safe_stock_data, product_safe_summary).
+    Each variant entry includes current stock, sales speed, restock quantity,
+    ideal six-month stock level, and units currently on order (undelivered).
+    Returns a dict with keys ``safe_stock_data`` and ``product_safe_summary``.
     """
     safe_stock_data = []
     today = datetime.today().date()
@@ -261,6 +263,11 @@ def compute_safe_stock(variants, speed_map=None):
         ideal_level = avg_speed * 6
         restock_qty = max(math.ceil(ideal_level - current), 0)
         six_month_stock = math.ceil(ideal_level)
+        on_order_qty = (
+            v.order_items.filter(date_arrived__isnull=True)
+            .aggregate(total=Coalesce(Sum("quantity"), 0))["total"]
+        )
+
         months_left = (current / avg_speed) if avg_speed > 0 else None
 
         if current == 0:
@@ -287,6 +294,8 @@ def compute_safe_stock(variants, speed_map=None):
                 "min_threshold": math.ceil(min_threshold),
                 "restock_qty": restock_qty,
                 "six_month_stock": six_month_stock,
+                "on_order_qty": on_order_qty,
+
                 "months_left": months_left,
                 "stock_status": status,
                 "trend": trend,
@@ -303,6 +312,8 @@ def compute_safe_stock(variants, speed_map=None):
         "avg_speed": round(sum(r["avg_speed"] for r in filtered), 1) if filtered else 0,
         "total_restock_needed": sum(r["restock_qty"] for r in filtered),
         "total_six_month_stock": sum(r["six_month_stock"] for r in filtered),
+        "total_on_order_qty": sum(r["on_order_qty"] for r in filtered),
+
     }
 
     return {

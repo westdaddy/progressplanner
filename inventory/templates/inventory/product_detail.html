@@ -58,8 +58,10 @@
             <th>Variant</th>
             <th>Sales / month</th>
             <th>Current Stock</th>
-            <th>6 Months Stock</th>
-            <th>Min. Restock Required</th>
+            <th>6months stock</th>
+            <th>Restock amount</th>
+            <th>On Order</th>
+
           </tr>
         </thead>
         <tbody>
@@ -81,9 +83,10 @@
 
             <td>{{ row.six_month_stock }}</td>
             <td>{{ row.restock_qty }}</td>
+            <td>{{ row.on_order_qty }}</td>
           </tr>
           {% empty %}
-          <tr><td colspan="5">No data available.</td></tr>
+          <tr><td colspan="6">No data available.</td></tr>
           {% endfor %}
           <tr class="product-summary">
             <td><strong>TOTALS</strong></td>
@@ -91,6 +94,7 @@
             <td>{{ product_safe_summary.avg_speed }} / month</td>
             <td>{{ product_safe_summary.total_six_month_stock }}</td>
             <td>{{ product_safe_summary.total_restock_needed }}</td>
+            <td>{{ product_safe_summary.total_on_order_qty }}</td>
           </tr>
         </tbody>
       </table>
