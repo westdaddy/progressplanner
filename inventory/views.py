@@ -845,12 +845,21 @@ def product_detail(request, product_id):
         queryset=OrderItem.objects.filter(date_arrived__isnull=True),
     )
 
+    # Subquery to fetch quantity from the most recent order item for each variant
+    last_qty_sq = (
+        OrderItem.objects.filter(product_variant=OuterRef("pk"))
+        .annotate(qty=Coalesce("actual_quantity", "quantity"))
+        .order_by("-order__order_date")
+        .values("qty")[:1]
+    )
+
     variants = (
         ProductVariant.objects.filter(product=product)
         .annotate(
             latest_inventory=Coalesce(
                 Subquery(latest_snapshot_sq), Value(0), output_field=IntegerField()
-            )
+            ),
+            last_order_qty=Subquery(last_qty_sq, output_field=IntegerField()),
         )
         .prefetch_related("sales", "snapshots", order_items_prefetch)
     )
@@ -863,6 +872,17 @@ def product_detail(request, product_id):
     if safe_stock is None:
         safe_stock = compute_safe_stock(variants)
         cache.set(safe_stock_key, safe_stock, cache_ttl)
+
+    # Map last order quantity to each variant's safe stock row
+    variant_map = {v.variant_code: v for v in variants}
+    total_last_order_qty = 0
+    for row in safe_stock["safe_stock_data"]:
+        v = variant_map.get(row["variant_code"])
+        qty = getattr(v, "last_order_qty", 0) if v else 0
+        row["last_order_qty"] = qty
+        total_last_order_qty += qty
+
+    safe_stock["product_safe_summary"]["total_last_order_qty"] = total_last_order_qty
 
     threshold_value = safe_stock["product_safe_summary"]["avg_speed"] * 2
 

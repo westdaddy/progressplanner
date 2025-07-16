@@ -56,6 +56,7 @@
         <thead>
           <tr>
             <th>Variant</th>
+            <th>Last Order</th>
             <th>Sales / month</th>
             <th>Current Stock</th>
             <th>6 Months Stock</th>
@@ -69,6 +70,7 @@
           {% for row in safe_stock_data %}
           <tr>
             <td>{{ row.variant_code }}</td>
+            <td>{{ row.last_order_qty }}</td>
             <td>
               {{ row.avg_speed }}
               {% if row.trend == 'up' %}
@@ -86,12 +88,13 @@
             <td>{{ row.on_order_qty }}</td>
           </tr>
           {% empty %}
-          <tr><td colspan="6">No data available.</td></tr>
+          <tr><td colspan="7">No data available.</td></tr>
           {% endfor %}
           <tr class="product-summary">
             <td><strong>TOTALS</strong></td>
-            <td>{{ product_safe_summary.total_current_stock }} items</td>
+            <td>{{ product_safe_summary.total_last_order_qty }}</td>
             <td>{{ product_safe_summary.avg_speed }} / month</td>
+            <td>{{ product_safe_summary.total_current_stock }} items</td>
             <td>{{ product_safe_summary.total_six_month_stock }}</td>
             <td>{{ product_safe_summary.total_restock_needed }}</td>
             <td>{{ product_safe_summary.total_on_order_qty }}</td>
