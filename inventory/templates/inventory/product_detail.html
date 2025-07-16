@@ -79,7 +79,7 @@
             </td>
             <td>{{ row.current_stock }} <span class="stock-dot {{ row.stock_status }}"></span></td>
 
-            <td></td>
+            <td>{{ row.six_month_stock }}</td>
             <td>{{ row.restock_qty }}</td>
           </tr>
           {% empty %}
@@ -89,7 +89,7 @@
             <td><strong>TOTALS</strong></td>
             <td>{{ product_safe_summary.total_current_stock }} items</td>
             <td>{{ product_safe_summary.avg_speed }} / month</td>
-            <td></td>
+            <td>{{ product_safe_summary.total_six_month_stock }}</td>
             <td>{{ product_safe_summary.total_restock_needed }}</td>
           </tr>
         </tbody>

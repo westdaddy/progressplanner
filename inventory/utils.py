@@ -252,6 +252,7 @@ def compute_safe_stock(variants):
         min_threshold = avg_speed * 2
         ideal_level = avg_speed * 6
         restock_qty = max(math.ceil(ideal_level - current), 0)
+        six_month_stock = math.ceil(ideal_level)
         months_left = (current / avg_speed) if avg_speed > 0 else None
 
         if current == 0:
@@ -277,6 +278,7 @@ def compute_safe_stock(variants):
                 "avg_speed": round(avg_speed, 1),
                 "min_threshold": math.ceil(min_threshold),
                 "restock_qty": restock_qty,
+                "six_month_stock": six_month_stock,
                 "months_left": months_left,
                 "stock_status": status,
                 "trend": trend,
@@ -292,6 +294,7 @@ def compute_safe_stock(variants):
         "total_current_stock": sum(r["current_stock"] for r in filtered),
         "avg_speed": round(sum(r["avg_speed"] for r in filtered), 1) if filtered else 0,
         "total_restock_needed": sum(r["restock_qty"] for r in filtered),
+        "total_six_month_stock": sum(r["six_month_stock"] for r in filtered),
     }
 
     return {
