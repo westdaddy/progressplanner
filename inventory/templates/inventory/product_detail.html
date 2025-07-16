@@ -47,18 +47,19 @@
     </div>
   </div>
 
+
+  <!-- Safe Stock & Sales Speed -->
   <div class="row">
     <div class="col s12">
-      <h3>Safe Stock & Sales Speed</h3>
+      <h3>Restock Amounts</h3>
       <table class="highlight">
         <thead>
           <tr>
             <th>Variant</th>
             <th>Sales / month</th>
-            <th>6months stock</th>
             <th>Current Stock</th>
+            <th>6months stock</th>
             <th>Restock amount</th>
-
           </tr>
         </thead>
         <tbody>
@@ -76,22 +77,20 @@
                 &#8212;
               {% endif %}
             </td>
-            <td>{{ row.restock_qty }}</td>
-            <td>{{ row.current_stock }}</td>
+            <td>{{ row.current_stock }} <span class="stock-dot {{ row.stock_status }}"></span></td>
+
             <td></td>
-
+            <td>{{ row.restock_qty }}</td>
           </tr>
-
           {% empty %}
           <tr><td colspan="5">No data available.</td></tr>
           {% endfor %}
           <tr class="product-summary">
             <td><strong>TOTALS</strong></td>
-            <td>{{ product_safe_summary.avg_speed }} / month</td>
-            <td>{{ product_safe_summary.total_restock_needed }}</td>
             <td>{{ product_safe_summary.total_current_stock }} items</td>
+            <td>{{ product_safe_summary.avg_speed }} / month</td>
             <td></td>
-
+            <td>{{ product_safe_summary.total_restock_needed }}</td>
           </tr>
         </tbody>
       </table>
@@ -151,101 +150,9 @@
     </div>
   </div>
 
-
-
-<h3>Order History & Profitability</h3>
-<table class="highlight">
-  <thead>
-    <tr>
-      <th>Date Ordered</th>
-      <th>Date Delivered</th>
-      <th>Qty Ord/Del</th>
-      <th>Cost Value</th>
-      <th>No. Sold</th>
-      <th>In Stock</th>
-      <th>Sold Value</th>
-      <th>Profit</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for o in prev_orders %}
-      <tr>
-        <td>{{ o.date_ordered|date:"Y-m-d" }}</td>
-        <td>
-          {% if o.date_delivered %}
-            {{ o.date_delivered|date:"Y-m-d" }}
-          {% else %}&ndash;{% endif %}
-        </td>
-        <td>{{ o.qty_ordered }}/{{ o.qty_delivered }}</td>
-        <td>¥{{ o.cost_value|floatformat:"2" }}</td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-      </tr>
-    {% empty %}
-      <tr><td colspan="8">No previous orders.</td></tr>
-    {% endfor %}
-  </tbody>
-  <tfoot>
-    <tr class="totals-row green-text">
-      <td colspan="3"><strong>Lifetime Totals</strong></td>
-      <td>¥{{ total_order_cost|floatformat:"2" }}</td>
-      <td>{{ lifetime_sold_qty }}</td>
-      <td>{{ current_inventory }}</td>
-      <td>¥{{ lifetime_sold_val|floatformat:"2" }}</td>
-      <td>¥{{ lifetime_profit|floatformat:"2" }}</td>
-    </tr>
-  </tfoot>
-</table>
-
-
-<!-- Safe Stock & Sales Speed -->
-<div class="section">
-  <h3>Safe Stock & Sales Speed</h3>
-  <table class="highlight">
-    <thead>
-      <tr>
-        <th>Variant</th>
-        <th>Current Stock</th>
-        <th>Avg Speed</th>
-        <th>Min Threshold</th>
-        <th>Restock Amount</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr class="product-summary">
-        <td><strong>Product Total</strong></td>
-        <td>{{ product_safe_summary.total_current_stock }} items</td>
-        <td>{{ product_safe_summary.avg_speed }} / month</td>
-        <td></td>
-        <td>{{ product_safe_summary.total_restock_needed }}</td>
-      </tr>
-      {% for row in safe_stock_data %}
-      <tr>
-        <td>{{ row.variant_code }}</td>
-        <td>{{ row.current_stock }} <span class="stock-dot {{ row.stock_status }}"></span></td>
-        <td>
-          {{ row.avg_speed }}
-          {% if row.trend == 'up' %}
-            <span style="color: green;">&#9650;</span>
-          {% elif row.trend == 'down' %}
-            <span style="color: red;">&#9660;</span>
-          {% else %}
-            &#8212;
-          {% endif %}
-        </td>
-        <td>{{ row.min_threshold }}</td>
-        <td>{{ row.restock_qty }}</td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="5">No data available.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
-  
 </div>
+
+
 
 <!-- Variant-level Stock Projection Chart -->
 <div class="section">
