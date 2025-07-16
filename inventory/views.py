@@ -596,7 +596,9 @@ def product_list(request):
     style_filter = request.GET.get("style_filter", None)
     age_filter = request.GET.get("age_filter", None)
     group_filters = [gid.strip() for gid in request.GET.getlist("group_filter") if gid]
-    series_filters = [sid.strip() for sid in request.GET.getlist("series_filter") if sid]
+    series_filters = [
+        sid.strip() for sid in request.GET.getlist("series_filter") if sid
+    ]
     zero_inventory = request.GET.get("zero_inventory", "false").lower() == "true"
 
     # ─── Date ranges ────────────────────────────────────────────────────────────
@@ -737,7 +739,6 @@ def product_list(request):
     # ─── Prepare context & render ───────────────────────────────────────────────
     view_mode = request.GET.get("view_mode", "card").strip()
 
-
     params = []
     if show_retired:
         params.append(("show_retired", "true"))
@@ -838,6 +839,7 @@ def product_detail(request, product_id):
         .values("inventory_count")[:1]
     )
 
+    # Normalize today and current month for queries
     today = datetime.today()
     current_month = today.replace(day=1)
     order_items_prefetch = Prefetch(
@@ -846,10 +848,16 @@ def product_detail(request, product_id):
     )
 
     # Subquery to fetch quantity from the most recent order item for each variant
+    # Most recent delivered order item quantity per variant
     last_qty_sq = (
-        OrderItem.objects.filter(product_variant=OuterRef("pk"))
+        OrderItem.objects.filter(
+            product_variant=OuterRef("pk"),
+            date_arrived__isnull=False,
+            date_arrived__lte=today.date(),
+        )
         .annotate(qty=Coalesce("actual_quantity", "quantity"))
-        .order_by("-order__order_date")
+        .order_by("-date_arrived")
+
         .values("qty")[:1]
     )
 
@@ -884,7 +892,6 @@ def product_detail(request, product_id):
 
     safe_stock["product_safe_summary"]["total_last_order_qty"] = total_last_order_qty
 
-
     threshold_value = safe_stock["product_safe_summary"]["avg_speed"] * 2
 
     variant_proj_key = f"variant_proj_{product_id}"
@@ -914,9 +921,7 @@ def product_detail(request, product_id):
     )
 
     # Format for Chart.js time-series
-    actual_data = [
-        {"x": row["date"].isoformat(), "y": row["total"]} for row in snaps
-    ]
+    actual_data = [{"x": row["date"].isoformat(), "y": row["total"]} for row in snaps]
 
     # Suppose `safe_stock['safe_stock_data']` is a list of dicts from compute_safe_stock
     # each with 'variant_code', 'current_stock', and 'avg_speed'.
@@ -994,20 +999,21 @@ def product_detail(request, product_id):
     lifetime_sold_val = sales_data["total_value"]
 
     # — Lifetime cost of every order you've placed —
-    total_order_cost = (
-        OrderItem.objects.filter(product_variant__product=product)
-        .aggregate(
-            total=Coalesce(
-                Sum(
-                    ExpressionWrapper(
-                        F("quantity") * F("item_cost_price"),
-                        output_field=DecimalField(),
-                    )
-                ),
-                Decimal("0.00"),
-            )
-        )["total"]
-    )
+    total_order_cost = OrderItem.objects.filter(
+        product_variant__product=product
+    ).aggregate(
+        total=Coalesce(
+            Sum(
+                ExpressionWrapper(
+                    F("quantity") * F("item_cost_price"),
+                    output_field=DecimalField(),
+                )
+            ),
+            Decimal("0.00"),
+        )
+    )[
+        "total"
+    ]
     lifetime_profit = lifetime_sold_val - total_order_cost
 
     # — Build per-order rows (only date/qty/cost here) —
@@ -1063,8 +1069,7 @@ def order_list(request):
             total_value=Coalesce(
                 Sum(
                     ExpressionWrapper(
-                        F("order_items__item_cost_price")
-                        * F("order_items__quantity"),
+                        F("order_items__item_cost_price") * F("order_items__quantity"),
                         output_field=DecimalField(),
                     )
                 ),
@@ -1181,14 +1186,10 @@ def inventory_snapshots(request):
 
     # ——— 1) Build actual_data from snapshots ————————————————————————
     snaps = (
-        snap_qs.values("date")
-        .annotate(total=Sum("inventory_count"))
-        .order_by("date")
+        snap_qs.values("date").annotate(total=Sum("inventory_count")).order_by("date")
     )
 
-    actual_data = [
-        {"x": row["date"].isoformat(), "y": row["total"]} for row in snaps
-    ]
+    actual_data = [{"x": row["date"].isoformat(), "y": row["total"]} for row in snaps]
 
     # If no snapshots exist, ensure we still have arrays
     if not actual_data:

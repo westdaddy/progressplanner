@@ -105,8 +105,7 @@ table#restock tr#totals {
           {% endfor %}
           <tr id="totals">
             <td><strong>TOTALS</strong></td>
-            <td>{{ product_safe_summary.total_last_order_qty }}</td>
-
+            <td>{{ product_safe_summary.total_last_order_qty }} </td>
             <td>{{ product_safe_summary.avg_speed }} / month</td>
             <td>{{ product_safe_summary.total_current_stock }} items</td>
             <td>{{ product_safe_summary.total_six_month_stock }}</td>
