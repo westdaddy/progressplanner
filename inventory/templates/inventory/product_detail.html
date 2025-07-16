@@ -54,24 +54,18 @@
         <thead>
           <tr>
             <th>Variant</th>
+            <th>Sales / month</th>
+            <th>6months stock</th>
             <th>Current Stock</th>
-            <th>Avg Speed</th>
             <th>Min Threshold</th>
-            <th>Restock (6m)</th>
+
           </tr>
         </thead>
         <tbody>
-          <tr class="product-summary">
-            <td><strong>Product Total</strong></td>
-            <td>{{ product_safe_summary.total_current_stock }} items</td>
-            <td>{{ product_safe_summary.avg_speed }} / month</td>
-            <td></td>
-            <td>{{ product_safe_summary.total_restock_needed }}</td>
-          </tr>
+
           {% for row in safe_stock_data %}
           <tr>
             <td>{{ row.variant_code }}</td>
-            <td>{{ row.current_stock }}</td>
             <td>
               {{ row.avg_speed }}
               {% if row.trend == 'up' %}
@@ -82,12 +76,23 @@
                 &#8212;
               {% endif %}
             </td>
-            <td>{{ row.min_threshold }}</td>
             <td>{{ row.restock_qty }}</td>
+            <td>{{ row.current_stock }}</td>
+            <td>{{ row.min_threshold }}</td>
+
           </tr>
+
           {% empty %}
           <tr><td colspan="5">No data available.</td></tr>
           {% endfor %}
+          <tr class="product-summary">
+            <td><strong>TOTALS</strong></td>
+            <td>{{ product_safe_summary.avg_speed }} / month</td>
+            <td>{{ product_safe_summary.total_restock_needed }}</td>
+            <td>{{ product_safe_summary.total_current_stock }} items</td>
+            <td></td>
+
+          </tr>
         </tbody>
       </table>
     </div>
@@ -146,7 +151,7 @@
     </div>
   </div>
 
-  
+
 </div>
 
 <!-- Variant-level Stock Projection Chart -->
