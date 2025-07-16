@@ -32,6 +32,9 @@ from django.db.models import (
     FloatField,
     ExpressionWrapper,
     Avg,
+    Case,
+    When,
+    DateField,
 )
 from django.db.models.functions import Coalesce
 from django.http import HttpResponse
@@ -913,11 +916,20 @@ def product_detail(request, product_id):
     # Preload all future-order quantities per variant per month using a
     # single grouped query instead of iterating over OrderItems
     future_orders = defaultdict(lambda: defaultdict(int))
+    today_date = today
     future_qs = (
         OrderItem.objects.filter(
-            product_variant__product=product, date_expected__gt=last_snapshot_date
+            product_variant__product=product,
+            date_arrived__isnull=True,
         )
-        .annotate(month=TruncMonth("date_expected"))
+        .annotate(
+            effective_date=Case(
+                When(date_expected__gte=today_date, then=F("date_expected")),
+                default=Value(today_date + relativedelta(months=1)),
+                output_field=DateField(),
+            )
+        )
+        .annotate(month=TruncMonth("effective_date"))
         .values("product_variant__variant_code", "month")
         .annotate(total_qty=Sum("quantity"))
     )
