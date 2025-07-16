@@ -888,7 +888,7 @@ def product_detail(request, product_id):
         v = variant_map.get(row["variant_code"])
         qty = getattr(v, "last_order_qty", 0) if v else 0
         row["last_order_qty"] = qty
-        if total_last_order_qty and qty:
+        if qty:
             total_last_order_qty += qty
 
     safe_stock["product_safe_summary"]["total_last_order_qty"] = total_last_order_qty
