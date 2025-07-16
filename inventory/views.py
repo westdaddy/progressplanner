@@ -928,12 +928,9 @@ def product_detail(request, product_id):
     current_inventory = sum(v.latest_inventory for v in variants)
 
     # — Lifetime sales totals for this product —
-    lifetime = Sale.objects.filter(variant__product=product).aggregate(
-        sold_qty=Coalesce(Sum("sold_quantity"), 0),
-        sold_val=Coalesce(Sum("sold_value"), Decimal("0.00")),
-    )
-    lifetime_sold_qty = lifetime["sold_qty"]
-    lifetime_sold_val = lifetime["sold_val"]
+    # `sales_data` already includes these values via `get_product_sales_data`
+    lifetime_sold_qty = sales_data["total_qty"]
+    lifetime_sold_val = sales_data["total_value"]
 
     # — Lifetime cost of every order you’ve placed —
     total_order_cost = sum(i.quantity * i.item_cost_price for i in all_items)
