@@ -176,7 +176,7 @@ class ProductVariant(models.Model):
 class Sale(models.Model):
     sale_id = models.AutoField(primary_key=True)
     order_number = models.CharField(max_length=50, db_index=True)  # the 内部订单号
-    date = models.DateField()
+    date = models.DateField(db_index=True)
     variant = models.ForeignKey(
         ProductVariant, on_delete=models.CASCADE, related_name="sales"
     )
@@ -197,7 +197,7 @@ class InventorySnapshot(models.Model):
     product_variant = models.ForeignKey(
         ProductVariant, on_delete=models.CASCADE, related_name="snapshots"
     )
-    date = models.DateField()
+    date = models.DateField(db_index=True)
     inventory_count = models.IntegerField()
 
     def __str__(self):
@@ -233,9 +233,9 @@ class OrderItem(models.Model):
     item_cost_price = models.DecimalField(
         max_digits=10, decimal_places=2, verbose_name="Cost Price (CNY)"
     )
-    date_expected = models.DateField(verbose_name="Expected Arrival Date")
+    date_expected = models.DateField(verbose_name="Expected Arrival Date", db_index=True)
     date_arrived = models.DateField(
-        blank=True, null=True, verbose_name="Actual Arrival Date"
+        blank=True, null=True, verbose_name="Actual Arrival Date", db_index=True
     )
     actual_quantity = models.PositiveIntegerField(
         blank=True, null=True, verbose_name="Actual Quantity Arrived"

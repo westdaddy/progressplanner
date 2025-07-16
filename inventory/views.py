@@ -66,6 +66,7 @@ from .utils import (
     get_low_stock_products,
     get_restock_alerts,
     calculate_variant_sales_speed,
+    get_variant_speed_map,
 )
 
 
@@ -833,6 +834,14 @@ def product_detail(request, product_id):
         .order_by("-date")
         .values("inventory_count")[:1]
     )
+
+    today = datetime.today()
+    current_month = today.replace(day=1)
+    order_items_prefetch = Prefetch(
+        "order_items",
+        queryset=OrderItem.objects.filter(date_expected__gte=current_month),
+    )
+
     variants = (
         ProductVariant.objects.filter(product=product)
         .annotate(
@@ -840,7 +849,7 @@ def product_detail(request, product_id):
                 Subquery(latest_snapshot_sq), Value(0), output_field=IntegerField()
             )
         )
-        .prefetch_related("sales", "snapshots", "order_items")
+        .prefetch_related("sales", "snapshots", order_items_prefetch)
     )
 
     cache_ttl = 60 * 60  # 1 hour
@@ -859,6 +868,7 @@ def product_detail(request, product_id):
     if variant_proj is None:
         variant_proj = compute_variant_projection(variants)
         cache.set(variant_proj_key, variant_proj, cache_ttl)
+
 
     sales_data = get_product_sales_data(product)
 
@@ -947,15 +957,25 @@ def product_detail(request, product_id):
     current_inventory = sum(v.latest_inventory for v in variants)
 
     # — Lifetime sales totals for this product —
-    lifetime = Sale.objects.filter(variant__product=product).aggregate(
-        sold_qty=Coalesce(Sum("sold_quantity"), 0),
-        sold_val=Coalesce(Sum("sold_value"), Decimal("0.00")),
-    )
-    lifetime_sold_qty = lifetime["sold_qty"]
-    lifetime_sold_val = lifetime["sold_val"]
+    # `sales_data` already includes these values via `get_product_sales_data`
+    lifetime_sold_qty = sales_data["total_qty"]
+    lifetime_sold_val = sales_data["total_value"]
 
-    # — Lifetime cost of every order you’ve placed —
-    total_order_cost = sum(i.quantity * i.item_cost_price for i in all_items)
+    # — Lifetime cost of every order you've placed —
+    total_order_cost = (
+        OrderItem.objects.filter(product_variant__product=product)
+        .aggregate(
+            total=Coalesce(
+                Sum(
+                    ExpressionWrapper(
+                        F("quantity") * F("item_cost_price"),
+                        output_field=DecimalField(),
+                    )
+                ),
+                Decimal("0.00"),
+            )
+        )["total"]
+    )
     lifetime_profit = lifetime_sold_val - total_order_cost
 
     # — Build per-order rows (only date/qty/cost here) —
