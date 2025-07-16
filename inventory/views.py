@@ -935,8 +935,21 @@ def product_detail(request, product_id):
     lifetime_sold_qty = lifetime["sold_qty"]
     lifetime_sold_val = lifetime["sold_val"]
 
-    # — Lifetime cost of every order you’ve placed —
-    total_order_cost = sum(i.quantity * i.item_cost_price for i in all_items)
+    # — Lifetime cost of every order you've placed —
+    total_order_cost = (
+        OrderItem.objects.filter(product_variant__product=product)
+        .aggregate(
+            total=Coalesce(
+                Sum(
+                    ExpressionWrapper(
+                        F("quantity") * F("item_cost_price"),
+                        output_field=DecimalField(),
+                    )
+                ),
+                Decimal("0.00"),
+            )
+        )["total"]
+    )
     lifetime_profit = lifetime_sold_val - total_order_cost
 
     # — Build per-order rows (only date/qty/cost here) —
