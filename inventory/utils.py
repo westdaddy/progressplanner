@@ -267,7 +267,6 @@ def compute_safe_stock(variants, speed_map=None):
             v.order_items.filter(date_arrived__isnull=True)
             .aggregate(total=Coalesce(Sum("quantity"), 0))["total"]
         )
-        print(on_order_qty)
 
         months_left = (current / avg_speed) if avg_speed > 0 else None
 

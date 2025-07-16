@@ -184,7 +184,6 @@
 
 
 <script>
-
   // Variant-level Stock Projection Chart
   const stockChartData = {{ stock_chart_data|safe }};
   const stockCtx = document.getElementById('stockChart').getContext('2d');
@@ -198,42 +197,6 @@
   });
 </script>
 
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  // 1) Grab our live data
-  const score    = Number('{{ health.overall_score }}') || 0;
-  const maxScore = 100;
-  const remainder = Math.max(0, maxScore - score);
-
-  // 2) Pick an accent color for the “filled” slice
-  let accent = '#43a047';          // green
-  if      (score <  maxScore * 0.4) accent = '#e53935'; // red
-  else if (score <  maxScore * 0.6) accent = '#fb8c00'; // orange
-
-  // 3) Render a simple donut
-  const ctx = document.getElementById('healthDonut').getContext('2d');
-  new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: ['Score','Remaining'],
-      datasets: [{
-        data: [score, remainder],
-        backgroundColor: [accent, '#eee'],
-        borderWidth: 0
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,  // full circle for now
-      plugins: {
-        legend: { display: false },
-        tooltip: { enabled: false }
-      }
-    }
-  });
-});
-</script>
 
 
 
