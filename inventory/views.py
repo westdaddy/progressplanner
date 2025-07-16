@@ -857,6 +857,7 @@ def product_detail(request, product_id):
         )
         .annotate(qty=Coalesce("actual_quantity", "quantity"))
         .order_by("-date_arrived")
+
         .values("qty")[:1]
     )
 
