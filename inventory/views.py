@@ -831,6 +831,14 @@ def product_detail(request, product_id):
         .order_by("-date")
         .values("inventory_count")[:1]
     )
+
+    today = datetime.today()
+    current_month = today.replace(day=1)
+    order_items_prefetch = Prefetch(
+        "order_items",
+        queryset=OrderItem.objects.filter(date_expected__gte=current_month),
+    )
+
     variants = (
         ProductVariant.objects.filter(product=product)
         .annotate(
@@ -838,7 +846,7 @@ def product_detail(request, product_id):
                 Subquery(latest_snapshot_sq), Value(0), output_field=IntegerField()
             )
         )
-        .prefetch_related("sales", "snapshots", "order_items")
+        .prefetch_related("sales", "snapshots", order_items_prefetch)
     )
 
     # Compute all data via helpers
