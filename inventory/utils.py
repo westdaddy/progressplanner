@@ -328,8 +328,8 @@ def compute_variant_projection(variants, speed_map=None):
     Returns dict with key 'stock_chart_data' (a JSON string).
     """
     # 1) Define your date boundaries here
-    today = datetime.today()
-    current_month = today.replace(day=1)
+    today_dt = datetime.today().date()
+    current_month = today_dt.replace(day=1)
 
     # 2) Build your 12-month projection exactly as on inventory page
     next_12 = [current_month + relativedelta(months=i) for i in range(13)]
@@ -339,19 +339,27 @@ def compute_variant_projection(variants, speed_map=None):
     }
     for v in variants:
         curr = v.latest_inventory
-        speed = speed_map.get(v.id) if speed_map is not None else calculate_variant_sales_speed(v, today=current_month.date())
+        speed = speed_map.get(v.id) if speed_map is not None else calculate_variant_sales_speed(
+            v, today=current_month
+        )
 
         # collect future restocks from prefetched order_items
         restocks = {}
         for oi in v.order_items.all():
-            mon = oi.date_expected.replace(day=1)
+            if oi.date_arrived is not None:
+                continue
+            if oi.date_expected and oi.date_expected >= today_dt:
+                effective_date = oi.date_expected
+            else:
+                effective_date = today_dt + relativedelta(months=1)
+            mon = effective_date.replace(day=1)
             restocks[mon] = restocks.get(mon, 0) + oi.quantity
 
         # simulate month-by-month
         levels = [curr]
         for j in range(1, 13):
             lvl = levels[-1] - speed
-            dt = (current_month + relativedelta(months=j)).date()
+            dt = current_month + relativedelta(months=j)
             lvl += restocks.get(dt, 0)
             levels.append(max(lvl, 0))
 
