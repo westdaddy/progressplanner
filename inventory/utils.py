@@ -235,8 +235,16 @@ def calculate_variant_sales_speed(
     avg_weekly = total / periods
     return avg_weekly * WEEKS_PER_MONTH
 
+def get_variant_speed_map(variants, *, weeks=26, today=None):
+    """Return a {variant_id: speed} map for the given variants."""
+    today = today or date.today()
+    return {
+        v.id: calculate_variant_sales_speed(v, weeks=weeks, today=today)
+        for v in variants
+    }
 
-def compute_safe_stock(variants):
+
+def compute_safe_stock(variants, speed_map=None):
     """
     Compute safe stock data and product-level summary for a list of variants.
     Returns (safe_stock_data, product_safe_summary).
@@ -246,7 +254,7 @@ def compute_safe_stock(variants):
 
     for v in variants:
         current = v.latest_inventory
-        avg_speed = calculate_variant_sales_speed(v, today=today)
+        avg_speed = speed_map.get(v.id) if speed_map is not None else calculate_variant_sales_speed(v, today=today)
         recent_speed = calculate_variant_sales_speed(v, weeks=13, today=today)
 
         min_threshold = avg_speed * 2
@@ -303,7 +311,7 @@ def compute_safe_stock(variants):
     }
 
 
-def compute_variant_projection(variants):
+def compute_variant_projection(variants, speed_map=None):
     """
     Compute variant-level stock projection data for Chart.js.
     Returns dict with key 'stock_chart_data' (a JSON string).
@@ -320,11 +328,11 @@ def compute_variant_projection(variants):
     }
     for v in variants:
         curr = v.latest_inventory
-        speed = calculate_variant_sales_speed(v, today=current_month.date())
+        speed = speed_map.get(v.id) if speed_map is not None else calculate_variant_sales_speed(v, today=current_month.date())
 
-        # collect future restocks
+        # collect future restocks from prefetched order_items
         restocks = {}
-        for oi in v.order_items.filter(date_expected__gte=current_month):
+        for oi in v.order_items.all():
             mon = oi.date_expected.replace(day=1)
             restocks[mon] = restocks.get(mon, 0) + oi.quantity
 
@@ -826,7 +834,7 @@ def normalize(value, best, worst):
     return max(0, min(100, pct * 100))
 
 
-def compute_product_health(product, variants, simplify_type):
+def compute_product_health(product, variants, simplify_type, speed_map=None):
     """
     Returns a dict of sub-scores and the overall 0–100 health index.
     `variants` must be annotated with .latest_inventory
