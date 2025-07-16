@@ -319,9 +319,9 @@ def compute_variant_projection(variants):
         curr = v.latest_inventory
         speed = calculate_variant_sales_speed(v, today=current_month.date())
 
-        # collect future restocks
+        # collect future restocks from prefetched order_items
         restocks = {}
-        for oi in v.order_items.filter(date_expected__gte=current_month):
+        for oi in v.order_items.all():
             mon = oi.date_expected.replace(day=1)
             restocks[mon] = restocks.get(mon, 0) + oi.quantity
 
