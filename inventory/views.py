@@ -842,7 +842,7 @@ def product_detail(request, product_id):
     current_month = today.replace(day=1)
     order_items_prefetch = Prefetch(
         "order_items",
-        queryset=OrderItem.objects.filter(date_expected__gte=current_month),
+        queryset=OrderItem.objects.filter(date_arrived__isnull=True),
     )
 
     variants = (
