@@ -83,7 +83,7 @@ table#restock tr#totals {
           {% for row in safe_stock_data %}
           <tr>
             <td>{{ row.variant_code }}</td>
-            <td>{{ row.last_order_qty }}</td>
+            <td>{% if row.last_order_qty %}{{ row.last_order_qty }}{% else %}-{% endif %}</td>
             <td>
               {% if row.avg_speed > 0 %}{{ row.avg_speed }}{% endif %}
               {% if row.trend == 'up' %}
