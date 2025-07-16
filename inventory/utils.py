@@ -267,6 +267,7 @@ def compute_safe_stock(variants, speed_map=None):
             v.order_items.filter(date_arrived__isnull=True)
             .aggregate(total=Coalesce(Sum("quantity"), 0))["total"]
         )
+        print(on_order_qty)
 
         months_left = (current / avg_speed) if avg_speed > 0 else None
 
@@ -312,8 +313,7 @@ def compute_safe_stock(variants, speed_map=None):
         "avg_speed": round(sum(r["avg_speed"] for r in filtered), 1) if filtered else 0,
         "total_restock_needed": sum(r["restock_qty"] for r in filtered),
         "total_six_month_stock": sum(r["six_month_stock"] for r in filtered),
-        "total_on_order_qty": sum(r["on_order_qty"] for r in filtered),
-
+        "total_on_order_qty": sum(r["on_order_qty"] for r in safe_stock_data),
     }
 
     return {
