@@ -861,6 +861,16 @@ def product_detail(request, product_id):
         .values("qty")[:1]
     )
 
+    last_date_sq = (
+        OrderItem.objects.filter(
+            product_variant=OuterRef("pk"),
+            date_arrived__isnull=False,
+            date_arrived__lte=today.date(),
+        )
+        .order_by("-date_arrived")
+        .values("date_arrived")[:1]
+    )
+
     variants = (
         ProductVariant.objects.filter(product=product)
         .annotate(
@@ -868,6 +878,7 @@ def product_detail(request, product_id):
                 Subquery(latest_snapshot_sq), Value(0), output_field=IntegerField()
             ),
             last_order_qty=Subquery(last_qty_sq, output_field=IntegerField()),
+            last_order_date=Subquery(last_date_sq, output_field=DateField()),
         )
         .prefetch_related("sales", "snapshots", order_items_prefetch)
     )
@@ -888,6 +899,7 @@ def product_detail(request, product_id):
         v = variant_map.get(row["variant_code"])
         qty = getattr(v, "last_order_qty", 0) if v else 0
         row["last_order_qty"] = qty
+        row["last_order_date"] = getattr(v, "last_order_date", None) if v else None
         if qty:
             total_last_order_qty += qty
 
