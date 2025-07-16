@@ -9,6 +9,8 @@ import math
 from urllib.parse import urlencode
 import logging
 
+from django.core.cache import cache
+
 logger = logging.getLogger(__name__)
 
 
@@ -841,11 +843,30 @@ def product_detail(request, product_id):
         .prefetch_related("sales", "snapshots", "order_items")
     )
 
-    # Compute all data via helpers
-    safe_stock = compute_safe_stock(variants)
+    cache_ttl = 60 * 60  # 1 hour
+
+    # Compute all data via helpers with caching
+    safe_stock_key = f"safe_stock_{product_id}"
+    safe_stock = cache.get(safe_stock_key)
+    if safe_stock is None:
+        safe_stock = compute_safe_stock(variants)
+        cache.set(safe_stock_key, safe_stock, cache_ttl)
+
     threshold_value = safe_stock["product_safe_summary"]["avg_speed"] * 2
-    variant_proj = compute_variant_projection(variants)
+
+    variant_proj_key = f"variant_proj_{product_id}"
+    variant_proj = cache.get(variant_proj_key)
+    if variant_proj is None:
+        variant_proj = compute_variant_projection(variants)
+        cache.set(variant_proj_key, variant_proj, cache_ttl)
+
     sales_data = get_product_sales_data(product)
+
+    health_key = f"product_health_{product_id}"
+    health = cache.get(health_key)
+    if health is None:
+        health = compute_product_health(product, variants, _simplify_type)
+        cache.set(health_key, health, cache_ttl)
 
     # ——— ACTUAL DATA FOR INVENTORY CHART ————————
     today = datetime.today().date()
@@ -911,8 +932,6 @@ def product_detail(request, product_id):
         # record total
         running = sum(initial.values())
         forecast_data.append({"x": cursor.isoformat(), "y": running})
-
-    health = compute_product_health(product, variants, _simplify_type)
 
     # — Fetch and group all OrderItems for this product —
     all_items = (
