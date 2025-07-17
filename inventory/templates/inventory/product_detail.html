@@ -73,7 +73,7 @@ table#restock tr#totals {
             <th>Sales / month</th>
             <th>6 Months Stock</th>
             <th>Current Stock</th>
-
+            <th>Stock at time restock lands</th>
             <th>Restock Required</th>
             <th>On Order</th>
 
@@ -105,13 +105,12 @@ table#restock tr#totals {
               {{ row.six_month_stock_pct }}%
             </td>
             <td>{{ row.current_stock }} <span class="stock-dot {{ row.stock_status }}"></span></td>
-
-
+            <td>{{ row.stock_at_restock }}</td>
             <td>{% if row.restock_qty %}{{ row.restock_qty }}{% else %}-{% endif %}</td>
             <td>{% if row.on_order_qty > 0 %}{{ row.on_order_qty }}{% else %}-{% endif %}</td>
           </tr>
           {% empty %}
-          <tr><td colspan="7">No data available.</td></tr>
+          <tr><td colspan="8">No data available.</td></tr>
           {% endfor %}
           <tr id="totals">
             <td><strong>TOTALS</strong></td>
@@ -119,6 +118,7 @@ table#restock tr#totals {
             <td>{{ product_safe_summary.avg_speed }} / month</td>
             <td>{{ product_safe_summary.total_six_month_stock }}</td>
             <td>{{ product_safe_summary.total_current_stock }}</td>
+            <td>{{ product_safe_summary.total_stock_at_restock }}</td>
             <td>{{ product_safe_summary.total_restock_needed }}</td>
             <td>{{ product_safe_summary.total_on_order_qty }}</td>
           </tr>

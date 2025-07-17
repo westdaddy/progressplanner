@@ -77,6 +77,10 @@ class Product(models.Model):
     discounted = models.BooleanField(
         default=False, help_text="Check if this product is currently discounted."
     )
+    restock_time = models.PositiveIntegerField(
+        default=0,
+        help_text="Number of months required to restock this product.",
+    )
     type = models.CharField(
         max_length=20,
         choices=PRODUCT_TYPE_CHOICES,

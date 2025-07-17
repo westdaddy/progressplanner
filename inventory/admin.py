@@ -32,6 +32,7 @@ class ProductAdmin(admin.ModelAdmin):
         "product_id",
         "product_name",
         "retail_price",
+        "restock_time",
         "type",
         "style",
         "age",
