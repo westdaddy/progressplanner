@@ -23,6 +23,7 @@ from django.db.models import (
     FloatField,
     Case,
     When,
+    Min,
 )
 from django.db.models.functions import Coalesce
 
