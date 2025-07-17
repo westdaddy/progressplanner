@@ -17,6 +17,7 @@ from .utils import (
     get_low_stock_products,
     get_restock_alerts,
     calculate_variant_sales_speed,
+    get_category_speed_stats,
 )
 
 
@@ -291,3 +292,31 @@ class VariantSalesSpeedTests(TestCase):
 
         self.assertEqual(no_fallback, 0.0)
         self.assertGreater(with_fallback, 0.0)
+
+
+class CategorySpeedStatsTests(TestCase):
+    def test_category_and_size_average_speed(self):
+        today = date.today()
+        product1 = Product.objects.create(product_id="P30", product_name="Prod30", type="rg")
+        product2 = Product.objects.create(product_id="P31", product_name="Prod31", type="rg")
+
+        v1 = ProductVariant.objects.create(product=product1, variant_code="V30S", primary_color="#000000", size="S")
+        v2 = ProductVariant.objects.create(product=product2, variant_code="V31S", primary_color="#000000", size="S")
+
+        InventorySnapshot.objects.create(product_variant=v1, date=today - timedelta(weeks=4), inventory_count=10)
+        InventorySnapshot.objects.create(product_variant=v1, date=today, inventory_count=6)
+        InventorySnapshot.objects.create(product_variant=v2, date=today - timedelta(weeks=4), inventory_count=10)
+        InventorySnapshot.objects.create(product_variant=v2, date=today, inventory_count=8)
+
+        for i in range(4):
+            Sale.objects.create(order_number=f"O1{i}", date=today - timedelta(weeks=i), variant=v1, sold_quantity=1, sold_value=10)
+        for i in range(2):
+            Sale.objects.create(order_number=f"O2{i}", date=today - timedelta(weeks=i), variant=v2, sold_quantity=1, sold_value=10)
+
+        stats = get_category_speed_stats("rg", weeks=4, today=today)
+
+        self.assertIn("overall_avg", stats)
+        self.assertIn("size_avgs", stats)
+        self.assertIn("S", stats["size_avgs"])
+        self.assertGreater(stats["overall_avg"], 0)
+        self.assertGreater(stats["size_avgs"]["S"], 0)
