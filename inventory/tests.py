@@ -171,6 +171,55 @@ class LowStockProductsTests(TestCase):
         self.assertNotIn(self.product4, products)
         self.assertNotIn(self.product5, products)
 
+    def test_restock_alert_levels(self):
+        product = Product.objects.create(product_id="P6", product_name="Prod6")
+        product.groups.add(self.core_group)
+
+        variants = []
+        # Two variants completely out of stock
+        for code in ["V6A", "V6B"]:
+            v = ProductVariant.objects.create(
+                product=product, variant_code=code, primary_color="#000000"
+            )
+            InventorySnapshot.objects.create(
+                product_variant=v, date=date.today(), inventory_count=0
+            )
+            Sale.objects.create(
+                order_number=code, date=date.today(), variant=v, sold_quantity=1, sold_value=10
+            )
+            variants.append(v)
+
+        # One low-stock variant
+        v_low = ProductVariant.objects.create(
+            product=product, variant_code="V6C", primary_color="#000000"
+        )
+        InventorySnapshot.objects.create(
+            product_variant=v_low, date=date.today(), inventory_count=1
+        )
+        Sale.objects.create(
+            order_number="V6C", date=date.today(), variant=v_low, sold_quantity=1, sold_value=10
+        )
+        variants.append(v_low)
+
+        # Two healthy variants
+        for code in ["V6D", "V6E"]:
+            v = ProductVariant.objects.create(
+                product=product, variant_code=code, primary_color="#000000"
+            )
+            InventorySnapshot.objects.create(
+                product_variant=v, date=date.today(), inventory_count=20
+            )
+            Sale.objects.create(
+                order_number=code, date=date.today(), variant=v, sold_quantity=1, sold_value=10
+            )
+            variants.append(v)
+
+        alerts = get_restock_alerts()
+        alert_map = {a["product"]: a for a in alerts}
+
+        self.assertEqual(alert_map[self.product1]["alert_type"], "normal")
+        self.assertEqual(alert_map[product]["alert_type"], "urgent")
+
 
 class LastOrderQtyTests(TestCase):
     def test_last_order_ignores_undelivered(self):
