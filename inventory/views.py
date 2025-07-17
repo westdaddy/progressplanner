@@ -895,11 +895,11 @@ def product_detail(request, product_id):
     # Map last order quantity to each variant's safe stock row
     variant_map = {v.variant_code: v for v in variants}
     total_last_order_qty = 0
+
     for row in safe_stock["safe_stock_data"]:
         v = variant_map.get(row["variant_code"])
         qty = getattr(v, "last_order_qty", 0) if v else 0
         row["last_order_qty"] = qty
-        row["last_order_date"] = getattr(v, "last_order_date", None) if v else None
         if qty:
             total_last_order_qty += qty
 

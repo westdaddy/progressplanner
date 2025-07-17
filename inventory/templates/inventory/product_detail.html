@@ -71,9 +71,10 @@ table#restock tr#totals {
             <th>Variant</th>
             <th>Last Order</th>
             <th>Sales / month</th>
-            <th>Current Stock</th>
             <th>6 Months Stock</th>
-            <th>Min Restock Required</th>
+            <th>Current Stock</th>
+
+            <th>Restock Required</th>
             <th>On Order</th>
 
           </tr>
@@ -85,8 +86,8 @@ table#restock tr#totals {
             <td>{{ row.variant_code }}</td>
             <td>
               {% if row.last_order_qty %}{{ row.last_order_qty }}{% else %}-{% endif %}
-              {% if row.last_order_date %}<br/>
-              <span class="small">{{ row.last_order_date }}</span>{% endif %}
+              | 
+              %
             </td>
             <td>
               {% if row.avg_speed > 0 %}{{ row.avg_speed }}{% endif %}
@@ -98,10 +99,11 @@ table#restock tr#totals {
                 &#8212;
               {% endif %}
             </td>
+            <td>{% if row.six_month_stock %}{{ row.six_month_stock }}{% else %}-{% endif %}</td>
             <td>{{ row.current_stock }} <span class="stock-dot {{ row.stock_status }}"></span></td>
 
-            <td>{{ row.six_month_stock }}</td>
-            <td>{{ row.restock_qty }}</td>
+
+            <td>{% if row.restock_qty %}{{ row.restock_qty }}{% else %}-{% endif %}</td>
             <td>{% if row.on_order_qty > 0 %}{{ row.on_order_qty }}{% else %}-{% endif %}</td>
           </tr>
           {% empty %}
@@ -111,8 +113,8 @@ table#restock tr#totals {
             <td><strong>TOTALS</strong></td>
             <td>{{ product_safe_summary.total_last_order_qty }} </td>
             <td>{{ product_safe_summary.avg_speed }} / month</td>
-            <td>{{ product_safe_summary.total_current_stock }} items</td>
             <td>{{ product_safe_summary.total_six_month_stock }}</td>
+            <td>{{ product_safe_summary.total_current_stock }}</td>
             <td>{{ product_safe_summary.total_restock_needed }}</td>
             <td>{{ product_safe_summary.total_on_order_qty }}</td>
           </tr>
