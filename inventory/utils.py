@@ -166,13 +166,19 @@ WEEKS_PER_MONTH = 365.25 / 12 / 7
 
 
 def calculate_variant_sales_speed(
-    variant: ProductVariant, *, weeks: int = 26, today: Optional[date] = None
+    variant: ProductVariant,
+    *,
+    weeks: int = 26,
+    today: Optional[date] = None,
+    fallback_weeks: int = 52,
 ) -> float:
     """Return the average monthly sales speed of ``variant``.
 
     The speed is calculated using weekly periods for accuracy. Weeks where the
     variant had no stock are ignored. ``weeks`` defaults to 26 (roughly six
-    months). The returned value is expressed in units sold per month.
+    months). If no sales are found within ``weeks`` and ``fallback_weeks`` is
+    greater, the window is automatically expanded up to ``fallback_weeks``.
+    The returned value is expressed in units sold per month.
     """
 
     today = today or date.today()
@@ -180,60 +186,65 @@ def calculate_variant_sales_speed(
         today = today.date()
 
     week_start_today = today - timedelta(days=today.weekday())
-    start_week = week_start_today - timedelta(weeks=weeks - 1)
 
-    week_starts = [start_week + timedelta(weeks=i) for i in range(weeks)]
+    def _speed_for_window(window_weeks: int) -> float:
+        start_week = week_start_today - timedelta(weeks=window_weeks - 1)
+        week_starts = [start_week + timedelta(weeks=i) for i in range(window_weeks)]
 
-    # Gather events to track inventory over time
-    events = []
-    for snap in variant.snapshots.all():
-        events.append((snap.date, "snapshot", snap.inventory_count))
-    for sale in variant.sales.all():
-        events.append((sale.date, "sale", sale.sold_quantity or 0))
-    events.sort(key=lambda x: x[0])
+        # Gather events to track inventory over time
+        events = []
+        for snap in variant.snapshots.all():
+            events.append((snap.date, "snapshot", snap.inventory_count))
+        for sale in variant.sales.all():
+            events.append((sale.date, "sale", sale.sold_quantity or 0))
+        events.sort(key=lambda x: x[0])
 
-    # Inventory level at end of each week
-    inventory_by_week: Dict[date, Optional[int]] = {}
-    idx = 0
-    current_inv = 0
-    seen_snapshot = False
+        # Inventory level at end of each week
+        inventory_by_week: Dict[date, Optional[int]] = {}
+        idx = 0
+        current_inv = 0
+        seen_snapshot = False
 
-    for ws in week_starts:
-        we = ws + timedelta(days=6)
-        while idx < len(events) and events[idx][0] <= we:
-            dt, typ, qty = events[idx]
-            if typ == "snapshot":
-                current_inv = qty
-                seen_snapshot = True
-            else:
-                current_inv -= qty
-            idx += 1
-        inventory_by_week[ws] = max(current_inv, 0) if seen_snapshot else None
+        for ws in week_starts:
+            we = ws + timedelta(days=6)
+            while idx < len(events) and events[idx][0] <= we:
+                dt, typ, qty = events[idx]
+                if typ == "snapshot":
+                    current_inv = qty
+                    seen_snapshot = True
+                else:
+                    current_inv -= qty
+                idx += 1
+            inventory_by_week[ws] = max(current_inv, 0) if seen_snapshot else None
 
+        # Sales totals per week
+        sales_by_week: Dict[date, int] = defaultdict(int)
+        for sale in variant.sales.all():
+            ws = sale.date - timedelta(days=sale.date.weekday())
+            if start_week <= ws <= week_start_today:
+                sales_by_week[ws] += sale.sold_quantity or 0
 
-    # Sales totals per week
-    sales_by_week: Dict[date, int] = defaultdict(int)
-    for sale in variant.sales.all():
-        ws = sale.date - timedelta(days=sale.date.weekday())
-        if start_week <= ws <= week_start_today:
-            sales_by_week[ws] += sale.sold_quantity or 0
+        total = 0
+        periods = 0
+        for ws in week_starts:
+            sold = sales_by_week.get(ws, 0)
+            inv = inventory_by_week.get(ws)
+            had_stock = True if inv is None else inv > 0
 
-    total = 0
-    periods = 0
-    for ws in week_starts:
-        sold = sales_by_week.get(ws, 0)
-        inv = inventory_by_week.get(ws)
-        had_stock = True if inv is None else inv > 0
+            if sold or had_stock:
+                periods += 1
+                total += sold
 
-        if sold or had_stock:
-            periods += 1
-            total += sold
+        if periods == 0:
+            return 0.0
 
-    if periods == 0:
-        return 0.0
+        avg_weekly = total / periods
+        return avg_weekly * WEEKS_PER_MONTH
 
-    avg_weekly = total / periods
-    return avg_weekly * WEEKS_PER_MONTH
+    speed = _speed_for_window(weeks)
+    if speed == 0.0 and fallback_weeks and fallback_weeks > weeks:
+        speed = _speed_for_window(fallback_weeks)
+    return speed
 
 def get_variant_speed_map(variants, *, weeks=26, today=None):
     """Return a {variant_id: speed} map for the given variants."""
