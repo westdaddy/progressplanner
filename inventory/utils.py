@@ -1096,17 +1096,23 @@ def get_restock_alerts():
     of the product.
     """
 
-    products = get_low_stock_products(Product.objects.all())
-    if not products:
-        return []
+    groups = _restock_groups()
+
+    product_qs = (
+        Product.objects.filter(decommissioned=False, groups__in=groups)
+        .distinct()
+    )
 
     variant_qs = (
-        ProductVariant.objects.filter(product__in=products)
+        ProductVariant.objects.filter(product__in=product_qs)
         .select_related("product")
         .prefetch_related("sales", "snapshots")
     )
 
     variants = list(variant_qs)
+    if not variants:
+        return []
+
     _annotate_variant_stock(variants)
 
     grouped = defaultdict(list)
@@ -1115,8 +1121,27 @@ def get_restock_alerts():
 
     alerts = []
     for product, vars in grouped.items():
-        if any(v.months_left is not None and v.months_left < 3 for v in vars):
-            total = sum(v.restock_to_6 for v in vars)
-            alerts.append({"product": product, "variants": vars, "total_restock": total})
+        total_variants = len(vars)
+        low_count = sum(
+            1 for v in vars if v.months_left is not None and v.months_left < 3
+        )
+        out_count = sum(1 for v in vars if v.latest_inventory <= 0)
+
+        if out_count / total_variants > 0.2:
+            level = "urgent"
+        elif low_count / total_variants >= 0.5:
+            level = "normal"
+        else:
+            continue
+
+        total = sum(v.restock_to_6 for v in vars)
+        alerts.append(
+            {
+                "product": product,
+                "variants": vars,
+                "total_restock": total,
+                "alert_type": level,
+            }
+        )
 
     return alerts
