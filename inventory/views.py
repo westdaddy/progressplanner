@@ -1059,6 +1059,43 @@ def product_detail(request, product_id):
 
     prev_orders.sort(key=lambda x: x["date_ordered"], reverse=True)
 
+    # — Similar products (same type and group) —
+    similar_products_qs = (
+        Product.objects.filter(type=product.type, groups__in=product.groups.all())
+        .exclude(id=product.id)
+        .distinct()
+    )
+
+    similar_products_qs = similar_products_qs.prefetch_related(
+        Prefetch(
+            "variants",
+            queryset=ProductVariant.objects.annotate(
+                latest_inventory=Coalesce(
+                    Subquery(
+                        InventorySnapshot.objects.filter(
+                            product_variant=OuterRef("pk")
+                        )
+                        .order_by("-date")
+                        .values("inventory_count")[:1]
+                    ),
+                    Value(0),
+                )
+            ),
+            to_attr="variants_with_inventory",
+        )
+    )
+    similar_products = list(similar_products_qs)
+
+    for sp in similar_products:
+        sp.total_inventory = sum(
+            v.latest_inventory for v in sp.variants_with_inventory
+        )
+        sp.on_order_qty = (
+            OrderItem.objects.filter(
+                product_variant__product=sp, date_arrived__isnull=True
+            ).aggregate(qty=Coalesce(Sum("quantity"), 0))["qty"]
+        )
+
     # Consolidate context in one dictionary so each key appears only once
     context = {
         "product": product,
@@ -1075,6 +1112,7 @@ def product_detail(request, product_id):
         "total_order_cost": total_order_cost,
         "lifetime_profit": lifetime_profit,
         "current_inventory": current_inventory,
+        "similar_products": similar_products,
     }
 
     return render(request, "inventory/product_detail.html", context)
