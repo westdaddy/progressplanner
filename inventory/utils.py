@@ -272,10 +272,10 @@ def compute_safe_stock(variants, speed_map=None):
 
         if current == 0:
             status = "red"
-        elif months_left is not None and months_left > 3:
-            status = "green"
-        else:
+        elif months_left is not None and months_left <= 3:
             status = "orange"
+        else:
+            status = "green"
 
 
         if recent_speed > avg_speed:

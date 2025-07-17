@@ -87,7 +87,7 @@ table#restock tr#totals {
             <td>
               {% if row.last_order_qty %}{{ row.last_order_qty }}{% else %}-{% endif %}
               |
-              {{ row.last_order_qty_pct }}%
+              {{ row.last_order_qty_pct|floatformat:"0" }}%
             </td>
             <td>
               {% if row.avg_speed > 0 %}{{ row.avg_speed }}{% endif %}
