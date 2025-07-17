@@ -839,9 +839,8 @@ def product_detail(request, product_id):
         .values("inventory_count")[:1]
     )
 
-    # Normalize today and current month for queries
-    today = datetime.today()
-    current_month = today.replace(day=1)
+    # Normalize today for queries
+    today = date.today()
     order_items_prefetch = Prefetch(
         "order_items",
         queryset=OrderItem.objects.filter(date_arrived__isnull=True),
@@ -853,7 +852,7 @@ def product_detail(request, product_id):
         OrderItem.objects.filter(
             product_variant=OuterRef("pk"),
             date_arrived__isnull=False,
-            date_arrived__lte=today.date(),
+            date_arrived__lte=today,
         )
         .annotate(qty=Coalesce("actual_quantity", "quantity"))
         .order_by("-date_arrived")
@@ -865,7 +864,7 @@ def product_detail(request, product_id):
         OrderItem.objects.filter(
             product_variant=OuterRef("pk"),
             date_arrived__isnull=False,
-            date_arrived__lte=today.date(),
+            date_arrived__lte=today,
         )
         .order_by("-date_arrived")
         .values("date_arrived")[:1]
@@ -931,7 +930,6 @@ def product_detail(request, product_id):
         cache.set(health_key, health, cache_ttl)
 
     # ——— ACTUAL DATA FOR INVENTORY CHART ————————
-    today = datetime.today().date()
     twelve_months_ago = today - relativedelta(months=12)
     snaps = (
         InventorySnapshot.objects.filter(
