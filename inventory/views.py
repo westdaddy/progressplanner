@@ -70,6 +70,7 @@ from .utils import (
     get_restock_alerts,
     calculate_variant_sales_speed,
     get_variant_speed_map,
+    get_category_speed_stats,
 )
 
 
@@ -913,6 +914,15 @@ def product_detail(request, product_id):
         six = row.get("six_month_stock") or 0
         row["six_month_stock_pct"] = round((six / total_six_month_stock) * 100, 1) if total_six_month_stock else 0
 
+    # --- Category and size average sales speeds ---
+    speed_stats = get_category_speed_stats(product.type)
+    category_avg_speed = speed_stats["overall_avg"]
+    size_avg_map = speed_stats["size_avgs"]
+
+    for row in safe_stock["safe_stock_data"]:
+        row["type_avg_speed"] = category_avg_speed
+        row["size_avg_speed"] = size_avg_map.get(row["variant_size"], 0)
+
     threshold_value = safe_stock["product_safe_summary"]["avg_speed"] * 2
 
     variant_proj_key = f"variant_proj_{product_id}"
@@ -1113,6 +1123,8 @@ def product_detail(request, product_id):
         "lifetime_profit": lifetime_profit,
         "current_inventory": current_inventory,
         "similar_products": similar_products,
+        "category_avg_speed": category_avg_speed,
+        "size_avg_speed_map": size_avg_map,
     }
 
     return render(request, "inventory/product_detail.html", context)
