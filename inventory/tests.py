@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 from django.test import TestCase
 
@@ -13,7 +13,11 @@ from .models import (
     RestockSetting,
 )
 from django.urls import reverse
-from .utils import get_low_stock_products, get_restock_alerts
+from .utils import (
+    get_low_stock_products,
+    get_restock_alerts,
+    calculate_variant_sales_speed,
+)
 
 
 class LowStockProductsTests(TestCase):
@@ -203,3 +207,38 @@ class LastOrderQtyTests(TestCase):
         rows = response.context["safe_stock_data"]
         self.assertEqual(rows[0]["last_order_qty"], 5)
         self.assertEqual(rows[0]["last_order_date"], delivered_order.order_date)
+
+
+class VariantSalesSpeedTests(TestCase):
+    def test_fallback_window_extends_to_year(self):
+        today = date.today()
+        product = Product.objects.create(product_id="P20", product_name="Prod20")
+        variant = ProductVariant.objects.create(
+            product=product, variant_code="V20", primary_color="#000000"
+        )
+
+        sale_date = today - timedelta(weeks=30)
+        InventorySnapshot.objects.create(
+            product_variant=variant,
+            date=sale_date - timedelta(days=1),
+            inventory_count=2,
+        )
+        Sale.objects.create(
+            order_number="O20",
+            date=sale_date,
+            variant=variant,
+            sold_quantity=2,
+            sold_value=20,
+        )
+
+        InventorySnapshot.objects.create(
+            product_variant=variant, date=today, inventory_count=0
+        )
+
+        no_fallback = calculate_variant_sales_speed(
+            variant, today=today, fallback_weeks=26
+        )
+        with_fallback = calculate_variant_sales_speed(variant, today=today)
+
+        self.assertEqual(no_fallback, 0.0)
+        self.assertGreater(with_fallback, 0.0)
