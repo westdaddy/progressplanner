@@ -435,6 +435,7 @@ def compute_variant_projection(variants, speed_map=None):
         restocks = defaultdict(int)
         # Prefetched order_items may exclude delivered ones, so fetch all
         for oi in OrderItem.objects.filter(product_variant=v):
+
             if oi.date_arrived:
                 mon = oi.date_arrived.replace(day=1)
                 qty = (
