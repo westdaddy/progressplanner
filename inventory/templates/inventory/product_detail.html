@@ -86,8 +86,9 @@ table#restock tr#totals {
             <td>{{ row.variant_code }}</td>
             <td>
               {% if row.last_order_qty %}{{ row.last_order_qty }}{% else %}-{% endif %}
-              |
+              {% if row.last_order_qty_pct %} |
               {{ row.last_order_qty_pct|floatformat:"0" }}%
+              {% endif %}
             </td>
             <td>
               {% if row.avg_speed > 0 %}{{ row.avg_speed }}{% endif %}
@@ -101,8 +102,8 @@ table#restock tr#totals {
             </td>
             <td>
               {% if row.six_month_stock %}{{ row.six_month_stock }}{% else %}-{% endif %}
-              |
-              {{ row.six_month_stock_pct }}%
+
+              {% if row.six_month_stock_pct %} | {{ row.six_month_stock_pct }}%{% endif %}
             </td>
             <td>{{ row.current_stock }} <span class="stock-dot {{ row.stock_status }}"></span></td>
 
