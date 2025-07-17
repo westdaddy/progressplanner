@@ -255,6 +255,55 @@ def get_variant_speed_map(variants, *, weeks=26, today=None):
     }
 
 
+def get_category_speed_stats(type_code: str, *, weeks: int = 26, today: Optional[date] = None):
+    """Return average sales speed info for a product type.
+
+    Parameters
+    ----------
+    type_code : str
+        The ``Product.type`` code to filter variants by.
+    weeks : int
+        Number of weeks to consider when calculating variant speeds.
+    today : date, optional
+        Anchor date for calculations. Defaults to ``date.today()``.
+
+    Returns
+    -------
+    dict
+        ``{"overall_avg": float, "size_avgs": {size: float}}``
+        where speeds are expressed in units per month.
+    """
+
+    if not type_code:
+        return {"overall_avg": 0.0, "size_avgs": {}}
+
+    today = today or date.today()
+    variants = (
+        ProductVariant.objects.filter(product__type=type_code)
+        .prefetch_related("sales", "snapshots")
+    )
+
+    speed_map = get_variant_speed_map(variants, weeks=weeks, today=today)
+
+    size_buckets: Dict[str | None, list[float]] = defaultdict(list)
+    for v in variants:
+        size_buckets[v.size].append(speed_map.get(v.id, 0.0))
+
+    size_avgs = {
+        sz: round(sum(vals) / len(vals), 1)
+        for sz, vals in size_buckets.items()
+        if vals
+    }
+
+    speeds = list(speed_map.values())
+    overall = round(sum(speeds) / len(speeds), 1) if speeds else 0.0
+
+    # sort size averages alphabetically for stable output
+    size_avgs = dict(sorted(size_avgs.items(), key=lambda x: x[0] or ""))
+
+    return {"overall_avg": overall, "size_avgs": size_avgs}
+
+
 def compute_safe_stock(variants, speed_map=None):
     """
     Compute safe stock data and product-level summary for a list of variants.

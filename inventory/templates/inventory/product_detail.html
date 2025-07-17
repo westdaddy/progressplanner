@@ -42,6 +42,13 @@ table#restock tr#totals {
             {% endif %}
           </p>
           <p><strong>Total Sold:</strong> {{ total_qty }} units (¥{{ total_value|floatformat:"0" }})</p>
+          <p><strong>Category Avg Speed:</strong> {{ category_avg_speed }} / month</p>
+          <p>
+            <strong>Size Avg Speeds:</strong>
+            {% for sz, val in size_avg_speed_map.items %}
+              {{ sz }}: {{ val }}{% if not forloop.last %}, {% endif %}
+            {% endfor %} / month
+          </p>
 
         </div>
       </div>
@@ -73,6 +80,8 @@ table#restock tr#totals {
             <th>Variant</th>
             <th>Last Order</th>
             <th>Sales / month</th>
+            <th>Type Avg</th>
+            <th>Size Avg</th>
             <th>6 Months Stock</th>
             <th>Current Stock</th>
             <th>Stock at time restock lands</th>
@@ -102,6 +111,8 @@ table#restock tr#totals {
                 &#8212;
               {% endif %}
             </td>
+            <td>{{ row.type_avg_speed }}</td>
+            <td>{{ row.size_avg_speed }}</td>
             <td>
               {% if row.six_month_stock %}{{ row.six_month_stock }}{% else %}-{% endif %}
 
@@ -113,12 +124,14 @@ table#restock tr#totals {
             <td>{% if row.on_order_qty > 0 %}{{ row.on_order_qty }}{% else %}-{% endif %}</td>
           </tr>
           {% empty %}
-          <tr><td colspan="8">No data available.</td></tr>
+          <tr><td colspan="10">No data available.</td></tr>
           {% endfor %}
           <tr id="totals">
             <td><strong>TOTALS</strong></td>
             <td>{{ product_safe_summary.total_last_order_qty }} </td>
             <td>{{ product_safe_summary.avg_speed }} / month</td>
+            <td>{{ category_avg_speed }} / month</td>
+            <td>&mdash;</td>
             <td>{{ product_safe_summary.total_six_month_stock }}</td>
             <td>{{ product_safe_summary.total_current_stock }}</td>
             <td>{{ product_safe_summary.total_stock_at_restock }}</td>
