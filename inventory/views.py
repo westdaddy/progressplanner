@@ -900,10 +900,19 @@ def product_detail(request, product_id):
         v = variant_map.get(row["variant_code"])
         qty = getattr(v, "last_order_qty", 0) if v else 0
         row["last_order_qty"] = qty
+        row["last_order_date"] = getattr(v, "last_order_date", None) if v else None
         if qty:
             total_last_order_qty += qty
 
     safe_stock["product_safe_summary"]["total_last_order_qty"] = total_last_order_qty
+
+    total_six_month_stock = safe_stock["product_safe_summary"].get("total_six_month_stock", 0)
+
+    for row in safe_stock["safe_stock_data"]:
+        lo = row.get("last_order_qty") or 0
+        row["last_order_qty_pct"] = round((lo / total_last_order_qty) * 100, 1) if total_last_order_qty else 0
+        six = row.get("six_month_stock") or 0
+        row["six_month_stock_pct"] = round((six / total_six_month_stock) * 100, 1) if total_six_month_stock else 0
 
     threshold_value = safe_stock["product_safe_summary"]["avg_speed"] * 2
 
