@@ -261,7 +261,9 @@ def compute_safe_stock(variants, speed_map=None):
 
         min_threshold = avg_speed * 2
         ideal_level = avg_speed * 6
-        restock_qty = max(math.ceil(ideal_level - current), 0)
+        restock_wait = getattr(v.product, "restock_time", 0)
+        stock_at_restock = math.ceil(current - restock_wait * avg_speed)
+        restock_qty = max(math.ceil(ideal_level - stock_at_restock), 0)
         six_month_stock = math.ceil(ideal_level)
         on_order_qty = (
             v.order_items.filter(date_arrived__isnull=True)
@@ -290,6 +292,7 @@ def compute_safe_stock(variants, speed_map=None):
                 "variant_code": v.variant_code,
                 "variant_size": v.size,
                 "current_stock": current,
+                "stock_at_restock": stock_at_restock,
                 "avg_speed": round(avg_speed, 1),
                 "min_threshold": math.ceil(min_threshold),
                 "restock_qty": restock_qty,
@@ -309,6 +312,7 @@ def compute_safe_stock(variants, speed_map=None):
     filtered = [r for r in safe_stock_data if r["avg_speed"] > 0]
     product_safe_summary = {
         "total_current_stock": sum(r["current_stock"] for r in safe_stock_data),
+        "total_stock_at_restock": sum(r["stock_at_restock"] for r in safe_stock_data),
         "avg_speed": round(sum(r["avg_speed"] for r in filtered), 1) if filtered else 0,
         "total_restock_needed": sum(r["restock_qty"] for r in filtered),
         "total_six_month_stock": sum(r["six_month_stock"] for r in filtered),
