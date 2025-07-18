@@ -36,6 +36,7 @@ SIZE_ORDER_CASE = Case(
 )
 
 
+
 class ProductAdminForm(forms.ModelForm):
     """Form used for creating/editing Products with variant suggestions."""
 
@@ -81,6 +82,7 @@ class ProductVariantInline(admin.TabularInline):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.annotate(_size_order=SIZE_ORDER_CASE).order_by("_size_order", "variant_code")
+
 
 
 
@@ -196,6 +198,7 @@ class OrderItemInline(admin.TabularInline):
         )
 
 
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = (
@@ -288,6 +291,7 @@ class AddProductsForm(forms.Form):
             ProductVariant.objects.select_related("product")
             .annotate(_size_order=SIZE_ORDER_CASE)
             .order_by("product__product_name", "_size_order", "variant_code")
+
         )
 
 

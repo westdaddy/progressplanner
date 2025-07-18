@@ -401,3 +401,4 @@ class ProductVariantOrderingTests(TestCase):
         ordered = list(form.fields["product_variants"].queryset.values_list("size", flat=True))
         expected_order = [code for code, _ in ProductVariant.SIZE_CHOICES if code in ["S", "M"]]
         self.assertEqual(ordered, expected_order)
+
