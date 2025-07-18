@@ -166,10 +166,12 @@ class OrderItemInline(admin.TabularInline):
         "date_arrived",
         "actual_quantity",
     )
+    template = "admin/orderitem_inline_grouped.html"
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
-        return queryset.select_related("product_variant")
+        return queryset.select_related("product_variant", "product_variant__product") \
+            .order_by("product_variant__product__product_name", "product_variant__variant_code")
 
 
 @admin.register(Order)
