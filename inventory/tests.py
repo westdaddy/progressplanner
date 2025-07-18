@@ -464,3 +464,4 @@ class OrderItemInlineTests(TestCase):
 
         self.assertEqual(products, ["Aprod", "Aprod", "Bprod"])
         self.assertEqual(sizes, ["S", "M", "S"])
+
