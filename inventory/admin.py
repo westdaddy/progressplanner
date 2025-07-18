@@ -50,17 +50,9 @@ class ProductAdminForm(forms.ModelForm):
 
     def save(self, commit=True):
         product = super().save(commit=commit)
-        if commit:
-            sizes = self.cleaned_data.get("variant_sizes", [])
-            for size in sizes:
-                code = f"{product.product_id}-{size}"
-                ProductVariant.objects.get_or_create(
-                    product=product,
-                    variant_code=code,
-                    defaults={"size": size, "gender": "male"},
-                )
-        else:
-            self._pending_sizes = self.cleaned_data.get("variant_sizes", [])
+        # store selected sizes for admin to create variants later
+        self._pending_sizes = self.cleaned_data.get("variant_sizes", [])
+
         return product
 
 
@@ -81,6 +73,18 @@ class ProductAdmin(admin.ModelAdmin):
 
     class Media:
         js = ("admin/js/product_admin.js",)
+
+    def save_model(self, request, obj, form, change):
+        """Create selected variants after saving the Product."""
+        super().save_model(request, obj, form, change)
+        sizes = getattr(form, "_pending_sizes", [])
+        for size in sizes:
+            code = f"{obj.product_id}-{size}"
+            ProductVariant.objects.get_or_create(
+                product=obj,
+                variant_code=code,
+                defaults={"size": size, "gender": "male"},
+            )
 
 
 

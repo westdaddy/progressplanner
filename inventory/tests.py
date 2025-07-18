@@ -323,8 +323,10 @@ class CategorySpeedStatsTests(TestCase):
 
 
 class ProductAdminFormTests(TestCase):
-    def test_variant_creation_from_form(self):
-        from inventory.admin import ProductAdminForm
+    def test_admin_creates_variants_on_save(self):
+        from inventory.admin import ProductAdminForm, ProductAdmin
+        from django.contrib.admin.sites import AdminSite
+
 
         form_data = {
             "product_id": "PG123",
@@ -335,7 +337,12 @@ class ProductAdminFormTests(TestCase):
         }
         form = ProductAdminForm(data=form_data)
         self.assertTrue(form.is_valid(), form.errors)
-        product = form.save()
+
+        # Simulate admin workflow
+        product = form.save(commit=False)
+        admin = ProductAdmin(Product, admin_site=AdminSite())
+        admin.save_model(request=None, obj=product, form=form, change=False)
+
 
         variants = product.variants.all()
         self.assertEqual(variants.count(), 2)
