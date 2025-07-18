@@ -6,8 +6,38 @@
 <h1>Add Variants to Order #{{ order.id }}</h1>
 <form method="post">{% csrf_token %}
   {{ form.media }}
+  {{ form.non_field_errors }}
+
+  <div class="product-groups">
+    {% for product in products %}
+      <fieldset class="module aligned">
+        <legend>
+          {% if product.product_photo %}
+            <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" style="max-height:100px;" />
+          {% endif %}
+          {{ product.product_name }}
+        </legend>
+        <div class="form-row">
+          {% for variant in product.variants.all %}
+            <label style="margin-right:10px;">
+              <input type="checkbox" name="product_variants" value="{{ variant.id }}" {% if form.product_variants.value and variant.id|stringformat:'s' in form.product_variants.value %}checked{% endif %}>
+              {{ variant.variant_code }}
+            </label>
+          {% endfor %}
+        </div>
+      </fieldset>
+    {% endfor %}
+  </div>
+
   <table>
-    {{ form.as_table }}
+    <tr>
+      <th>{{ form.item_cost_price.label_tag }}</th>
+      <td>{{ form.item_cost_price }}</td>
+    </tr>
+    <tr>
+      <th>{{ form.date_expected.label_tag }}</th>
+      <td>{{ form.date_expected }}</td>
+    </tr>
   </table>
   <button type="submit" class="default">Add Products</button>
 </form>
