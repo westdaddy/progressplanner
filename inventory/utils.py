@@ -23,6 +23,7 @@ from django.db.models import (
     FloatField,
     Case,
     When,
+    Min,
 )
 from django.db.models.functions import Coalesce
 
@@ -61,7 +62,7 @@ def calculate_size_order_mix(
     category: Optional[str] = None,
     months: int = 6,
     recency_weights: Optional[Sequence[float]] = None,
-    today: date = None
+    today: date = None,
 ) -> List[Dict[str, Any]]:
     """
     Returns an ordered list (XS → XXL) of dicts with:
@@ -246,6 +247,7 @@ def calculate_variant_sales_speed(
         speed = _speed_for_window(fallback_weeks)
     return speed
 
+
 def get_variant_speed_map(variants, *, weeks=26, today=None):
     """Return a {variant_id: speed} map for the given variants."""
     today = today or date.today()
@@ -255,7 +257,9 @@ def get_variant_speed_map(variants, *, weeks=26, today=None):
     }
 
 
-def get_category_speed_stats(type_code: str, *, weeks: int = 26, today: Optional[date] = None):
+def get_category_speed_stats(
+    type_code: str, *, weeks: int = 26, today: Optional[date] = None
+):
     """Return average sales speed info for a product type.
 
     Parameters
@@ -278,9 +282,8 @@ def get_category_speed_stats(type_code: str, *, weeks: int = 26, today: Optional
         return {"overall_avg": 0.0, "size_avgs": {}}
 
     today = today or date.today()
-    variants = (
-        ProductVariant.objects.filter(product__type=type_code)
-        .prefetch_related("sales", "snapshots")
+    variants = ProductVariant.objects.filter(product__type=type_code).prefetch_related(
+        "sales", "snapshots"
     )
 
     speed_map = get_variant_speed_map(variants, weeks=weeks, today=today)
@@ -290,9 +293,7 @@ def get_category_speed_stats(type_code: str, *, weeks: int = 26, today: Optional
         size_buckets[v.size].append(speed_map.get(v.id, 0.0))
 
     size_avgs = {
-        sz: round(sum(vals) / len(vals), 1)
-        for sz, vals in size_buckets.items()
-        if vals
+        sz: round(sum(vals) / len(vals), 1) for sz, vals in size_buckets.items() if vals
     }
 
     speeds = list(speed_map.values())
@@ -316,7 +317,11 @@ def compute_safe_stock(variants, speed_map=None):
 
     for v in variants:
         current = v.latest_inventory
-        avg_speed = speed_map.get(v.id) if speed_map is not None else calculate_variant_sales_speed(v, today=today)
+        avg_speed = (
+            speed_map.get(v.id)
+            if speed_map is not None
+            else calculate_variant_sales_speed(v, today=today)
+        )
         recent_speed = calculate_variant_sales_speed(v, weeks=13, today=today)
 
         min_threshold = avg_speed * 2
@@ -325,10 +330,9 @@ def compute_safe_stock(variants, speed_map=None):
         stock_at_restock = max(0, math.ceil(current - restock_wait * avg_speed))
         restock_qty = max(math.ceil(ideal_level - stock_at_restock), 0)
         six_month_stock = math.ceil(ideal_level)
-        on_order_qty = (
-            v.order_items.filter(date_arrived__isnull=True)
-            .aggregate(total=Coalesce(Sum("quantity"), 0))["total"]
-        )
+        on_order_qty = v.order_items.filter(date_arrived__isnull=True).aggregate(
+            total=Coalesce(Sum("quantity"), 0)
+        )["total"]
 
         months_left = (current / avg_speed) if avg_speed > 0 else None
 
@@ -338,7 +342,6 @@ def compute_safe_stock(variants, speed_map=None):
             status = "orange"
         else:
             status = "green"
-
 
         if recent_speed > avg_speed:
             trend = "up"
@@ -358,7 +361,6 @@ def compute_safe_stock(variants, speed_map=None):
                 "restock_qty": restock_qty,
                 "six_month_stock": six_month_stock,
                 "on_order_qty": on_order_qty,
-
                 "months_left": months_left,
                 "stock_status": status,
                 "trend": trend,
@@ -386,56 +388,90 @@ def compute_safe_stock(variants, speed_map=None):
 
 
 def compute_variant_projection(variants, speed_map=None):
-    """
-    Compute variant-level stock projection data for Chart.js.
-    Returns dict with key 'stock_chart_data' (a JSON string).
-    """
-    # 1) Define your date boundaries here
-    today_dt = datetime.today().date()
+    """Compute variant-level stock projection data including history."""
+
+    today_dt = date.today()
     current_month = today_dt.replace(day=1)
 
-    # 2) Build your 12-month projection exactly as on inventory page
-    next_12 = [current_month + relativedelta(months=i) for i in range(13)]
+    # Determine start month based on earliest sale (minus one month) but not
+    # showing more than 12 months of history
+    first_sale = (
+        Sale.objects.filter(variant__in=variants)
+        .aggregate(first=Min("date"))
+        .get("first")
+    )
+    if first_sale:
+        start_month = (first_sale - relativedelta(months=1)).replace(day=1)
+    else:
+        start_month = current_month
+
+    last_year_month = current_month - relativedelta(months=12)
+    if start_month < last_year_month:
+        start_month = last_year_month
+
+    end_month = current_month + relativedelta(months=12)
+    month_count = (
+        (end_month.year - start_month.year) * 12 + end_month.month - start_month.month
+    )
+    months = [start_month + relativedelta(months=i) for i in range(month_count + 1)]
+
     stock_chart_data = {
-        "months": [m.strftime("%Y-%m") for m in next_12],
+        "months": [m.strftime("%Y-%m") for m in months],
         "variant_lines": [],
     }
+
     for v in variants:
-        curr = v.latest_inventory
-        speed = speed_map.get(v.id) if speed_map is not None else calculate_variant_sales_speed(
-            v, today=current_month
+        speed = (
+            speed_map.get(v.id)
+            if speed_map is not None
+            else calculate_variant_sales_speed(v, today=current_month)
         )
 
-        # collect future restocks from prefetched order_items
-        restocks = {}
-        for oi in v.order_items.all():
-            if oi.date_arrived is not None:
-                continue
-            if oi.date_expected and oi.date_expected >= today_dt:
-                effective_date = oi.date_expected
-            else:
-                effective_date = today_dt + relativedelta(months=1)
-            mon = effective_date.replace(day=1)
-            restocks[mon] = restocks.get(mon, 0) + oi.quantity
+        sales_by_month = defaultdict(int)
+        for s in v.sales.all():
+            mon = s.date.replace(day=1)
+            sales_by_month[mon] += s.sold_quantity or 0
 
-        # simulate month-by-month
-        levels = [curr]
-        for j in range(1, 13):
-            lvl = levels[-1] - speed
-            dt = current_month + relativedelta(months=j)
-            lvl += restocks.get(dt, 0)
-            levels.append(max(lvl, 0))
+        restocks = defaultdict(int)
+        # Prefetched order_items may exclude delivered ones, so fetch all
+        for oi in OrderItem.objects.filter(product_variant=v):
+
+            if oi.date_arrived:
+                mon = oi.date_arrived.replace(day=1)
+                qty = (
+                    oi.actual_quantity
+                    if oi.actual_quantity is not None
+                    else oi.quantity
+                )
+                restocks[mon] += qty
+            elif oi.date_expected:
+                mon = oi.date_expected.replace(day=1)
+                restocks[mon] += oi.quantity
+
+        snap = (
+            v.snapshots.filter(date__lte=start_month)
+            .order_by("-date")
+            .values("inventory_count")
+            .first()
+        )
+        stock = snap["inventory_count"] if snap else 0
+
+        levels = []
+        current = stock
+        for m in months:
+            current += restocks.get(m, 0)
+            if m <= current_month:
+                current -= sales_by_month.get(m, 0)
+            else:
+                current -= speed
+            current = max(round(current), 0)
+            levels.append(current)
 
         stock_chart_data["variant_lines"].append(
-            {
-                "variant_name": v.variant_code,
-                "stock_levels": levels,
-            }
+            {"variant_name": v.variant_code, "stock_levels": levels}
         )
 
-    return {
-        "stock_chart_data": json.dumps(stock_chart_data),
-    }
+    return {"stock_chart_data": json.dumps(stock_chart_data)}
 
 
 def compute_sales_aggregates(product):
@@ -1058,7 +1094,6 @@ def _restock_groups():
     return Group.objects.filter(name="core")
 
 
-
 def _annotate_variant_stock(variants, month_start=None):
     """Annotate variants with stock metrics.
 
@@ -1084,7 +1119,6 @@ def _annotate_variant_stock(variants, month_start=None):
 
         avg_speed = calculate_variant_sales_speed(v)
 
-
         v.avg_speed = avg_speed
         v.months_left = (v.latest_inventory / avg_speed) if avg_speed > 0 else None
         target_level = avg_speed * 6
@@ -1106,10 +1140,9 @@ def get_low_stock_products(queryset):
     groups = _restock_groups()
 
     if queryset.model == ProductVariant:
-        variant_qs = (
-            queryset.filter(product__decommissioned=False, product__groups__in=groups)
-            .distinct()
-        )
+        variant_qs = queryset.filter(
+            product__decommissioned=False, product__groups__in=groups
+        ).distinct()
         return_products = False
     elif queryset.model == Product:
         product_qs = queryset.filter(
@@ -1128,8 +1161,9 @@ def get_low_stock_products(queryset):
     month_start = today.replace(day=1)
     _annotate_variant_stock(variants, month_start)
 
-    low_variants = [v for v in variants if v.months_left is not None and v.months_left < 3]
-
+    low_variants = [
+        v for v in variants if v.months_left is not None and v.months_left < 3
+    ]
 
     if return_products:
         return list({v.product for v in low_variants})
@@ -1147,10 +1181,9 @@ def get_restock_alerts():
 
     groups = _restock_groups()
 
-    product_qs = (
-        Product.objects.filter(decommissioned=False, groups__in=groups)
-        .distinct()
-    )
+    product_qs = Product.objects.filter(
+        decommissioned=False, groups__in=groups
+    ).distinct()
 
     variant_qs = (
         ProductVariant.objects.filter(product__in=product_qs)

@@ -327,6 +327,7 @@ class ProductAdminFormTests(TestCase):
         from inventory.admin import ProductAdminForm, ProductAdmin
         from django.contrib.admin.sites import AdminSite
 
+
         form_data = {
             "product_id": "PG123",
             "product_name": "Prod",
@@ -341,6 +342,7 @@ class ProductAdminFormTests(TestCase):
         product = form.save(commit=False)
         admin = ProductAdmin(Product, admin_site=AdminSite())
         admin.save_model(request=None, obj=product, form=form, change=False)
+
 
         variants = product.variants.all()
         self.assertEqual(variants.count(), 2)

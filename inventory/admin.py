@@ -52,6 +52,7 @@ class ProductAdminForm(forms.ModelForm):
         product = super().save(commit=commit)
         # store selected sizes for admin to create variants later
         self._pending_sizes = self.cleaned_data.get("variant_sizes", [])
+
         return product
 
 
