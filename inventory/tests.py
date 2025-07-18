@@ -320,3 +320,31 @@ class CategorySpeedStatsTests(TestCase):
         self.assertIn("S", stats["size_avgs"])
         self.assertGreater(stats["overall_avg"], 0)
         self.assertGreater(stats["size_avgs"]["S"], 0)
+
+
+class ProductAdminFormTests(TestCase):
+    def test_admin_creates_variants_on_save(self):
+        from inventory.admin import ProductAdminForm, ProductAdmin
+        from django.contrib.admin.sites import AdminSite
+
+        form_data = {
+            "product_id": "PG123",
+            "product_name": "Prod",
+            "type": "rg",
+            "restock_time": 0,
+            "variant_sizes": ["XS", "M"],
+        }
+        form = ProductAdminForm(data=form_data)
+        self.assertTrue(form.is_valid(), form.errors)
+
+        # Simulate admin workflow
+        product = form.save(commit=False)
+        admin = ProductAdmin(Product, admin_site=AdminSite())
+        admin.save_model(request=None, obj=product, form=form, change=False)
+
+        variants = product.variants.all()
+        self.assertEqual(variants.count(), 2)
+        codes = set(variants.values_list("variant_code", flat=True))
+        self.assertEqual(codes, {"PG123-XS", "PG123-M"})
+        genders = set(variants.values_list("gender", flat=True))
+        self.assertEqual(genders, {"male"})

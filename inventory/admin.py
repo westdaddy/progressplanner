@@ -26,8 +26,39 @@ from django.utils.safestring import mark_safe
 from django.contrib.admin.widgets import FilteredSelectMultiple
 
 
+class ProductAdminForm(forms.ModelForm):
+    """Form used for creating/editing Products with variant suggestions."""
+
+    variant_sizes = forms.MultipleChoiceField(
+        choices=ProductVariant.SIZE_CHOICES,
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        help_text="Select sizes to create variants for.",
+    )
+
+    class Meta:
+        model = Product
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            existing = list(
+                self.instance.variants.values_list("size", flat=True)
+            )
+            self.fields["variant_sizes"].initial = existing
+
+    def save(self, commit=True):
+        product = super().save(commit=commit)
+        # store selected sizes for admin to create variants later
+        self._pending_sizes = self.cleaned_data.get("variant_sizes", [])
+        return product
+
+
+
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
+    form = ProductAdminForm
     list_display = (
         "product_id",
         "product_name",
@@ -38,6 +69,22 @@ class ProductAdmin(admin.ModelAdmin):
         "age",
     )
     list_filter = ("groups", "series", "type", "style", "age")
+
+    class Media:
+        js = ("admin/js/product_admin.js",)
+
+    def save_model(self, request, obj, form, change):
+        """Create selected variants after saving the Product."""
+        super().save_model(request, obj, form, change)
+        sizes = getattr(form, "_pending_sizes", [])
+        for size in sizes:
+            code = f"{obj.product_id}-{size}"
+            ProductVariant.objects.get_or_create(
+                product=obj,
+                variant_code=code,
+                defaults={"size": size, "gender": "male"},
+            )
+
 
 
 @admin.register(ProductVariant)
