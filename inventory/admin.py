@@ -55,6 +55,19 @@ class ProductAdminForm(forms.ModelForm):
         return product
 
 
+class ProductVariantInline(admin.TabularInline):
+    """Inline for editing variants directly on the Product page."""
+    model = ProductVariant
+    extra = 1
+    fields = (
+        "variant_code",
+        "size",
+        "gender",
+        "primary_color",
+        "secondary_color",
+    )
+
+
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
@@ -69,6 +82,7 @@ class ProductAdmin(admin.ModelAdmin):
         "age",
     )
     list_filter = ("groups", "series", "type", "style", "age")
+    inlines = [ProductVariantInline]
 
     class Media:
         js = ("admin/js/product_admin.js",)

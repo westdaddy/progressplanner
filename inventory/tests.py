@@ -350,3 +350,10 @@ class ProductAdminFormTests(TestCase):
         self.assertEqual(codes, {"PG123-XS", "PG123-M"})
         genders = set(variants.values_list("gender", flat=True))
         self.assertEqual(genders, {"male"})
+
+    def test_product_admin_includes_variant_inline(self):
+        from inventory.admin import ProductAdmin, ProductVariantInline
+        from django.contrib.admin.sites import AdminSite
+
+        admin = ProductAdmin(Product, admin_site=AdminSite())
+        self.assertIn(ProductVariantInline, admin.inlines)
