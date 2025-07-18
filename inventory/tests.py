@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
-from django.test import TestCase
+from django.test import TestCase, RequestFactory
 
 from .models import (
     Product,
@@ -350,3 +350,54 @@ class ProductAdminFormTests(TestCase):
         self.assertEqual(codes, {"PG123-XS", "PG123-M"})
         genders = set(variants.values_list("gender", flat=True))
         self.assertEqual(genders, {"male"})
+
+    def test_product_admin_includes_variant_inline(self):
+        from inventory.admin import ProductAdmin, ProductVariantInline
+        from django.contrib.admin.sites import AdminSite
+
+        admin = ProductAdmin(Product, admin_site=AdminSite())
+        self.assertIn(ProductVariantInline, admin.inlines)
+
+
+class ProductVariantOrderingTests(TestCase):
+    def test_admin_orders_variants_by_size(self):
+        from inventory.admin import ProductVariantAdmin
+        from django.contrib.admin.sites import AdminSite
+
+        product = Product.objects.create(product_id="PV1", product_name="Prod1")
+        sizes = ["M", "S", "L"]
+        for s in sizes:
+            ProductVariant.objects.create(
+                product=product,
+                variant_code=f"V{s}",
+                size=s,
+                primary_color="#000000",
+            )
+
+        admin = ProductVariantAdmin(ProductVariant, admin_site=AdminSite())
+        request = RequestFactory().get("/")
+        ordered = list(admin.get_queryset(request).values_list("size", flat=True))
+        expected_order = [code for code, _ in ProductVariant.SIZE_CHOICES if code in sizes]
+        self.assertEqual(ordered, expected_order)
+
+    def test_add_products_form_orders_variants_by_size(self):
+        from inventory.admin import AddProductsForm
+
+        product = Product.objects.create(product_id="PF1", product_name="Prod2")
+        ProductVariant.objects.create(
+            product=product,
+            variant_code="PFS",
+            size="S",
+            primary_color="#000000",
+        )
+        ProductVariant.objects.create(
+            product=product,
+            variant_code="PFM",
+            size="M",
+            primary_color="#000000",
+        )
+
+        form = AddProductsForm()
+        ordered = list(form.fields["product_variants"].queryset.values_list("size", flat=True))
+        expected_order = [code for code, _ in ProductVariant.SIZE_CHOICES if code in ["S", "M"]]
+        self.assertEqual(ordered, expected_order)

@@ -19,11 +19,21 @@ from django.contrib import messages
 from django.shortcuts import redirect, get_object_or_404, render
 from django.urls import path
 from django.http import JsonResponse
+from django.db.models import Case, When, Value, IntegerField
 import logging
 
 logger = logging.getLogger(__name__)
 from django.utils.safestring import mark_safe
-from django.contrib.admin.widgets import FilteredSelectMultiple
+
+# Build a Case expression to order variants according to SIZE_CHOICES.
+SIZE_ORDER_CASE = Case(
+    *[
+        When(size=code, then=Value(idx))
+        for idx, (code, _label) in enumerate(ProductVariant.SIZE_CHOICES)
+    ],
+    default=Value(len(ProductVariant.SIZE_CHOICES)),
+    output_field=IntegerField(),
+)
 
 
 class ProductAdminForm(forms.ModelForm):
@@ -56,6 +66,23 @@ class ProductAdminForm(forms.ModelForm):
         return product
 
 
+class ProductVariantInline(admin.TabularInline):
+    """Inline for editing variants directly on the Product page."""
+    model = ProductVariant
+    extra = 1
+    fields = (
+        "variant_code",
+        "size",
+        "gender",
+        "primary_color",
+        "secondary_color",
+    )
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.annotate(_size_order=SIZE_ORDER_CASE).order_by("_size_order", "variant_code")
+
+
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
@@ -70,6 +97,7 @@ class ProductAdmin(admin.ModelAdmin):
         "age",
     )
     list_filter = ("groups", "series", "type", "style", "age")
+    inlines = [ProductVariantInline]
 
     class Media:
         js = ("admin/js/product_admin.js",)
@@ -92,6 +120,10 @@ class ProductAdmin(admin.ModelAdmin):
 class ProductVariantAdmin(admin.ModelAdmin):
     list_display = ("product", "variant_code", "size", "gender")
     list_filter = ("product", "size", "gender")  # Add filters for easy management
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.annotate(_size_order=SIZE_ORDER_CASE).order_by("_size_order", "variant_code")
 
 
 @admin.register(Sale)
@@ -153,10 +185,15 @@ class OrderItemInline(admin.TabularInline):
         "date_arrived",
         "actual_quantity",
     )
+    template = "admin/orderitem_inline_grouped.html"
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
-        return queryset.select_related("product_variant")
+        return (
+            queryset.select_related("product_variant", "product_variant__product")
+            .annotate(_size_order=SIZE_ORDER_CASE)
+            .order_by("product_variant__product__product_name", "_size_order", "product_variant__variant_code")
+        )
 
 
 @admin.register(Order)
@@ -185,12 +222,11 @@ class OrderAdmin(admin.ModelAdmin):
             logger.debug("add_products_view POST called")
             form = AddProductsForm(request.POST)
             if form.is_valid():
-                products = form.cleaned_data["products"]
+                variants = form.cleaned_data["product_variants"]
                 cost_price = form.cleaned_data["item_cost_price"]
                 date_expected = form.cleaned_data["date_expected"]
-                product_variants = ProductVariant.objects.filter(product__in=products)
                 # Create an order item for each variant
-                for variant in product_variants:
+                for variant in variants:
                     OrderItem.objects.create(
                         order=order,
                         product_variant=variant,
@@ -209,6 +245,7 @@ class OrderAdmin(admin.ModelAdmin):
         context = {
             "order": order,
             "form": form,
+            "products": Product.objects.prefetch_related("variants").all(),
             "opts": self.model._meta,
             "app_label": self.model._meta.app_label,
         }
@@ -226,11 +263,11 @@ class OrderAdmin(admin.ModelAdmin):
 
 
 class AddProductsForm(forms.Form):
-    products = forms.ModelMultipleChoiceField(
-        queryset=Product.objects.all(),
-        widget=FilteredSelectMultiple("Products", is_stacked=False),
+    product_variants = forms.ModelMultipleChoiceField(
+        queryset=ProductVariant.objects.select_related("product"),
+        widget=forms.CheckboxSelectMultiple,
         required=True,
-        help_text="Select one or more products to add their variants as order items.",
+        help_text="Select the variants to add as order items.",
     )
     item_cost_price = forms.DecimalField(
         required=True,
@@ -244,6 +281,14 @@ class AddProductsForm(forms.Form):
         initial=date.today,  # or you can set a calculated default
         help_text="Set the expected date for the order items.",
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["product_variants"].queryset = (
+            ProductVariant.objects.select_related("product")
+            .annotate(_size_order=SIZE_ORDER_CASE)
+            .order_by("product__product_name", "_size_order", "variant_code")
+        )
 
 
 @admin.register(OrderItem)
