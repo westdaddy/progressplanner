@@ -19,10 +19,22 @@ from django.contrib import messages
 from django.shortcuts import redirect, get_object_or_404, render
 from django.urls import path
 from django.http import JsonResponse
+from django.db.models import Case, When, Value, IntegerField
 import logging
 
 logger = logging.getLogger(__name__)
 from django.utils.safestring import mark_safe
+
+# Build a Case expression to order variants according to SIZE_CHOICES.
+SIZE_ORDER_CASE = Case(
+    *[
+        When(size=code, then=Value(idx))
+        for idx, (code, _label) in enumerate(ProductVariant.SIZE_CHOICES)
+    ],
+    default=Value(len(ProductVariant.SIZE_CHOICES)),
+    output_field=IntegerField(),
+)
+
 
 
 class ProductAdminForm(forms.ModelForm):
@@ -67,6 +79,11 @@ class ProductVariantInline(admin.TabularInline):
         "secondary_color",
     )
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.annotate(_size_order=SIZE_ORDER_CASE).order_by("_size_order", "variant_code")
+
+
 
 
 @admin.register(Product)
@@ -105,6 +122,10 @@ class ProductAdmin(admin.ModelAdmin):
 class ProductVariantAdmin(admin.ModelAdmin):
     list_display = ("product", "variant_code", "size", "gender")
     list_filter = ("product", "size", "gender")  # Add filters for easy management
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.annotate(_size_order=SIZE_ORDER_CASE).order_by("_size_order", "variant_code")
 
 
 @admin.register(Sale)
@@ -170,8 +191,12 @@ class OrderItemInline(admin.TabularInline):
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
-        return queryset.select_related("product_variant", "product_variant__product") \
-            .order_by("product_variant__product__product_name", "product_variant__variant_code")
+        return (
+            queryset.select_related("product_variant", "product_variant__product")
+            .annotate(_size_order=SIZE_ORDER_CASE)
+            .order_by("product_variant__product__product_name", "_size_order", "product_variant__variant_code")
+        )
+
 
 
 @admin.register(Order)
@@ -264,7 +289,9 @@ class AddProductsForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.fields["product_variants"].queryset = (
             ProductVariant.objects.select_related("product")
-            .order_by("product__product_name", "variant_code")
+            .annotate(_size_order=SIZE_ORDER_CASE)
+            .order_by("product__product_name", "_size_order", "variant_code")
+
         )
 
 
