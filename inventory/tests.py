@@ -402,3 +402,66 @@ class ProductVariantOrderingTests(TestCase):
         expected_order = [code for code, _ in ProductVariant.SIZE_CHOICES if code in ["S", "M"]]
         self.assertEqual(ordered, expected_order)
 
+
+class OrderItemInlineTests(TestCase):
+    def test_inline_queryset_orders_by_product_and_size(self):
+        from inventory.admin import OrderItemInline
+        from django.contrib.admin.sites import AdminSite
+        from django.test import RequestFactory
+        from django.contrib.auth.models import User
+
+        prod_a = Product.objects.create(product_id="PA", product_name="Aprod")
+        prod_b = Product.objects.create(product_id="PB", product_name="Bprod")
+
+        var_a_s = ProductVariant.objects.create(
+            product=prod_a,
+            variant_code="AS",
+            size="S",
+            primary_color="#000000",
+        )
+        var_a_m = ProductVariant.objects.create(
+            product=prod_a,
+            variant_code="AM",
+            size="M",
+            primary_color="#000000",
+        )
+        var_b_s = ProductVariant.objects.create(
+            product=prod_b,
+            variant_code="BS",
+            size="S",
+            primary_color="#000000",
+        )
+
+        order = Order.objects.create(invoice_id="INV1", order_date=date.today())
+        OrderItem.objects.create(
+            order=order,
+            product_variant=var_a_m,
+            quantity=1,
+            item_cost_price=0,
+            date_expected=date.today(),
+        )
+        OrderItem.objects.create(
+            order=order,
+            product_variant=var_a_s,
+            quantity=1,
+            item_cost_price=0,
+            date_expected=date.today(),
+        )
+        OrderItem.objects.create(
+            order=order,
+            product_variant=var_b_s,
+            quantity=1,
+            item_cost_price=0,
+            date_expected=date.today(),
+        )
+
+        inline = OrderItemInline(OrderItem, admin_site=AdminSite())
+        request = RequestFactory().get("/")
+        request.user = User.objects.create_superuser("admin", "a@example.com", "p")
+        items = list(inline.get_queryset(request))
+        sizes = [item.product_variant.size for item in items]
+        products = [item.product_variant.product.product_name for item in items]
+
+        self.assertEqual(products, ["Aprod", "Aprod", "Bprod"])
+        self.assertEqual(sizes, ["S", "M", "S"])
+

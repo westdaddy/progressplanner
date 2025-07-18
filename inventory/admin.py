@@ -25,15 +25,17 @@ import logging
 logger = logging.getLogger(__name__)
 from django.utils.safestring import mark_safe
 
-# Build a Case expression to order variants according to SIZE_CHOICES.
-SIZE_ORDER_CASE = Case(
-    *[
-        When(size=code, then=Value(idx))
-        for idx, (code, _label) in enumerate(ProductVariant.SIZE_CHOICES)
-    ],
-    default=Value(len(ProductVariant.SIZE_CHOICES)),
-    output_field=IntegerField(),
-)
+
+def get_size_order_case(field_name="size"):
+    """Return a Case expression ordering by size based on SIZE_CHOICES."""
+    return Case(
+        *[
+            When(**{field_name: code}, then=Value(idx))
+            for idx, (code, _label) in enumerate(ProductVariant.SIZE_CHOICES)
+        ],
+        default=Value(len(ProductVariant.SIZE_CHOICES)),
+        output_field=IntegerField(),
+    )
 
 
 
@@ -81,7 +83,10 @@ class ProductVariantInline(admin.TabularInline):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.annotate(_size_order=SIZE_ORDER_CASE).order_by("_size_order", "variant_code")
+        return qs.annotate(_size_order=get_size_order_case()).order_by(
+            "_size_order",
+            "variant_code",
+        )
 
 
 
@@ -125,7 +130,11 @@ class ProductVariantAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.annotate(_size_order=SIZE_ORDER_CASE).order_by("_size_order", "variant_code")
+        return qs.annotate(_size_order=get_size_order_case()).order_by(
+            "_size_order",
+            "variant_code",
+        )
+
 
 
 @admin.register(Sale)
@@ -193,8 +202,12 @@ class OrderItemInline(admin.TabularInline):
         queryset = super().get_queryset(request)
         return (
             queryset.select_related("product_variant", "product_variant__product")
-            .annotate(_size_order=SIZE_ORDER_CASE)
-            .order_by("product_variant__product__product_name", "_size_order", "product_variant__variant_code")
+            .annotate(_size_order=get_size_order_case("product_variant__size"))
+            .order_by(
+                "product_variant__product__product_name",
+                "_size_order",
+                "product_variant__variant_code",
+            )
         )
 
 
@@ -289,7 +302,7 @@ class AddProductsForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.fields["product_variants"].queryset = (
             ProductVariant.objects.select_related("product")
-            .annotate(_size_order=SIZE_ORDER_CASE)
+            .annotate(_size_order=get_size_order_case())
             .order_by("product__product_name", "_size_order", "variant_code")
 
         )
