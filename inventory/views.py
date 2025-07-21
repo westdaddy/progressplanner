@@ -649,6 +649,24 @@ def product_list(request):
 
     products = list(products_qs)
 
+    # Default ordering: by style, then type, then age
+    STYLE_ORDER = {
+        code: idx for idx, (code, _) in enumerate(PRODUCT_STYLE_CHOICES)
+    }
+    TYPE_ORDER = {
+        code: idx for idx, (code, _) in enumerate(PRODUCT_TYPE_CHOICES)
+    }
+    AGE_ORDER = {code: idx for idx, (code, _) in enumerate(PRODUCT_AGE_CHOICES)}
+
+    products.sort(
+        key=lambda p: (
+            STYLE_ORDER.get(p.style, len(STYLE_ORDER)),
+            TYPE_ORDER.get(p.type, len(TYPE_ORDER)),
+            AGE_ORDER.get(p.age, len(AGE_ORDER)),
+            p.product_id,
+        )
+    )
+
     # ─── Compute per‐product stats ───────────────────────────────────────────────
     SIZE_ORDER = {
         code: idx for idx, (code, _) in enumerate(ProductVariant.SIZE_CHOICES)
