@@ -44,9 +44,9 @@ table#restock tr#totals {
           <p><strong>Total Sold:</strong> {{ total_qty }} units (¥{{ total_value|floatformat:"0" }})</p>
           <p><strong>Category Avg Speed:</strong> {{ category_avg_speed }} / month</p>
           <p>
-            <strong>Size Avg Speeds:</strong>
+            <strong>Size Avg Speeds:</strong><br/>
             {% for sz, val in size_avg_speed_map.items %}
-              {{ sz }}: {{ val }}{% if not forloop.last %}, {% endif %}
+              {{ sz }}: {{ val }}{% if not forloop.last %}<br/> {% endif %}
             {% endfor %} / month
           </p>
 

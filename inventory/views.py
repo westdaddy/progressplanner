@@ -940,7 +940,7 @@ def product_detail(request, product_id):
         cache.set(health_key, health, cache_ttl)
 
     # ——— ACTUAL DATA FOR INVENTORY CHART ————————
-    twelve_months_ago = today - relativedelta(months=12)
+    twelve_months_ago = today - relativedelta(months=18)
     snaps = (
         InventorySnapshot.objects.filter(
             product_variant__product=product, date__gte=twelve_months_ago
@@ -997,7 +997,7 @@ def product_detail(request, product_id):
     cursor = last_snapshot_date.replace(day=1)
     forecast_data = [{"x": cursor.isoformat(), "y": sum(initial.values())}]
 
-    for i in range(1, 13):
+    for i in range(1, 18):
         cursor = cursor + relativedelta(months=1)
         # subtract sales
         for code, speed in speeds.items():
