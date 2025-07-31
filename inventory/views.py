@@ -227,6 +227,40 @@ def home(request):
         )["total"]
         or 0
     )
+    on_order_on_paper_value = (
+        incoming.aggregate(
+            total=Sum(
+                ExpressionWrapper(
+                    F("quantity") * F("product_variant__product__retail_price"),
+                    output_field=DecimalField(),
+                )
+            )
+        )["total"]
+        or 0
+    )
+
+    on_order_variants = (
+        ProductVariant.objects.filter(order_items__in=incoming)
+        .annotate(
+            latest_inventory=Coalesce(
+                Sum(
+                    Case(
+                        When(
+                            order_items__date_expected__gte=today,
+                            order_items__date_arrived__isnull=True,
+                            then=F("order_items__quantity"),
+                        ),
+                        default=Value(0),
+                        output_field=IntegerField(),
+                    )
+                ),
+                Value(0),
+            )
+        )
+    )
+    estimated_on_order_sales_value = calculate_estimated_inventory_sales_value(
+        on_order_variants, _simplify_type
+    )
 
     context = {
         # Summary cards
@@ -248,6 +282,8 @@ def home(request):
         "inventory_value": inventory_value,
         "on_order_count": on_order_count,
         "on_order_value": on_order_value,
+        "on_order_on_paper_value": on_order_on_paper_value,
+        "estimated_on_order_sales_value": estimated_on_order_sales_value,
     }
 
     # Compute estimated sales‐value of stock
