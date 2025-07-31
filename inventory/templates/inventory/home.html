@@ -276,7 +276,9 @@
         <div class="card-content white-text center-align">
           <span class="pink-text text-darken-4" style="font-size: 1.1rem; font-weight: 600;">On Order</span>
           <h5 style="margin: 0px; font-weight: 500;">{{ on_order_count }} items</h5>
-          <span class="details pink-text text-darken-2">cost value ¥{{ on_order_value|floatformat:0 }}</span>
+          <span class="details pink-text text-darken-2">cost value ¥{{ on_order_value|floatformat:0 }}</span><br/>
+          <span class="details green-text text-darken-2">on paper value ¥{{ on_order_on_paper_value|floatformat:0 }}</span><br/>
+          <span class="details teal-text text-darken-2">estimated sales value ¥{{ estimated_on_order_sales_value|floatformat:0 }}</span>
 
         </div>
 
