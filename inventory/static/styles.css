@@ -472,3 +472,12 @@ label.hide {
   font-weight: bold;
   pointer-events: none;
 }
+
+/* arrows for month navigation */
+.month-arrow {
+  color: #555;
+  padding: 4px;
+}
+@media (hover: hover) {
+  .month-arrow:hover { color: #000; }
+}

@@ -37,7 +37,7 @@ from django.db.models import (
     DateField,
 )
 from django.db.models.functions import Coalesce
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.db.models.functions import TruncMonth
 
 from .models import (
@@ -148,6 +148,7 @@ def home(request):
         monthly_sales_last_year.append(float(rev_last))
 
     last_month_name = first_day_previous.strftime("%B %Y")
+    current_month_slug = first_day_previous.strftime("%Y-%m")
 
     # — Summary card totals —
     total_sales = (
@@ -277,6 +278,7 @@ def home(request):
         "category_labels": json.dumps(ordered_labels),
         "category_values": json.dumps(ordered_values),
         "category_colors": json.dumps(ordered_colors),
+        "current_month_slug": current_month_slug,
         # Inventory overview
         "inventory_count": inventory_count,
         "inventory_value": inventory_value,
@@ -303,6 +305,55 @@ def home(request):
     context["restock_alerts"] = get_restock_alerts()
 
     return render(request, "inventory/home.html", context)
+
+
+def sales_data(request):
+    """Return sales summary and donut chart data for a specific month."""
+    try:
+        year = int(request.GET.get("year"))
+        month = int(request.GET.get("month"))
+        target_date = date(year, month, 1)
+    except (TypeError, ValueError):
+        return JsonResponse({"error": "Invalid parameters"}, status=400)
+
+    end_of_month = (target_date + relativedelta(months=1)) - timedelta(days=1)
+    sales_qs = Sale.objects.filter(date__range=(target_date, end_of_month))
+
+    category_totals = defaultdict(int)
+    for sale in sales_qs.select_related("variant__product"):
+        if sale.variant:
+            cat = _simplify_type(sale.variant.product.type)
+            category_totals[cat] += sale.sold_quantity or 0
+
+    ordered_labels, ordered_values, ordered_colors = [], [], []
+    for key, color in CATEGORY_COLOR_MAP.items():
+        ordered_labels.append(key)
+        ordered_values.append(category_totals.get(key, 0))
+        ordered_colors.append(color)
+
+    total_sales = (
+        sales_qs.aggregate(total_sold_value=Sum("sold_value"))["total_sold_value"]
+        or 0
+    )
+    total_returns = (
+        sales_qs.aggregate(total_return_value=Sum("return_value"))["total_return_value"]
+        or 0
+    )
+    net_sales = total_sales - total_returns
+
+    data = {
+        "month_label": target_date.strftime("%B %Y"),
+        "current_month_slug": target_date.strftime("%Y-%m"),
+        "total_sales": float(total_sales),
+        "total_returns": float(total_returns),
+        "net_sales": float(net_sales),
+        "total_items_sold": sum(ordered_values),
+        "category_labels": ordered_labels,
+        "category_values": ordered_values,
+        "category_colors": ordered_colors,
+    }
+
+    return JsonResponse(data)
 
 
 def dashboard(request):
