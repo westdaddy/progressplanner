@@ -167,7 +167,7 @@
           <!-- Top: Line Chart with colored background -->
           <div class="card-content cyan darken-2 white-text" style="padding: 0;">
             <div style="padding: 20px;">
-              <span>Sales Revenue - {{ last_month_name }}</span>
+              <span>Sales Revenue - {{ current_month_name }}</span>
               <canvas id="monthlySalesChart" style="width: 100%; height: 250px;"></canvas>
             </div>
           </div>
@@ -187,7 +187,7 @@
 
           <!-- Bottom: White section with donut chart + legend -->
           <div class="card-content white">
-            <h6 id="salesMonthLabel" class="center-align">{{ last_month_name }}</h6>
+            <h6 id="salesMonthLabel" class="center-align">{{ current_month_name }}</h6>
             <div class="row" style="margin: 0;">
 
               <!-- Left: Donut Chart (1/3) -->
@@ -264,14 +264,17 @@
 
 
     <!-- INVENTORY SECTION -->
-    <div class="col s12 m6 l6">
-      <div class="card teal lighten-2 z-depth-1">
-        <div class="card-content white-text center-align">
-          <span class="teal-text text-darken-4" style="font-size: 1.1rem; font-weight: 600;">Inventory</span>
-          <h5 style="margin: 0px; font-weight: 500;">{{ inventory_count }} items</h5>
-          <span class="details teal-text text-darken-2">cost value ¥{{ inventory_value|floatformat:0 }}</span><br/>
-          <span class="details green-text text-darken-2">on paper value ¥{{ on_paper_value|floatformat:0 }}</span><br/>
-          <span class="details pink-text text-darken-2">estimated sales value ¥{{ estimated_inventory_sales_value|floatformat:0 }}</span>
+    <p id="snapshotWarning" class="red-text center-align" style="{% if not snapshot_warning %}display:none;{% endif %}">
+      Inventory snapshot from <span id="snapshotDate">{{ snapshot_date }}</span> may not reflect end-of-month.
+    </p>
+      <div class="col s12 m6 l6">
+        <div class="card teal lighten-2 z-depth-1">
+          <div class="card-content white-text center-align">
+            <span class="teal-text text-darken-4" style="font-size: 1.1rem; font-weight: 600;">Inventory</span>
+            <h5 id="inventoryCount" style="margin: 0px; font-weight: 500;">{{ inventory_count }} items</h5>
+            <span id="inventoryValue" class="details teal-text text-darken-2">cost value ¥{{ inventory_value|floatformat:0 }}</span><br/>
+            <span id="onPaperValue" class="details green-text text-darken-2">on paper value ¥{{ on_paper_value|floatformat:0 }}</span><br/>
+            <span id="estimatedInventorySalesValue" class="details pink-text text-darken-2">estimated sales value ¥{{ estimated_inventory_sales_value|floatformat:0 }}</span>
         </div>
         <div class="teal darken-1 center-align" style="padding: 8px;">
           <a href="{% url 'inventory_snapshots' %}"
@@ -285,29 +288,29 @@
       </div>
     </div>
 
-    <div class="col s12 m6 l6">
-      <div class="card pink lighten-2 z-depth-1">
+      <div class="col s12 m6 l6">
+        <div class="card pink lighten-2 z-depth-1">
 
-        <div class="card-content white-text center-align">
-          <span class="pink-text text-darken-4" style="font-size: 1.1rem; font-weight: 600;">On Order</span>
-          <h5 style="margin: 0px; font-weight: 500;">{{ on_order_count }} items</h5>
-          <span class="details pink-text text-darken-2">cost value ¥{{ on_order_value|floatformat:0 }}</span><br/>
-          <span class="details green-text text-darken-2">on paper value ¥{{ on_order_on_paper_value|floatformat:0 }}</span><br/>
-          <span class="details teal-text text-darken-2">estimated sales value ¥{{ estimated_on_order_sales_value|floatformat:0 }}</span>
+          <div class="card-content white-text center-align">
+            <span class="pink-text text-darken-4" style="font-size: 1.1rem; font-weight: 600;">On Order</span>
+            <h5 id="onOrderCount" style="margin: 0px; font-weight: 500;">{{ on_order_count }} items</h5>
+            <span id="onOrderValue" class="details pink-text text-darken-2">cost value ¥{{ on_order_value|floatformat:0 }}</span><br/>
+            <span id="onOrderPaperValue" class="details green-text text-darken-2">on paper value ¥{{ on_order_on_paper_value|floatformat:0 }}</span><br/>
+            <span id="estimatedOnOrderSalesValue" class="details teal-text text-darken-2">estimated sales value ¥{{ estimated_on_order_sales_value|floatformat:0 }}</span>
+
+          </div>
+
+          <div class="pink darken-1 center-align" style="padding: 8px;">
+            <a href="{% url 'order_list' %}"
+               class="white-text"
+               style="font-weight:500;">
+              View Orders
+            </a>
+          </div>
+
 
         </div>
-
-        <div class="pink darken-1 center-align" style="padding: 8px;">
-          <a href="{% url 'order_list' %}"
-             class="white-text"
-             style="font-weight:500;">
-            View Orders
-          </a>
-        </div>
-
-
       </div>
-    </div>
 
   </div>
 </div>
@@ -446,10 +449,31 @@ document.addEventListener("DOMContentLoaded", function () {
     donutChart.update();
   }
 
+  function updateInventorySection(data) {
+    document.getElementById('inventoryCount').textContent = data.inventory_count + ' items';
+    document.getElementById('inventoryValue').textContent = 'cost value ¥' + Math.round(data.inventory_value).toLocaleString();
+    document.getElementById('onPaperValue').textContent = 'on paper value ¥' + Math.round(data.on_paper_value).toLocaleString();
+    document.getElementById('estimatedInventorySalesValue').textContent = 'estimated sales value ¥' + Math.round(data.estimated_inventory_sales_value).toLocaleString();
+
+    document.getElementById('onOrderCount').textContent = data.on_order_count + ' items';
+    document.getElementById('onOrderValue').textContent = 'cost value ¥' + Math.round(data.on_order_value).toLocaleString();
+    document.getElementById('onOrderPaperValue').textContent = 'on paper value ¥' + Math.round(data.on_order_on_paper_value).toLocaleString();
+    document.getElementById('estimatedOnOrderSalesValue').textContent = 'estimated sales value ¥' + Math.round(data.estimated_on_order_sales_value).toLocaleString();
+
+    const warn = document.getElementById('snapshotWarning');
+    const dateEl = document.getElementById('snapshotDate');
+    if (data.snapshot_warning) {
+      warn.style.display = 'block';
+      dateEl.textContent = data.snapshot_date;
+    } else {
+      warn.style.display = 'none';
+    }
+  }
+
   function fetchMonth(y, m) {
     fetch(`/sales-data/?year=${y}&month=${m}`)
       .then(r => r.json())
-      .then(d => { currentMonth = d.current_month_slug; updateSalesSection(d); });
+      .then(d => { currentMonth = d.current_month_slug; updateSalesSection(d); updateInventorySection(d); });
   }
 
   function adjustMonth(off) {

@@ -465,3 +465,58 @@ class OrderItemInlineTests(TestCase):
         self.assertEqual(products, ["Aprod", "Aprod", "Bprod"])
         self.assertEqual(sizes, ["S", "M", "S"])
 
+
+class SalesDataInventoryTests(TestCase):
+    def setUp(self):
+        self.product = Product.objects.create(
+            product_id="P100", product_name="Prod100", retail_price=10
+        )
+        self.variant = ProductVariant.objects.create(
+            product=self.product, variant_code="V100", primary_color="#000000"
+        )
+
+    def test_snapshot_warning_when_far_from_month_end(self):
+        InventorySnapshot.objects.create(
+            product_variant=self.variant,
+            date=date(2024, 3, 25),
+            inventory_count=10,
+        )
+        url = reverse("sales_data")
+        res = self.client.get(url, {"year": 2024, "month": 3})
+        data = res.json()
+        self.assertEqual(data["inventory_count"], 10)
+        self.assertTrue(data["snapshot_warning"])
+        self.assertEqual(data["snapshot_date"], "2024-03-25")
+
+    def test_on_order_calculation(self):
+        # snapshot near month end to avoid warning
+        InventorySnapshot.objects.create(
+            product_variant=self.variant,
+            date=date(2024, 4, 1),
+            inventory_count=8,
+        )
+        order1 = Order.objects.create(order_date=date(2024, 3, 10))
+        OrderItem.objects.create(
+            order=order1,
+            product_variant=self.variant,
+            quantity=5,
+            item_cost_price=1,
+            date_expected=date(2024, 3, 20),
+            date_arrived=date(2024, 4, 5),
+        )
+        order2 = Order.objects.create(order_date=date(2024, 3, 5))
+        OrderItem.objects.create(
+            order=order2,
+            product_variant=self.variant,
+            quantity=3,
+            item_cost_price=1,
+            date_expected=date(2024, 3, 15),
+            date_arrived=date(2024, 3, 20),
+        )
+        url = reverse("sales_data")
+        res = self.client.get(url, {"year": 2024, "month": 3})
+        data = res.json()
+        self.assertEqual(data["on_order_count"], 5)
+        self.assertFalse(data["snapshot_warning"])
+        self.assertEqual(data["snapshot_date"], "2024-04-01")
+

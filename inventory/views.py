@@ -95,21 +95,172 @@ def _simplify_type(type_code):
     return "other"
 
 
+def _get_monthly_inventory_data(end_of_month: date) -> dict:
+    """Return inventory and on-order stats as of the given month end.
+
+    Finds the InventorySnapshot closest to ``end_of_month`` (searching both
+    before and after) and computes aggregate inventory metrics using that
+    snapshot date. Also calculates quantities that were still on order on the
+    specified date. Returns a dictionary containing the various totals along
+    with ``snapshot_warning`` and ``snapshot_date``.
+    """
+
+    # Locate the snapshot date nearest to the month end
+    before = (
+        InventorySnapshot.objects.filter(date__lte=end_of_month)
+        .order_by("-date")
+        .values_list("date", flat=True)
+        .first()
+    )
+    after = (
+        InventorySnapshot.objects.filter(date__gt=end_of_month)
+        .order_by("date")
+        .values_list("date", flat=True)
+        .first()
+    )
+    if before and after:
+        if (end_of_month - before) <= (after - end_of_month):
+            snapshot_date = before
+        else:
+            snapshot_date = after
+    else:
+        snapshot_date = before or after
+
+    snapshot_warning = False
+    if snapshot_date:
+        diff_days = abs((snapshot_date - end_of_month).days)
+        snapshot_warning = diff_days > 2
+    else:
+        snapshot_warning = True
+
+    snapshot_qs = (
+        InventorySnapshot.objects.filter(date=snapshot_date)
+        if snapshot_date
+        else InventorySnapshot.objects.none()
+    )
+
+    # Annotate variants with inventory from the snapshot and unit cost
+    latest_cost_qs = (
+        OrderItem.objects.filter(
+            product_variant=OuterRef("pk"), date_arrived__isnull=False
+        )
+        .order_by("-date_arrived")
+        .values("item_cost_price")[:1]
+    )
+    avg_cost_qs = (
+        OrderItem.objects.filter(product_variant=OuterRef("pk"))
+        .values("product_variant")
+        .annotate(avg_price=Avg("item_cost_price"))
+        .values("avg_price")[:1]
+    )
+
+    variants = ProductVariant.objects.annotate(
+        latest_inventory=Coalesce(
+            Subquery(
+                snapshot_qs.filter(product_variant=OuterRef("pk")).values(
+                    "inventory_count"
+                )[:1]
+            ),
+            Value(0),
+        ),
+        unit_cost=Coalesce(
+            Subquery(latest_cost_qs),
+            Subquery(avg_cost_qs),
+            ExpressionWrapper(
+                F("product__retail_price") * Value(Decimal("0.5")),
+                output_field=DecimalField(),
+            ),
+            Value(Decimal("0")),
+        ),
+    )
+
+    inventory_count = (
+        variants.aggregate(total=Sum("latest_inventory"))["total"] or 0
+    )
+    inventory_value = (
+        variants.aggregate(
+            total=Sum(
+                ExpressionWrapper(
+                    F("latest_inventory") * F("unit_cost"),
+                    output_field=DecimalField(),
+                )
+            )
+        )["total"]
+        or 0
+    )
+
+    on_paper_value = calculate_on_paper_inventory_value(variants)
+    estimated_inventory_sales_value = calculate_estimated_inventory_sales_value(
+        variants, _simplify_type
+    )
+
+    # Orders still open at end_of_month
+    incoming = OrderItem.objects.filter(order__order_date__lte=end_of_month).filter(
+        Q(date_arrived__isnull=True) | Q(date_arrived__gt=end_of_month)
+    )
+    on_order_count = incoming.aggregate(total=Sum("quantity"))["total"] or 0
+    on_order_value = (
+        incoming.aggregate(
+            total=Sum(
+                ExpressionWrapper(
+                    F("quantity") * F("item_cost_price"),
+                    output_field=DecimalField(),
+                )
+            )
+        )["total"]
+        or 0
+    )
+    on_order_on_paper_value = (
+        incoming.aggregate(
+            total=Sum(
+                ExpressionWrapper(
+                    F("quantity")
+                    * F("product_variant__product__retail_price"),
+                    output_field=DecimalField(),
+                )
+            )
+        )["total"]
+        or 0
+    )
+
+    on_order_variants = (
+        ProductVariant.objects.filter(order_items__in=incoming)
+        .annotate(latest_inventory=Coalesce(Sum("order_items__quantity"), Value(0)))
+        .distinct()
+    )
+    estimated_on_order_sales_value = calculate_estimated_inventory_sales_value(
+        on_order_variants, _simplify_type
+    )
+
+    return {
+        "inventory_count": inventory_count,
+        "inventory_value": inventory_value,
+        "on_paper_value": on_paper_value,
+        "estimated_inventory_sales_value": estimated_inventory_sales_value,
+        "on_order_count": on_order_count,
+        "on_order_value": on_order_value,
+        "on_order_on_paper_value": on_order_on_paper_value,
+        "estimated_on_order_sales_value": estimated_on_order_sales_value,
+        "snapshot_warning": snapshot_warning,
+        "snapshot_date": snapshot_date.isoformat() if snapshot_date else None,
+    }
+
+
+
 def home(request):
-    # — Determining last month's date range —
+    # — Determining current month's date range —
     today = date.today()
     first_day_current = today.replace(day=1)
-    last_day_previous = first_day_current - timedelta(days=1)
-    first_day_previous = last_day_previous.replace(day=1)
+    end_of_month = (first_day_current + relativedelta(months=1)) - timedelta(days=1)
 
-    # — Sales for last month —
-    sales_last_month = Sale.objects.filter(
-        date__range=(first_day_previous, last_day_previous)
+    # — Sales for current month —
+    sales_this_month = Sale.objects.filter(
+        date__range=(first_day_current, end_of_month)
     )
 
     # — Aggregate item counts by category —
     category_totals = defaultdict(int)
-    for sale in sales_last_month.select_related("variant__product"):
+    for sale in sales_this_month.select_related("variant__product"):
         if sale.variant:
             cat = _simplify_type(sale.variant.product.type)
             category_totals[cat] += sale.sold_quantity or 0
@@ -147,121 +298,22 @@ def home(request):
         monthly_sales.append(float(rev))
         monthly_sales_last_year.append(float(rev_last))
 
-    last_month_name = first_day_previous.strftime("%B %Y")
-    current_month_slug = first_day_previous.strftime("%Y-%m")
+    current_month_name = first_day_current.strftime("%B %Y")
+    current_month_slug = first_day_current.strftime("%Y-%m")
 
     # — Summary card totals —
     total_sales = (
-        sales_last_month.aggregate(total_sold_value=Sum("sold_value"))[
-            "total_sold_value"
-        ]
+        sales_this_month.aggregate(total_sold_value=Sum("sold_value"))["total_sold_value"]
         or 0
     )
     total_returns = (
-        sales_last_month.aggregate(total_return_value=Sum("return_value"))[
-            "total_return_value"
-        ]
+        sales_this_month.aggregate(total_return_value=Sum("return_value"))["total_return_value"]
         or 0
     )
     net_sales = total_sales - total_returns
 
-    # — Inventory Overview Stats —
-    latest_cost_qs = (
-        OrderItem.objects.filter(
-            product_variant=OuterRef("pk"), date_arrived__isnull=False
-        )
-        .order_by("-date_arrived")
-        .values("item_cost_price")[:1]
-    )
-
-    avg_cost_qs = (
-        OrderItem.objects.filter(product_variant=OuterRef("pk"))
-        .values("product_variant")
-        .annotate(avg_price=Avg("item_cost_price"))
-        .values("avg_price")[:1]
-    )
-
-    variants = ProductVariant.objects.annotate(
-        latest_inventory=Coalesce(
-            Subquery(
-                InventorySnapshot.objects.filter(product_variant=OuterRef("pk"))
-                .order_by("-date")
-                .values("inventory_count")[:1]
-            ),
-            Value(0),
-        ),
-        unit_cost=Coalesce(
-            Subquery(latest_cost_qs),  # 1) real last-arrived cost
-            Subquery(avg_cost_qs),  # 2) historical average cost
-            ExpressionWrapper(
-                F("product__retail_price")
-                * Value(Decimal("0.5")),  # 3) half of retail price
-                output_field=DecimalField(),
-            ),
-            Value(Decimal("0.00")),
-        ),
-    )
-
-    inventory_count = variants.aggregate(total=Sum("latest_inventory"))["total"] or 0
-    inventory_value = (
-        variants.aggregate(
-            total=Sum(
-                ExpressionWrapper(
-                    F("latest_inventory") * F("unit_cost"), output_field=DecimalField()
-                )
-            )
-        )["total"]
-        or 0
-    )
-
-    incoming = OrderItem.objects.filter(
-        date_expected__gte=today, date_arrived__isnull=True
-    )
-    on_order_count = incoming.aggregate(total=Sum("quantity"))["total"] or 0
-    on_order_value = (
-        incoming.aggregate(
-            total=Sum(
-                ExpressionWrapper(
-                    F("quantity") * F("item_cost_price"), output_field=DecimalField()
-                )
-            )
-        )["total"]
-        or 0
-    )
-    on_order_on_paper_value = (
-        incoming.aggregate(
-            total=Sum(
-                ExpressionWrapper(
-                    F("quantity") * F("product_variant__product__retail_price"),
-                    output_field=DecimalField(),
-                )
-            )
-        )["total"]
-        or 0
-    )
-
-    on_order_variants = (
-        ProductVariant.objects.filter(order_items__in=incoming)
-        .annotate(
-            latest_inventory=Coalesce(
-                Sum(
-                    Case(
-                        When(
-                            order_items__date_expected__gte=today,
-                            order_items__date_arrived__isnull=True,
-                            then=F("order_items__quantity"),
-                        ),
-                        default=Value(0),
-                        output_field=IntegerField(),
-                    )
-                ),
-                Value(0),
-            )
-        )
-    )
-    estimated_on_order_sales_value = calculate_estimated_inventory_sales_value(
-        on_order_variants, _simplify_type
-    )
+    # — Inventory Overview Stats for the month —
+    inv_data = _get_monthly_inventory_data(end_of_month)
 
     context = {
         # Summary cards
@@ -269,7 +321,7 @@ def home(request):
         "total_returns": total_returns,
         "net_sales": net_sales,
         # Revenue chart data
-        "last_month_name": last_month_name,
+        "current_month_name": current_month_name,
         "monthly_labels": json.dumps(monthly_labels),
         "monthly_sales": json.dumps(monthly_sales),
         "monthly_sales_last_year": json.dumps(monthly_sales_last_year),
@@ -280,32 +332,13 @@ def home(request):
         "category_colors": json.dumps(ordered_colors),
         "current_month_slug": current_month_slug,
         # Inventory overview
-        "inventory_count": inventory_count,
-        "inventory_value": inventory_value,
-        "on_order_count": on_order_count,
-        "on_order_value": on_order_value,
-        "on_order_on_paper_value": on_order_on_paper_value,
-        "estimated_on_order_sales_value": estimated_on_order_sales_value,
+        **inv_data,
     }
-
-    # Compute estimated sales‐value of stock
-    est_sales_value = calculate_estimated_inventory_sales_value(
-        variants, _simplify_type  # pass your bucket-func in
-    )
-    on_paper_value = calculate_on_paper_inventory_value(variants)
-
-    context.update(
-        {
-            "estimated_inventory_sales_value": est_sales_value,
-            "on_paper_value": on_paper_value,
-        }
-    )
 
     # Gather detailed restock alerts
     context["restock_alerts"] = get_restock_alerts()
 
     return render(request, "inventory/home.html", context)
-
 
 def sales_data(request):
     """Return sales summary and donut chart data for a specific month."""
@@ -341,6 +374,8 @@ def sales_data(request):
     )
     net_sales = total_sales - total_returns
 
+    inv_data = _get_monthly_inventory_data(end_of_month)
+
     data = {
         "month_label": target_date.strftime("%B %Y"),
         "current_month_slug": target_date.strftime("%Y-%m"),
@@ -351,6 +386,19 @@ def sales_data(request):
         "category_labels": ordered_labels,
         "category_values": ordered_values,
         "category_colors": ordered_colors,
+        # Inventory overview
+        "inventory_count": inv_data["inventory_count"],
+        "inventory_value": float(inv_data["inventory_value"]),
+        "on_paper_value": float(inv_data["on_paper_value"]),
+        "estimated_inventory_sales_value": float(inv_data["estimated_inventory_sales_value"]),
+        "on_order_count": inv_data["on_order_count"],
+        "on_order_value": float(inv_data["on_order_value"]),
+        "on_order_on_paper_value": float(inv_data["on_order_on_paper_value"]),
+        "estimated_on_order_sales_value": float(
+            inv_data["estimated_on_order_sales_value"]
+        ),
+        "snapshot_warning": inv_data["snapshot_warning"],
+        "snapshot_date": inv_data["snapshot_date"],
     }
 
     return JsonResponse(data)
