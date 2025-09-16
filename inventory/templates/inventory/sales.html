@@ -64,6 +64,7 @@
               <h6 class="grey-text text-darken-2" style="margin-top: 0;">Pricing breakdown</h6>
               <p class="grey-text text-darken-1" style="margin-top: 0;">
                 Counts and totals exclude returned sales and lines with zero quantity.
+
               </p>
               <table class="striped" style="margin-top: 1rem;">
                 <thead>
@@ -73,6 +74,7 @@
                     <th>Retail value</th>
                     <th>Actual value</th>
                     <th>% of sales</th>
+
                   </tr>
                 </thead>
                 <tbody>
@@ -83,6 +85,7 @@
                       <td>¥{{ bucket.retail_value|floatformat:2 }}</td>
                       <td>¥{{ bucket.actual_value|floatformat:2 }}</td>
                       <td>{{ bucket.actual_percentage|floatformat:2 }}%</td>
+
                     </tr>
                   {% endfor %}
                 </tbody>
@@ -99,12 +102,14 @@
                         &mdash;
                       {% endif %}
                     </th>
+
                   </tr>
                 </tfoot>
               </table>
             </div>
           </div>
         </div>
+
       {% else %}
         <p class="grey-text text-darken-1" style="margin-top: 1.5rem;">
           No sales recorded for this date range.

@@ -1391,6 +1391,7 @@ def sales(request):
     default_start = default_end.replace(day=1)
 
     def _parse_date(param: Optional[str]):
+
         if not param:
             return None
         try:
@@ -1434,6 +1435,7 @@ def sales(request):
             "retail_value": Decimal("0"),
             "actual_value": Decimal("0"),
         }
+
         for key, label in price_categories
     }
 
@@ -1497,6 +1499,7 @@ def sales(request):
         for bucket in price_breakdown:
             bucket["actual_percentage"] = Decimal("0")
 
+
     context = {
         "start_date": start_date,
         "end_date": end_date,
@@ -1507,6 +1510,7 @@ def sales(request):
         "pricing_total_items": int(pricing_total_items),
         "pricing_total_retail_value": pricing_total_retail_value,
         "pricing_total_actual_value": pricing_total_actual_value,
+
     }
 
     return render(request, "inventory/sales.html", context)

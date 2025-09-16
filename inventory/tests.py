@@ -1,5 +1,6 @@
 from datetime import date, timedelta, datetime
 from decimal import Decimal
+
 from unittest.mock import patch
 from dateutil.relativedelta import relativedelta
 from django.test import TestCase, RequestFactory
@@ -737,3 +738,4 @@ class SalesViewTests(TestCase):
         self.assertEqual(
             response.context["pricing_total_actual_value"], Decimal("682")
         )
+
