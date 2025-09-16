@@ -1421,12 +1421,65 @@ def sales(request):
         total_items=Coalesce(Sum(net_quantity_expr), Value(0, output_field=IntegerField()))
     )["total_items"] or 0
 
+    price_categories = [
+        ("full_price", "Full price"),
+        ("small_discount", "Small discount"),
+        ("discount", "Discount"),
+        ("wholesale", "Wholesale"),
+        ("gifted", "Gifted"),
+    ]
+    price_buckets = {
+        key: {"label": label, "sales_count": 0, "items_count": 0}
+        for key, label in price_categories
+    }
+
+    tolerance = Decimal("0.005")
+    small_discount_threshold = Decimal("0.05")
+    discount_threshold = Decimal("0.20")
+
+    eligible_sales = (
+        sales_qs.filter(Q(return_quantity__isnull=True) | Q(return_quantity=0))
+        .filter(sold_quantity__gt=0)
+        .select_related("variant__product")
+    )
+
+    for sale in eligible_sales:
+        retail_price = sale.variant.product.retail_price or Decimal("0")
+        actual_price = (sale.sold_value or Decimal("0")) / sale.sold_quantity
+
+        if actual_price == 0:
+            bucket_key = "gifted"
+        elif retail_price <= 0:
+            bucket_key = "full_price"
+        else:
+            diff_ratio = (retail_price - actual_price) / retail_price
+            if diff_ratio <= tolerance:
+                bucket_key = "full_price"
+            elif diff_ratio < small_discount_threshold:
+                bucket_key = "small_discount"
+            elif diff_ratio < discount_threshold:
+                bucket_key = "discount"
+            else:
+                bucket_key = "wholesale"
+
+        price_buckets[bucket_key]["sales_count"] += 1
+        price_buckets[bucket_key]["items_count"] += sale.sold_quantity
+
+    price_breakdown = [price_buckets[key] for key, _ in price_categories]
+    pricing_total_sales = sum(bucket["sales_count"] for bucket in price_breakdown)
+    pricing_total_items = sum(bucket["items_count"] for bucket in price_breakdown)
+
+
     context = {
         "start_date": start_date,
         "end_date": end_date,
         "orders_count": orders_count,
         "items_count": int(total_items),
         "has_sales_data": orders_count > 0,
+        "price_breakdown": price_breakdown,
+        "pricing_total_sales": int(pricing_total_sales),
+        "pricing_total_items": int(pricing_total_items),
+
     }
 
     return render(request, "inventory/sales.html", context)

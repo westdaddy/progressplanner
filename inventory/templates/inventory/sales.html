@@ -57,6 +57,43 @@
             </div>
           </div>
         </div>
+
+        <div class="row" style="margin-top: 1.5rem;">
+          <div class="col s12">
+            <div class="card-panel blue lighten-5" style="margin: 0;">
+              <h6 class="grey-text text-darken-2" style="margin-top: 0;">Pricing breakdown</h6>
+              <p class="grey-text text-darken-1" style="margin-top: 0;">
+                Counts exclude returned sales and lines with zero quantity.
+              </p>
+              <table class="striped" style="margin-top: 1rem;">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Sale lines</th>
+                    <th>Items sold</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for bucket in price_breakdown %}
+                    <tr>
+                      <td>{{ bucket.label }}</td>
+                      <td>{{ bucket.sales_count }}</td>
+                      <td>{{ bucket.items_count }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th>Total</th>
+                    <th>{{ pricing_total_sales }}</th>
+                    <th>{{ pricing_total_items }}</th>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+
       {% else %}
         <p class="grey-text text-darken-1" style="margin-top: 1.5rem;">
           No sales recorded for this date range.

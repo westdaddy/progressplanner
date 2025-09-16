@@ -1,4 +1,6 @@
 from datetime import date, timedelta, datetime
+from decimal import Decimal
+
 from unittest.mock import patch
 from dateutil.relativedelta import relativedelta
 from django.test import TestCase, RequestFactory
@@ -616,3 +618,76 @@ class SalesViewTests(TestCase):
         self.assertEqual(response.context["orders_count"], 1)
         self.assertEqual(response.context["items_count"], 5)
         self.assertTrue(response.context["has_sales_data"])
+
+    def test_price_breakdown_categorises_sales(self):
+        self.product.retail_price = Decimal("100")
+        self.product.save(update_fields=["retail_price"])
+
+        Sale.objects.create(
+            order_number="F001",
+            date=date(2024, 4, 2),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("100.00"),
+        )
+        Sale.objects.create(
+            order_number="S001",
+            date=date(2024, 4, 5),
+            variant=self.variant,
+            sold_quantity=2,
+            sold_value=Decimal("192.00"),
+        )
+        Sale.objects.create(
+            order_number="D001",
+            date=date(2024, 4, 12),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("90.00"),
+        )
+        Sale.objects.create(
+            order_number="W001",
+            date=date(2024, 4, 18),
+            variant=self.variant,
+            sold_quantity=4,
+            sold_value=Decimal("300.00"),
+        )
+        Sale.objects.create(
+            order_number="G001",
+            date=date(2024, 4, 25),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("0.00"),
+        )
+        # Returned sale should be excluded from breakdown counts
+        Sale.objects.create(
+            order_number="R001",
+            date=date(2024, 4, 27),
+            variant=self.variant,
+            sold_quantity=2,
+            return_quantity=1,
+            sold_value=Decimal("150.00"),
+        )
+
+        with patch("inventory.views.now") as mock_now:
+            mock_now.return_value = timezone.make_aware(datetime(2024, 5, 15))
+            response = self.client.get(reverse("sales"))
+
+        self.assertEqual(response.status_code, 200)
+
+        breakdown = response.context["price_breakdown"]
+        breakdown_by_label = {entry["label"]: entry for entry in breakdown}
+
+        self.assertEqual(breakdown_by_label["Full price"]["sales_count"], 1)
+        self.assertEqual(breakdown_by_label["Full price"]["items_count"], 1)
+        self.assertEqual(breakdown_by_label["Small discount"]["sales_count"], 1)
+        self.assertEqual(breakdown_by_label["Small discount"]["items_count"], 2)
+        self.assertEqual(breakdown_by_label["Discount"]["sales_count"], 1)
+        self.assertEqual(breakdown_by_label["Discount"]["items_count"], 1)
+        self.assertEqual(breakdown_by_label["Wholesale"]["sales_count"], 1)
+        self.assertEqual(breakdown_by_label["Wholesale"]["items_count"], 4)
+        self.assertEqual(breakdown_by_label["Gifted"]["sales_count"], 1)
+        self.assertEqual(breakdown_by_label["Gifted"]["items_count"], 1)
+
+        self.assertEqual(response.context["pricing_total_sales"], 5)
+        self.assertEqual(response.context["pricing_total_items"], 9)
+
