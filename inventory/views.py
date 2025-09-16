@@ -1381,6 +1381,12 @@ def order_detail(request, order_id):
     return render(request, "inventory/order_detail.html", context)
 
 
+def sales(request):
+    """Render the placeholder sales page."""
+
+    return render(request, "inventory/sales.html")
+
+
 # a small helper to keep (date, change) pairs
 Event = namedtuple("Event", ["date", "delta"])
 

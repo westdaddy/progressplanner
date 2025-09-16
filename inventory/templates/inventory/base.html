@@ -36,6 +36,7 @@
         <li class="{% if request.resolver_match.url_name == 'product_list' %}active{% endif %}"><a href="{% url 'product_list' %}">Products</a></li>
         <li class="{% if request.resolver_match.url_name == 'inventory_snapshots' %}active{% endif %}"><a href="{% url 'inventory_snapshots' %}">Inventory</a></li>
         <li class="{% if request.resolver_match.url_name == 'order_list' %}active{% endif %}"><a href="{% url 'order_list' %}">Orders</a></li>
+        <li class="{% if request.resolver_match.url_name == 'sales' %}active{% endif %}"><a href="{% url 'sales' %}">Sales</a></li>
         <li class=""><a href="{% url 'admin:index' %}" class="active">Admin</a></li>
       </ul>
     </div>
