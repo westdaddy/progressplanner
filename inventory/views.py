@@ -15,7 +15,7 @@ from django.core.cache import cache
 logger = logging.getLogger(__name__)
 
 
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 from django.shortcuts import render, get_object_or_404
 from django.db import models
@@ -1429,7 +1429,13 @@ def sales(request):
         ("gifted", "Gifted"),
     ]
     price_buckets = {
-        key: {"label": label, "sales_count": 0, "items_count": 0}
+        key: {
+            "label": label,
+            "items_count": 0,
+            "retail_value": Decimal("0"),
+            "actual_value": Decimal("0"),
+        }
+
         for key, label in price_categories
     }
 
@@ -1462,12 +1468,36 @@ def sales(request):
             else:
                 bucket_key = "wholesale"
 
-        price_buckets[bucket_key]["sales_count"] += 1
         price_buckets[bucket_key]["items_count"] += sale.sold_quantity
 
+        retail_value = retail_price * sale.sold_quantity
+        actual_value = sale.sold_value or Decimal("0")
+
+        price_buckets[bucket_key]["retail_value"] += retail_value
+        price_buckets[bucket_key]["actual_value"] += actual_value
+
     price_breakdown = [price_buckets[key] for key, _ in price_categories]
-    pricing_total_sales = sum(bucket["sales_count"] for bucket in price_breakdown)
     pricing_total_items = sum(bucket["items_count"] for bucket in price_breakdown)
+    pricing_total_retail_value = sum(
+        bucket["retail_value"] for bucket in price_breakdown
+    )
+    pricing_total_actual_value = sum(
+        bucket["actual_value"] for bucket in price_breakdown
+    )
+
+    if pricing_total_actual_value:
+        for bucket in price_breakdown:
+            percentage = (
+                bucket["actual_value"]
+                / pricing_total_actual_value
+                * Decimal("100")
+            )
+            bucket["actual_percentage"] = percentage.quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
+    else:
+        for bucket in price_breakdown:
+            bucket["actual_percentage"] = Decimal("0")
 
 
     context = {
@@ -1477,8 +1507,9 @@ def sales(request):
         "items_count": int(total_items),
         "has_sales_data": orders_count > 0,
         "price_breakdown": price_breakdown,
-        "pricing_total_sales": int(pricing_total_sales),
         "pricing_total_items": int(pricing_total_items),
+        "pricing_total_retail_value": pricing_total_retail_value,
+        "pricing_total_actual_value": pricing_total_actual_value,
 
     }
 

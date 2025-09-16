@@ -677,17 +677,65 @@ class SalesViewTests(TestCase):
         breakdown = response.context["price_breakdown"]
         breakdown_by_label = {entry["label"]: entry for entry in breakdown}
 
-        self.assertEqual(breakdown_by_label["Full price"]["sales_count"], 1)
         self.assertEqual(breakdown_by_label["Full price"]["items_count"], 1)
-        self.assertEqual(breakdown_by_label["Small discount"]["sales_count"], 1)
-        self.assertEqual(breakdown_by_label["Small discount"]["items_count"], 2)
-        self.assertEqual(breakdown_by_label["Discount"]["sales_count"], 1)
-        self.assertEqual(breakdown_by_label["Discount"]["items_count"], 1)
-        self.assertEqual(breakdown_by_label["Wholesale"]["sales_count"], 1)
-        self.assertEqual(breakdown_by_label["Wholesale"]["items_count"], 4)
-        self.assertEqual(breakdown_by_label["Gifted"]["sales_count"], 1)
-        self.assertEqual(breakdown_by_label["Gifted"]["items_count"], 1)
+        self.assertEqual(breakdown_by_label["Full price"]["retail_value"], Decimal("100"))
+        self.assertEqual(
+            breakdown_by_label["Full price"]["actual_value"], Decimal("100")
+        )
+        self.assertEqual(
+            breakdown_by_label["Full price"]["actual_percentage"], Decimal("14.66")
+        )
 
-        self.assertEqual(response.context["pricing_total_sales"], 5)
+        self.assertEqual(breakdown_by_label["Small discount"]["items_count"], 2)
+        self.assertEqual(
+            breakdown_by_label["Small discount"]["retail_value"], Decimal("200")
+        )
+        self.assertEqual(
+            breakdown_by_label["Small discount"]["actual_value"], Decimal("192")
+        )
+        self.assertEqual(
+            breakdown_by_label["Small discount"]["actual_percentage"],
+            Decimal("28.15"),
+        )
+
+        self.assertEqual(breakdown_by_label["Discount"]["items_count"], 1)
+        self.assertEqual(
+            breakdown_by_label["Discount"]["retail_value"], Decimal("100")
+        )
+        self.assertEqual(
+            breakdown_by_label["Discount"]["actual_value"], Decimal("90")
+        )
+        self.assertEqual(
+            breakdown_by_label["Discount"]["actual_percentage"], Decimal("13.20")
+        )
+
+        self.assertEqual(breakdown_by_label["Wholesale"]["items_count"], 4)
+        self.assertEqual(
+            breakdown_by_label["Wholesale"]["retail_value"], Decimal("400")
+        )
+        self.assertEqual(
+            breakdown_by_label["Wholesale"]["actual_value"], Decimal("300")
+        )
+        self.assertEqual(
+            breakdown_by_label["Wholesale"]["actual_percentage"], Decimal("43.99")
+        )
+
+        self.assertEqual(breakdown_by_label["Gifted"]["items_count"], 1)
+        self.assertEqual(
+            breakdown_by_label["Gifted"]["retail_value"], Decimal("100")
+        )
+        self.assertEqual(
+            breakdown_by_label["Gifted"]["actual_value"], Decimal("0")
+        )
+        self.assertEqual(
+            breakdown_by_label["Gifted"]["actual_percentage"], Decimal("0.00")
+        )
+
         self.assertEqual(response.context["pricing_total_items"], 9)
+        self.assertEqual(
+            response.context["pricing_total_retail_value"], Decimal("900")
+        )
+        self.assertEqual(
+            response.context["pricing_total_actual_value"], Decimal("682")
+        )
 

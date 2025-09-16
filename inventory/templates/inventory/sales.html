@@ -63,30 +63,46 @@
             <div class="card-panel blue lighten-5" style="margin: 0;">
               <h6 class="grey-text text-darken-2" style="margin-top: 0;">Pricing breakdown</h6>
               <p class="grey-text text-darken-1" style="margin-top: 0;">
-                Counts exclude returned sales and lines with zero quantity.
+                Counts and totals exclude returned sales and lines with zero quantity.
+
               </p>
               <table class="striped" style="margin-top: 1rem;">
                 <thead>
                   <tr>
                     <th>Category</th>
-                    <th>Sale lines</th>
                     <th>Items sold</th>
+                    <th>Retail value</th>
+                    <th>Actual value</th>
+                    <th>% of sales</th>
+
                   </tr>
                 </thead>
                 <tbody>
                   {% for bucket in price_breakdown %}
                     <tr>
                       <td>{{ bucket.label }}</td>
-                      <td>{{ bucket.sales_count }}</td>
                       <td>{{ bucket.items_count }}</td>
+                      <td>¥{{ bucket.retail_value|floatformat:2 }}</td>
+                      <td>¥{{ bucket.actual_value|floatformat:2 }}</td>
+                      <td>{{ bucket.actual_percentage|floatformat:2 }}%</td>
+
                     </tr>
                   {% endfor %}
                 </tbody>
                 <tfoot>
                   <tr>
                     <th>Total</th>
-                    <th>{{ pricing_total_sales }}</th>
                     <th>{{ pricing_total_items }}</th>
+                    <th>¥{{ pricing_total_retail_value|floatformat:2 }}</th>
+                    <th>¥{{ pricing_total_actual_value|floatformat:2 }}</th>
+                    <th>
+                      {% if pricing_total_actual_value %}
+                        100%
+                      {% else %}
+                        &mdash;
+                      {% endif %}
+                    </th>
+
                   </tr>
                 </tfoot>
               </table>
