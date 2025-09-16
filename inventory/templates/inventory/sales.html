@@ -7,7 +7,109 @@
   <div class="card">
     <div class="card-content">
       <span class="card-title">Sales Overview</span>
-      <p>Sales insights will appear here soon.</p>
+
+      <form method="get" class="row" novalidate>
+        <div class="col s12 m5">
+          <label for="start_date" class="active">Start date</label>
+          <input
+            type="date"
+            id="start_date"
+            name="start_date"
+            value="{{ start_date|date:'Y-m-d' }}"
+            class="browser-default"
+          />
+        </div>
+        <div class="col s12 m5">
+          <label for="end_date" class="active">End date</label>
+          <input
+            type="date"
+            id="end_date"
+            name="end_date"
+            value="{{ end_date|date:'Y-m-d' }}"
+            class="browser-default"
+          />
+        </div>
+        <div class="col s12 m2" style="display: flex; align-items: flex-end;">
+          <button type="submit" class="btn waves-effect waves-light" style="width: 100%;">
+            Update
+          </button>
+        </div>
+      </form>
+
+      <p class="grey-text text-darken-1" style="margin-top: 0.5rem;">
+        Showing sales from {{ start_date|date:"F j, Y" }} to {{ end_date|date:"F j, Y" }}.
+      </p>
+
+      {% if has_sales_data %}
+        <div class="row" style="margin-top: 1.5rem;">
+          <div class="col s12 m6">
+            <div class="card-panel teal lighten-5" style="margin: 0;">
+              <h6 class="grey-text text-darken-2" style="margin-top: 0;">Orders</h6>
+              <p style="font-size: 2.5rem; margin: 0; font-weight: 500;">{{ orders_count }}</p>
+              <p class="grey-text text-darken-1" style="margin-bottom: 0;">Unique order numbers</p>
+            </div>
+          </div>
+          <div class="col s12 m6" style="margin-top: 1rem;">
+            <div class="card-panel amber lighten-5" style="margin: 0;">
+              <h6 class="grey-text text-darken-2" style="margin-top: 0;">Items sold</h6>
+              <p style="font-size: 2.5rem; margin: 0; font-weight: 500;">{{ items_count }}</p>
+              <p class="grey-text text-darken-1" style="margin-bottom: 0;">Net quantity (sales minus returns)</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top: 1.5rem;">
+          <div class="col s12">
+            <div class="card-panel blue lighten-5" style="margin: 0;">
+              <h6 class="grey-text text-darken-2" style="margin-top: 0;">Pricing breakdown</h6>
+              <p class="grey-text text-darken-1" style="margin-top: 0;">
+                Counts and totals exclude returned sales and lines with zero quantity.
+              </p>
+              <table class="striped" style="margin-top: 1rem;">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Items sold</th>
+                    <th>Retail value</th>
+                    <th>Actual value</th>
+                    <th>% of sales</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for bucket in price_breakdown %}
+                    <tr>
+                      <td>{{ bucket.label }}</td>
+                      <td>{{ bucket.items_count }}</td>
+                      <td>¥{{ bucket.retail_value|floatformat:2 }}</td>
+                      <td>¥{{ bucket.actual_value|floatformat:2 }}</td>
+                      <td>{{ bucket.actual_percentage|floatformat:2 }}%</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th>Total</th>
+                    <th>{{ pricing_total_items }}</th>
+                    <th>¥{{ pricing_total_retail_value|floatformat:2 }}</th>
+                    <th>¥{{ pricing_total_actual_value|floatformat:2 }}</th>
+                    <th>
+                      {% if pricing_total_actual_value %}
+                        100%
+                      {% else %}
+                        &mdash;
+                      {% endif %}
+                    </th>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <p class="grey-text text-darken-1" style="margin-top: 1.5rem;">
+          No sales recorded for this date range.
+        </p>
+      {% endif %}
     </div>
   </div>
 </div>

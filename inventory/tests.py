@@ -1,6 +1,9 @@
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
+from decimal import Decimal
+from unittest.mock import patch
 from dateutil.relativedelta import relativedelta
 from django.test import TestCase, RequestFactory
+from django.utils import timezone
 
 from .models import (
     Product,
@@ -520,3 +523,217 @@ class SalesDataInventoryTests(TestCase):
         self.assertFalse(data["snapshot_warning"])
         self.assertEqual(data["snapshot_date"], "2024-04-01")
 
+
+class SalesViewTests(TestCase):
+    def setUp(self):
+        self.product = Product.objects.create(
+            product_id="SP1", product_name="Sales Product", retail_price=10
+        )
+        self.variant = ProductVariant.objects.create(
+            product=self.product,
+            variant_code="SP1-V1",
+            primary_color="#000000",
+        )
+
+    def test_default_last_month_range_and_metrics(self):
+        # Sales in April 2024
+        Sale.objects.create(
+            order_number="A100",
+            date=date(2024, 4, 5),
+            variant=self.variant,
+            sold_quantity=3,
+            return_quantity=1,
+            sold_value=100,
+        )
+        Sale.objects.create(
+            order_number="A100",
+            date=date(2024, 4, 10),
+            variant=self.variant,
+            sold_quantity=2,
+            sold_value=70,
+        )
+        Sale.objects.create(
+            order_number="B200",
+            date=date(2024, 4, 20),
+            variant=self.variant,
+            sold_quantity=5,
+            return_quantity=2,
+            sold_value=120,
+        )
+        # Outside the default range
+        Sale.objects.create(
+            order_number="C300",
+            date=date(2024, 3, 15),
+            variant=self.variant,
+            sold_quantity=4,
+            sold_value=50,
+        )
+
+        with patch("inventory.views.now") as mock_now:
+            mock_now.return_value = timezone.make_aware(datetime(2024, 5, 15))
+            response = self.client.get(reverse("sales"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["start_date"], date(2024, 4, 1))
+        self.assertEqual(response.context["end_date"], date(2024, 4, 30))
+        self.assertEqual(response.context["orders_count"], 2)
+        self.assertEqual(response.context["items_count"], 7)
+        self.assertTrue(response.context["has_sales_data"])
+
+    def test_custom_range_filters_sales(self):
+        Sale.objects.create(
+            order_number="X1",
+            date=date(2024, 1, 5),
+            variant=self.variant,
+            sold_quantity=4,
+            sold_value=80,
+        )
+        Sale.objects.create(
+            order_number="X2",
+            date=date(2024, 2, 10),
+            variant=self.variant,
+            sold_quantity=6,
+            return_quantity=1,
+            sold_value=90,
+        )
+        Sale.objects.create(
+            order_number="X3",
+            date=date(2024, 3, 1),
+            variant=self.variant,
+            sold_quantity=8,
+            sold_value=110,
+        )
+
+        with patch("inventory.views.now") as mock_now:
+            mock_now.return_value = timezone.make_aware(datetime(2024, 4, 10))
+            response = self.client.get(
+                reverse("sales"),
+                {"start_date": "2024-02-28", "end_date": "2024-02-01"},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["start_date"], date(2024, 2, 1))
+        self.assertEqual(response.context["end_date"], date(2024, 2, 28))
+        self.assertEqual(response.context["orders_count"], 1)
+        self.assertEqual(response.context["items_count"], 5)
+        self.assertTrue(response.context["has_sales_data"])
+
+    def test_price_breakdown_categorises_sales(self):
+        self.product.retail_price = Decimal("100")
+        self.product.save(update_fields=["retail_price"])
+
+        Sale.objects.create(
+            order_number="F001",
+            date=date(2024, 4, 2),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("100.00"),
+        )
+        Sale.objects.create(
+            order_number="S001",
+            date=date(2024, 4, 5),
+            variant=self.variant,
+            sold_quantity=2,
+            sold_value=Decimal("192.00"),
+        )
+        Sale.objects.create(
+            order_number="D001",
+            date=date(2024, 4, 12),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("90.00"),
+        )
+        Sale.objects.create(
+            order_number="W001",
+            date=date(2024, 4, 18),
+            variant=self.variant,
+            sold_quantity=4,
+            sold_value=Decimal("300.00"),
+        )
+        Sale.objects.create(
+            order_number="G001",
+            date=date(2024, 4, 25),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("0.00"),
+        )
+        # Returned sale should be excluded from breakdown counts
+        Sale.objects.create(
+            order_number="R001",
+            date=date(2024, 4, 27),
+            variant=self.variant,
+            sold_quantity=2,
+            return_quantity=1,
+            sold_value=Decimal("150.00"),
+        )
+
+        with patch("inventory.views.now") as mock_now:
+            mock_now.return_value = timezone.make_aware(datetime(2024, 5, 15))
+            response = self.client.get(reverse("sales"))
+
+        self.assertEqual(response.status_code, 200)
+
+        breakdown = response.context["price_breakdown"]
+        breakdown_by_label = {entry["label"]: entry for entry in breakdown}
+
+        self.assertEqual(breakdown_by_label["Full price"]["items_count"], 1)
+        self.assertEqual(breakdown_by_label["Full price"]["retail_value"], Decimal("100"))
+        self.assertEqual(
+            breakdown_by_label["Full price"]["actual_value"], Decimal("100")
+        )
+        self.assertEqual(
+            breakdown_by_label["Full price"]["actual_percentage"], Decimal("14.66")
+        )
+
+        self.assertEqual(breakdown_by_label["Small discount"]["items_count"], 2)
+        self.assertEqual(
+            breakdown_by_label["Small discount"]["retail_value"], Decimal("200")
+        )
+        self.assertEqual(
+            breakdown_by_label["Small discount"]["actual_value"], Decimal("192")
+        )
+        self.assertEqual(
+            breakdown_by_label["Small discount"]["actual_percentage"],
+            Decimal("28.15"),
+        )
+
+        self.assertEqual(breakdown_by_label["Discount"]["items_count"], 1)
+        self.assertEqual(
+            breakdown_by_label["Discount"]["retail_value"], Decimal("100")
+        )
+        self.assertEqual(
+            breakdown_by_label["Discount"]["actual_value"], Decimal("90")
+        )
+        self.assertEqual(
+            breakdown_by_label["Discount"]["actual_percentage"], Decimal("13.20")
+        )
+
+        self.assertEqual(breakdown_by_label["Wholesale"]["items_count"], 4)
+        self.assertEqual(
+            breakdown_by_label["Wholesale"]["retail_value"], Decimal("400")
+        )
+        self.assertEqual(
+            breakdown_by_label["Wholesale"]["actual_value"], Decimal("300")
+        )
+        self.assertEqual(
+            breakdown_by_label["Wholesale"]["actual_percentage"], Decimal("43.99")
+        )
+
+        self.assertEqual(breakdown_by_label["Gifted"]["items_count"], 1)
+        self.assertEqual(
+            breakdown_by_label["Gifted"]["retail_value"], Decimal("100")
+        )
+        self.assertEqual(
+            breakdown_by_label["Gifted"]["actual_value"], Decimal("0")
+        )
+        self.assertEqual(
+            breakdown_by_label["Gifted"]["actual_percentage"], Decimal("0.00")
+        )
+
+        self.assertEqual(response.context["pricing_total_items"], 9)
+        self.assertEqual(
+            response.context["pricing_total_retail_value"], Decimal("900")
+        )
+        self.assertEqual(
+            response.context["pricing_total_actual_value"], Decimal("682")
+        )
