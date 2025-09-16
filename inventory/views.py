@@ -1,4 +1,5 @@
 from datetime import datetime, date, timedelta
+from typing import Optional
 from django.utils.timezone import now
 from dateutil.relativedelta import relativedelta
 import json
@@ -1382,9 +1383,52 @@ def order_detail(request, order_id):
 
 
 def sales(request):
-    """Render the placeholder sales page."""
+    """Render the sales page with basic order metrics for a date range."""
 
-    return render(request, "inventory/sales.html")
+    today = now().date()
+    first_day_this_month = today.replace(day=1)
+    default_end = first_day_this_month - timedelta(days=1)
+    default_start = default_end.replace(day=1)
+
+    def _parse_date(param: Optional[str]):
+        if not param:
+            return None
+        try:
+            return datetime.strptime(param, "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            return None
+
+    requested_start = _parse_date(request.GET.get("start_date"))
+    requested_end = _parse_date(request.GET.get("end_date"))
+
+    start_date = requested_start or default_start
+    end_date = requested_end or default_end
+
+    if start_date > end_date:
+        start_date, end_date = end_date, start_date
+
+    sales_qs = Sale.objects.filter(date__range=(start_date, end_date))
+
+    orders_count = sales_qs.values("order_number").distinct().count()
+
+    net_quantity_expr = ExpressionWrapper(
+        F("sold_quantity")
+        - Coalesce(F("return_quantity"), Value(0, output_field=IntegerField())),
+        output_field=IntegerField(),
+    )
+    total_items = sales_qs.aggregate(
+        total_items=Coalesce(Sum(net_quantity_expr), Value(0, output_field=IntegerField()))
+    )["total_items"] or 0
+
+    context = {
+        "start_date": start_date,
+        "end_date": end_date,
+        "orders_count": orders_count,
+        "items_count": int(total_items),
+        "has_sales_data": orders_count > 0,
+    }
+
+    return render(request, "inventory/sales.html", context)
 
 
 # a small helper to keep (date, change) pairs
