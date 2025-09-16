@@ -1391,6 +1391,7 @@ def sales(request):
     default_start = default_end.replace(day=1)
 
     def _parse_date(param: Optional[str]):
+
         if not param:
             return None
         try:
@@ -1468,6 +1469,7 @@ def sales(request):
     pricing_total_sales = sum(bucket["sales_count"] for bucket in price_breakdown)
     pricing_total_items = sum(bucket["items_count"] for bucket in price_breakdown)
 
+
     context = {
         "start_date": start_date,
         "end_date": end_date,
@@ -1477,6 +1479,7 @@ def sales(request):
         "price_breakdown": price_breakdown,
         "pricing_total_sales": int(pricing_total_sales),
         "pricing_total_items": int(pricing_total_items),
+
     }
 
     return render(request, "inventory/sales.html", context)

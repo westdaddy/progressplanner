@@ -1,5 +1,6 @@
 from datetime import date, timedelta, datetime
 from decimal import Decimal
+
 from unittest.mock import patch
 from dateutil.relativedelta import relativedelta
 from django.test import TestCase, RequestFactory
@@ -689,3 +690,4 @@ class SalesViewTests(TestCase):
 
         self.assertEqual(response.context["pricing_total_sales"], 5)
         self.assertEqual(response.context["pricing_total_items"], 9)
+
