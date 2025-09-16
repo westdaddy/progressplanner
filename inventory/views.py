@@ -1391,6 +1391,7 @@ def sales(request):
     default_start = default_end.replace(day=1)
 
     def _parse_date(param: Optional[str]):
+
         if not param:
             return None
         try:
