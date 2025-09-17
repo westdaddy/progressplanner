@@ -1481,6 +1481,14 @@ def sales(request):
         bucket["actual_value"] for bucket in price_breakdown
     )
 
+    value_aggregates = sales_qs.aggregate(
+        gross_sales=Sum("sold_value"),
+        returns_total=Sum("return_value"),
+    )
+    gross_sales_value = value_aggregates["gross_sales"] or Decimal("0")
+    returns_total_value = value_aggregates["returns_total"] or Decimal("0")
+    net_sales_value = gross_sales_value - returns_total_value
+
     if pricing_total_actual_value:
         for bucket in price_breakdown:
             percentage = (
@@ -1506,6 +1514,8 @@ def sales(request):
         "pricing_total_items": int(pricing_total_items),
         "pricing_total_retail_value": pricing_total_retail_value,
         "pricing_total_actual_value": pricing_total_actual_value,
+        "gross_sales_value": gross_sales_value,
+        "net_sales_value": net_sales_value,
 
     }
 
