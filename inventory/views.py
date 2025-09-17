@@ -68,7 +68,6 @@ from .utils import (
     calculate_dynamic_product_score,
     compute_product_health,
     get_low_stock_products,
-    get_restock_alerts,
     calculate_variant_sales_speed,
     get_variant_speed_map,
     get_category_speed_stats,
@@ -335,9 +334,6 @@ def home(request):
         # Inventory overview
         **inv_data,
     }
-
-    # Gather detailed restock alerts
-    context["restock_alerts"] = get_restock_alerts()
 
     return render(request, "inventory/home.html", context)
 
