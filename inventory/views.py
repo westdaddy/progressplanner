@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 from decimal import Decimal, ROUND_HALF_UP
 
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.db import models
 from django.db.models import (
     Count,
@@ -40,6 +40,8 @@ from django.db.models import (
 from django.db.models.functions import Coalesce
 from django.http import HttpResponse, JsonResponse, Http404
 from django.db.models.functions import TruncMonth
+from django.urls import reverse
+from django.views.decorators.http import require_POST
 
 from .models import (
     Product,
@@ -50,6 +52,7 @@ from .models import (
     OrderItem,
     Group,
     Series,
+    Referrer,
     PRODUCT_TYPE_CHOICES,
     PRODUCT_STYLE_CHOICES,
     PRODUCT_AGE_CHOICES,
@@ -1565,7 +1568,7 @@ def sales_bucket_detail(request, bucket_key: str):
 
     sales_qs = (
         Sale.objects.filter(date__range=(start_date, end_date))
-        .select_related("variant__product")
+        .select_related("variant__product", "referrer")
     )
 
     eligible_sales = (
@@ -1600,12 +1603,15 @@ def sales_bucket_detail(request, bucket_key: str):
                 "total_value": Decimal("0"),
                 "returns_value": Decimal("0"),
                 "retail_total": Decimal("0"),
+                "referrer": sale.referrer,
                 "items": [],
             }
             orders_map[sale.order_number] = order_info
         else:
             if sale.date and sale.date > order_info["date"]:
                 order_info["date"] = sale.date
+            if not order_info.get("referrer") and sale.referrer:
+                order_info["referrer"] = sale.referrer
 
         retail_price = sale.variant.product.retail_price or Decimal("0")
         sold_quantity = sale.sold_quantity or 0
@@ -1659,9 +1665,39 @@ def sales_bucket_detail(request, bucket_key: str):
             "returns_value": total_returns_value,
         },
         "date_querystring": date_querystring,
+        "referrers": Referrer.objects.order_by("name"),
     }
 
     return render(request, "inventory/sales_bucket_detail.html", context)
+
+
+@require_POST
+def assign_order_referrer(request, bucket_key: str):
+    bucket_key = (bucket_key or "").lower()
+    if bucket_key not in PRICE_CATEGORY_LABELS:
+        raise Http404("Unknown pricing bucket")
+
+    order_number = (request.POST.get("order_number") or "").strip()
+    if not order_number:
+        raise Http404("Missing order number")
+
+    sales_qs = Sale.objects.filter(order_number=order_number)
+    if not sales_qs.exists():
+        raise Http404("Order not found")
+
+    referrer_id = request.POST.get("referrer_id")
+    referrer = None
+    if referrer_id:
+        referrer = get_object_or_404(Referrer, pk=referrer_id)
+
+    sales_qs.update(referrer=referrer)
+
+    redirect_url = reverse("sales_bucket_detail", args=[bucket_key])
+    date_querystring = request.POST.get("date_querystring")
+    if date_querystring:
+        redirect_url = f"{redirect_url}?{date_querystring}"
+
+    return redirect(redirect_url)
 
 
 # a small helper to keep (date, change) pairs
