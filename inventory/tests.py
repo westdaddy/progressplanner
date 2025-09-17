@@ -746,3 +746,28 @@ class SalesViewTests(TestCase):
             response.context["pricing_total_actual_value"], Decimal("682")
         )
 
+    def test_refunded_sales_not_categorised_as_gifted(self):
+        self.product.retail_price = Decimal("100")
+        self.product.save(update_fields=["retail_price"])
+
+        Sale.objects.create(
+            order_number="R100",
+            date=date(2024, 4, 15),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("0.00"),
+            return_quantity=0,
+            return_value=Decimal("100.00"),
+        )
+
+        with patch("inventory.views.now") as mock_now:
+            mock_now.return_value = timezone.make_aware(datetime(2024, 5, 15))
+            response = self.client.get(reverse("sales"))
+
+        self.assertEqual(response.status_code, 200)
+        breakdown = response.context["price_breakdown"]
+        breakdown_by_label = {entry["label"]: entry for entry in breakdown}
+
+        self.assertEqual(breakdown_by_label["Gifted"]["items_count"], 0)
+        self.assertEqual(breakdown_by_label["Full price"]["items_count"], 1)
+

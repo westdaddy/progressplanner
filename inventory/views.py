@@ -1,5 +1,5 @@
 from datetime import datetime, date, timedelta
-from typing import Optional
+from typing import Optional, Tuple
 from django.utils.timezone import now
 from dateutil.relativedelta import relativedelta
 import json
@@ -38,7 +38,7 @@ from django.db.models import (
     DateField,
 )
 from django.db.models.functions import Coalesce
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, Http404
 from django.db.models.functions import TruncMonth
 
 from .models import (
@@ -81,6 +81,75 @@ CATEGORY_COLOR_MAP = {
     "dk": "#fb8c00",  # Orange
     "other": "#9e9e9e",  # Grey
 }
+
+PRICE_CATEGORIES = [
+    ("full_price", "Full price"),
+    ("small_discount", "Small discount"),
+    ("discount", "Discount"),
+    ("wholesale", "Wholesale"),
+    ("gifted", "Gifted"),
+]
+
+PRICE_CATEGORY_LABELS = {key: label for key, label in PRICE_CATEGORIES}
+
+PRICE_BUCKET_TOLERANCE = Decimal("0.005")
+SMALL_DISCOUNT_THRESHOLD = Decimal("0.05")
+DISCOUNT_THRESHOLD = Decimal("0.20")
+
+
+def _parse_sales_date(param: Optional[str]) -> Optional[date]:
+    if not param:
+        return None
+    try:
+        return datetime.strptime(param, "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        return None
+
+
+def _get_sales_date_range(request) -> Tuple[date, date]:
+    today = now().date()
+    first_day_this_month = today.replace(day=1)
+    default_end = first_day_this_month - timedelta(days=1)
+    default_start = default_end.replace(day=1)
+
+    start_date = _parse_sales_date(request.GET.get("start_date")) or default_start
+    end_date = _parse_sales_date(request.GET.get("end_date")) or default_end
+
+    if start_date > end_date:
+        start_date, end_date = end_date, start_date
+
+    return start_date, end_date
+
+
+def _determine_price_bucket(sale) -> Optional[str]:
+    sold_quantity = sale.sold_quantity or 0
+    if sold_quantity <= 0:
+        return None
+
+    retail_price = sale.variant.product.retail_price or Decimal("0")
+    actual_total = sale.sold_value or Decimal("0")
+
+    if not actual_total:
+        refund_value = sale.return_value or Decimal("0")
+        if refund_value:
+            actual_total = abs(refund_value)
+
+    actual_price = actual_total / sold_quantity if sold_quantity else Decimal("0")
+
+    if actual_price == 0:
+        return "gifted"
+    if retail_price <= 0:
+        return "full_price"
+
+    diff_ratio = (retail_price - actual_price) / retail_price
+
+    if diff_ratio <= PRICE_BUCKET_TOLERANCE:
+        return "full_price"
+    if diff_ratio < SMALL_DISCOUNT_THRESHOLD:
+        return "small_discount"
+    if diff_ratio < DISCOUNT_THRESHOLD:
+        return "discount"
+    return "wholesale"
 
 
 # — Helper to bucket types into our four categories —
@@ -1381,28 +1450,7 @@ def order_detail(request, order_id):
 def sales(request):
     """Render the sales page with basic order metrics for a date range."""
 
-    today = now().date()
-    first_day_this_month = today.replace(day=1)
-    default_end = first_day_this_month - timedelta(days=1)
-    default_start = default_end.replace(day=1)
-
-    def _parse_date(param: Optional[str]):
-
-        if not param:
-            return None
-        try:
-            return datetime.strptime(param, "%Y-%m-%d").date()
-        except (ValueError, TypeError):
-            return None
-
-    requested_start = _parse_date(request.GET.get("start_date"))
-    requested_end = _parse_date(request.GET.get("end_date"))
-
-    start_date = requested_start or default_start
-    end_date = requested_end or default_end
-
-    if start_date > end_date:
-        start_date, end_date = end_date, start_date
+    start_date, end_date = _get_sales_date_range(request)
 
     sales_qs = Sale.objects.filter(date__range=(start_date, end_date))
 
@@ -1413,31 +1461,25 @@ def sales(request):
         - Coalesce(F("return_quantity"), Value(0, output_field=IntegerField())),
         output_field=IntegerField(),
     )
-    total_items = sales_qs.aggregate(
-        total_items=Coalesce(Sum(net_quantity_expr), Value(0, output_field=IntegerField()))
-    )["total_items"] or 0
+    total_items = (
+        sales_qs.aggregate(
+            total_items=Coalesce(
+                Sum(net_quantity_expr), Value(0, output_field=IntegerField())
+            )
+        )["total_items"]
+        or 0
+    )
 
-    price_categories = [
-        ("full_price", "Full price"),
-        ("small_discount", "Small discount"),
-        ("discount", "Discount"),
-        ("wholesale", "Wholesale"),
-        ("gifted", "Gifted"),
-    ]
     price_buckets = {
         key: {
+            "key": key,
             "label": label,
             "items_count": 0,
             "retail_value": Decimal("0"),
             "actual_value": Decimal("0"),
         }
-
-        for key, label in price_categories
+        for key, label in PRICE_CATEGORIES
     }
-
-    tolerance = Decimal("0.005")
-    small_discount_threshold = Decimal("0.05")
-    discount_threshold = Decimal("0.20")
 
     eligible_sales = (
         sales_qs.filter(Q(return_quantity__isnull=True) | Q(return_quantity=0))
@@ -1446,33 +1488,18 @@ def sales(request):
     )
 
     for sale in eligible_sales:
+        bucket_key = _determine_price_bucket(sale)
+        if not bucket_key:
+            continue
+
         retail_price = sale.variant.product.retail_price or Decimal("0")
-        actual_price = (sale.sold_value or Decimal("0")) / sale.sold_quantity
-
-        if actual_price == 0:
-            bucket_key = "gifted"
-        elif retail_price <= 0:
-            bucket_key = "full_price"
-        else:
-            diff_ratio = (retail_price - actual_price) / retail_price
-            if diff_ratio <= tolerance:
-                bucket_key = "full_price"
-            elif diff_ratio < small_discount_threshold:
-                bucket_key = "small_discount"
-            elif diff_ratio < discount_threshold:
-                bucket_key = "discount"
-            else:
-                bucket_key = "wholesale"
-
-        price_buckets[bucket_key]["items_count"] += sale.sold_quantity
-
-        retail_value = retail_price * sale.sold_quantity
         actual_value = sale.sold_value or Decimal("0")
 
-        price_buckets[bucket_key]["retail_value"] += retail_value
+        price_buckets[bucket_key]["items_count"] += sale.sold_quantity
+        price_buckets[bucket_key]["retail_value"] += retail_price * sale.sold_quantity
         price_buckets[bucket_key]["actual_value"] += actual_value
 
-    price_breakdown = [price_buckets[key] for key, _ in price_categories]
+    price_breakdown = [price_buckets[key] for key, _ in PRICE_CATEGORIES]
     pricing_total_items = sum(bucket["items_count"] for bucket in price_breakdown)
     pricing_total_retail_value = sum(
         bucket["retail_value"] for bucket in price_breakdown
@@ -1503,6 +1530,12 @@ def sales(request):
         for bucket in price_breakdown:
             bucket["actual_percentage"] = Decimal("0")
 
+    date_querystring = urlencode(
+        {
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+        }
+    )
 
     context = {
         "start_date": start_date,
@@ -1516,10 +1549,118 @@ def sales(request):
         "pricing_total_actual_value": pricing_total_actual_value,
         "gross_sales_value": gross_sales_value,
         "net_sales_value": net_sales_value,
-
+        "date_querystring": date_querystring,
     }
 
     return render(request, "inventory/sales.html", context)
+
+
+def sales_bucket_detail(request, bucket_key: str):
+    bucket_key = (bucket_key or "").lower()
+    if bucket_key not in PRICE_CATEGORY_LABELS:
+        raise Http404("Unknown pricing bucket")
+
+    start_date, end_date = _get_sales_date_range(request)
+
+    sales_qs = (
+        Sale.objects.filter(date__range=(start_date, end_date))
+        .select_related("variant__product")
+    )
+
+    eligible_sales = (
+        sales_qs.filter(Q(return_quantity__isnull=True) | Q(return_quantity=0))
+        .filter(sold_quantity__gt=0)
+    )
+
+    relevant_sales = []
+    for sale in eligible_sales:
+        bucket = _determine_price_bucket(sale)
+        if bucket == bucket_key:
+            relevant_sales.append(sale)
+
+    sorted_sales = sorted(
+        relevant_sales,
+        key=lambda s: (s.date, s.order_number, s.sale_id),
+        reverse=True,
+    )
+
+    orders_map = OrderedDict()
+    total_items = 0
+    total_retail_value = Decimal("0")
+    total_actual_value = Decimal("0")
+    total_returns_value = Decimal("0")
+
+    for sale in sorted_sales:
+        order_info = orders_map.get(sale.order_number)
+        if not order_info:
+            order_info = {
+                "order_number": sale.order_number,
+                "date": sale.date,
+                "total_value": Decimal("0"),
+                "returns_value": Decimal("0"),
+                "retail_total": Decimal("0"),
+                "items": [],
+            }
+            orders_map[sale.order_number] = order_info
+        else:
+            if sale.date and sale.date > order_info["date"]:
+                order_info["date"] = sale.date
+
+        retail_price = sale.variant.product.retail_price or Decimal("0")
+        sold_quantity = sale.sold_quantity or 0
+        actual_total = sale.sold_value or Decimal("0")
+        return_value = sale.return_value or Decimal("0")
+
+        actual_unit_price = (
+            actual_total / sold_quantity if sold_quantity else Decimal("0")
+        )
+
+        order_info["items"].append(
+            {
+                "sale": sale,
+                "retail_price": retail_price,
+                "actual_unit_price": actual_unit_price,
+                "actual_total": actual_total,
+                "sold_quantity": sold_quantity,
+                "returned": bool(sale.return_quantity),
+            }
+        )
+        order_info["total_value"] += actual_total
+        order_info["returns_value"] += return_value
+        order_info["retail_total"] += retail_price * sold_quantity
+
+        total_items += sold_quantity
+        total_retail_value += retail_price * sold_quantity
+        total_actual_value += actual_total
+        total_returns_value += return_value
+
+    orders = list(orders_map.values())
+    orders.sort(key=lambda o: (o["date"], o["order_number"]), reverse=True)
+
+    date_querystring = urlencode(
+        {
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+        }
+    )
+
+    context = {
+        "bucket_key": bucket_key,
+        "bucket_label": PRICE_CATEGORY_LABELS[bucket_key],
+        "start_date": start_date,
+        "end_date": end_date,
+        "orders": orders,
+        "orders_count": len(orders),
+        "bucket_totals": {
+            "items_count": total_items,
+            "retail_value": total_retail_value,
+            "actual_value": total_actual_value,
+            "returns_value": total_returns_value,
+        },
+        "date_querystring": date_querystring,
+    }
+
+    return render(request, "inventory/sales_bucket_detail.html", context)
 
 
 # a small helper to keep (date, change) pairs

@@ -1,0 +1,170 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}{{ bucket_label }} Sales{% endblock %}
+
+{% block content %}
+<div class="section">
+  <div class="card">
+    <div class="card-content">
+      <span class="card-title">{{ bucket_label }} sales</span>
+      <p class="grey-text text-darken-1" style="margin-bottom: 1.5rem;">
+        Showing sales from {{ start_date|date:"F j, Y" }} to {{ end_date|date:"F j, Y" }}.
+      </p>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin-bottom: 1.5rem;">
+        <a
+          href="{% url 'sales' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
+          class="btn-flat waves-effect"
+        >
+          ← Back to sales overview
+        </a>
+        <div class="grey lighten-4" style="padding: 0.75rem 1rem; border-radius: 6px;">
+          <strong>{{ orders_count }}</strong> order{{ orders_count|pluralize }} ·
+          <strong>{{ bucket_totals.items_count }}</strong> item{{ bucket_totals.items_count|pluralize }} ·
+          Retail: ¥{{ bucket_totals.retail_value|floatformat:2 }} ·
+          Actual: ¥{{ bucket_totals.actual_value|floatformat:2 }}
+          {% if bucket_totals.returns_value %}
+            · <span class="red-text text-darken-1">Returns: ¥{{ bucket_totals.returns_value|floatformat:2 }}</span>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if orders %}
+        {% for order in orders %}
+          <div class="order-block z-depth-1">
+            <div class="order-header">
+              <div>
+                <span class="order-number">Order {{ order.order_number }}</span>
+                <span class="order-date">· {{ order.date|date:"F j, Y" }}</span>
+              </div>
+              <div class="order-values">
+                <span class="order-total">Actual total: ¥{{ order.total_value|floatformat:2 }}</span>
+                {% if order.returns_value %}
+                  <span class="order-returns red-text text-darken-1">Returns: ¥{{ order.returns_value|floatformat:2 }}</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <table class="highlight order-items-table">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Retail price</th>
+                  <th>Actual price paid</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in order.items %}
+                  <tr>
+                    <td>
+                      <div class="order-item-product">
+                        {% if item.sale.variant.product.product_photo %}
+                          <img
+                            src="{{ item.sale.variant.product.product_photo.url }}"
+                            alt="{{ item.sale.variant.product.product_name }}"
+                          />
+                        {% else %}
+                          <div class="order-item-placeholder">No photo</div>
+                        {% endif %}
+                        <div>
+                          <div class="variant-code">{{ item.sale.variant.variant_code }}</div>
+                          <div class="quantity grey-text text-darken-1">Qty: {{ item.sold_quantity }}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      ¥{{ item.retail_price|floatformat:2 }}
+                      <div class="grey-text text-darken-1">per item</div>
+                    </td>
+                    <td>
+                      ¥{{ item.actual_unit_price|floatformat:2 }}
+                      <div class="grey-text text-darken-1">
+                        Total: ¥{{ item.actual_total|floatformat:2 }}
+                      </div>
+                    </td>
+                    <td>
+                      {% if item.returned %}
+                        <span class="red-text text-darken-1">Returned</span>
+                      {% else %}
+                        &mdash;
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="grey-text text-darken-1" style="margin-top: 2rem;">
+          No sales matched this pricing group for the selected date range.
+        </p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<style>
+  .order-block {
+    background-color: #ffffff;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    padding: 1.25rem;
+  }
+
+  .order-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .order-number {
+    font-weight: 600;
+  }
+
+  .order-values {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .order-items-table th,
+  .order-items-table td {
+    vertical-align: middle;
+  }
+
+  .order-item-product {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .order-item-product img {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 6px;
+  }
+
+  .order-item-placeholder {
+    align-items: center;
+    background-color: #e0e0e0;
+    border-radius: 6px;
+    color: #616161;
+    display: flex;
+    font-size: 0.8rem;
+    height: 64px;
+    justify-content: center;
+    width: 64px;
+  }
+
+  .variant-code {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+</style>
+{% endblock %}
