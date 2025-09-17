@@ -128,6 +128,13 @@ def _determine_price_bucket(sale) -> Optional[str]:
 
     retail_price = sale.variant.product.retail_price or Decimal("0")
     actual_total = sale.sold_value or Decimal("0")
+
+    if not actual_total:
+        refund_value = sale.return_value or Decimal("0")
+        if refund_value:
+            actual_total = abs(refund_value)
+
+
     actual_price = actual_total / sold_quantity if sold_quantity else Decimal("0")
 
     if actual_price == 0:
