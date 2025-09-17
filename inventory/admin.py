@@ -9,6 +9,7 @@ from .models import (
     Group,
     Series,
     RestockSetting,
+    Referrer,
 )
 
 from datetime import datetime, timedelta, date
@@ -147,6 +148,7 @@ class SaleAdmin(admin.ModelAdmin):
         "return_quantity",
         "sold_value",
         "return_value",
+        "referrer",
     )
     list_filter = (
         "sale_id",
@@ -156,6 +158,7 @@ class SaleAdmin(admin.ModelAdmin):
         "return_quantity",
         "sold_value",
         "return_value",
+        "referrer",
     )  # Add filters for easy management
 
 
@@ -182,6 +185,12 @@ class SeriesAdmin(admin.ModelAdmin):
 @admin.register(RestockSetting)
 class RestockSettingAdmin(admin.ModelAdmin):
     filter_horizontal = ("groups",)
+
+
+@admin.register(Referrer)
+class ReferrerAdmin(admin.ModelAdmin):
+    list_display = ("name",)
+    search_fields = ("name",)
 
 
 class OrderItemInline(admin.TabularInline):

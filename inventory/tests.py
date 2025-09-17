@@ -15,6 +15,7 @@ from .models import (
     OrderItem,
     Group,
     RestockSetting,
+    Referrer,
 )
 from django.urls import reverse
 from .utils import (
@@ -770,4 +771,70 @@ class SalesViewTests(TestCase):
 
         self.assertEqual(breakdown_by_label["Gifted"]["items_count"], 0)
         self.assertEqual(breakdown_by_label["Full price"]["items_count"], 1)
+
+    def test_assign_order_referrer_updates_all_sales(self):
+        referrer = Referrer.objects.create(name="Coach Nova")
+        sale_one = Sale.objects.create(
+            order_number="REF100",
+            date=date(2024, 4, 5),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("10.00"),
+        )
+        sale_two = Sale.objects.create(
+            order_number="REF100",
+            date=date(2024, 4, 6),
+            variant=self.variant,
+            sold_quantity=2,
+            sold_value=Decimal("20.00"),
+        )
+        other_sale = Sale.objects.create(
+            order_number="OTHER",
+            date=date(2024, 4, 6),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("10.00"),
+        )
+
+        redirect_with_dates = self.client.post(
+            reverse("assign_order_referrer", args=["full_price"]),
+            {
+                "order_number": "REF100",
+                "referrer_id": str(referrer.id),
+                "date_querystring": "start_date=2024-04-01&end_date=2024-04-30",
+            },
+        )
+
+        expected_redirect = (
+            f"{reverse('sales_bucket_detail', args=['full_price'])}?"
+            "start_date=2024-04-01&end_date=2024-04-30"
+        )
+        self.assertEqual(redirect_with_dates.status_code, 302)
+        self.assertEqual(redirect_with_dates["Location"], expected_redirect)
+
+        sale_one.refresh_from_db()
+        sale_two.refresh_from_db()
+        other_sale.refresh_from_db()
+
+        self.assertEqual(sale_one.referrer, referrer)
+        self.assertEqual(sale_two.referrer, referrer)
+        self.assertIsNone(other_sale.referrer)
+
+        redirect_clear = self.client.post(
+            reverse("assign_order_referrer", args=["full_price"]),
+            {
+                "order_number": "REF100",
+                "referrer_id": "",
+            },
+        )
+        self.assertEqual(
+            redirect_clear["Location"],
+            reverse("sales_bucket_detail", args=["full_price"]),
+        )
+
+        sale_one.refresh_from_db()
+        sale_two.refresh_from_db()
+
+        self.assertIsNone(sale_one.referrer)
+        self.assertIsNone(sale_two.referrer)
 
