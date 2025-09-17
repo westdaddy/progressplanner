@@ -134,6 +134,7 @@ def _determine_price_bucket(sale) -> Optional[str]:
         if refund_value:
             actual_total = abs(refund_value)
 
+
     actual_price = actual_total / sold_quantity if sold_quantity else Decimal("0")
 
     if actual_price == 0:
