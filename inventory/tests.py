@@ -545,6 +545,7 @@ class SalesViewTests(TestCase):
             sold_quantity=3,
             return_quantity=1,
             sold_value=100,
+            return_value=30,
         )
         Sale.objects.create(
             order_number="A100",
@@ -560,6 +561,7 @@ class SalesViewTests(TestCase):
             sold_quantity=5,
             return_quantity=2,
             sold_value=120,
+            return_value=40,
         )
         # Outside the default range
         Sale.objects.create(
@@ -579,6 +581,8 @@ class SalesViewTests(TestCase):
         self.assertEqual(response.context["end_date"], date(2024, 4, 30))
         self.assertEqual(response.context["orders_count"], 2)
         self.assertEqual(response.context["items_count"], 7)
+        self.assertEqual(response.context["gross_sales_value"], Decimal("290"))
+        self.assertEqual(response.context["net_sales_value"], Decimal("220"))
         self.assertTrue(response.context["has_sales_data"])
 
     def test_custom_range_filters_sales(self):
@@ -596,6 +600,7 @@ class SalesViewTests(TestCase):
             sold_quantity=6,
             return_quantity=1,
             sold_value=90,
+            return_value=15,
         )
         Sale.objects.create(
             order_number="X3",
@@ -617,6 +622,8 @@ class SalesViewTests(TestCase):
         self.assertEqual(response.context["end_date"], date(2024, 2, 28))
         self.assertEqual(response.context["orders_count"], 1)
         self.assertEqual(response.context["items_count"], 5)
+        self.assertEqual(response.context["gross_sales_value"], Decimal("90"))
+        self.assertEqual(response.context["net_sales_value"], Decimal("75"))
         self.assertTrue(response.context["has_sales_data"])
 
     def test_price_breakdown_categorises_sales(self):
