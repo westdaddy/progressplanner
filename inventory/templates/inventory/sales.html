@@ -105,7 +105,7 @@
                 Counts and totals exclude returned sales and lines with zero quantity.
 
               </p>
-              <table class="striped" style="margin-top: 1rem;">
+              <table class="striped price-breakdown-table" style="margin-top: 1rem;">
                 <thead>
                   <tr>
                     <th>Category</th>
@@ -118,8 +118,19 @@
                 </thead>
                 <tbody>
                   {% for bucket in price_breakdown %}
-                    <tr>
-                      <td>{{ bucket.label }}</td>
+                    {% url 'sales_bucket_detail' bucket.key as bucket_url %}
+                    <tr
+                      class="clickable-row"
+                      data-href="{{ bucket_url }}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
+                    >
+                      <td>
+                        <a
+                          href="{{ bucket_url }}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
+                          class="price-breakdown-link"
+                        >
+                          {{ bucket.label }}
+                        </a>
+                      </td>
                       <td>{{ bucket.items_count }}</td>
                       <td>¥{{ bucket.retail_value|floatformat:2 }}</td>
                       <td>¥{{ bucket.actual_value|floatformat:2 }}</td>
@@ -148,6 +159,55 @@
             </div>
           </div>
         </div>
+
+        <style>
+          .price-breakdown-table tr.clickable-row {
+            cursor: pointer;
+          }
+
+          .price-breakdown-table tr.clickable-row:hover {
+            background-color: rgba(33, 150, 243, 0.08);
+          }
+
+          .price-breakdown-link {
+            color: inherit;
+            display: inline-block;
+            text-decoration: none;
+            width: 100%;
+          }
+
+          .price-breakdown-link:hover {
+            text-decoration: underline;
+          }
+        </style>
+
+        <script>
+          document.addEventListener("DOMContentLoaded", function () {
+            document
+              .querySelectorAll(".price-breakdown-table tr.clickable-row")
+              .forEach(function (row) {
+                row.setAttribute("tabindex", "0");
+                row.addEventListener("click", function (event) {
+                  if (event.target.tagName && event.target.tagName.toLowerCase() === "a") {
+                    return;
+                  }
+                  const anchor = row.querySelector("a.price-breakdown-link");
+                  if (anchor) {
+                    window.location.href = anchor.getAttribute("href");
+                  }
+                });
+                row.addEventListener("keyup", function (event) {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    const anchor = row.querySelector("a.price-breakdown-link");
+                    if (anchor) {
+                      anchor.click();
+                    }
+                  }
+                });
+              });
+          });
+        </script>
 
       {% else %}
         <p class="grey-text text-darken-1" style="margin-top: 1.5rem;">
