@@ -4,20 +4,21 @@
 
 {% block content %}
 <div class="section">
+
+  <a
+    href="{% url 'sales' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
+    class="btn-flat waves-effect"
+  >
+    ← Back to sales overview
+  </a>
+
+
   <div class="card">
     <div class="card-content">
-      <span class="card-title">{{ bucket_label }} sales</span>
-      <p class="grey-text text-darken-1" style="margin-bottom: 1.5rem;">
-        Showing sales from {{ start_date|date:"F j, Y" }} to {{ end_date|date:"F j, Y" }}.
-      </p>
+      <span class="card-title">{{ bucket_label }} sales from {{ start_date|date:"F j, Y" }} to {{ end_date|date:"F j, Y" }}</span>
 
       <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin-bottom: 1.5rem;">
-        <a
-          href="{% url 'sales' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
-          class="btn-flat waves-effect"
-        >
-          ← Back to sales overview
-        </a>
+
         <div class="grey lighten-4" style="padding: 0.75rem 1rem; border-radius: 6px;">
           <strong>{{ orders_count }}</strong> order{{ orders_count|pluralize }} ·
           <strong>{{ bucket_totals.items_count }}</strong> item{{ bucket_totals.items_count|pluralize }} ·
@@ -37,18 +38,14 @@
                 <span class="order-number">Order {{ order.order_number }}</span>
                 <span class="order-date">· {{ order.date|date:"F j, Y" }}</span>
               </div>
-              <div class="order-values">
-                <span class="order-total">Actual total: ¥{{ order.total_value|floatformat:2 }}</span>
-                {% if order.returns_value %}
-                  <span class="order-returns red-text text-darken-1">Returns: ¥{{ order.returns_value|floatformat:2 }}</span>
-                {% endif %}
-              </div>
             </div>
 
             <table class="highlight order-items-table">
               <thead>
                 <tr>
                   <th>Item</th>
+                  <th></th>
+                  <th></th>
                   <th>Retail price</th>
                   <th>Actual price paid</th>
                   <th>Status</th>
@@ -67,15 +64,14 @@
                         {% else %}
                           <div class="order-item-placeholder">No photo</div>
                         {% endif %}
-                        <div>
-                          <div class="variant-code">{{ item.sale.variant.variant_code }}</div>
-                          <div class="quantity grey-text text-darken-1">Qty: {{ item.sold_quantity }}</div>
-                        </div>
+
                       </div>
                     </td>
+                    <td>{{ item.sale.variant.variant_code }}</td>
+                    <td>x{{ item.sold_quantity }}</td>
                     <td>
                       ¥{{ item.retail_price|floatformat:2 }}
-                      <div class="grey-text text-darken-1">per item</div>
+                      <div class="grey-text text-darken-1">each</div>
                     </td>
                     <td>
                       ¥{{ item.actual_unit_price|floatformat:2 }}
@@ -92,6 +88,21 @@
                     </td>
                   </tr>
                 {% endfor %}
+                <tr>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td><strong>TOTAL</strong></td>
+                  <td>
+                    <div class="order-values">
+                      <span class="order-total">¥{{ order.total_value|floatformat:2 }}</span>
+                      {% if order.returns_value %}
+                        <span class="order-returns red-text text-darken-1">Returns: ¥{{ order.returns_value|floatformat:2 }}</span>
+                      {% endif %}
+                    </div>
+                  </td>
+                  <td></td>
+                </tr>
               </tbody>
             </table>
           </div>
