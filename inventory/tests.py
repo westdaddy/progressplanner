@@ -934,6 +934,7 @@ class SalesBucketDetailViewTests(TestCase):
         self.assertEqual(returned_item["return_value"], Decimal("100.00"))
         self.assertEqual(returned_item["discount_percentage"], Decimal("100.00"))
 
+
     def test_refunded_sale_without_quantity_highlighted(self):
         refund_sale = Sale.objects.create(
             order_number="ORDER-REFUND",
