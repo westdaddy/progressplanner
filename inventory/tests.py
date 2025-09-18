@@ -893,3 +893,4 @@ class SalesBucketDetailViewTests(TestCase):
         self.assertEqual(bucket_totals["retail_value"], Decimal("100.00"))
         self.assertEqual(bucket_totals["actual_value"], Decimal("0.00"))
 
+

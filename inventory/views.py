@@ -1603,6 +1603,7 @@ def sales_bucket_detail(request, bucket_key: str):
                 "order_number": sale.order_number,
                 "date": sale.date,
                 "referrer": sale.referrer,
+
             }
             orders_meta[sale.order_number] = order_info
         else:
