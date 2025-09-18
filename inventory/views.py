@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 from decimal import Decimal, ROUND_HALF_UP
 
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.db import models
 from django.db.models import (
     Count,
@@ -40,6 +40,8 @@ from django.db.models import (
 from django.db.models.functions import Coalesce
 from django.http import HttpResponse, JsonResponse, Http404
 from django.db.models.functions import TruncMonth
+from django.urls import reverse
+from django.views.decorators.http import require_POST
 
 from .models import (
     Product,
@@ -50,6 +52,7 @@ from .models import (
     OrderItem,
     Group,
     Series,
+    Referrer,
     PRODUCT_TYPE_CHOICES,
     PRODUCT_STYLE_CHOICES,
     PRODUCT_AGE_CHOICES,
@@ -1565,7 +1568,7 @@ def sales_bucket_detail(request, bucket_key: str):
 
     sales_qs = (
         Sale.objects.filter(date__range=(start_date, end_date))
-        .select_related("variant__product")
+        .select_related("variant__product", "referrer")
     )
 
     eligible_sales = (
@@ -1574,6 +1577,8 @@ def sales_bucket_detail(request, bucket_key: str):
     )
 
     relevant_sales = []
+    bucket_sale_ids = set()
+    orders_meta = OrderedDict()
     for sale in eligible_sales:
         bucket = _determine_price_bucket(sale)
         if bucket == bucket_key:
@@ -1585,58 +1590,148 @@ def sales_bucket_detail(request, bucket_key: str):
         reverse=True,
     )
 
-    orders_map = OrderedDict()
     total_items = 0
     total_retail_value = Decimal("0")
     total_actual_value = Decimal("0")
     total_returns_value = Decimal("0")
 
     for sale in sorted_sales:
-        order_info = orders_map.get(sale.order_number)
+        bucket_sale_ids.add(sale.pk)
+        order_info = orders_meta.get(sale.order_number)
         if not order_info:
             order_info = {
                 "order_number": sale.order_number,
                 "date": sale.date,
-                "total_value": Decimal("0"),
-                "returns_value": Decimal("0"),
-                "retail_total": Decimal("0"),
-                "items": [],
+                "referrer": sale.referrer,
             }
-            orders_map[sale.order_number] = order_info
+            orders_meta[sale.order_number] = order_info
         else:
-            if sale.date and sale.date > order_info["date"]:
+            if sale.date and (
+                not order_info["date"] or sale.date > order_info["date"]
+            ):
                 order_info["date"] = sale.date
+            if not order_info.get("referrer") and sale.referrer:
+                order_info["referrer"] = sale.referrer
 
         retail_price = sale.variant.product.retail_price or Decimal("0")
         sold_quantity = sale.sold_quantity or 0
         actual_total = sale.sold_value or Decimal("0")
         return_value = sale.return_value or Decimal("0")
 
-        actual_unit_price = (
-            actual_total / sold_quantity if sold_quantity else Decimal("0")
-        )
-
-        order_info["items"].append(
-            {
-                "sale": sale,
-                "retail_price": retail_price,
-                "actual_unit_price": actual_unit_price,
-                "actual_total": actual_total,
-                "sold_quantity": sold_quantity,
-                "returned": bool(sale.return_quantity),
-            }
-        )
-        order_info["total_value"] += actual_total
-        order_info["returns_value"] += return_value
-        order_info["retail_total"] += retail_price * sold_quantity
-
         total_items += sold_quantity
         total_retail_value += retail_price * sold_quantity
         total_actual_value += actual_total
         total_returns_value += return_value
 
-    orders = list(orders_map.values())
-    orders.sort(key=lambda o: (o["date"], o["order_number"]), reverse=True)
+    orders = []
+
+    if orders_meta:
+        order_numbers = [
+            number for number in orders_meta.keys() if number is not None
+        ]
+        include_null_orders = any(
+            number is None for number in orders_meta.keys()
+        )
+
+        filters = []
+        if order_numbers:
+            filters.append(Q(order_number__in=order_numbers))
+        if include_null_orders:
+            filters.append(Q(order_number__isnull=True))
+
+        if filters:
+            order_filter = filters[0]
+            for clause in filters[1:]:
+                order_filter |= clause
+            all_order_sales = list(sales_qs.filter(order_filter))
+        else:
+            all_order_sales = []
+
+        sales_by_order = defaultdict(list)
+        for sale in all_order_sales:
+            sales_by_order[sale.order_number].append(sale)
+
+        def sale_sort_key(sale_obj):
+            return (
+                sale_obj.date or date.min,
+                sale_obj.sale_id or "",
+                sale_obj.pk or 0,
+            )
+
+        bucket_sales_by_order = defaultdict(list)
+        for sale in sorted_sales:
+            bucket_sales_by_order[sale.order_number].append(sale)
+
+        for order_number, meta in orders_meta.items():
+            order_sales = list(sales_by_order.get(order_number, []))
+            if not order_sales:
+                order_sales = list(bucket_sales_by_order.get(order_number, []))
+            if not order_sales:
+                continue
+
+            order_sales.sort(key=sale_sort_key, reverse=True)
+
+            order_total = Decimal("0")
+            returns_total = Decimal("0")
+            retail_total = Decimal("0")
+            latest_date = meta["date"]
+            referrer = meta.get("referrer")
+            items = []
+
+            for sale in order_sales:
+                if sale.date and latest_date:
+                    if sale.date > latest_date:
+                        latest_date = sale.date
+                elif sale.date and not latest_date:
+                    latest_date = sale.date
+
+                if not referrer and sale.referrer:
+                    referrer = sale.referrer
+
+                retail_price = sale.variant.product.retail_price or Decimal("0")
+                sold_quantity = sale.sold_quantity or 0
+                actual_total = sale.sold_value or Decimal("0")
+                return_value = sale.return_value or Decimal("0")
+
+                actual_unit_price = (
+                    actual_total / sold_quantity if sold_quantity else Decimal("0")
+                )
+
+                order_total += actual_total
+                returns_total += return_value
+                retail_total += retail_price * sold_quantity
+
+                items.append(
+                    {
+                        "sale": sale,
+                        "retail_price": retail_price,
+                        "actual_unit_price": actual_unit_price,
+                        "actual_total": actual_total,
+                        "sold_quantity": sold_quantity,
+                        "returned": bool(sale.return_quantity),
+                        "is_bucket_item": sale.pk in bucket_sale_ids,
+                    }
+                )
+
+            orders.append(
+                {
+                    "order_number": order_number,
+                    "date": latest_date,
+                    "total_value": order_total,
+                    "returns_value": returns_total,
+                    "retail_total": retail_total,
+                    "referrer": referrer,
+                    "items": items,
+                }
+            )
+
+    def order_sort_key(order):
+        return (
+            order["date"] or date.min,
+            order["order_number"] or "",
+        )
+
+    orders.sort(key=order_sort_key, reverse=True)
 
     date_querystring = urlencode(
         {
@@ -1659,9 +1754,39 @@ def sales_bucket_detail(request, bucket_key: str):
             "returns_value": total_returns_value,
         },
         "date_querystring": date_querystring,
+        "referrers": Referrer.objects.order_by("name"),
     }
 
     return render(request, "inventory/sales_bucket_detail.html", context)
+
+
+@require_POST
+def assign_order_referrer(request, bucket_key: str):
+    bucket_key = (bucket_key or "").lower()
+    if bucket_key not in PRICE_CATEGORY_LABELS:
+        raise Http404("Unknown pricing bucket")
+
+    order_number = (request.POST.get("order_number") or "").strip()
+    if not order_number:
+        raise Http404("Missing order number")
+
+    sales_qs = Sale.objects.filter(order_number=order_number)
+    if not sales_qs.exists():
+        raise Http404("Order not found")
+
+    referrer_id = request.POST.get("referrer_id")
+    referrer = None
+    if referrer_id:
+        referrer = get_object_or_404(Referrer, pk=referrer_id)
+
+    sales_qs.update(referrer=referrer)
+
+    redirect_url = reverse("sales_bucket_detail", args=[bucket_key])
+    date_querystring = request.POST.get("date_querystring")
+    if date_querystring:
+        redirect_url = f"{redirect_url}?{date_querystring}"
+
+    return redirect(redirect_url)
 
 
 # a small helper to keep (date, change) pairs

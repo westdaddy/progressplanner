@@ -11,6 +11,11 @@ urlpatterns = [
     path('orders/<int:order_id>/', views.order_detail, name='order_detail'),  # Order Detail View
     path('sales/', views.sales, name='sales'),
     path('sales/price-group/<str:bucket_key>/', views.sales_bucket_detail, name='sales_bucket_detail'),
+    path(
+        'sales/price-group/<str:bucket_key>/assign-referrer/',
+        views.assign_order_referrer,
+        name='assign_order_referrer',
+    ),
     path('returns/', views.returns, name='returns'),
     path('sales-data/', views.sales_data, name='sales_data'),
 ]

@@ -177,6 +177,16 @@ class ProductVariant(models.Model):
         ordering = ["-variant_code"]
 
 
+class Referrer(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class Sale(models.Model):
     sale_id = models.AutoField(primary_key=True)
     order_number = models.CharField(max_length=50, db_index=True)  # the 内部订单号
@@ -189,6 +199,13 @@ class Sale(models.Model):
     sold_value = models.DecimalField(max_digits=10, decimal_places=2)
     return_value = models.DecimalField(
         max_digits=10, decimal_places=2, blank=True, null=True
+    )
+    referrer = models.ForeignKey(
+        Referrer,
+        on_delete=models.SET_NULL,
+        related_name="sales",
+        blank=True,
+        null=True,
     )
 
     def __str__(self):

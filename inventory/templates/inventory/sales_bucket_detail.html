@@ -45,6 +45,20 @@
               </div>
             </div>
 
+            <div class="order-referrer">
+              {% if order.referrer %}
+                <span class="chip teal lighten-5 teal-text text-darken-3">
+                  Referrer: {{ order.referrer.name }}
+                </span>
+              {% endif %}
+              <a
+                href="#referrer-modal-{{ forloop.counter }}"
+                class="modal-trigger assign-referrer-link"
+              >
+                Assign referrer +
+              </a>
+            </div>
+
             <table class="highlight order-items-table">
               <thead>
                 <tr>
@@ -70,6 +84,11 @@
                         <div>
                           <div class="variant-code">{{ item.sale.variant.variant_code }}</div>
                           <div class="quantity grey-text text-darken-1">Qty: {{ item.sold_quantity }}</div>
+                          {% if not item.is_bucket_item %}
+                            <div class="order-item-badge grey lighten-3 grey-text text-darken-2">
+                              Outside {{ bucket_label }}
+                            </div>
+                          {% endif %}
                         </div>
                       </div>
                     </td>
@@ -94,6 +113,48 @@
                 {% endfor %}
               </tbody>
             </table>
+            <div id="referrer-modal-{{ forloop.counter }}" class="modal">
+              <form method="post" action="{% url 'assign_order_referrer' bucket_key=bucket_key %}">
+                {% csrf_token %}
+                <input type="hidden" name="order_number" value="{{ order.order_number }}" />
+                {% if date_querystring %}
+                  <input type="hidden" name="date_querystring" value="{{ date_querystring }}" />
+                {% endif %}
+                <div class="modal-content">
+                  <h4>Assign referrer</h4>
+                  {% if referrers %}
+                    <div class="input-field">
+                      <select name="referrer_id" class="referrer-select">
+                        <option value="" {% if not order.referrer %}selected{% endif %}>No referrer</option>
+                        {% for referrer in referrers %}
+                          <option
+                            value="{{ referrer.id }}"
+                            {% if order.referrer and order.referrer.id == referrer.id %}selected{% endif %}
+                          >
+                            {{ referrer.name }}
+                          </option>
+                        {% endfor %}
+                      </select>
+                      <label>Select a referrer</label>
+                    </div>
+                  {% else %}
+                    <p class="grey-text text-darken-1" style="margin-bottom: 0;">
+                      No referrers available yet. Add one from the admin to get started.
+                    </p>
+                  {% endif %}
+                </div>
+                <div class="modal-footer">
+                  <button
+                    type="submit"
+                    class="btn waves-effect waves-light"
+                    {% if not referrers %}disabled{% endif %}
+                  >
+                    Save
+                  </button>
+                  <a href="#!" class="modal-close btn-flat">Cancel</a>
+                </div>
+              </form>
+            </div>
           </div>
         {% endfor %}
       {% else %}
@@ -132,6 +193,24 @@
     align-items: center;
   }
 
+  .order-referrer {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .assign-referrer-link {
+    color: #00897b;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .assign-referrer-link:hover {
+    text-decoration: underline;
+  }
+
   .order-items-table th,
   .order-items-table td {
     vertical-align: middle;
@@ -141,6 +220,15 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
+  }
+
+  .order-item-badge {
+    border-radius: 12px;
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-top: 0.3rem;
+    padding: 0.2rem 0.6rem;
   }
 
   .order-item-product img {
@@ -167,4 +255,17 @@
     margin-bottom: 0.25rem;
   }
 </style>
+{% endblock %}
+
+{% block extrajs %}
+  {{ block.super }}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var modalElems = document.querySelectorAll('.modal');
+      M.Modal.init(modalElems);
+
+      var selectElems = document.querySelectorAll('select.referrer-select');
+      M.FormSelect.init(selectElems);
+    });
+  </script>
 {% endblock %}
