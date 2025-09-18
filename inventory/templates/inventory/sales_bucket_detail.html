@@ -109,9 +109,17 @@
                       ¥{{ item.retail_price|floatformat:2 }}
                     </td>
                     <td>
-                      ¥{{ item.actual_unit_price|floatformat:2 }}
+                      <div class="price-with-discount">
+                        <span class="actual-price">¥{{ item.actual_unit_price|floatformat:2 }}</span>
+                        {% if item.discount_percentage is not None %}
+                          <span class="discount-percentage grey-text text-darken-1">
+                            ({{ item.discount_percentage|floatformat:-2 }}% off)
+                          </span>
+                        {% endif %}
+                      </div>
                     </td>
-                  <td>¥{{ item.actual_total|floatformat:2 }}</td>
+                    <td>¥{{ item.actual_total|floatformat:2 }}</td>
+
                   <td>
                     {% if item.returned %}
                       <span class="chip return-chip red lighten-5 red-text text-darken-2">
@@ -238,6 +246,21 @@
     flex-wrap: wrap;
     gap: 0.75rem;
     align-items: center;
+  }
+
+  .price-with-discount {
+    align-items: baseline;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .price-with-discount .actual-price {
+    font-weight: 600;
+  }
+
+  .discount-percentage {
+    font-size: 0.85rem;
   }
 
   .order-referrer {

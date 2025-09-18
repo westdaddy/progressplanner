@@ -887,6 +887,8 @@ class SalesBucketDetailViewTests(TestCase):
         self.assertEqual(len(non_bucket_items), 1)
         self.assertEqual(bucket_items[0]["sale"].pk, bucket_sale.pk)
         self.assertEqual(non_bucket_items[0]["sale"].pk, other_sale.pk)
+        self.assertEqual(bucket_items[0]["discount_percentage"], Decimal("100.00"))
+        self.assertEqual(non_bucket_items[0]["discount_percentage"], Decimal("0.00"))
 
         bucket_totals = response.context["bucket_totals"]
         self.assertEqual(bucket_totals["items_count"], 1)
@@ -930,6 +932,8 @@ class SalesBucketDetailViewTests(TestCase):
         self.assertTrue(returned_item["returned"])
         self.assertEqual(returned_item["return_quantity"], 1)
         self.assertEqual(returned_item["return_value"], Decimal("100.00"))
+        self.assertEqual(returned_item["discount_percentage"], Decimal("100.00"))
+
 
     def test_refunded_sale_without_quantity_highlighted(self):
         refund_sale = Sale.objects.create(
@@ -958,5 +962,6 @@ class SalesBucketDetailViewTests(TestCase):
         self.assertEqual(refund_item["sale"].pk, refund_sale.pk)
         self.assertEqual(refund_item["return_quantity"], 0)
         self.assertEqual(refund_item["return_value"], Decimal("100.00"))
+        self.assertEqual(refund_item["discount_percentage"], Decimal("100.00"))
 
 

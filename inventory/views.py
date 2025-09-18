@@ -1699,6 +1699,15 @@ def sales_bucket_detail(request, bucket_key: str):
                     actual_total / sold_quantity if sold_quantity else Decimal("0")
                 )
 
+                discount_percentage = None
+                if retail_price > 0 and sold_quantity > 0:
+                    discount_percentage = (
+                        (retail_price - actual_unit_price) / retail_price
+                    ) * Decimal("100")
+                    discount_percentage = discount_percentage.quantize(
+                        Decimal("0.01"), rounding=ROUND_HALF_UP
+                    )
+
                 order_total += actual_total
                 returns_total += return_value
                 retail_total += retail_price * sold_quantity
@@ -1714,6 +1723,7 @@ def sales_bucket_detail(request, bucket_key: str):
                         "return_quantity": return_quantity,
                         "return_value": return_value,
                         "is_bucket_item": sale.pk in bucket_sale_ids,
+                        "discount_percentage": discount_percentage,
                     }
                 )
 
