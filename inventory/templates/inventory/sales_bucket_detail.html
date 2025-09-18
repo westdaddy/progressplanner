@@ -5,37 +5,39 @@
 {% block content %}
 <div class="section">
 
-  <a
-    href="{% url 'sales' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
-    class="btn-flat waves-effect"
-  >
-    ← Back to sales overview
-  </a>
+  <h3>Sales <span class="grey-text small">| {{ bucket_label }} sales from {{ start_date|date:"F j, Y" }} to {{ end_date|date:"F j, Y" }}</span></h3>
+
+
+
+  <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin-bottom: 1.5rem;">
+
+    <div class="grey lighten-4" style="padding: 0.75rem 1rem; border-radius: 6px;">
+      <a
+        href="{% url 'sales' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
+        class=""
+      >
+        ← Back to sales overview
+      </a> |
+      <strong>{{ orders_count }}</strong> order{{ orders_count|pluralize }} ·
+      <strong>{{ bucket_totals.items_count }}</strong> item{{ bucket_totals.items_count|pluralize }} ·
+      Retail: ¥{{ bucket_totals.retail_value|floatformat:2 }} ·
+      Actual: ¥{{ bucket_totals.actual_value|floatformat:2 }}
+      {% if bucket_totals.returns_value %}
+        · <span class="red-text text-darken-1">Returns: ¥{{ bucket_totals.returns_value|floatformat:2 }}</span>
+      {% endif %}
+    </div>
+  </div>
 
 
   <div class="card">
     <div class="card-content">
-      <span class="card-title">{{ bucket_label }} sales from {{ start_date|date:"F j, Y" }} to {{ end_date|date:"F j, Y" }}</span>
-
-      <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin-bottom: 1.5rem;">
-
-        <div class="grey lighten-4" style="padding: 0.75rem 1rem; border-radius: 6px;">
-          <strong>{{ orders_count }}</strong> order{{ orders_count|pluralize }} ·
-          <strong>{{ bucket_totals.items_count }}</strong> item{{ bucket_totals.items_count|pluralize }} ·
-          Retail: ¥{{ bucket_totals.retail_value|floatformat:2 }} ·
-          Actual: ¥{{ bucket_totals.actual_value|floatformat:2 }}
-          {% if bucket_totals.returns_value %}
-            · <span class="red-text text-darken-1">Returns: ¥{{ bucket_totals.returns_value|floatformat:2 }}</span>
-          {% endif %}
-        </div>
-      </div>
 
       {% if orders %}
         {% for order in orders %}
           <div class="order-block z-depth-1">
             <div class="order-header">
               <div class="left">
-                <span class="order-number">Order {{ order.order_number }}</span>
+                <span class="order-number">#{{ order.order_number }}</span>
                 <span class="order-date">· {{ order.date|date:"F j, Y" }}</span>
               </div>
 
@@ -113,7 +115,7 @@
                         <span class="actual-price">¥{{ item.actual_unit_price|floatformat:2 }}</span>
                         {% if item.discount_percentage is not None %}
                           <span class="discount-percentage grey-text text-darken-1">
-                            ({{ item.discount_percentage|floatformat:-2 }}% off)
+                            -{{ item.discount_percentage|floatformat:-1 }}%
                           </span>
                         {% endif %}
                       </div>

@@ -54,7 +54,7 @@ div.metadata {
 
 /* HOME PAGE STYLES */
 
-.card-title span.small {
+.card-title span.small, h3 span.small {
   font-size:0.8em;
 }
 
