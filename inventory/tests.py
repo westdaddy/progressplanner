@@ -887,10 +887,80 @@ class SalesBucketDetailViewTests(TestCase):
         self.assertEqual(len(non_bucket_items), 1)
         self.assertEqual(bucket_items[0]["sale"].pk, bucket_sale.pk)
         self.assertEqual(non_bucket_items[0]["sale"].pk, other_sale.pk)
+        self.assertEqual(bucket_items[0]["discount_percentage"], Decimal("100.00"))
+        self.assertEqual(non_bucket_items[0]["discount_percentage"], Decimal("0.00"))
 
         bucket_totals = response.context["bucket_totals"]
         self.assertEqual(bucket_totals["items_count"], 1)
         self.assertEqual(bucket_totals["retail_value"], Decimal("100.00"))
         self.assertEqual(bucket_totals["actual_value"], Decimal("0.00"))
+
+    def test_returned_items_include_return_details(self):
+        Sale.objects.create(
+            order_number="ORDER-RETURN",
+            date=date(2024, 4, 4),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("100.00"),
+        )
+        returned_sale = Sale.objects.create(
+            order_number="ORDER-RETURN",
+            date=date(2024, 4, 6),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("0.00"),
+            return_quantity=1,
+            return_value=Decimal("100.00"),
+        )
+
+        response = self.client.get(
+            reverse("sales_bucket_detail", args=["full_price"]),
+            {"start_date": "2024-04-01", "end_date": "2024-04-30"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        orders = response.context["orders"]
+        self.assertEqual(len(orders), 1)
+
+        order = orders[0]
+        self.assertEqual(order["order_number"], "ORDER-RETURN")
+        self.assertEqual(order["returns_value"], Decimal("100.00"))
+
+        returned_item = next(
+            item for item in order["items"] if item["sale"].pk == returned_sale.pk
+        )
+        self.assertTrue(returned_item["returned"])
+        self.assertEqual(returned_item["return_quantity"], 1)
+        self.assertEqual(returned_item["return_value"], Decimal("100.00"))
+        self.assertEqual(returned_item["discount_percentage"], Decimal("100.00"))
+
+    def test_refunded_sale_without_quantity_highlighted(self):
+        refund_sale = Sale.objects.create(
+            order_number="ORDER-REFUND",
+            date=date(2024, 4, 10),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("0.00"),
+            return_quantity=0,
+            return_value=Decimal("100.00"),
+        )
+
+        response = self.client.get(
+            reverse("sales_bucket_detail", args=["full_price"]),
+            {"start_date": "2024-04-01", "end_date": "2024-04-30"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        orders = response.context["orders"]
+        self.assertEqual(len(orders), 1)
+
+        order = orders[0]
+        refund_item = order["items"][0]
+
+        self.assertTrue(refund_item["returned"])
+        self.assertEqual(refund_item["sale"].pk, refund_sale.pk)
+        self.assertEqual(refund_item["return_quantity"], 0)
+        self.assertEqual(refund_item["return_value"], Decimal("100.00"))
+        self.assertEqual(refund_item["discount_percentage"], Decimal("100.00"))
 
 
