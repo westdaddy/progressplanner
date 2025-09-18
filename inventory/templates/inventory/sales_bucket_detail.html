@@ -95,7 +95,19 @@
                           <div class="order-item-placeholder">No photo</div>
                         {% endif %}
                         <div>
-                          <div class="variant-code">{{ item.sale.variant.variant_code }}</div>
+                          <div class="variant-code">
+                            {{ item.sale.variant.variant_code }}
+                            <a
+                              href="{% url 'admin:inventory_sale_change' item.sale.pk %}"
+                              class="variant-edit-link"
+                              target="_blank"
+                              rel="noopener"
+                              title="Edit sale in admin"
+                              aria-label="Edit sale {{ item.sale.sale_id }} in admin"
+                            >
+                              <i class="material-icons tiny">edit</i>
+                            </a>
+                          </div>
                           {% if not item.is_bucket_item %}
                             <div class="order-item-badge grey lighten-3 grey-text text-darken-2">
                               Outside {{ bucket_label }}
@@ -326,6 +338,23 @@
   .variant-code {
     font-weight: 600;
     margin-bottom: 0.25rem;
+  }
+
+  .variant-edit-link {
+    align-items: center;
+    color: #757575;
+    display: inline-flex;
+    margin-left: 0.35rem;
+    text-decoration: none;
+  }
+
+  .variant-edit-link .material-icons {
+    font-size: 1.05rem;
+  }
+
+  .variant-edit-link:hover,
+  .variant-edit-link:focus {
+    color: #424242;
   }
 
   .referrer-chip-group {
