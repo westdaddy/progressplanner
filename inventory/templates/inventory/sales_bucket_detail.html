@@ -62,6 +62,7 @@
                   <th></th>
                   <th>Retail price</th>
                   <th>Actual price paid</th>
+                  <th>Total price paid</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -85,14 +86,11 @@
                     <td>x{{ item.sold_quantity }}</td>
                     <td>
                       ¥{{ item.retail_price|floatformat:2 }}
-                      <div class="grey-text text-darken-1">each</div>
                     </td>
                     <td>
                       ¥{{ item.actual_unit_price|floatformat:2 }}
-                      <div class="grey-text text-darken-1">
-                        Total: ¥{{ item.actual_total|floatformat:2 }}
-                      </div>
                     </td>
+                    <td>Total: ¥{{ item.actual_total|floatformat:2 }}</td>
                     <td>
                       {% if item.returned %}
                         <span class="red-text text-darken-1">Returned</span>
