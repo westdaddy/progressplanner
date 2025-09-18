@@ -54,20 +54,6 @@
               </a>
             </div>
 
-            <div class="order-referrer">
-              {% if order.referrer %}
-                <span class="chip teal lighten-5 teal-text text-darken-3">
-                  Referrer: {{ order.referrer.name }}
-                </span>
-              {% endif %}
-              <a
-                href="#referrer-modal-{{ forloop.counter }}"
-                class="modal-trigger assign-referrer-link"
-              >
-                Assign referrer +
-              </a>
-            </div>
-
             <table class="highlight order-items-table">
               <thead>
                 <tr>
