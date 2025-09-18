@@ -46,7 +46,7 @@
                     href="#referrer-modal-{{ forloop.counter }}"
                     class="chip white modal-trigger assign-referrer-link"
                   >
-                    Edit 
+                    Edit
                   </a>
                     <span class="chip teal lighten-5 teal-text text-darken-3">
                       Referrer: {{ order.referrer.name }}
@@ -73,9 +73,9 @@
                   <th>Item</th>
                   <th></th>
                   <th></th>
-                  <th>Retail price</th>
-                  <th>Actual price paid</th>
-                  <th>Total price paid</th>
+                  <th>Original price</th>
+                  <th>Actual price</th>
+                  <th>Total paid</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -94,7 +94,6 @@
                         {% endif %}
                         <div>
                           <div class="variant-code">{{ item.sale.variant.variant_code }}</div>
-                          <div class="quantity grey-text text-darken-1">Qty: {{ item.sold_quantity }}</div>
                           {% if not item.is_bucket_item %}
                             <div class="order-item-badge grey lighten-3 grey-text text-darken-2">
                               Outside {{ bucket_label }}
@@ -112,7 +111,7 @@
                     <td>
                       ¥{{ item.actual_unit_price|floatformat:2 }}
                     </td>
-                    <td>Total: ¥{{ item.actual_total|floatformat:2 }}</td>
+                    <td>¥{{ item.actual_total|floatformat:2 }}</td>
                     <td>
                       {% if item.returned %}
                         <span class="red-text text-darken-1">Returned</span>
@@ -123,6 +122,7 @@
                   </tr>
                 {% endfor %}
                 <tr>
+                  <td></td>
                   <td></td>
                   <td></td>
                   <td></td>
@@ -258,8 +258,8 @@
   }
 
   .order-item-product img {
-    width: 64px;
-    height: 64px;
+    width: 32px;
+    height: 32px;
     object-fit: cover;
     border-radius: 6px;
   }
