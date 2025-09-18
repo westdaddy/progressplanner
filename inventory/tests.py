@@ -838,3 +838,59 @@ class SalesViewTests(TestCase):
         self.assertIsNone(sale_one.referrer)
         self.assertIsNone(sale_two.referrer)
 
+
+class SalesBucketDetailViewTests(TestCase):
+    def setUp(self):
+        self.product = Product.objects.create(
+            product_id="SB1", product_name="Sales Bucket Product", retail_price=Decimal("100.00")
+        )
+        self.variant = ProductVariant.objects.create(
+            product=self.product,
+            variant_code="SB1-1",
+            primary_color="#000000",
+        )
+
+    def test_full_order_displayed_for_bucket(self):
+        bucket_sale = Sale.objects.create(
+            order_number="ORDER-1",
+            date=date(2024, 4, 5),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("0.00"),
+        )
+        other_sale = Sale.objects.create(
+            order_number="ORDER-1",
+            date=date(2024, 4, 5),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("100.00"),
+        )
+
+        response = self.client.get(
+            reverse("sales_bucket_detail", args=["gifted"]),
+            {"start_date": "2024-04-01", "end_date": "2024-04-30"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        orders = response.context["orders"]
+        self.assertEqual(len(orders), 1)
+
+        order = orders[0]
+        self.assertEqual(order["order_number"], "ORDER-1")
+        self.assertEqual(order["total_value"], Decimal("100.00"))
+        self.assertEqual(len(order["items"]), 2)
+
+        bucket_items = [item for item in order["items"] if item["is_bucket_item"]]
+        non_bucket_items = [item for item in order["items"] if not item["is_bucket_item"]]
+
+        self.assertEqual(len(bucket_items), 1)
+        self.assertEqual(len(non_bucket_items), 1)
+        self.assertEqual(bucket_items[0]["sale"].pk, bucket_sale.pk)
+        self.assertEqual(non_bucket_items[0]["sale"].pk, other_sale.pk)
+
+        bucket_totals = response.context["bucket_totals"]
+        self.assertEqual(bucket_totals["items_count"], 1)
+        self.assertEqual(bucket_totals["retail_value"], Decimal("100.00"))
+        self.assertEqual(bucket_totals["actual_value"], Decimal("0.00"))
+
+
