@@ -34,25 +34,38 @@
         {% for order in orders %}
           <div class="order-block z-depth-1">
             <div class="order-header">
-              <div>
+              <div class="left">
                 <span class="order-number">Order {{ order.order_number }}</span>
                 <span class="order-date">· {{ order.date|date:"F j, Y" }}</span>
               </div>
+
+              <div class="right">
+                <div class="order-referrer">
+                  {% if order.referrer %}
+                  <a
+                    href="#referrer-modal-{{ forloop.counter }}"
+                    class="chip white modal-trigger assign-referrer-link"
+                  >
+                    Edit 
+                  </a>
+                    <span class="chip teal lighten-5 teal-text text-darken-3">
+                      Referrer: {{ order.referrer.name }}
+                    </span>
+
+                  {% else %}
+                  <a
+                    href="#referrer-modal-{{ forloop.counter }}"
+                    class="modal-trigger assign-referrer-link"
+                  >
+                    Assign referrer +
+                  </a>
+                  {% endif %}
+                </div>
+              </div>
+
             </div>
 
-            <div class="order-referrer">
-              {% if order.referrer %}
-                <span class="chip teal lighten-5 teal-text text-darken-3">
-                  Referrer: {{ order.referrer.name }}
-                </span>
-              {% endif %}
-              <a
-                href="#referrer-modal-{{ forloop.counter }}"
-                class="modal-trigger assign-referrer-link"
-              >
-                Assign referrer +
-              </a>
-            </div>
+
 
             <table class="highlight order-items-table">
               <thead>
