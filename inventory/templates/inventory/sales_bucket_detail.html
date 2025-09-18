@@ -23,7 +23,7 @@
       Retail: ¥{{ bucket_totals.retail_value|floatformat:2 }} ·
       Actual: ¥{{ bucket_totals.actual_value|floatformat:2 }}
       {% if bucket_totals.returns_value %}
-        · <span class="red-text text-darken-1">Returns: ¥{{ bucket_totals.returns_value|floatformat:2 }}</span>
+        · <span class="red-text text-darken-1">-¥{{ bucket_totals.returns_value|floatformat:2 }}</span>
       {% endif %}
     </div>
   </div>
@@ -44,14 +44,15 @@
               <div class="right">
                 <div class="order-referrer">
                   {% if order.referrer %}
-                    <a
-                      href="#referrer-modal-{{ forloop.counter }}"
-                      class="chip white modal-trigger assign-referrer-link"
-                    >
-                      Edit
-                    </a>
+
                     <span class="chip teal lighten-5 teal-text text-darken-3">
                       Referrer: {{ order.referrer.name }}
+                      <a
+                        href="#referrer-modal-{{ forloop.counter }}"
+                        class="modal-trigger assign-referrer-link"
+                      >
+                        <i class="material-icons tiny">edit</i>
+                      </a>
                     </span>
 
                   {% else %}
@@ -158,7 +159,7 @@
                     </div>
                   </td>
                   <td>{% if order.returns_value %}
-                    <span class="order-returns red-text text-darken-1">Returns: ¥{{ order.returns_value|floatformat:2 }}</span>
+                    <span class="order-returns red-text text-darken-1">-¥{{ order.returns_value|floatformat:2 }}</span>
                   {% endif %}</td>
                   <td></td>
                 </tr>

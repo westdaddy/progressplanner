@@ -7,11 +7,11 @@
 
   <h3>Sales</h3>
 
-  <div class="card">
-    <div class="card-content">
+  <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin-bottom: 1.5rem;">
 
-      <form method="get" class="row" novalidate>
-        <div class="col s12 m6">
+    <div class="grey lighten-4" style="padding: 0.75rem 1rem; border-radius: 6px;">
+
+      <form method="get" novalidate>
           <label for="start_date" class="active">Showing sales from</label>
           <input
             type="date"
@@ -33,14 +33,15 @@
           <button type="submit" class="btn-small waves-effect waves-light">
             Update
           </button>
-        </div>
       </form>
 
 
-      {% if has_sales_data %}
-        <div class="row">
+    </div>
+  </div>
 
-          <div class="col s4 m4 l4">
+
+      {% if has_sales_data %}
+
             <div class="card white z-depth-0">
               <div class="card-content">
                 <h2 id="netSales" class="blue-text">¥{{ net_sales_value|floatformat:0 }}</h2>
@@ -49,10 +50,6 @@
                 <p class="grey-text text-darken-2" style="font-size: 1.1rem; font-weight: 600;">{{ items_count }} items in {{ orders_count }} orders</p>
               </div>
             </div>
-          </div>
-
-
-        </div>
 
 
 
