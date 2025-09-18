@@ -54,6 +54,20 @@
               </a>
             </div>
 
+            <div class="order-referrer">
+              {% if order.referrer %}
+                <span class="chip teal lighten-5 teal-text text-darken-3">
+                  Referrer: {{ order.referrer.name }}
+                </span>
+              {% endif %}
+              <a
+                href="#referrer-modal-{{ forloop.counter }}"
+                class="modal-trigger assign-referrer-link"
+              >
+                Assign referrer +
+              </a>
+            </div>
+
             <table class="highlight order-items-table">
               <thead>
                 <tr>
@@ -78,6 +92,15 @@
                         {% else %}
                           <div class="order-item-placeholder">No photo</div>
                         {% endif %}
+                        <div>
+                          <div class="variant-code">{{ item.sale.variant.variant_code }}</div>
+                          <div class="quantity grey-text text-darken-1">Qty: {{ item.sold_quantity }}</div>
+                          {% if not item.is_bucket_item %}
+                            <div class="order-item-badge grey lighten-3 grey-text text-darken-2">
+                              Outside {{ bucket_label }}
+                            </div>
+                          {% endif %}
+                        </div>
 
                       </div>
                     </td>
@@ -226,6 +249,15 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
+  }
+
+  .order-item-badge {
+    border-radius: 12px;
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-top: 0.3rem;
+    padding: 0.2rem 0.6rem;
   }
 
   .order-item-product img {
