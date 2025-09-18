@@ -111,15 +111,25 @@
                     <td>
                       ¥{{ item.actual_unit_price|floatformat:2 }}
                     </td>
-                    <td>¥{{ item.actual_total|floatformat:2 }}</td>
-                    <td>
-                      {% if item.returned %}
-                        <span class="red-text text-darken-1">Returned</span>
-                      {% else %}
-                        &mdash;
-                      {% endif %}
-                    </td>
-                  </tr>
+                  <td>¥{{ item.actual_total|floatformat:2 }}</td>
+                  <td>
+                    {% if item.returned %}
+                      <span class="chip return-chip red lighten-5 red-text text-darken-2">
+                        {% if item.return_quantity and item.return_value %}
+                          Returned · {{ item.return_quantity }} item{{ item.return_quantity|pluralize }} · ¥{{ item.return_value|floatformat:2 }}
+                        {% elif item.return_quantity %}
+                          Returned · {{ item.return_quantity }} item{{ item.return_quantity|pluralize }}
+                        {% elif item.return_value %}
+                          Refunded · ¥{{ item.return_value|floatformat:2 }}
+                        {% else %}
+                          Returned
+                        {% endif %}
+                      </span>
+                    {% else %}
+                      &mdash;
+                    {% endif %}
+                  </td>
+                </tr>
                 {% endfor %}
                 <tr>
                   <td></td>
@@ -148,32 +158,43 @@
                 {% endif %}
                 <div class="modal-content">
                   <h4>Assign referrer</h4>
+                  <input
+                    type="hidden"
+                    name="referrer_id"
+                    value="{% if order.referrer %}{{ order.referrer.id }}{% endif %}"
+                  />
                   {% if referrers %}
-                    <div class="input-field">
-                      <select name="referrer_id" class="referrer-select">
-                        <option value="" {% if not order.referrer %}selected{% endif %}>No referrer</option>
-                        {% for referrer in referrers %}
-                          <option
-                            value="{{ referrer.id }}"
-                            {% if order.referrer and order.referrer.id == referrer.id %}selected{% endif %}
-                          >
-                            {{ referrer.name }}
-                          </option>
-                        {% endfor %}
-                      </select>
-                      <label>Select a referrer</label>
-                    </div>
+                    <p class="grey-text text-darken-1 modal-helper-text" style="margin-bottom: 0.75rem;">
+                      Select a referrer below.
+                    </p>
                   {% else %}
-                    <p class="grey-text text-darken-1" style="margin-bottom: 0;">
+                    <p class="grey-text text-darken-1 modal-helper-text" style="margin-bottom: 0.75rem;">
                       No referrers available yet. Add one from the admin to get started.
                     </p>
                   {% endif %}
+                  <div class="referrer-chip-group">
+                    <div
+                      class="chip referrer-chip {% if not order.referrer %}selected{% endif %}"
+                      data-referrer-id=""
+                      tabindex="0"
+                    >
+                      No referrer
+                    </div>
+                    {% for referrer in referrers %}
+                      <div
+                        class="chip referrer-chip {% if order.referrer and order.referrer.id == referrer.id %}selected{% endif %}"
+                        data-referrer-id="{{ referrer.id }}"
+                        tabindex="0"
+                      >
+                        {{ referrer.name }}
+                      </div>
+                    {% endfor %}
+                  </div>
                 </div>
                 <div class="modal-footer">
                   <button
                     type="submit"
                     class="btn waves-effect waves-light"
-                    {% if not referrers %}disabled{% endif %}
                   >
                     Save
                   </button>
@@ -237,6 +258,14 @@
     text-decoration: underline;
   }
 
+  .return-chip {
+    font-weight: 600;
+  }
+
+  .modal-helper-text {
+    font-size: 0.95rem;
+  }
+
   .order-items-table th,
   .order-items-table td {
     vertical-align: middle;
@@ -280,6 +309,31 @@
     font-weight: 600;
     margin-bottom: 0.25rem;
   }
+
+  .referrer-chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .referrer-chip {
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  .referrer-chip.selected {
+    background-color: #00897b;
+    color: #ffffff;
+  }
+
+  .referrer-chip.selected:focus {
+    outline: none;
+  }
+
+  .referrer-chip:focus {
+    outline: 2px solid #00897b;
+    outline-offset: 2px;
+  }
 </style>
 {% endblock %}
 
@@ -290,8 +344,44 @@
       var modalElems = document.querySelectorAll('.modal');
       M.Modal.init(modalElems);
 
-      var selectElems = document.querySelectorAll('select.referrer-select');
-      M.FormSelect.init(selectElems);
+      var chipGroups = document.querySelectorAll('.referrer-chip-group');
+      chipGroups.forEach(function(group) {
+        var chips = group.querySelectorAll('.referrer-chip');
+        if (!chips.length) {
+          return;
+        }
+
+        var form = group.closest('form');
+        if (!form) {
+          return;
+        }
+
+        var hiddenInput = form.querySelector('input[name="referrer_id"]');
+        var setActiveChip = function(targetChip) {
+          chips.forEach(function(chip) {
+            chip.classList.remove('selected');
+          });
+
+          targetChip.classList.add('selected');
+
+          if (hiddenInput) {
+            hiddenInput.value = targetChip.dataset.referrerId || '';
+          }
+        };
+
+        chips.forEach(function(chip) {
+          chip.addEventListener('click', function() {
+            setActiveChip(chip);
+          });
+
+          chip.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              setActiveChip(chip);
+            }
+          });
+        });
+      });
     });
   </script>
 {% endblock %}
