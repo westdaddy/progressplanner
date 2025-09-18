@@ -44,23 +44,23 @@
               <div class="right">
                 <div class="order-referrer">
                   {% if order.referrer %}
-                  <a
-                    href="#referrer-modal-{{ forloop.counter }}"
-                    class="chip white modal-trigger assign-referrer-link"
-                  >
-                    Edit
-                  </a>
+                    <a
+                      href="#referrer-modal-{{ forloop.counter }}"
+                      class="chip white modal-trigger assign-referrer-link"
+                    >
+                      Edit
+                    </a>
                     <span class="chip teal lighten-5 teal-text text-darken-3">
                       Referrer: {{ order.referrer.name }}
                     </span>
 
                   {% else %}
-                  <a
-                    href="#referrer-modal-{{ forloop.counter }}"
-                    class="modal-trigger assign-referrer-link"
-                  >
-                    Assign referrer +
-                  </a>
+                    <a
+                      href="#referrer-modal-{{ forloop.counter }}"
+                      class="chip white modal-trigger assign-referrer-link"
+                    >
+                      Assign referrer +
+                    </a>
                   {% endif %}
                 </div>
               </div>
@@ -74,10 +74,10 @@
                 <tr>
                   <th>Item</th>
                   <th></th>
-                  <th></th>
                   <th>Original price</th>
                   <th>Actual price</th>
                   <th>Total paid</th>
+                  <th>Refunded</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -105,7 +105,6 @@
 
                       </div>
                     </td>
-                    <td>{{ item.sale.variant.variant_code }}</td>
                     <td>x{{ item.sold_quantity }}</td>
                     <td>
                       ¥{{ item.retail_price|floatformat:2 }}
@@ -121,20 +120,15 @@
                       </div>
                     </td>
                     <td>¥{{ item.actual_total|floatformat:2 }}</td>
+                  <td>
+                    {% if item.return_value %}
+                      <span class="red-text text-darken-2">¥{{ item.return_value|floatformat:2 }} (x{{ item.return_quantity }})</span>
+                    {% endif %}
 
+                  </td>
                   <td>
                     {% if item.returned %}
-                      <span class="chip return-chip red lighten-5 red-text text-darken-2">
-                        {% if item.return_quantity and item.return_value %}
-                          Returned · {{ item.return_quantity }} item{{ item.return_quantity|pluralize }} · ¥{{ item.return_value|floatformat:2 }}
-                        {% elif item.return_quantity %}
-                          Returned · {{ item.return_quantity }} item{{ item.return_quantity|pluralize }}
-                        {% elif item.return_value %}
-                          Refunded · ¥{{ item.return_value|floatformat:2 }}
-                        {% else %}
-                          Returned
-                        {% endif %}
-                      </span>
+                      <span class="chip return-chip red lighten-5 red-text text-darken-2">Returned</span>
                     {% else %}
                       &mdash;
                     {% endif %}
@@ -145,16 +139,15 @@
                   <td></td>
                   <td></td>
                   <td></td>
-                  <td></td>
                   <td><strong>TOTAL</strong></td>
                   <td>
                     <div class="order-values">
                       <span class="order-total">¥{{ order.total_value|floatformat:2 }}</span>
-                      {% if order.returns_value %}
-                        <span class="order-returns red-text text-darken-1">Returns: ¥{{ order.returns_value|floatformat:2 }}</span>
-                      {% endif %}
                     </div>
                   </td>
+                  <td>{% if order.returns_value %}
+                    <span class="order-returns red-text text-darken-1">Returns: ¥{{ order.returns_value|floatformat:2 }}</span>
+                  {% endif %}</td>
                   <td></td>
                 </tr>
               </tbody>
