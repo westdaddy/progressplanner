@@ -3,135 +3,132 @@
 {% block title %}{{ bucket_label }} Sales{% endblock %}
 
 {% block content %}
-<div class="section">
+  <div class="section">
+    <h3>
+      Sales
+      <span class="grey-text small">
+        | {{ bucket_label }} sales from {{ start_date|date:"F j, Y" }} to {{ end_date|date:"F j, Y" }}
+      </span>
+    </h3>
 
-  <h3>Sales <span class="grey-text small">| {{ bucket_label }} sales from {{ start_date|date:"F j, Y" }} to {{ end_date|date:"F j, Y" }}</span></h3>
-
-
-
-  <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin-bottom: 1.5rem;">
-
-    <div class="grey lighten-4" style="padding: 0.75rem 1rem; border-radius: 6px;">
-      <a
-        href="{% url 'sales' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
-        class=""
-      >
-        ← Back to sales overview
-      </a> |
-      <strong>{{ orders_count }}</strong> order{{ orders_count|pluralize }} ·
-      <strong>{{ bucket_totals.items_count }}</strong> item{{ bucket_totals.items_count|pluralize }} ·
-      Retail: ¥{{ bucket_totals.retail_value|floatformat:2 }} ·
-      Actual: ¥{{ bucket_totals.actual_value|floatformat:2 }}
-      {% if bucket_totals.returns_value %}
-        · <span class="red-text text-darken-1">-¥{{ bucket_totals.returns_value|floatformat:2 }}</span>
-      {% endif %}
+    <div class="card-panel grey lighten-4 page-summary">
+      <div class="page-summary__primary">
+        <a
+          href="{% url 'sales' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
+          class="page-summary__back-link"
+        >
+          ← Back to sales overview
+        </a>
+      </div>
+      <div class="page-summary__stats">
+        <span class="page-summary__stat">
+          <strong>{{ orders_count }}</strong> order{{ orders_count|pluralize }}
+        </span>
+        <span class="page-summary__stat">
+          <strong>{{ bucket_totals.items_count }}</strong> item{{ bucket_totals.items_count|pluralize }}
+        </span>
+        <span class="page-summary__stat">Retail: ¥{{ bucket_totals.retail_value|floatformat:2 }}</span>
+        <span class="page-summary__stat">Actual: ¥{{ bucket_totals.actual_value|floatformat:2 }}</span>
+        {% if bucket_totals.returns_value %}
+          <span class="page-summary__stat red-text text-darken-1">
+            &minus;¥{{ bucket_totals.returns_value|floatformat:2 }}
+          </span>
+        {% endif %}
+      </div>
     </div>
-  </div>
 
-
-
-      {% if orders %}
-        {% for order in orders %}
-          <div class="order-block">
-            <div class="order-header">
-              <div class="left">
-                <span class="order-number">#{{ order.order_number }}</span>
-                <span class="order-date">· {{ order.date|date:"F j, Y" }}</span>
-              </div>
-
-              <div class="right">
-                <div class="order-referrer">
-                  {% if order.referrer %}
-
-                    <span class="chip teal lighten-5 teal-text text-darken-3">
-                      Referrer: {{ order.referrer.name }}
-                      <a
-                        href="#referrer-modal-{{ forloop.counter }}"
-                        class="modal-trigger assign-referrer-link"
-                      >
-                        <i class="material-icons tiny">edit</i>
-                      </a>
-                    </span>
-
-                  {% else %}
-                    <a
-                      href="#referrer-modal-{{ forloop.counter }}"
-                      class="chip white modal-trigger assign-referrer-link"
-                    >
-                      Assign referrer +
-                    </a>
-                  {% endif %}
-                </div>
-              </div>
-
+    {% if orders %}
+      {% for order in orders %}
+        <div class="order-block">
+          <div class="order-header">
+            <div class="left">
+              <span class="order-number">#{{ order.order_number }}</span>
+              <span class="order-date">· {{ order.date|date:"F j, Y" }}</span>
             </div>
 
+            <div class="right">
+              <div class="order-referrer">
+                {% if order.referrer %}
+                  <span class="chip teal lighten-5 teal-text text-darken-3">
+                    Referrer: {{ order.referrer.name }}
+                    <a
+                      href="#referrer-modal-{{ forloop.counter }}"
+                      class="modal-trigger assign-referrer-link"
+                    >
+                      <i class="material-icons tiny">edit</i>
+                    </a>
+                  </span>
+                {% else %}
+                  <a
+                    href="#referrer-modal-{{ forloop.counter }}"
+                    class="chip white modal-trigger assign-referrer-link"
+                  >
+                    Assign referrer +
+                  </a>
+                {% endif %}
+              </div>
+            </div>
+          </div>
 
-
-            <table class="highlight order-items-table">
-              <thead>
-                <tr>
-                  <th>Item</th>
-                  <th></th>
-                  <th>Original price</th>
-                  <th>Actual price</th>
-                  <th>Total paid</th>
-                  <th>Refunded</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for item in order.items %}
-                  <tr class="{% if not item.is_bucket_item %}grey-text text-lighten-1{% endif %}">
-                    <td>
-                      <div class="order-item-product">
-                        {% if item.sale.variant.product.product_photo %}
-                          <img
-                            src="{{ item.sale.variant.product.product_photo.url }}"
-                            alt="{{ item.sale.variant.product.product_name }}"
-                          />
-                        {% else %}
-                          <div class="order-item-placeholder">No photo</div>
-                        {% endif %}
-                        <div>
-                          <div class="variant-code">
-                            {{ item.sale.variant.variant_code }}
-                            <a
-                              href="{% url 'admin:inventory_sale_change' item.sale.pk %}"
-                              class="variant-edit-link"
-                              target="_blank"
-                              rel="noopener"
-                              title="Edit sale in admin"
-                              aria-label="Edit sale {{ item.sale.sale_id }} in admin"
-                            >
-                              <i class="material-icons tiny">edit</i>
-                            </a>
-                          </div>
-
+          <table class="highlight order-items-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th></th>
+                <th>Original price</th>
+                <th>Actual price</th>
+                <th>Total paid</th>
+                <th>Refunded</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in order.items %}
+                <tr class="{% if not item.is_bucket_item %}grey-text text-lighten-1{% endif %}">
+                  <td>
+                    <div class="order-item-product">
+                      {% if item.sale.variant.product.product_photo %}
+                        <img
+                          src="{{ item.sale.variant.product.product_photo.url }}"
+                          alt="{{ item.sale.variant.product.product_name }}"
+                        />
+                      {% else %}
+                        <div class="order-item-placeholder">No photo</div>
+                      {% endif %}
+                      <div>
+                        <div class="variant-code">
+                          {{ item.sale.variant.variant_code }}
+                          <a
+                            href="{% url 'admin:inventory_sale_change' item.sale.pk %}"
+                            class="variant-edit-link"
+                            target="_blank"
+                            rel="noopener"
+                            title="Edit sale in admin"
+                            aria-label="Edit sale {{ item.sale.sale_id }} in admin"
+                          >
+                            <i class="material-icons tiny">edit</i>
+                          </a>
                         </div>
-
                       </div>
-                    </td>
-                    <td>x{{ item.sold_quantity }}</td>
-                    <td>
-                      ¥{{ item.retail_price|floatformat:2 }}
-                    </td>
-                    <td>
-                      <div class="price-with-discount">
-                        <span class="actual-price">¥{{ item.actual_unit_price|floatformat:2 }}</span>
-                        {% if item.discount_percentage is not None %}
-                          <span class="discount-percentage grey-text text-darken-1">
-                            -{{ item.discount_percentage|floatformat:-1 }}%
-                          </span>
-                        {% endif %}
-                      </div>
-                    </td>
-                    <td>¥{{ item.actual_total|floatformat:2 }}</td>
+                    </div>
+                  </td>
+                  <td>x{{ item.sold_quantity }}</td>
+                  <td>¥{{ item.retail_price|floatformat:2 }}</td>
+                  <td>
+                    <div class="price-with-discount">
+                      <span class="actual-price">¥{{ item.actual_unit_price|floatformat:2 }}</span>
+                      {% if item.discount_percentage is not None %}
+                        <span class="discount-percentage grey-text text-darken-1">
+                          -{{ item.discount_percentage|floatformat:-1 }}%
+                        </span>
+                      {% endif %}
+                    </div>
+                  </td>
+                  <td>¥{{ item.actual_total|floatformat:2 }}</td>
                   <td>
                     {% if item.return_value %}
                       <span class="red-text text-darken-2">¥{{ item.return_value|floatformat:2 }} (x{{ item.return_quantity }})</span>
                     {% endif %}
-
                   </td>
                   <td>
                     {% if item.returned %}
@@ -141,242 +138,88 @@
                     {% endif %}
                   </td>
                 </tr>
-                {% endfor %}
-                <tr>
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                  <td><strong>TOTAL</strong></td>
-                  <td>
-                    <div class="order-values">
-                      <span class="order-total">¥{{ order.total_value|floatformat:2 }}</span>
-                    </div>
-                  </td>
-                  <td>{% if order.returns_value %}
+              {% endfor %}
+              <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td><strong>TOTAL</strong></td>
+                <td>
+                  <div class="order-values">
+                    <span class="order-total">¥{{ order.total_value|floatformat:2 }}</span>
+                  </div>
+                </td>
+                <td>
+                  {% if order.returns_value %}
                     <span class="order-returns red-text text-darken-1">-¥{{ order.returns_value|floatformat:2 }}</span>
-                  {% endif %}</td>
-                  <td></td>
-                </tr>
-              </tbody>
-            </table>
-            <div id="referrer-modal-{{ forloop.counter }}" class="modal">
-              <form method="post" action="{% url 'assign_order_referrer' bucket_key=bucket_key %}">
-                {% csrf_token %}
-                <input type="hidden" name="order_number" value="{{ order.order_number }}" />
-                {% if date_querystring %}
-                  <input type="hidden" name="date_querystring" value="{{ date_querystring }}" />
-                {% endif %}
-                <div class="modal-content">
-                  <h4>Assign referrer</h4>
-                  <input
-                    type="hidden"
-                    name="referrer_id"
-                    value="{% if order.referrer %}{{ order.referrer.id }}{% endif %}"
-                  />
-                  {% if referrers %}
-                    <p class="grey-text text-darken-1 modal-helper-text" style="margin-bottom: 0.75rem;">
-                      Select a referrer below.
-                    </p>
-                  {% else %}
-                    <p class="grey-text text-darken-1 modal-helper-text" style="margin-bottom: 0.75rem;">
-                      No referrers available yet. Add one from the admin to get started.
-                    </p>
                   {% endif %}
-                  <div class="referrer-chip-group">
+                </td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div id="referrer-modal-{{ forloop.counter }}" class="modal">
+            <form method="post" action="{% url 'assign_order_referrer' bucket_key=bucket_key %}">
+              {% csrf_token %}
+              <input type="hidden" name="order_number" value="{{ order.order_number }}" />
+              {% if date_querystring %}
+                <input type="hidden" name="date_querystring" value="{{ date_querystring }}" />
+              {% endif %}
+              <div class="modal-content">
+                <h4>Assign referrer</h4>
+                <input
+                  type="hidden"
+                  name="referrer_id"
+                  value="{% if order.referrer %}{{ order.referrer.id }}{% endif %}"
+                />
+                {% if referrers %}
+                  <p class="grey-text text-darken-1 modal-helper-text">
+                    Select a referrer below.
+                  </p>
+                {% else %}
+                  <p class="grey-text text-darken-1 modal-helper-text">
+                    No referrers available yet. Add one from the admin to get started.
+                  </p>
+                {% endif %}
+                <div class="referrer-chip-group">
+                  <div
+                    class="chip referrer-chip {% if not order.referrer %}selected{% endif %}"
+                    data-referrer-id=""
+                    tabindex="0"
+                  >
+                    No referrer
+                  </div>
+                  {% for referrer in referrers %}
                     <div
-                      class="chip referrer-chip {% if not order.referrer %}selected{% endif %}"
-                      data-referrer-id=""
+                      class="chip referrer-chip {% if order.referrer and order.referrer.id == referrer.id %}selected{% endif %}"
+                      data-referrer-id="{{ referrer.id }}"
                       tabindex="0"
                     >
-                      No referrer
+                      {{ referrer.name }}
                     </div>
-                    {% for referrer in referrers %}
-                      <div
-                        class="chip referrer-chip {% if order.referrer and order.referrer.id == referrer.id %}selected{% endif %}"
-                        data-referrer-id="{{ referrer.id }}"
-                        tabindex="0"
-                      >
-                        {{ referrer.name }}
-                      </div>
-                    {% endfor %}
-                  </div>
+                  {% endfor %}
                 </div>
-                <div class="modal-footer">
-                  <button
-                    type="submit"
-                    class="btn waves-effect waves-light"
-                  >
-                    Save
-                  </button>
-                  <a href="#!" class="modal-close btn-flat">Cancel</a>
-                </div>
-              </form>
-            </div>
+              </div>
+              <div class="modal-footer">
+                <button
+                  type="submit"
+                  class="btn waves-effect waves-light"
+                >
+                  Save
+                </button>
+                <a href="#!" class="modal-close btn-flat">Cancel</a>
+              </div>
+            </form>
           </div>
-        {% endfor %}
-      {% else %}
-        <p class="grey-text text-darken-1" style="margin-top: 2rem;">
-          No sales matched this pricing group for the selected date range.
-        </p>
-      {% endif %}
-    </div>
-
-
-<style>
-  .order-block {
-    background-color: #ffffff;
-    border-radius: 8px;
-    margin-bottom: 1.5rem;
-    padding: 1.25rem;
-    border: 1px solid #e1e1e1;
-  }
-
-  .order-header {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-  }
-
-  .order-number {
-    font-weight: 600;
-  }
-
-  .order-values {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    align-items: center;
-  }
-
-  .price-with-discount {
-    align-items: baseline;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-  }
-
-  .price-with-discount .actual-price {
-    font-weight: 600;
-  }
-
-  .discount-percentage {
-    font-size: 0.85rem;
-  }
-
-  .order-referrer {
-    align-items: center;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-  }
-
-  .assign-referrer-link {
-    color: #00897b;
-    font-weight: 600;
-    text-decoration: none;
-  }
-
-  .assign-referrer-link:hover {
-    text-decoration: underline;
-  }
-
-  .return-chip {
-    font-weight: 600;
-  }
-
-  .modal-helper-text {
-    font-size: 0.95rem;
-  }
-
-  .order-items-table th,
-  .order-items-table td {
-    vertical-align: middle;
-  }
-
-  .order-item-product {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-
-  .order-item-badge {
-    border-radius: 12px;
-    display: inline-block;
-    font-size: 0.8rem;
-    font-weight: 500;
-    margin-top: 0.3rem;
-    padding: 0.2rem 0.6rem;
-  }
-
-  .order-item-product img {
-    width: 32px;
-    height: 32px;
-    object-fit: cover;
-    border-radius: 6px;
-  }
-
-  .order-item-placeholder {
-    align-items: center;
-    background-color: #e0e0e0;
-    border-radius: 6px;
-    color: #616161;
-    display: flex;
-    font-size: 0.8rem;
-    height: 64px;
-    justify-content: center;
-    width: 64px;
-  }
-
-  .variant-code {
-    font-weight: 600;
-    margin-bottom: 0.25rem;
-  }
-
-  .variant-edit-link {
-    align-items: center;
-    color: #757575;
-    display: inline-flex;
-    margin-left: 0.35rem;
-    text-decoration: none;
-  }
-
-  .variant-edit-link .material-icons {
-    font-size: 1.05rem;
-  }
-
-  .variant-edit-link:hover,
-  .variant-edit-link:focus {
-    color: #424242;
-  }
-
-  .referrer-chip-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .referrer-chip {
-    cursor: pointer;
-    transition: background-color 0.2s ease, color 0.2s ease;
-  }
-
-  .referrer-chip.selected {
-    background-color: #00897b;
-    color: #ffffff;
-  }
-
-  .referrer-chip.selected:focus {
-    outline: none;
-  }
-
-  .referrer-chip:focus {
-    outline: 2px solid #00897b;
-    outline-offset: 2px;
-  }
-</style>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="grey-text text-darken-1 no-data-message">
+        No sales matched this pricing group for the selected date range.
+      </p>
+    {% endif %}
+  </div>
 {% endblock %}
 
 {% block extrajs %}
