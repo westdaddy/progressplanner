@@ -1,0 +1,317 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}Sales by Referrer{% endblock %}
+
+{% block content %}
+<div class="section">
+
+  <h3>Sales <span class="grey-text small">| Referrer sales from {{ start_date|date:"F j, Y" }} to {{ end_date|date:"F j, Y" }}</span></h3>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-start; margin-bottom: 1.5rem;">
+    <div class="grey lighten-4" style="padding: 0.75rem 1rem; border-radius: 6px;">
+      <a
+        href="{% url 'sales' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
+        class=""
+      >
+        ← Back to sales overview
+      </a>
+      |
+      <strong>{{ orders_count }}</strong> order{{ orders_count|pluralize }} ·
+      <strong>{{ summary.items_count }}</strong> item{{ summary.items_count|pluralize }} ·
+      Retail: ¥{{ summary.retail_value|floatformat:2 }} ·
+      Actual: ¥{{ summary.actual_value|floatformat:2 }}
+      {% if summary.returns_value %}
+        · <span class="red-text text-darken-1">-¥{{ summary.returns_value|floatformat:2 }}</span>
+      {% endif %}
+      · Referrers: <strong>{{ summary.referrer_count }}</strong>
+      {% if selected_referrer %}
+        · Showing referrer:
+        <span class="chip teal lighten-5 teal-text text-darken-3">{{ selected_referrer.name }}</span>
+      {% endif %}
+    </div>
+
+    <div class="grey lighten-4" style="padding: 0.75rem 1rem; border-radius: 6px;">
+      <form method="get" novalidate>
+        <label for="start_date" class="active">Showing sales from</label>
+        <input
+          type="date"
+          id="start_date"
+          name="start_date"
+          value="{{ start_date|date:'Y-m-d' }}"
+          class="browser-default"
+        />
+
+        <label for="end_date" class="active">to</label>
+        <input
+          type="date"
+          id="end_date"
+          name="end_date"
+          value="{{ end_date|date:'Y-m-d' }}"
+          class="browser-default"
+        />
+
+        <label for="referrer" class="active">Referrer</label>
+        <select id="referrer" name="referrer" class="browser-default">
+          <option value="">All referrers</option>
+          {% for referrer in referrers %}
+            <option value="{{ referrer.id }}" {% if selected_referrer_id == referrer.id|stringformat:'s' %}selected{% endif %}>
+              {{ referrer.name }}
+            </option>
+          {% endfor %}
+        </select>
+
+        <button type="submit" class="btn-small waves-effect waves-light" style="margin-top: 0.75rem;">
+          Update
+        </button>
+      </form>
+    </div>
+  </div>
+
+  {% if has_sales_data %}
+    {% for order in orders %}
+      <div class="order-block">
+        <div class="order-header">
+          <div class="left">
+            <span class="order-number">#{{ order.order_number }}</span>
+            <span class="order-date">· {{ order.date|date:"F j, Y" }}</span>
+          </div>
+
+          <div class="right">
+            <div class="order-referrer">
+              {% if order.referrers %}
+                <span class="grey-text text-darken-2">
+                  {% if order.has_multiple_referrers %}
+                    Referrers:
+                  {% else %}
+                    Referrer:
+                  {% endif %}
+                </span>
+                {% for referrer in order.referrers %}
+                  <span class="chip teal lighten-5 teal-text text-darken-3">{{ referrer.name }}</span>
+                {% endfor %}
+              {% else %}
+                <span class="chip white grey-text text-darken-1">No referrer</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <table class="highlight order-items-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th></th>
+              <th>Original price</th>
+              <th>Actual price</th>
+              <th>Total paid</th>
+              <th>Refunded</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in order.items %}
+              <tr class="{% if not item.is_referrer_item %}grey-text text-lighten-1{% endif %}">
+                <td>
+                  <div class="order-item-product">
+                    {% if item.sale.variant.product.product_photo %}
+                      <img
+                        src="{{ item.sale.variant.product.product_photo.url }}"
+                        alt="{{ item.sale.variant.product.product_name }}"
+                      />
+                    {% else %}
+                      <div class="order-item-placeholder">No photo</div>
+                    {% endif %}
+                    <div>
+                      <div class="variant-code">
+                        {{ item.sale.variant.variant_code }}
+                        <a
+                          href="{% url 'admin:inventory_sale_change' item.sale.pk %}"
+                          class="variant-edit-link"
+                          target="_blank"
+                          rel="noopener"
+                          title="Edit sale in admin"
+                          aria-label="Edit sale {{ item.sale.sale_id }} in admin"
+                        >
+                          <i class="material-icons tiny">edit</i>
+                        </a>
+                      </div>
+                      <div class="order-item-badge teal lighten-5 teal-text text-darken-3">
+                        {{ item.sale.referrer.name }}
+                      </div>
+                    </div>
+
+                  </div>
+                </td>
+                <td>x{{ item.sold_quantity }}</td>
+                <td>
+                  ¥{{ item.retail_price|floatformat:2 }}
+                </td>
+                <td>
+                  <div class="price-with-discount">
+                    <span class="actual-price">¥{{ item.actual_unit_price|floatformat:2 }}</span>
+                    {% if item.discount_percentage is not None %}
+                      <span class="discount-percentage grey-text text-darken-1">
+                        -{{ item.discount_percentage|floatformat:-1 }}%
+                      </span>
+                    {% endif %}
+                  </div>
+                </td>
+                <td>¥{{ item.actual_total|floatformat:2 }}</td>
+              <td>
+                {% if item.return_value %}
+                  <span class="red-text text-darken-2">¥{{ item.return_value|floatformat:2 }} (x{{ item.return_quantity }})</span>
+                {% endif %}
+
+              </td>
+              <td>
+                {% if item.returned %}
+                  <span class="chip return-chip red lighten-5 red-text text-darken-2">Returned</span>
+                {% else %}
+                  &mdash;
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+            <tr>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td><strong>TOTAL</strong></td>
+              <td>
+                <div class="order-values">
+                  <span class="order-total">¥{{ order.total_value|floatformat:2 }}</span>
+                </div>
+              </td>
+              <td>{% if order.returns_value %}
+                <span class="order-returns red-text text-darken-1">-¥{{ order.returns_value|floatformat:2 }}</span>
+              {% endif %}</td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p class="grey-text text-darken-1" style="margin-top: 2rem;">
+      No referrer sales found for this date range.
+    </p>
+  {% endif %}
+</div>
+
+<style>
+  .order-block {
+    background-color: #ffffff;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    padding: 1.25rem;
+    border: 1px solid #e1e1e1;
+  }
+
+  .order-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .order-number {
+    font-weight: 600;
+  }
+
+  .order-values {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .price-with-discount {
+    align-items: baseline;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .price-with-discount .actual-price {
+    font-weight: 600;
+  }
+
+  .discount-percentage {
+    font-size: 0.85rem;
+  }
+
+  .order-referrer {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .return-chip {
+    font-weight: 600;
+  }
+
+  .order-items-table th,
+  .order-items-table td {
+    vertical-align: middle;
+  }
+
+  .order-item-product {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .order-item-badge {
+    border-radius: 12px;
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-top: 0.3rem;
+    padding: 0.2rem 0.6rem;
+  }
+
+  .order-item-product img {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    border-radius: 6px;
+  }
+
+  .order-item-placeholder {
+    align-items: center;
+    background-color: #e0e0e0;
+    border-radius: 6px;
+    color: #616161;
+    display: flex;
+    font-size: 0.8rem;
+    height: 64px;
+    justify-content: center;
+    width: 64px;
+  }
+
+  .variant-code {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+
+  .variant-edit-link {
+    align-items: center;
+    color: #757575;
+    display: inline-flex;
+    margin-left: 0.35rem;
+    text-decoration: none;
+  }
+
+  .variant-edit-link .material-icons {
+    font-size: 1.05rem;
+  }
+
+  .variant-edit-link:hover,
+  .variant-edit-link:focus {
+    color: #424242;
+  }
+</style>
+{% endblock %}
