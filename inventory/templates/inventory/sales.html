@@ -3,177 +3,154 @@
 {% block title %}Sales{% endblock %}
 
 {% block content %}
+  <div class="section">
+    <h3>Sales</h3>
 
-  <h3>Sales</h3>
-
-  <div class="row filter-bar grey lighten-3">
-
-        <div class="col s5">
-        <form method="get" novalidate>
-            <label for="start_date" class="active">Showing sales from</label>
-            <input
-              type="date"
-              id="start_date"
-              name="start_date"
-              value="{{ start_date|date:'Y-m-d' }}"
-              class="browser-default"
-            />
-            <label for="end_date" class="active">to</label>
-            <input
-              type="date"
-              id="end_date"
-              name="end_date"
-              value="{{ end_date|date:'Y-m-d' }}"
-              class="browser-default"
-            />
-            <button type="submit" class="btn-small waves-effect waves-light">
-              Update
-            </button>
-        </form>
+    <div class="card-panel filter-toolbar">
+      <form method="get" novalidate class="filter-toolbar__form">
+        <div class="filter-toolbar__field">
+          <label for="start_date" class="active">From</label>
+          <input
+            type="date"
+            id="start_date"
+            name="start_date"
+            value="{{ start_date|date:'Y-m-d' }}"
+            class="browser-default"
+          />
         </div>
-
-        <div class="col s4 m4 right">
+        <div class="filter-toolbar__field">
+          <label for="end_date" class="active">To</label>
+          <input
+            type="date"
+            id="end_date"
+            name="end_date"
+            value="{{ end_date|date:'Y-m-d' }}"
+            class="browser-default"
+          />
+        </div>
+        <div class="filter-toolbar__actions">
+          <button type="submit" class="btn-small waves-effect waves-light">
+            Update
+          </button>
+        </div>
+      </form>
+      <div class="filter-toolbar__aside">
         <a
           href="{% url 'sales_referrers' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
+          class="filter-toolbar__link"
         >
-          View sales by referrer →
+          View sales by referrer <span aria-hidden="true">→</span>
         </a>
+      </div>
+    </div>
+
+    {% if has_sales_data %}
+      <div class="card sales-summary-card z-depth-0">
+        <div class="card-content">
+          <h2 id="netSales" class="sales-summary__net blue-text">
+            ¥{{ net_sales_value|floatformat:0 }}
+          </h2>
+          <p class="sales-summary__metric grey-text text-darken-1">
+            ¥{{ gross_sales_value|floatformat:0 }} gross
+          </p>
+          <p class="sales-summary__metric red-text text-darken-4">
+            ¥{{ gross_sales_value|add:-net_sales_value|floatformat:0 }} returns
+          </p>
+          <p class="sales-summary__metric grey-text text-darken-2">
+            {{ items_count }} items in {{ orders_count }} orders
+          </p>
         </div>
       </div>
 
-
-
-      {% if has_sales_data %}
-
-            <div class="card white z-depth-0">
-              <div class="card-content">
-                <h2 id="netSales" class="blue-text">¥{{ net_sales_value|floatformat:0 }}</h2>
-                <p class="grey-text text-darken-1" style="font-size: 1.1rem; font-weight: 600;">¥{{ gross_sales_value|floatformat:0 }} gross</p>
-                <p class="red-text text-darken-4" style="font-size: 1.1rem; font-weight: 600;">¥{{ gross_sales_value|floatformat:0 }} returns</p>
-                <p class="grey-text text-darken-2" style="font-size: 1.1rem; font-weight: 600;">{{ items_count }} items in {{ orders_count }} orders</p>
-              </div>
-            </div>
-
-
-
-        <div class="row">
-          <div class="col s12">
-            <div class="card-panel blue lighten-5" style="margin: 0;">
-              <h6 class="grey-text text-darken-2" style="margin-top: 0;">Pricing breakdown</h6>
-              <p class="grey-text text-darken-1" style="margin-top: 0;">
-                Counts and totals exclude returned sales and lines with zero quantity.
-
-              </p>
-              <table class="striped price-breakdown-table" style="margin-top: 1rem;">
-                <thead>
-                  <tr>
-                    <th>Category</th>
-                    <th>Items sold</th>
-                    <th>Retail value</th>
-                    <th>Actual value</th>
-                    <th>% of sales</th>
-
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for bucket in price_breakdown %}
-                    {% url 'sales_bucket_detail' bucket.key as bucket_url %}
-                    <tr
-                      class="clickable-row"
-                      data-href="{{ bucket_url }}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
-                    >
-                      <td>
-                        <a
-                          href="{{ bucket_url }}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
-                          class="price-breakdown-link"
-                        >
-                          {{ bucket.label }}
-                        </a>
-                      </td>
-                      <td>{{ bucket.items_count }}</td>
-                      <td>¥{{ bucket.retail_value|floatformat:2 }}</td>
-                      <td>¥{{ bucket.actual_value|floatformat:2 }}</td>
-                      <td>{{ bucket.actual_percentage|floatformat:2 }}%</td>
-
-                    </tr>
-                  {% endfor %}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <th>Total</th>
-                    <th>{{ pricing_total_items }}</th>
-                    <th>¥{{ pricing_total_retail_value|floatformat:2 }}</th>
-                    <th>¥{{ pricing_total_actual_value|floatformat:2 }}</th>
-                    <th>
-                      {% if pricing_total_actual_value %}
-                        100%
-                      {% else %}
-                        &mdash;
-                      {% endif %}
-                    </th>
-
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <style>
-          .price-breakdown-table tr.clickable-row {
-            cursor: pointer;
-          }
-
-          .price-breakdown-table tr.clickable-row:hover {
-            background-color: rgba(33, 150, 243, 0.08);
-          }
-
-          .price-breakdown-link {
-            color: inherit;
-            display: inline-block;
-            text-decoration: none;
-            width: 100%;
-          }
-
-          .price-breakdown-link:hover {
-            text-decoration: underline;
-          }
-        </style>
-
-        <script>
-          document.addEventListener("DOMContentLoaded", function () {
-            document
-              .querySelectorAll(".price-breakdown-table tr.clickable-row")
-              .forEach(function (row) {
-                row.setAttribute("tabindex", "0");
-                row.addEventListener("click", function (event) {
-                  if (event.target.tagName && event.target.tagName.toLowerCase() === "a") {
-                    return;
-                  }
-                  const anchor = row.querySelector("a.price-breakdown-link");
-                  if (anchor) {
-                    window.location.href = anchor.getAttribute("href");
-                  }
-                });
-                row.addEventListener("keyup", function (event) {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    const anchor = row.querySelector("a.price-breakdown-link");
-                    if (anchor) {
-                      anchor.click();
-                    }
-                  }
-                });
-              });
-          });
-        </script>
-
-      {% else %}
-        <p class="grey-text text-darken-1" style="margin-top: 1.5rem;">
-          No sales recorded for this date range.
+      <div class="card-panel blue lighten-5 pricing-breakdown-card">
+        <h6 class="pricing-breakdown-card__title grey-text text-darken-2">Pricing breakdown</h6>
+        <p class="pricing-breakdown-card__note grey-text text-darken-1">
+          Counts and totals exclude returned sales and lines with zero quantity.
         </p>
-      {% endif %}
-    </div>
+        <table class="striped pricing-breakdown-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Items sold</th>
+              <th>Retail value</th>
+              <th>Actual value</th>
+              <th>% of sales</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for bucket in price_breakdown %}
+              {% url 'sales_bucket_detail' bucket.key as bucket_url %}
+              <tr
+                class="clickable-row"
+                data-href="{{ bucket_url }}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
+              >
+                <td>
+                  <a
+                    href="{{ bucket_url }}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
+                    class="price-breakdown-link"
+                  >
+                    {{ bucket.label }}
+                  </a>
+                </td>
+                <td>{{ bucket.items_count }}</td>
+                <td>¥{{ bucket.retail_value|floatformat:2 }}</td>
+                <td>¥{{ bucket.actual_value|floatformat:2 }}</td>
+                <td>{{ bucket.actual_percentage|floatformat:2 }}%</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th>Total</th>
+              <th>{{ pricing_total_items }}</th>
+              <th>¥{{ pricing_total_retail_value|floatformat:2 }}</th>
+              <th>¥{{ pricing_total_actual_value|floatformat:2 }}</th>
+              <th>
+                {% if pricing_total_actual_value %}
+                  100%
+                {% else %}
+                  &mdash;
+                {% endif %}
+              </th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    {% else %}
+      <p class="grey-text text-darken-1 no-data-message">
+        No sales recorded for this date range.
+      </p>
+    {% endif %}
   </div>
-</div>
+{% endblock %}
+
+{% block extrajs %}
+  {{ block.super }}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      document
+        .querySelectorAll(".pricing-breakdown-table tr.clickable-row")
+        .forEach(function (row) {
+          row.setAttribute("tabindex", "0");
+          row.addEventListener("click", function (event) {
+            if (event.target.tagName && event.target.tagName.toLowerCase() === "a") {
+              return;
+            }
+            const anchor = row.querySelector("a.price-breakdown-link");
+            if (anchor) {
+              window.location.href = anchor.getAttribute("href");
+            }
+          });
+          row.addEventListener("keyup", function (event) {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              const anchor = row.querySelector("a.price-breakdown-link");
+              if (anchor) {
+                anchor.click();
+              }
+            }
+          });
+        });
+    });
+  </script>
 {% endblock %}
