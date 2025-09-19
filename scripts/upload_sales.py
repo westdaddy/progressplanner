@@ -43,6 +43,41 @@ def _serialize_row(row_series):
     }
 
 
+def _serialize_sale_fields(
+    *,
+    order_number,
+    order_date,
+    variant,
+    variant_code,
+    sold_quantity,
+    sold_value,
+    return_quantity,
+    return_value,
+):
+    """Return only the fields required to create a Sale manually."""
+
+    if isinstance(order_date, (datetime, date)):
+        date_value = order_date.isoformat()
+    else:
+        date_value = order_date
+
+    payload = {
+        "order_number": order_number,
+        "date": date_value,
+        "variant_code": variant_code,
+        "sold_quantity": sold_quantity,
+        "sold_value": sold_value,
+        "return_quantity": return_quantity,
+        "return_value": return_value,
+    }
+
+    if variant is not None:
+        payload["variant_id"] = variant.id
+
+    return payload
+
+
+
 def _parse_order_date(raw_value):
     if pd.isnull(raw_value):
         return None
@@ -121,7 +156,22 @@ def upload_sales(test=False, diff=False):
                         variant=variant,
                     ).exists()
                     if not exists:
-                        diff_missing_rows.append((index, _serialize_row(row)))
+                        diff_missing_rows.append(
+                            (
+                                index,
+                                _serialize_sale_fields(
+                                    order_number=order_number,
+                                    order_date=order_date,
+                                    variant=variant,
+                                    variant_code=variant_code,
+                                    sold_quantity=sold_quantity,
+                                    sold_value=sold_value,
+                                    return_quantity=return_quantity,
+                                    return_value=return_value,
+                                ),
+                            )
+                        )
+
 
                 logger.info(
                     "Processed Order#%s, Variant %s on %s",
