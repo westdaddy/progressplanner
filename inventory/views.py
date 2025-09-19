@@ -1553,6 +1553,7 @@ def sales(request):
         "pricing_total_actual_value": pricing_total_actual_value,
         "gross_sales_value": gross_sales_value,
         "net_sales_value": net_sales_value,
+        "returns_total_value": returns_total_value,
         "date_querystring": date_querystring,
     }
 
