@@ -28,6 +28,14 @@ div.metadata {
 }
 
 
+.row.filter-bar {
+  padding: 10px 15px;
+}
+
+.row.filter-bar .col {
+  padding: 0;
+}
+
 /* ORDER DETAIL PAGE */
 
 .order-table {

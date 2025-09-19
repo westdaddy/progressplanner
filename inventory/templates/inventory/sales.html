@@ -3,49 +3,44 @@
 {% block title %}Sales{% endblock %}
 
 {% block content %}
-<div class="section">
 
   <h3>Sales</h3>
 
-  <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin-bottom: 1.5rem;">
+  <div class="row filter-bar grey lighten-3">
 
-    <div class="grey lighten-4" style="padding: 0.75rem 1rem; border-radius: 6px;">
+        <div class="col s5">
+        <form method="get" novalidate>
+            <label for="start_date" class="active">Showing sales from</label>
+            <input
+              type="date"
+              id="start_date"
+              name="start_date"
+              value="{{ start_date|date:'Y-m-d' }}"
+              class="browser-default"
+            />
+            <label for="end_date" class="active">to</label>
+            <input
+              type="date"
+              id="end_date"
+              name="end_date"
+              value="{{ end_date|date:'Y-m-d' }}"
+              class="browser-default"
+            />
+            <button type="submit" class="btn-small waves-effect waves-light">
+              Update
+            </button>
+        </form>
+        </div>
 
-      <form method="get" novalidate>
-          <label for="start_date" class="active">Showing sales from</label>
-          <input
-            type="date"
-            id="start_date"
-            name="start_date"
-            value="{{ start_date|date:'Y-m-d' }}"
-            class="browser-default"
-          />
-
-          <label for="end_date" class="active">to</label>
-          <input
-            type="date"
-            id="end_date"
-            name="end_date"
-            value="{{ end_date|date:'Y-m-d' }}"
-            class="browser-default"
-          />
-
-          <button type="submit" class="btn-small waves-effect waves-light">
-            Update
-          </button>
-      </form>
-
-      <div style="margin-top: 0.75rem;">
+        <div class="col s4 m4 right">
         <a
           href="{% url 'sales_referrers' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
         >
           View sales by referrer →
         </a>
+        </div>
       </div>
 
-
-    </div>
-  </div>
 
 
       {% if has_sales_data %}
