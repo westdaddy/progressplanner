@@ -10,6 +10,7 @@ urlpatterns = [
     path('orders/', views.order_list, name='order_list'),  # Order List View
     path('orders/<int:order_id>/', views.order_detail, name='order_detail'),  # Order Detail View
     path('sales/', views.sales, name='sales'),
+    path('sales/referrers/', views.sales_referrers, name='sales_referrers'),
     path('sales/price-group/<str:bucket_key>/', views.sales_bucket_detail, name='sales_bucket_detail'),
     path(
         'sales/price-group/<str:bucket_key>/assign-referrer/',
