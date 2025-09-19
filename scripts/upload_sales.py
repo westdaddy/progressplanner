@@ -34,9 +34,17 @@ if file_path.endswith('.csv'):
 else:
     df = pd.read_excel(file_path)
 
+def _serialize_row(row_series):
+    return {
+        key: (None if pd.isnull(value) else value)
+        for key, value in row_series.items()
+    }
+
+
 @transaction.atomic
 def upload_sales(test=False):
     errors = []
+    failed_rows = []
     savepoint = transaction.savepoint()
 
     try:
@@ -55,7 +63,9 @@ def upload_sales(test=False):
                 # ---- look up the variant ----
                 variant = ProductVariant.objects.filter(variant_code=variant_code).first()
                 if not variant:
-                    errors.append(f"No ProductVariant for code {variant_code} (row {index})")
+                    msg = f"No ProductVariant for code {variant_code} (row {index})"
+                    errors.append(msg)
+                    failed_rows.append((index, msg, _serialize_row(row)))
                     continue
 
                 # ---- create the Sale record ----
@@ -80,6 +90,7 @@ def upload_sales(test=False):
             except Exception as e:
                 msg = f"Error on row {index}: {e}"
                 errors.append(msg)
+                failed_rows.append((index, msg, _serialize_row(row)))
                 logger.error(msg)
 
         # rollback if in test mode
@@ -90,6 +101,12 @@ def upload_sales(test=False):
     except Exception as e:
         logger.error("Critical error: %s", e)
         transaction.savepoint_rollback(savepoint)
+
+    if failed_rows:
+        logger.info("\nRows that were not uploaded:")
+        for row_index, reason, row_contents in failed_rows:
+            logger.info("Row %s failed: %s", row_index, reason)
+            logger.info("Row %s data: %s", row_index, row_contents)
 
     return errors
 

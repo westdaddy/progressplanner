@@ -965,3 +965,109 @@ class SalesBucketDetailViewTests(TestCase):
         self.assertEqual(refund_item["discount_percentage"], Decimal("100.00"))
 
 
+class SalesReferrersViewTests(TestCase):
+    def setUp(self):
+        self.product = Product.objects.create(
+            product_id="RF1",
+            product_name="Referrer Product",
+            retail_price=Decimal("80.00"),
+        )
+        self.variant = ProductVariant.objects.create(
+            product=self.product,
+            variant_code="RF1-1",
+            primary_color="#000000",
+        )
+        self.alpha = Referrer.objects.create(name="Alpha")
+        self.beta = Referrer.objects.create(name="Beta")
+
+    def test_lists_sales_with_referrers_in_range(self):
+        Sale.objects.create(
+            order_number="REF-100",
+            date=date(2024, 4, 10),
+            variant=self.variant,
+            sold_quantity=2,
+            sold_value=Decimal("120.00"),
+            referrer=self.alpha,
+        )
+        Sale.objects.create(
+            order_number="REF-100",
+            date=date(2024, 4, 12),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("30.00"),
+            return_quantity=1,
+            return_value=Decimal("30.00"),
+            referrer=self.alpha,
+        )
+        # Outside requested range
+        Sale.objects.create(
+            order_number="OLD-REF",
+            date=date(2024, 3, 5),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("40.00"),
+            referrer=self.beta,
+        )
+
+        response = self.client.get(
+            reverse("sales_referrers"),
+            {"start_date": "2024-04-01", "end_date": "2024-04-30"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["has_sales_data"])
+        self.assertEqual(response.context["orders_count"], 1)
+
+        summary = response.context["summary"]
+        self.assertEqual(summary["items_count"], 3)
+        self.assertEqual(summary["actual_value"], Decimal("150.00"))
+        self.assertEqual(summary["returns_value"], Decimal("30.00"))
+        self.assertEqual(summary["retail_value"], Decimal("240.00"))
+        self.assertEqual(summary["referrer_count"], 1)
+
+        orders = response.context["orders"]
+        self.assertEqual(len(orders), 1)
+        order = orders[0]
+        self.assertEqual(order["order_number"], "REF-100")
+        self.assertEqual(order["total_value"], Decimal("150.00"))
+        self.assertEqual(len(order["items"]), 2)
+        self.assertEqual(len(order["referrers"]), 1)
+        self.assertEqual(order["referrers"][0], self.alpha)
+
+    def test_filtering_by_specific_referrer(self):
+        Sale.objects.create(
+            order_number="ALPHA-1",
+            date=date(2024, 4, 6),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("50.00"),
+            referrer=self.alpha,
+        )
+        Sale.objects.create(
+            order_number="BETA-1",
+            date=date(2024, 4, 7),
+            variant=self.variant,
+            sold_quantity=2,
+            sold_value=Decimal("70.00"),
+            referrer=self.beta,
+        )
+
+        response = self.client.get(
+            reverse("sales_referrers"),
+            {
+                "start_date": "2024-04-01",
+                "end_date": "2024-04-30",
+                "referrer": str(self.beta.pk),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["orders_count"], 1)
+        self.assertEqual(response.context["selected_referrer"], self.beta)
+        self.assertEqual(response.context["summary"]["referrer_count"], 1)
+        self.assertEqual(response.context["summary"]["items_count"], 2)
+
+        orders = response.context["orders"]
+        self.assertEqual(len(orders), 1)
+        self.assertEqual(orders[0]["order_number"], "BETA-1")
+        self.assertEqual(orders[0]["referrers"], [self.beta])
