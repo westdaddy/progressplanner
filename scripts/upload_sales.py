@@ -72,11 +72,13 @@ def _parse_order_date(raw_value):
     raise ValueError(f"Unrecognized date format: {raw_value!r}")
 
 
+
 @transaction.atomic
 def upload_sales(test=False, diff=False):
     errors = []
     failed_rows = []
     diff_missing_rows = []
+
     savepoint = transaction.savepoint()
     should_save = not test and not diff
 
@@ -156,6 +158,7 @@ def upload_sales(test=False, diff=False):
                 logger.info("Row %s missing: %s", row_index, row_contents)
         else:
             logger.info("\nAll spreadsheet rows already exist in the database.")
+
 
     return errors
 
