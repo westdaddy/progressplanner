@@ -41,6 +41,19 @@
         >
           View sales by referrer <span aria-hidden="true">→</span>
         </a>
+        {% if referrers %}
+          <div class="filter-toolbar__field referrer-detail-selector">
+            <label for="referrerDetailSelect" class="active">Referrer detail</label>
+            <select id="referrerDetailSelect" class="browser-default">
+              <option value="">Select referrer…</option>
+              {% for referrer in referrers %}
+                <option value="{% url 'referrer_detail' referrer.id %}">
+                  {{ referrer.name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+        {% endif %}
       </div>
     </div>
 
@@ -152,6 +165,24 @@
             }
           });
         });
+
+      const referrerDetailSelect = document.getElementById("referrerDetailSelect");
+      if (referrerDetailSelect) {
+        const dateQuerystring = "{{ date_querystring|default:''|escapejs }}";
+        referrerDetailSelect.addEventListener("change", function () {
+          const selectedUrl = referrerDetailSelect.value;
+          if (!selectedUrl) {
+            return;
+          }
+
+          let target = selectedUrl;
+          if (dateQuerystring) {
+            target += selectedUrl.includes("?") ? "&" : "?";
+            target += dateQuerystring;
+          }
+          window.location.href = target;
+        });
+      }
     });
   </script>
 {% endblock %}

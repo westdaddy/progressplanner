@@ -1,0 +1,272 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}{{ referrer.name }} Sales{% endblock %}
+
+{% block content %}
+  <div class="section">
+    <h3>
+      Sales
+      <span class="grey-text small">
+        | {{ referrer.name }} from {{ start_date|date:"F j, Y" }} to {{ end_date|date:"F j, Y" }}
+      </span>
+    </h3>
+
+    <div class="card-panel grey lighten-4 page-summary">
+      <div class="page-summary__primary">
+        <a
+          href="{% url 'sales' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
+          class="page-summary__back-link"
+        >
+          ← Back to sales overview
+        </a>
+      </div>
+      <div class="page-summary__stats">
+        <span class="page-summary__stat">
+          <strong>{{ orders_count }}</strong> order{{ orders_count|pluralize }}
+        </span>
+        <span class="page-summary__stat">
+          <strong>{{ summary.items_count }}</strong> item{{ summary.items_count|pluralize }}
+        </span>
+        <span class="page-summary__stat">Retail: ¥{{ summary.retail_value|floatformat:2 }}</span>
+        <span class="page-summary__stat">Actual: ¥{{ summary.actual_value|floatformat:2 }}</span>
+        {% if summary.returns_value %}
+          <span class="page-summary__stat red-text text-darken-1">
+            &minus;¥{{ summary.returns_value|floatformat:2 }}
+          </span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card-panel blue lighten-5 referrer-stats-card">
+      <h6 class="grey-text text-darken-2">Referrer perks</h6>
+      <p class="grey-text text-darken-1">
+        Totals below include only sales assigned to {{ referrer.name }} in this date range.
+      </p>
+      <div class="row">
+        <div class="col s12 m4">
+          <p class="grey-text text-darken-1">Free items</p>
+          <h5 class="teal-text text-darken-3">{{ stats.free_items }}</h5>
+        </div>
+        <div class="col s12 m4">
+          <p class="grey-text text-darken-1">Direct discount items</p>
+          <h5 class="teal-text text-darken-3">{{ stats.direct_discount_items }}</h5>
+        </div>
+        <div class="col s12 m4">
+          <p class="grey-text text-darken-1">Referred sales</p>
+          <h5 class="teal-text text-darken-3">{{ stats.referred_items }}</h5>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-panel filter-toolbar">
+      <form method="get" novalidate class="filter-toolbar__form">
+        <div class="filter-toolbar__field">
+          <label for="start_date" class="active">From</label>
+          <input
+            type="date"
+            id="start_date"
+            name="start_date"
+            value="{{ start_date|date:'Y-m-d' }}"
+            class="browser-default"
+          />
+        </div>
+        <div class="filter-toolbar__field">
+          <label for="end_date" class="active">To</label>
+          <input
+            type="date"
+            id="end_date"
+            name="end_date"
+            value="{{ end_date|date:'Y-m-d' }}"
+            class="browser-default"
+          />
+        </div>
+        <div class="filter-toolbar__actions">
+          <button type="submit" class="btn-small waves-effect waves-light">
+            Update
+          </button>
+        </div>
+      </form>
+      <div class="filter-toolbar__aside">
+        {% if referrers %}
+          <label for="referrerSwitch" class="active">Switch referrer</label>
+          <select id="referrerSwitch" class="browser-default">
+            <option value="">Select referrer…</option>
+            {% for referrer_option in referrers %}
+              <option
+                value="{% url 'referrer_detail' referrer_option.id %}"
+                {% if selected_referrer_id == referrer_option.id|stringformat:'s' %}selected{% endif %}
+              >
+                {{ referrer_option.name }}
+              </option>
+            {% endfor %}
+          </select>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if has_sales_data %}
+      {% for order in orders %}
+        <div class="order-block">
+          <div class="order-header">
+            <div class="left">
+              <span class="order-number">#{{ order.order_number }}</span>
+              <span class="order-date">· {{ order.date|date:"F j, Y" }}</span>
+            </div>
+
+            <div class="right">
+              <div class="order-referrer">
+                {% if order.referrers %}
+                  <span class="grey-text text-darken-2">
+                    {% if order.has_multiple_referrers %}
+                      Referrers:
+                    {% else %}
+                      Referrer:
+                    {% endif %}
+                  </span>
+                  {% for order_referrer in order.referrers %}
+                    <span
+                      class="chip {% if order_referrer.id|stringformat:'s' == selected_referrer_id %}teal lighten-5 teal-text text-darken-3{% else %}grey lighten-3 grey-text text-darken-2{% endif %}"
+                    >
+                      {{ order_referrer.name }}
+                    </span>
+                  {% endfor %}
+                {% else %}
+                  <span class="chip white grey-text text-darken-1">No referrer</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <table class="highlight order-items-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th></th>
+                <th>Original price</th>
+                <th>Actual price</th>
+                <th>Total paid</th>
+                <th>Refunded</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in order.items %}
+                <tr class="{% if not item.is_referrer_item %}grey-text text-lighten-1{% endif %}">
+                  <td>
+                    <div class="order-item-product">
+                      {% if item.sale.variant.product.product_photo %}
+                        <img
+                          src="{{ item.sale.variant.product.product_photo.url }}"
+                          alt="{{ item.sale.variant.product.product_name }}"
+                        />
+                      {% else %}
+                        <div class="order-item-placeholder">No photo</div>
+                      {% endif %}
+                      <div>
+                        <div class="variant-code">
+                          {{ item.sale.variant.variant_code }}
+                          <a
+                            href="{% url 'admin:inventory_sale_change' item.sale.pk %}"
+                            class="variant-edit-link"
+                            target="_blank"
+                            rel="noopener"
+                            title="Edit sale in admin"
+                            aria-label="Edit sale {{ item.sale.sale_id }} in admin"
+                          >
+                            <i class="material-icons tiny">edit</i>
+                          </a>
+                        </div>
+                        {% if item.sale.referrer %}
+                          <div
+                            class="order-item-badge {% if item.is_referrer_item %}teal lighten-5 teal-text text-darken-3{% else %}grey lighten-3 grey-text text-darken-2{% endif %}"
+                          >
+                            {{ item.sale.referrer.name }}
+                          </div>
+                        {% else %}
+                          <div class="order-item-badge grey lighten-3 grey-text text-darken-2">
+                            No referrer
+                          </div>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </td>
+                  <td>x{{ item.sold_quantity }}</td>
+                  <td>¥{{ item.retail_price|floatformat:2 }}</td>
+                  <td>
+                    <div class="price-with-discount">
+                      <span class="actual-price">¥{{ item.actual_unit_price|floatformat:2 }}</span>
+                      {% if item.discount_percentage is not None %}
+                        <span class="discount-percentage grey-text text-darken-1">
+                          -{{ item.discount_percentage|floatformat:-1 }}%
+                        </span>
+                      {% endif %}
+                    </div>
+                  </td>
+                  <td>¥{{ item.actual_total|floatformat:2 }}</td>
+                  <td>
+                    {% if item.return_value %}
+                      <span class="red-text text-darken-2">¥{{ item.return_value|floatformat:2 }} (x{{ item.return_quantity }})</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if item.returned %}
+                      <span class="chip return-chip red lighten-5 red-text text-darken-2">Returned</span>
+                    {% else %}
+                      &mdash;
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+              <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td><strong>TOTAL</strong></td>
+                <td>
+                  <div class="order-values">
+                    <span class="order-total">¥{{ order.total_value|floatformat:2 }}</span>
+                  </div>
+                </td>
+                <td>
+                  {% if order.returns_value %}
+                    <span class="order-returns red-text text-darken-1">-¥{{ order.returns_value|floatformat:2 }}</span>
+                  {% endif %}
+                </td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="grey-text text-darken-1 no-data-message">
+        No sales are assigned to {{ referrer.name }} for this date range.
+      </p>
+    {% endif %}
+  </div>
+{% endblock %}
+
+{% block extrajs %}
+  {{ block.super }}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const referrerSwitch = document.getElementById("referrerSwitch");
+      if (referrerSwitch) {
+        const dateQuerystring = "{{ date_querystring|default:''|escapejs }}";
+        referrerSwitch.addEventListener("change", function () {
+          const targetUrl = referrerSwitch.value;
+          if (!targetUrl) {
+            return;
+          }
+
+          let destination = targetUrl;
+          if (dateQuerystring) {
+            destination += targetUrl.includes("?") ? "&" : "?";
+            destination += dateQuerystring;
+          }
+          window.location.href = destination;
+        });
+      }
+    });
+  </script>
+{% endblock %}

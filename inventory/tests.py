@@ -1071,3 +1071,124 @@ class SalesReferrersViewTests(TestCase):
         self.assertEqual(len(orders), 1)
         self.assertEqual(orders[0]["order_number"], "BETA-1")
         self.assertEqual(orders[0]["referrers"], [self.beta])
+
+
+class ReferrerDetailViewTests(TestCase):
+    def setUp(self):
+        self.product = Product.objects.create(
+            product_id="RD1",
+            product_name="Referrer Detail Product",
+            retail_price=Decimal("100.00"),
+        )
+        self.variant = ProductVariant.objects.create(
+            product=self.product,
+            variant_code="RD1-1",
+            primary_color="#000000",
+        )
+        self.primary_referrer = Referrer.objects.create(name="Primary")
+        self.secondary_referrer = Referrer.objects.create(name="Secondary")
+
+    def test_orders_and_stats_for_referrer(self):
+        Sale.objects.create(
+            order_number="ORD-1",
+            date=date(2024, 4, 10),
+            variant=self.variant,
+            sold_quantity=2,
+            sold_value=Decimal("150.00"),
+            referrer=self.primary_referrer,
+        )
+        Sale.objects.create(
+            order_number="ORD-1",
+            date=date(2024, 4, 10),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("0.00"),
+            referrer=self.primary_referrer,
+        )
+        Sale.objects.create(
+            order_number="ORD-1",
+            date=date(2024, 4, 10),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("100.00"),
+            referrer=self.secondary_referrer,
+        )
+        Sale.objects.create(
+            order_number="ORD-1",
+            date=date(2024, 4, 10),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("100.00"),
+        )
+        Sale.objects.create(
+            order_number="ORD-2",
+            date=date(2024, 4, 12),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("90.00"),
+            referrer=self.primary_referrer,
+        )
+
+        response = self.client.get(
+            reverse("referrer_detail", args=[self.primary_referrer.pk]),
+            {"start_date": "2024-04-01", "end_date": "2024-04-30"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["has_sales_data"])
+
+        summary = response.context["summary"]
+        self.assertEqual(summary["items_count"], 4)
+        self.assertEqual(summary["retail_value"], Decimal("400.00"))
+        self.assertEqual(summary["actual_value"], Decimal("240.00"))
+        self.assertEqual(summary["returns_value"], Decimal("0"))
+
+        stats = response.context["stats"]
+        self.assertEqual(stats["free_items"], 1)
+        self.assertEqual(stats["direct_discount_items"], 2)
+        self.assertEqual(stats["referred_items"], 1)
+
+        orders = response.context["orders"]
+        self.assertEqual(len(orders), 2)
+        order_numbers = {order["order_number"] for order in orders}
+        self.assertIn("ORD-1", order_numbers)
+        self.assertIn("ORD-2", order_numbers)
+
+        order_one = next(order for order in orders if order["order_number"] == "ORD-1")
+        self.assertEqual(len(order_one["items"]), 4)
+        highlighted_count = sum(1 for item in order_one["items"] if item["is_referrer_item"])
+        self.assertEqual(highlighted_count, 2)
+        other_ref_item = next(
+            item
+            for item in order_one["items"]
+            if item["sale"].referrer == self.secondary_referrer
+        )
+        self.assertFalse(other_ref_item["is_referrer_item"])
+        no_ref_item = next(
+            item for item in order_one["items"] if item["sale"].referrer is None
+        )
+        self.assertFalse(no_ref_item["is_referrer_item"])
+
+    def test_referrer_detail_handles_empty_range(self):
+        Sale.objects.create(
+            order_number="ORD-OLD",
+            date=date(2024, 3, 10),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("90.00"),
+            referrer=self.primary_referrer,
+        )
+
+        response = self.client.get(
+            reverse("referrer_detail", args=[self.primary_referrer.pk]),
+            {"start_date": "2024-04-01", "end_date": "2024-04-30"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["has_sales_data"])
+        self.assertEqual(response.context["summary"]["items_count"], 0)
+        self.assertEqual(response.context["stats"], {
+            "free_items": 0,
+            "direct_discount_items": 0,
+            "referred_items": 0,
+        })
