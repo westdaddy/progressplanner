@@ -29,7 +29,7 @@
           />
         </div>
         <div class="filter-toolbar__actions">
-          <button type="submit" class="btn-small waves-effect waves-light">
+          <button type="submit" class="btn-tiny waves-effect waves-light">
             Update
           </button>
         </div>
@@ -47,9 +47,9 @@
     {% if has_sales_data %}
       <div class="card sales-summary-card z-depth-0">
         <div class="card-content">
-          <h2 id="netSales" class="sales-summary__net blue-text">
+          <p id="netSales" class="sales-summary__net blue-text">
             ¥{{ net_sales_value|floatformat:0 }}
-          </h2>
+          </p>
           <p class="sales-summary__metric grey-text text-darken-1">
             ¥{{ gross_sales_value|floatformat:0 }} gross
           </p>

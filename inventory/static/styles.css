@@ -68,19 +68,55 @@ div.metadata {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  min-width: 150px;
+
+}
+
+.filter-toolbar__field input {
+  font-size: 11px;
+  padding: 5px;
+  border: 1px solid #e1e1e1;
 }
 
 .filter-toolbar__field label {
   font-size: 0.85rem;
   font-weight: 600;
   margin: 0;
+  display:none;
 }
 
 .filter-toolbar__actions {
   align-items: center;
   display: flex;
   gap: 0.75rem;
+}
+
+.filter-toolbar__actions  .btn-tiny {
+height: 25px;
+line-height: 20px;
+font-size: 11px;
+}
+
+.btn-tiny {
+text-decoration: none;
+color: #fff;
+background-color: #26a69a;
+text-align: center;
+letter-spacing: .5px;
+-webkit-transition: background-color .2s ease-out;
+transition: background-color .2s ease-out;
+cursor: pointer;
+}
+
+.btn-tiny {
+border: none;
+border-radius: 2px;
+display: inline-block;
+height: 36px;
+line-height: 36px;
+padding: 0 16px;
+text-transform: uppercase;
+vertical-align: middle;
+-webkit-tap-highlight-color: transparent;
 }
 
 .filter-toolbar__aside {
@@ -168,6 +204,7 @@ div.metadata {
 .sales-summary__net {
   font-weight: 700;
   margin-bottom: 0.75rem;
+  font-size: 3.56rem;
 }
 
 .sales-summary__metric {
