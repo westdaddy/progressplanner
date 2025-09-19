@@ -35,6 +35,14 @@
           </button>
       </form>
 
+      <div style="margin-top: 0.75rem;">
+        <a
+          href="{% url 'sales_referrers' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
+        >
+          View sales by referrer →
+        </a>
+      </div>
+
 
     </div>
   </div>
