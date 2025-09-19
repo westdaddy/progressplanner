@@ -29,12 +29,10 @@
   </div>
 
 
-  <div class="card">
-    <div class="card-content">
 
       {% if orders %}
         {% for order in orders %}
-          <div class="order-block z-depth-1">
+          <div class="order-block">
             <div class="order-header">
               <div class="left">
                 <span class="order-number">#{{ order.order_number }}</span>
@@ -84,7 +82,7 @@
               </thead>
               <tbody>
                 {% for item in order.items %}
-                  <tr>
+                  <tr class="{% if not item.is_bucket_item %}grey-text text-lighten-1{% endif %}">
                     <td>
                       <div class="order-item-product">
                         {% if item.sale.variant.product.product_photo %}
@@ -109,11 +107,7 @@
                               <i class="material-icons tiny">edit</i>
                             </a>
                           </div>
-                          {% if not item.is_bucket_item %}
-                            <div class="order-item-badge grey lighten-3 grey-text text-darken-2">
-                              Outside {{ bucket_label }}
-                            </div>
-                          {% endif %}
+
                         </div>
 
                       </div>
@@ -226,8 +220,7 @@
         </p>
       {% endif %}
     </div>
-  </div>
-</div>
+
 
 <style>
   .order-block {
@@ -235,6 +228,7 @@
     border-radius: 8px;
     margin-bottom: 1.5rem;
     padding: 1.25rem;
+    border: 1px solid #e1e1e1;
   }
 
   .order-header {
