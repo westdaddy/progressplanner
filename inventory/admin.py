@@ -150,16 +150,8 @@ class SaleAdmin(admin.ModelAdmin):
         "return_value",
         "referrer",
     )
-    list_filter = (
-        "sale_id",
-        "date",
-        "variant",
-        "sold_quantity",
-        "return_quantity",
-        "sold_value",
-        "return_value",
-        "referrer",
-    )  # Add filters for easy management
+    list_filter = ("variant", "referrer")
+    search_fields = ("order_number",)
 
 
 @admin.register(InventorySnapshot)
