@@ -20,7 +20,8 @@ from django.contrib import messages
 from django.shortcuts import redirect, get_object_or_404, render
 from django.urls import path
 from django.http import JsonResponse
-from django.db.models import Case, When, Value, IntegerField
+from django.db.models import Case, When, Value, IntegerField, Q
+from django.utils.text import smart_split
 import logging
 
 logger = logging.getLogger(__name__)
@@ -152,6 +153,19 @@ class SaleAdmin(admin.ModelAdmin):
     )
     list_filter = ("variant", "referrer")
     search_fields = ("order_number",)
+
+    def get_search_results(self, request, queryset, search_term):
+        tokens = [token.strip() for token in smart_split(search_term) if token.strip()]
+
+        if len(tokens) <= 1:
+            return super().get_search_results(request, queryset, search_term)
+
+        order_query = Q()
+        for token in tokens:
+            order_query |= Q(order_number__iexact=token)
+
+        queryset = queryset.filter(order_query)
+        return queryset, False
 
 
 @admin.register(InventorySnapshot)

@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from unittest.mock import patch
 from dateutil.relativedelta import relativedelta
+from django.contrib.admin.sites import AdminSite
 from django.test import TestCase, RequestFactory
 from django.utils import timezone
 
@@ -18,6 +19,7 @@ from .models import (
     Referrer,
 )
 from django.urls import reverse
+from .admin import SaleAdmin
 from .utils import (
     get_low_stock_products,
     get_restock_alerts,
@@ -1192,3 +1194,45 @@ class ReferrerDetailViewTests(TestCase):
             "direct_discount_items": 0,
             "referred_items": 0,
         })
+
+
+class SaleAdminSearchTests(TestCase):
+    def setUp(self):
+        self.admin_site = AdminSite()
+        self.sale_admin = SaleAdmin(Sale, self.admin_site)
+        self.factory = RequestFactory()
+
+        product = Product.objects.create(product_id="P100", product_name="Prod100")
+        variant = ProductVariant.objects.create(
+            product=product,
+            variant_code="VAR100",
+            primary_color="#000000",
+        )
+
+        self.sale_one = Sale.objects.create(
+            order_number="ORDER-001",
+            date=date.today(),
+            variant=variant,
+            sold_quantity=1,
+            sold_value=Decimal("10.00"),
+        )
+        self.sale_two = Sale.objects.create(
+            order_number="ORDER-002",
+            date=date.today(),
+            variant=variant,
+            sold_quantity=1,
+            sold_value=Decimal("12.00"),
+        )
+
+    def test_search_multiple_order_numbers_returns_all_matches(self):
+        search_term = f"{self.sale_one.order_number} {self.sale_two.order_number}"
+        request = self.factory.get("/admin/inventory/sale/", {"q": search_term})
+
+        queryset, use_distinct = self.sale_admin.get_search_results(
+            request,
+            Sale.objects.all(),
+            search_term,
+        )
+
+        self.assertFalse(use_distinct)
+        self.assertCountEqual(list(queryset), [self.sale_one, self.sale_two])
