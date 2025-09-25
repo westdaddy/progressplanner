@@ -19,13 +19,23 @@ from django import forms
 from django.contrib import messages
 from django.shortcuts import redirect, get_object_or_404, render
 from django.urls import path
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseRedirect
 from django.db.models import Case, When, Value, IntegerField, Q
 from django.utils.text import smart_split
 import logging
 
 logger = logging.getLogger(__name__)
 from django.utils.safestring import mark_safe
+from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
+
+
+class AssignReferrerForm(forms.Form):
+    """Simple form to choose a Referrer for an admin action."""
+
+    referrer = forms.ModelChoiceField(queryset=Referrer.objects.all(), required=True)
+    _selected_action = forms.CharField(
+        widget=forms.MultipleHiddenInput, required=False
+    )
 
 
 def get_size_order_case(field_name="size"):
@@ -153,6 +163,7 @@ class SaleAdmin(admin.ModelAdmin):
     )
     list_filter = ("variant", "referrer")
     search_fields = ("order_number",)
+    actions = ["assign_referrer"]
 
     def get_search_results(self, request, queryset, search_term):
         tokens = [token.strip() for token in smart_split(search_term) if token.strip()]
@@ -166,6 +177,42 @@ class SaleAdmin(admin.ModelAdmin):
 
         queryset = queryset.filter(order_query)
         return queryset, False
+
+    def assign_referrer(self, request, queryset):
+        """Admin action to assign a single referrer to selected sales."""
+
+        if "apply" in request.POST:
+            form = AssignReferrerForm(request.POST)
+            if form.is_valid():
+                referrer = form.cleaned_data["referrer"]
+                updated = queryset.update(referrer=referrer)
+                self.message_user(
+                    request,
+                    f"Successfully assigned {referrer} to {updated} sale(s).",
+                    messages.SUCCESS,
+                )
+                return HttpResponseRedirect(request.get_full_path())
+        else:
+            form = AssignReferrerForm(
+                initial={
+                    "_selected_action": request.POST.getlist(ACTION_CHECKBOX_NAME)
+                }
+            )
+
+        context = {
+            "title": "Assign referrer",
+            "queryset": queryset,
+            "form": form,
+            "action_checkbox_name": ACTION_CHECKBOX_NAME,
+            "opts": self.model._meta,
+            "media": self.media + form.media,
+            "action_name": "assign_referrer",
+            "select_across": request.POST.get("select_across"),
+        }
+
+        return render(request, "admin/inventory/sale/assign_referrer.html", context)
+
+    assign_referrer.short_description = "Assign referrer to selected sales"
 
 
 @admin.register(InventorySnapshot)
