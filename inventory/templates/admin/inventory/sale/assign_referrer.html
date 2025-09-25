@@ -1,0 +1,27 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+  <div class="module">
+    <h2>{% trans "Assign referrer" %}</h2>
+    <p>{% trans "Select a referrer to assign to the chosen sales." %}</p>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      <div class="form-row">
+        {{ form.referrer.errors }}
+        <label for="id_referrer">{% trans "Referrer" %}:</label>
+        {{ form.referrer }}
+      </div>
+      {% for hidden in form.hidden_fields %}
+        {{ hidden }}
+      {% endfor %}
+      {% for obj in queryset %}
+        <input type="hidden" name="{{ action_checkbox_name }}" value="{{ obj.pk }}">
+      {% endfor %}
+      <input type="hidden" name="action" value="{{ action_name }}">
+      <input type="hidden" name="select_across" value="{{ select_across }}">
+      <button type="submit" name="apply" class="default">{% trans "Assign" %}</button>
+    </form>
+  </div>
+{% endblock %}
