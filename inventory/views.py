@@ -1728,9 +1728,34 @@ def referrer_detail(request, referrer_id: int):
 
     start_date, end_date = _get_sales_date_range(request)
 
+    latest_unit_cost = Subquery(
+        OrderItem.objects.filter(
+            product_variant=OuterRef("variant_id"), date_arrived__isnull=False
+        )
+        .order_by("-date_arrived")
+        .values("item_cost_price")[:1],
+        output_field=DecimalField(max_digits=10, decimal_places=2),
+    )
+
+    average_unit_cost = Subquery(
+        OrderItem.objects.filter(product_variant=OuterRef("variant_id"))
+        .values("product_variant")
+        .annotate(avg_price=Avg("item_cost_price"))
+        .values("avg_price")[:1],
+        output_field=DecimalField(max_digits=10, decimal_places=2),
+    )
+
     sales_qs = (
         Sale.objects.filter(date__range=(start_date, end_date))
         .select_related("variant__product", "referrer")
+        .annotate(
+            unit_cost=Coalesce(
+                latest_unit_cost,
+                average_unit_cost,
+                Value(Decimal("0")),
+                output_field=DecimalField(max_digits=10, decimal_places=2),
+            )
+        )
     )
 
     referrer_sales = list(sales_qs.filter(referrer=referrer))
@@ -1740,6 +1765,14 @@ def referrer_detail(request, referrer_id: int):
     total_retail_value = Decimal("0")
     total_actual_value = Decimal("0")
     total_returns_value = Decimal("0")
+
+    paid_quantity = 0
+    paid_value = Decimal("0")
+    freebie_quantity = 0
+    freebie_value = Decimal("0")
+    freebie_cost = Decimal("0")
+    cost_of_goods_sold = Decimal("0")
+    commission_total = Decimal("0")
 
     free_items = 0
     direct_discount_items = 0
@@ -1763,6 +1796,11 @@ def referrer_detail(request, referrer_id: int):
         sold_quantity = sale.sold_quantity or 0
         actual_total = sale.sold_value or Decimal("0")
         return_value = sale.return_value or Decimal("0")
+        return_quantity = sale.return_quantity or 0
+        unit_cost = sale.unit_cost or Decimal("0")
+
+        net_quantity = sold_quantity - (return_quantity or 0)
+        net_quantity_decimal = Decimal(net_quantity)
 
         if sold_quantity > 0:
             total_items += sold_quantity
@@ -1774,8 +1812,14 @@ def referrer_detail(request, referrer_id: int):
         if sold_quantity > 0:
             if abs(actual_total) <= REFERRER_FREE_TOLERANCE:
                 free_items += sold_quantity
+                freebie_quantity += sold_quantity
+                freebie_value += actual_total
+                freebie_cost += unit_cost * net_quantity_decimal
             else:
                 actual_unit_price = actual_total / sold_quantity
+                paid_quantity += sold_quantity
+                paid_value += actual_total
+                cost_of_goods_sold += unit_cost * net_quantity_decimal
                 if retail_price > 0:
                     discount_ratio = (retail_price - actual_unit_price) / retail_price
                     if abs(discount_ratio - DIRECT_DISCOUNT_TARGET) <= REFERRER_DISCOUNT_TOLERANCE:
@@ -1785,6 +1829,13 @@ def referrer_detail(request, referrer_id: int):
                         <= REFERRER_DISCOUNT_TOLERANCE
                     ):
                         referred_items += sold_quantity
+
+        if net_quantity > 0 and retail_price:
+            commission_total += (
+                retail_price
+                * Decimal(net_quantity)
+                * Decimal("0.25")
+            )
 
     orders = []
 
@@ -1917,6 +1968,21 @@ def referrer_detail(request, referrer_id: int):
         "referred_items": int(referred_items),
     }
 
+    financials = {
+        "paid_quantity": int(paid_quantity),
+        "paid_value": paid_value,
+        "freebie_quantity": int(freebie_quantity),
+        "freebie_value": freebie_value,
+        "freebie_cost": freebie_cost,
+        "cost_of_goods_sold": cost_of_goods_sold,
+        "commission": commission_total,
+        "net_profit": paid_value
+        - total_returns_value
+        - cost_of_goods_sold
+        - freebie_cost
+        - commission_total,
+    }
+
     date_querystring = urlencode(
         {
             "start_date": start_date.isoformat(),
@@ -1933,6 +1999,7 @@ def referrer_detail(request, referrer_id: int):
         "has_sales_data": bool(orders),
         "summary": summary,
         "stats": stats,
+        "financials": financials,
         "date_querystring": date_querystring,
         "referrers": Referrer.objects.order_by("name"),
         "selected_referrer_id": str(referrer.pk),
