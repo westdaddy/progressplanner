@@ -6,6 +6,10 @@ from dateutil.relativedelta import relativedelta
 from django.contrib.admin.sites import AdminSite
 from django.test import TestCase, RequestFactory
 from django.utils import timezone
+from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
+from django.contrib.auth import get_user_model
+from django.contrib.messages.storage.fallback import FallbackStorage
+from django.contrib.sessions.middleware import SessionMiddleware
 
 from .models import (
     Product,
@@ -19,7 +23,7 @@ from .models import (
     Referrer,
 )
 from django.urls import reverse
-from .admin import SaleAdmin
+from .admin import SaleAdmin, SaleDateEqualsFilter
 from .utils import (
     get_low_stock_products,
     get_restock_alerts,
@@ -1196,6 +1200,48 @@ class ReferrerDetailViewTests(TestCase):
         })
 
 
+class SaleAdminDateFilterTests(TestCase):
+    def setUp(self):
+        self.admin_site = AdminSite()
+        self.sale_admin = SaleAdmin(Sale, self.admin_site)
+        self.factory = RequestFactory()
+
+        product = Product.objects.create(product_id="P200", product_name="Prod200")
+        variant = ProductVariant.objects.create(
+            product=product,
+            variant_code="VAR200",
+            primary_color="#000000",
+        )
+
+        self.matching_sale = Sale.objects.create(
+            order_number="ORDER-200",
+            date=date(2024, 6, 1),
+            variant=variant,
+            sold_quantity=1,
+            sold_value=Decimal("15.00"),
+        )
+        self.other_sale = Sale.objects.create(
+            order_number="ORDER-201",
+            date=date(2024, 6, 2),
+            variant=variant,
+            sold_quantity=1,
+            sold_value=Decimal("18.00"),
+        )
+
+    def test_list_filter_includes_date_picker(self):
+        self.assertEqual(self.sale_admin.list_filter[0], SaleDateEqualsFilter)
+        self.assertNotIn("variant", self.sale_admin.list_filter)
+
+    def test_queryset_filters_by_selected_date(self):
+        params = {"date": self.matching_sale.date.isoformat()}
+        request = self.factory.get("/admin/inventory/sale/", params)
+        date_filter = SaleDateEqualsFilter(request, params, Sale, self.sale_admin)
+
+        filtered_queryset = date_filter.queryset(request, Sale.objects.all())
+
+        self.assertEqual(list(filtered_queryset), [self.matching_sale])
+
+
 class SaleAdminSearchTests(TestCase):
     def setUp(self):
         self.admin_site = AdminSite()
@@ -1236,3 +1282,83 @@ class SaleAdminSearchTests(TestCase):
 
         self.assertFalse(use_distinct)
         self.assertCountEqual(list(queryset), [self.sale_one, self.sale_two])
+
+
+class SaleAdminAssignReferrerActionTests(TestCase):
+    def setUp(self):
+        self.admin_site = AdminSite()
+        self.sale_admin = SaleAdmin(Sale, self.admin_site)
+        self.factory = RequestFactory()
+
+        product = Product.objects.create(product_id="P100", product_name="Prod100")
+        variant = ProductVariant.objects.create(
+            product=product,
+            variant_code="VAR100",
+            primary_color="#000000",
+        )
+
+        self.sale_one = Sale.objects.create(
+            order_number="ORDER-001",
+            date=date.today(),
+            variant=variant,
+            sold_quantity=1,
+            sold_value=Decimal("10.00"),
+        )
+        self.sale_two = Sale.objects.create(
+            order_number="ORDER-002",
+            date=date.today(),
+            variant=variant,
+            sold_quantity=1,
+            sold_value=Decimal("12.00"),
+        )
+        self.referrer = Referrer.objects.create(name="Affiliate")
+
+        user_model = get_user_model()
+        self.user = user_model.objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+
+    def _prepare_request(self, data):
+        request = self.factory.post("/admin/inventory/sale/", data)
+        request.user = self.user
+        # Attach a session and message storage so the admin action can use them.
+        SessionMiddleware(lambda r: None).process_request(request)
+        request.session.save()
+        messages = FallbackStorage(request)
+        setattr(request, "_messages", messages)
+        return request
+
+    def test_assign_referrer_prompts_for_confirmation(self):
+        data = {
+            "action": "assign_referrer",
+            ACTION_CHECKBOX_NAME: [str(self.sale_one.pk)],
+        }
+        request = self._prepare_request(data)
+        queryset = Sale.objects.filter(pk=self.sale_one.pk)
+
+        response = self.sale_admin.assign_referrer(request, queryset)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Assign referrer", response.content.decode())
+
+    def test_assign_referrer_updates_selected_sales(self):
+        selected_ids = [str(self.sale_one.pk), str(self.sale_two.pk)]
+        data = {
+            "action": "assign_referrer",
+            "apply": "1",
+            "referrer": str(self.referrer.pk),
+            ACTION_CHECKBOX_NAME: selected_ids,
+            "_selected_action": selected_ids,
+        }
+        request = self._prepare_request(data)
+        queryset = Sale.objects.filter(pk__in=selected_ids)
+
+        response = self.sale_admin.assign_referrer(request, queryset)
+
+        self.assertEqual(response.status_code, 302)
+        self.sale_one.refresh_from_db()
+        self.sale_two.refresh_from_db()
+        self.assertEqual(self.sale_one.referrer, self.referrer)
+        self.assertEqual(self.sale_two.referrer, self.referrer)
