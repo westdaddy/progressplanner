@@ -1745,6 +1745,12 @@ def referrer_detail(request, referrer_id: int):
         output_field=DecimalField(max_digits=10, decimal_places=2),
     )
 
+    half_retail_cost = ExpressionWrapper(
+        F("variant__product__retail_price") * Value(Decimal("0.5")),
+        output_field=DecimalField(max_digits=10, decimal_places=2),
+    )
+
+
     sales_qs = (
         Sale.objects.filter(date__range=(start_date, end_date))
         .select_related("variant__product", "referrer")
@@ -1752,7 +1758,7 @@ def referrer_detail(request, referrer_id: int):
             unit_cost=Coalesce(
                 latest_unit_cost,
                 average_unit_cost,
-                Value(Decimal("0")),
+                half_retail_cost,
                 output_field=DecimalField(max_digits=10, decimal_places=2),
             )
         )
@@ -1766,13 +1772,10 @@ def referrer_detail(request, referrer_id: int):
     total_actual_value = Decimal("0")
     total_returns_value = Decimal("0")
 
-    paid_quantity = 0
-    paid_value = Decimal("0")
-    freebie_quantity = 0
-    freebie_value = Decimal("0")
     freebie_cost = Decimal("0")
     cost_of_goods_sold = Decimal("0")
-    commission_total = Decimal("0")
+    total_sales_value = Decimal("0")
+
 
     free_items = 0
     direct_discount_items = 0
@@ -1798,27 +1801,27 @@ def referrer_detail(request, referrer_id: int):
         return_value = sale.return_value or Decimal("0")
         return_quantity = sale.return_quantity or 0
         unit_cost = sale.unit_cost or Decimal("0")
+        if unit_cost <= 0:
+            unit_cost = (retail_price or Decimal("0")) * Decimal("0.5")
 
         net_quantity = sold_quantity - (return_quantity or 0)
         net_quantity_decimal = Decimal(net_quantity)
 
+        total_sales_value += actual_total
         if sold_quantity > 0:
             total_items += sold_quantity
             total_retail_value += retail_price * sold_quantity
 
-        total_actual_value += actual_total
         total_returns_value += return_value
+        total_actual_value += actual_total
 
         if sold_quantity > 0:
             if abs(actual_total) <= REFERRER_FREE_TOLERANCE:
                 free_items += sold_quantity
-                freebie_quantity += sold_quantity
-                freebie_value += actual_total
                 freebie_cost += unit_cost * net_quantity_decimal
             else:
                 actual_unit_price = actual_total / sold_quantity
-                paid_quantity += sold_quantity
-                paid_value += actual_total
+
                 cost_of_goods_sold += unit_cost * net_quantity_decimal
                 if retail_price > 0:
                     discount_ratio = (retail_price - actual_unit_price) / retail_price
@@ -1969,18 +1972,15 @@ def referrer_detail(request, referrer_id: int):
     }
 
     financials = {
-        "paid_quantity": int(paid_quantity),
-        "paid_value": paid_value,
-        "freebie_quantity": int(freebie_quantity),
-        "freebie_value": freebie_value,
-        "freebie_cost": freebie_cost,
+        "total_sales": total_sales_value,
+        "returns": total_returns_value,
         "cost_of_goods_sold": cost_of_goods_sold,
-        "commission": commission_total,
-        "net_profit": paid_value
+        "freebies_cost": freebie_cost,
+        "net_profit": total_sales_value
         - total_returns_value
         - cost_of_goods_sold
-        - freebie_cost
-        - commission_total,
+        - freebie_cost,
+
     }
 
     date_querystring = urlencode(
