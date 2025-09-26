@@ -1775,7 +1775,6 @@ def referrer_detail(request, referrer_id: int):
     freebie_cost = Decimal("0")
     freebie_value = Decimal("0")
     freebie_quantity = 0
-    paid_value = Decimal("0")
     paid_quantity = 0
     cost_of_goods_sold = Decimal("0")
     total_sales_value = Decimal("0")
@@ -1830,7 +1829,6 @@ def referrer_detail(request, referrer_id: int):
             else:
                 actual_unit_price = actual_total / sold_quantity
                 paid_quantity += net_quantity_positive
-                paid_value += actual_total
                 cost_of_goods_sold += unit_cost * effective_net_quantity
                 if retail_price > 0 and effective_net_quantity > 0:
                     commission_total += (
@@ -1991,6 +1989,8 @@ def referrer_detail(request, referrer_id: int):
     freebie_quantity = int(freebie_quantity)
 
 
+    paid_value = total_sales_value - total_returns_value
+
     financials = {
         "total_sales": total_sales_value,
         "returns": total_returns_value,
@@ -2001,10 +2001,7 @@ def referrer_detail(request, referrer_id: int):
         "freebie_value": freebie_value,
         "freebie_quantity": freebie_quantity,
         "commission": commission_total,
-        "net_profit": paid_value
-        - total_returns_value
-        - cost_of_goods_sold
-        - freebie_cost
+        "net_profit": paid_value - cost_of_goods_sold - freebie_cost
     }
 
     date_querystring = urlencode(
