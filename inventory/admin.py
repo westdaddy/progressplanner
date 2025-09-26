@@ -87,6 +87,7 @@ class SaleDateEqualsFilter(admin.SimpleListFilter):
         }
 
 
+
 def get_size_order_case(field_name="size"):
     """Return a Case expression ordering by size based on SIZE_CHOICES."""
     return Case(
