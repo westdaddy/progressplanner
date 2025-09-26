@@ -73,14 +73,18 @@
               <h5 class="teal-text text-darken-3">¥{{ financials.net_profit|floatformat:2 }}</h5>
             </div>
             <div class="col s12 m6">
-              <p class="grey-text text-darken-1">Total sales</p>
+              <p class="grey-text text-darken-1">Paid sales</p>
               <h6 class="teal-text text-darken-3">
-                ¥{{ financials.total_sales|floatformat:2 }}
+                ¥{{ financials.paid_value|floatformat:2 }}
               </h6>
+              <p class="grey-text text-darken-1 small">
+                {{ financials.paid_quantity }} paid item{{ financials.paid_quantity|pluralize }}
+              </p>
             </div>
             <div class="col s12 m6">
-              <p class="grey-text text-darken-1">Returns</p>
-              <h6 class="teal-text text-darken-3">¥{{ financials.returns|floatformat:2 }}</h6>
+              <p class="grey-text text-darken-1">Commission owed</p>
+              <h6 class="teal-text text-darken-3">¥{{ financials.commission|floatformat:2 }}</h6>
+
             </div>
             <div class="col s12 m6">
               <p class="grey-text text-darken-1">Cost of goods sold</p>
@@ -91,6 +95,20 @@
             <div class="col s12 m6">
               <p class="grey-text text-darken-1">Freebies cost</p>
               <h6 class="teal-text text-darken-3">¥{{ financials.freebies_cost|floatformat:2 }}</h6>
+              <p class="grey-text text-darken-1 small">
+                {{ financials.freebie_quantity }} free item{{ financials.freebie_quantity|pluralize }}
+              </p>
+            </div>
+            <div class="col s12 m6">
+              <p class="grey-text text-darken-1">Total sales</p>
+              <h6 class="teal-text text-darken-3">
+                ¥{{ financials.total_sales|floatformat:2 }}
+              </h6>
+            </div>
+            <div class="col s12 m6">
+              <p class="grey-text text-darken-1">Returns</p>
+              <h6 class="teal-text text-darken-3">¥{{ financials.returns|floatformat:2 }}</h6>
+
             </div>
           </div>
         </div>
