@@ -80,12 +80,16 @@
       <div class="col s12 m6">
 
           <div class="row">
-            <div class="col s12 m12 blue lighten-4 ">
-              <h5 class="blue-text text-darken-2">¥{{ financials.paid_value|floatformat:2 }} paid</h5>
+            <div class="col s12 m12 blue lighten-4">
+              <h5 class="blue-text text-darken-2">¥{{ financials.total_sales|floatformat:2 }} total sales</h5>
             </div>
 
             <div class="col s12 m12 pink lighten-4">
               <h5 class="pink-text">- ¥{{ financials.returns|floatformat:2 }} returns</h5>
+            </div>
+
+            <div class="col s12 m12 blue lighten-4">
+              <h5 class="blue-text text-darken-2">¥{{ financials.paid_value|floatformat:2 }} paid after returns</h5>
             </div>
 
             <div class="col s12 m12 pink lighten-4">
