@@ -1095,6 +1095,16 @@ class ReferrerDetailViewTests(TestCase):
         self.secondary_referrer = Referrer.objects.create(name="Secondary")
 
     def test_orders_and_stats_for_referrer(self):
+        order = Order.objects.create(order_date=date(2024, 3, 20))
+        OrderItem.objects.create(
+            order=order,
+            product_variant=self.variant,
+            quantity=10,
+            item_cost_price=Decimal("30.00"),
+            date_expected=date(2024, 3, 1),
+            date_arrived=date(2024, 3, 5),
+        )
+
         Sale.objects.create(
             order_number="ORD-1",
             date=date(2024, 4, 10),
@@ -1153,6 +1163,18 @@ class ReferrerDetailViewTests(TestCase):
         self.assertEqual(stats["free_items"], 1)
         self.assertEqual(stats["direct_discount_items"], 2)
         self.assertEqual(stats["referred_items"], 1)
+
+        financials = response.context["financials"]
+        self.assertEqual(financials["total_sales"], Decimal("240.00"))
+        self.assertEqual(financials["returns"], Decimal("0"))
+        self.assertEqual(financials["cost_of_goods_sold"], Decimal("90.00"))
+        self.assertEqual(financials["freebies_cost"], Decimal("30.00"))
+        self.assertEqual(financials["paid_value"], Decimal("240.00"))
+        self.assertEqual(financials["paid_quantity"], 3)
+        self.assertEqual(financials["freebie_value"], Decimal("0.00"))
+        self.assertEqual(financials["freebie_quantity"], 1)
+        self.assertEqual(financials["commission"], Decimal("75.00"))
+        self.assertEqual(financials["net_profit"], Decimal("45.00"))
 
         orders = response.context["orders"]
         self.assertEqual(len(orders), 2)
