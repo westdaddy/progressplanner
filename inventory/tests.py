@@ -1165,13 +1165,12 @@ class ReferrerDetailViewTests(TestCase):
         self.assertEqual(stats["referred_items"], 1)
 
         financials = response.context["financials"]
-        self.assertEqual(financials["paid_quantity"], 3)
-        self.assertEqual(financials["paid_value"], Decimal("240.00"))
-        self.assertEqual(financials["freebie_quantity"], 1)
-        self.assertEqual(financials["freebie_cost"], Decimal("30.00"))
+        self.assertEqual(financials["total_sales"], Decimal("240.00"))
+        self.assertEqual(financials["returns"], Decimal("0"))
         self.assertEqual(financials["cost_of_goods_sold"], Decimal("90.00"))
-        self.assertEqual(financials["commission"], Decimal("100.00"))
-        self.assertEqual(financials["net_profit"], Decimal("20.00"))
+        self.assertEqual(financials["freebies_cost"], Decimal("30.00"))
+        self.assertEqual(financials["net_profit"], Decimal("120.00"))
+
 
         orders = response.context["orders"]
         self.assertEqual(len(orders), 2)
