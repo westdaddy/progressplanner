@@ -23,7 +23,7 @@ from .models import (
     Referrer,
 )
 from django.urls import reverse
-from .admin import SaleAdmin
+from .admin import SaleAdmin, SaleDateEqualsFilter
 from .utils import (
     get_low_stock_products,
     get_restock_alerts,
@@ -1198,6 +1198,48 @@ class ReferrerDetailViewTests(TestCase):
             "direct_discount_items": 0,
             "referred_items": 0,
         })
+
+
+class SaleAdminDateFilterTests(TestCase):
+    def setUp(self):
+        self.admin_site = AdminSite()
+        self.sale_admin = SaleAdmin(Sale, self.admin_site)
+        self.factory = RequestFactory()
+
+        product = Product.objects.create(product_id="P200", product_name="Prod200")
+        variant = ProductVariant.objects.create(
+            product=product,
+            variant_code="VAR200",
+            primary_color="#000000",
+        )
+
+        self.matching_sale = Sale.objects.create(
+            order_number="ORDER-200",
+            date=date(2024, 6, 1),
+            variant=variant,
+            sold_quantity=1,
+            sold_value=Decimal("15.00"),
+        )
+        self.other_sale = Sale.objects.create(
+            order_number="ORDER-201",
+            date=date(2024, 6, 2),
+            variant=variant,
+            sold_quantity=1,
+            sold_value=Decimal("18.00"),
+        )
+
+    def test_list_filter_includes_date_picker(self):
+        self.assertEqual(self.sale_admin.list_filter[0], SaleDateEqualsFilter)
+        self.assertNotIn("variant", self.sale_admin.list_filter)
+
+    def test_queryset_filters_by_selected_date(self):
+        params = {"date": self.matching_sale.date.isoformat()}
+        request = self.factory.get("/admin/inventory/sale/", params)
+        date_filter = SaleDateEqualsFilter(request, params, Sale, self.sale_admin)
+
+        filtered_queryset = date_filter.queryset(request, Sale.objects.all())
+
+        self.assertEqual(list(filtered_queryset), [self.matching_sale])
 
 
 class SaleAdminSearchTests(TestCase):

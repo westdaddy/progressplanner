@@ -1,0 +1,26 @@
+{% load i18n %}
+<div class="filter">
+  <h3>{{ spec.title }}</h3>
+  <div class="filter-content">
+    <form method="get">
+      {% for key, value in cl.params.items %}
+        {% if key != spec.parameter_name %}
+          <input type="hidden" name="{{ key }}" value="{{ value }}">
+        {% endif %}
+      {% endfor %}
+      {{ spec.form.media }}
+      <div class="admin-date-filter-field">
+        {{ spec.form.date.errors }}
+        {{ spec.form.date }}
+      </div>
+      <div class="admin-date-filter-actions">
+        <button type="submit" class="button">{% trans "Apply" %}</button>
+        {% for choice in spec.choices %}
+          {% if choice.reset %}
+            <a href="{{ choice.query_string }}" class="button">{{ choice.display }}</a>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </form>
+  </div>
+</div>

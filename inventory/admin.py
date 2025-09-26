@@ -17,11 +17,13 @@ from django.utils.timezone import now
 from django.urls import reverse
 from django import forms
 from django.contrib import messages
+from django.contrib.admin.widgets import AdminDateWidget
 from django.shortcuts import redirect, get_object_or_404, render
 from django.urls import path
 from django.http import JsonResponse, HttpResponseRedirect
 from django.db.models import Case, When, Value, IntegerField, Q
 from django.utils.text import smart_split
+from django.utils.translation import gettext_lazy as _
 import logging
 
 logger = logging.getLogger(__name__)
@@ -36,6 +38,54 @@ class AssignReferrerForm(forms.Form):
     _selected_action = forms.CharField(
         widget=forms.MultipleHiddenInput, required=False
     )
+
+
+class SaleDateFilterForm(forms.Form):
+    """Form that exposes a single date input for admin filtering."""
+
+    date = forms.DateField(
+        required=False,
+        widget=AdminDateWidget(attrs={"placeholder": _("Select date")}),
+        label=_("date"),
+    )
+
+
+class SaleDateEqualsFilter(admin.SimpleListFilter):
+    """Simple list filter that matches sales that occur on a specific date."""
+
+    title = _("date")
+    parameter_name = "date"
+    template = "admin/date_equals_filter.html"
+
+    def __init__(self, request, params, model, model_admin):
+        value = params.get(self.parameter_name)
+        if value:
+            self.form = SaleDateFilterForm(data={self.parameter_name: value})
+        else:
+            self.form = SaleDateFilterForm()
+        super().__init__(request, params, model, model_admin)
+
+    def has_output(self):
+        return True
+
+    def lookups(self, request, model_admin):
+        return ()
+
+    def queryset(self, request, queryset):
+        if self.form.is_bound and self.form.is_valid():
+            selected_date = self.form.cleaned_data.get(self.parameter_name)
+            if selected_date:
+                return queryset.filter(date=selected_date)
+        return queryset
+
+    def choices(self, changelist):
+        yield {
+            "selected": self.value() is None,
+            "query_string": changelist.get_query_string(remove=[self.parameter_name]),
+            "display": _("Clear"),
+            "reset": True,
+        }
+
 
 
 def get_size_order_case(field_name="size"):
@@ -161,7 +211,7 @@ class SaleAdmin(admin.ModelAdmin):
         "return_value",
         "referrer",
     )
-    list_filter = ("variant", "referrer")
+    list_filter = (SaleDateEqualsFilter, "referrer")
     search_fields = ("order_number",)
     actions = ["assign_referrer"]
 
