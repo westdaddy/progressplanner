@@ -1750,6 +1750,7 @@ def referrer_detail(request, referrer_id: int):
         output_field=DecimalField(max_digits=10, decimal_places=2),
     )
 
+
     sales_qs = (
         Sale.objects.filter(date__range=(start_date, end_date))
         .select_related("variant__product", "referrer")
@@ -1779,6 +1780,7 @@ def referrer_detail(request, referrer_id: int):
     cost_of_goods_sold = Decimal("0")
     total_sales_value = Decimal("0")
     commission_total = Decimal("0")
+
 
     free_items = 0
     direct_discount_items = 0
@@ -1836,6 +1838,7 @@ def referrer_detail(request, referrer_id: int):
                         * effective_net_quantity
                         * Decimal("0.25")
                     )
+
                 if retail_price > 0:
                     discount_ratio = (retail_price - actual_unit_price) / retail_price
                     if abs(discount_ratio - DIRECT_DISCOUNT_TARGET) <= REFERRER_DISCOUNT_TOLERANCE:
@@ -1845,6 +1848,13 @@ def referrer_detail(request, referrer_id: int):
                         <= REFERRER_DISCOUNT_TOLERANCE
                     ):
                         referred_items += sold_quantity
+
+        if net_quantity > 0 and retail_price:
+            commission_total += (
+                retail_price
+                * Decimal(net_quantity)
+                * Decimal("0.25")
+            )
 
     orders = []
 
@@ -1979,6 +1989,7 @@ def referrer_detail(request, referrer_id: int):
 
     paid_quantity = int(paid_quantity)
     freebie_quantity = int(freebie_quantity)
+
 
     financials = {
         "total_sales": total_sales_value,

@@ -1176,6 +1176,7 @@ class ReferrerDetailViewTests(TestCase):
         self.assertEqual(financials["commission"], Decimal("75.00"))
         self.assertEqual(financials["net_profit"], Decimal("45.00"))
 
+
         orders = response.context["orders"]
         self.assertEqual(len(orders), 2)
         order_numbers = {order["order_number"] for order in orders}
