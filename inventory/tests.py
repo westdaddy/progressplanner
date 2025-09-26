@@ -1198,6 +1198,43 @@ class ReferrerDetailViewTests(TestCase):
         )
         self.assertFalse(no_ref_item["is_referrer_item"])
 
+    def test_financials_include_returns_in_paid_value(self):
+        order = Order.objects.create(order_date=date(2024, 3, 20))
+        OrderItem.objects.create(
+            order=order,
+            product_variant=self.variant,
+            quantity=5,
+            item_cost_price=Decimal("30.00"),
+            date_expected=date(2024, 3, 1),
+            date_arrived=date(2024, 3, 5),
+        )
+
+        Sale.objects.create(
+            order_number="RET-1",
+            date=date(2024, 4, 15),
+            variant=self.variant,
+            sold_quantity=2,
+            sold_value=Decimal("200.00"),
+            return_quantity=1,
+            return_value=Decimal("100.00"),
+            referrer=self.primary_referrer,
+        )
+
+        response = self.client.get(
+            reverse("referrer_detail", args=[self.primary_referrer.pk]),
+            {"start_date": "2024-04-01", "end_date": "2024-04-30"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        financials = response.context["financials"]
+        self.assertEqual(financials["total_sales"], Decimal("200.00"))
+        self.assertEqual(financials["returns"], Decimal("100.00"))
+        self.assertEqual(financials["paid_value"], Decimal("100.00"))
+        self.assertEqual(financials["cost_of_goods_sold"], Decimal("30.00"))
+        self.assertEqual(financials["freebies_cost"], Decimal("0"))
+        self.assertEqual(financials["net_profit"], Decimal("70.00"))
+
     def test_referrer_detail_handles_empty_range(self):
         Sale.objects.create(
             order_number="ORD-OLD",
