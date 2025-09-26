@@ -2005,7 +2005,6 @@ def referrer_detail(request, referrer_id: int):
         - total_returns_value
         - cost_of_goods_sold
         - freebie_cost
-        - commission_total,
     }
 
     date_querystring = urlencode(
