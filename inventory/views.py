@@ -1723,6 +1723,108 @@ def sales_referrers(request):
     return render(request, "inventory/sales_referrers.html", context)
 
 
+def referrers_overview(request):
+    """Display aggregated metrics for each referrer in a date range."""
+
+    start_date, end_date = _get_sales_date_range(request)
+
+    referrers = list(Referrer.objects.order_by("name"))
+
+    net_sales_expression = ExpressionWrapper(
+        Coalesce("sold_value", Value(Decimal("0")))
+        - Coalesce("return_value", Value(Decimal("0"))),
+        output_field=DecimalField(max_digits=12, decimal_places=2),
+    )
+
+    gifted_items_expression = Case(
+        When(
+            Q(sold_value__isnull=True) | Q(sold_value=0),
+            then=F("sold_quantity"),
+        ),
+        default=Value(0),
+        output_field=IntegerField(),
+    )
+
+    sales_aggregates = (
+        Sale.objects.filter(
+            date__range=(start_date, end_date),
+            referrer__isnull=False,
+        )
+        .values("referrer_id")
+        .annotate(
+            total_orders=Count("order_number", distinct=True),
+            total_items=Sum("sold_quantity"),
+            total_sales=Sum(net_sales_expression),
+            total_gifted=Sum(gifted_items_expression),
+        )
+    )
+
+    aggregates_map = {row["referrer_id"]: row for row in sales_aggregates}
+
+    referrer_rows = []
+    totals = {
+        "orders": 0,
+        "items": 0,
+        "sales": Decimal("0"),
+        "gifted": 0,
+        "with_sales": 0,
+    }
+
+    for referrer in referrers:
+        aggregate = aggregates_map.get(referrer.id) or {}
+        orders_count = aggregate.get("total_orders") or 0
+        items_count = aggregate.get("total_items") or 0
+        net_sales = aggregate.get("total_sales") or Decimal("0")
+        gifted_count = aggregate.get("total_gifted") or 0
+
+        if orders_count or items_count or net_sales or gifted_count:
+            totals["with_sales"] += 1
+
+        totals["orders"] += orders_count
+        totals["items"] += items_count
+        totals["sales"] += net_sales
+        totals["gifted"] += gifted_count
+
+        referrer_rows.append(
+            {
+                "referrer": referrer,
+                "total_orders": orders_count,
+                "total_items": int(items_count),
+                "total_sales": net_sales,
+                "total_gifted": int(gifted_count),
+            }
+        )
+
+    referrer_rows = sorted(
+        referrer_rows,
+        key=lambda row: (
+            -row["total_sales"],
+            row["referrer"].name.lower(),
+        ),
+    )
+
+    has_sales_data = totals["with_sales"] > 0
+
+    date_querystring = urlencode(
+        {
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+        }
+    )
+
+    context = {
+        "start_date": start_date,
+        "end_date": end_date,
+        "referrer_rows": referrer_rows,
+        "has_sales_data": has_sales_data,
+        "totals": totals,
+        "referrers_count": len(referrers),
+        "date_querystring": date_querystring,
+    }
+
+    return render(request, "inventory/referrers_overview.html", context)
+
+
 def referrer_detail(request, referrer_id: int):
     referrer = get_object_or_404(Referrer, pk=referrer_id)
 

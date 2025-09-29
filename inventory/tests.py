@@ -1079,6 +1079,121 @@ class SalesReferrersViewTests(TestCase):
         self.assertEqual(orders[0]["referrers"], [self.beta])
 
 
+class ReferrersOverviewViewTests(TestCase):
+    def setUp(self):
+        self.product = Product.objects.create(
+            product_id="RO1",
+            product_name="Referrer Overview Product",
+            retail_price=Decimal("120.00"),
+        )
+        self.variant = ProductVariant.objects.create(
+            product=self.product,
+            variant_code="RO1-1",
+            primary_color="#000000",
+        )
+        self.alpha = Referrer.objects.create(name="Alpha")
+        self.beta = Referrer.objects.create(name="Beta")
+
+    def test_referrers_sorted_with_totals(self):
+        Sale.objects.create(
+            order_number="ALPHA-100",
+            date=date(2024, 4, 5),
+            variant=self.variant,
+            sold_quantity=3,
+            sold_value=Decimal("300.00"),
+            referrer=self.alpha,
+        )
+        Sale.objects.create(
+            order_number="ALPHA-100",
+            date=date(2024, 4, 6),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("50.00"),
+            return_quantity=1,
+            return_value=Decimal("50.00"),
+            referrer=self.alpha,
+        )
+
+        Sale.objects.create(
+            order_number="BETA-200",
+            date=date(2024, 4, 7),
+            variant=self.variant,
+            sold_quantity=5,
+            sold_value=Decimal("0.00"),
+            referrer=self.beta,
+        )
+        Sale.objects.create(
+            order_number="BETA-201",
+            date=date(2024, 4, 10),
+            variant=self.variant,
+            sold_quantity=2,
+            sold_value=Decimal("100.00"),
+            return_value=Decimal("20.00"),
+            referrer=self.beta,
+        )
+
+        response = self.client.get(
+            reverse("referrers_overview"),
+            {"start_date": "2024-04-01", "end_date": "2024-04-30"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["has_sales_data"])
+
+        rows = response.context["referrer_rows"]
+        self.assertEqual(len(rows), 2)
+        self.assertEqual([row["referrer"] for row in rows], [self.alpha, self.beta])
+
+        alpha_row = rows[0]
+        beta_row = rows[1]
+
+        self.assertEqual(alpha_row["total_orders"], 1)
+        self.assertEqual(alpha_row["total_items"], 4)
+        self.assertEqual(alpha_row["total_sales"], Decimal("300.00"))
+        self.assertEqual(alpha_row["total_gifted"], 0)
+
+        self.assertEqual(beta_row["total_orders"], 2)
+        self.assertEqual(beta_row["total_items"], 7)
+        self.assertEqual(beta_row["total_sales"], Decimal("80.00"))
+        self.assertEqual(beta_row["total_gifted"], 5)
+
+        totals = response.context["totals"]
+        self.assertEqual(totals["orders"], 3)
+        self.assertEqual(totals["items"], 11)
+        self.assertEqual(totals["gifted"], 5)
+        self.assertEqual(totals["sales"], Decimal("380.00"))
+        self.assertEqual(totals["with_sales"], 2)
+
+    def test_default_date_range_last_month(self):
+        Sale.objects.create(
+            order_number="ALPHA-APR",
+            date=date(2024, 4, 15),
+            variant=self.variant,
+            sold_quantity=2,
+            sold_value=Decimal("160.00"),
+            referrer=self.alpha,
+        )
+        # Should be excluded by default date range
+        Sale.objects.create(
+            order_number="ALPHA-MAY",
+            date=date(2024, 5, 2),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("80.00"),
+            referrer=self.alpha,
+        )
+
+        with patch("inventory.views.now") as mock_now:
+            mock_now.return_value = timezone.make_aware(datetime(2024, 5, 15))
+            response = self.client.get(reverse("referrers_overview"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["start_date"], date(2024, 4, 1))
+        self.assertEqual(response.context["end_date"], date(2024, 4, 30))
+
+        rows = response.context["referrer_rows"]
+        self.assertEqual(rows[0]["total_items"], 2)
+        self.assertEqual(rows[0]["total_sales"], Decimal("160.00"))
 class ReferrerDetailViewTests(TestCase):
     def setUp(self):
         self.product = Product.objects.create(
