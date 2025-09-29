@@ -36,6 +36,12 @@
       </form>
       <div class="filter-toolbar__aside">
         <a
+          href="{% url 'referrers_overview' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
+          class="filter-toolbar__link"
+        >
+          Referrer overview <span aria-hidden="true">→</span>
+        </a>
+        <a
           href="{% url 'sales_referrers' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
           class="filter-toolbar__link"
         >

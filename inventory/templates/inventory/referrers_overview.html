@@ -1,0 +1,155 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}Referrers Overview{% endblock %}
+
+{% block content %}
+  <div class="section">
+    <h3>
+      Referrers overview
+      <span class="grey-text small">
+        | Data from {{ start_date|date:"F j, Y" }} to {{ end_date|date:"F j, Y" }}
+      </span>
+    </h3>
+
+    <div class="card-panel grey lighten-4 page-summary">
+      <div class="page-summary__primary">
+        <a
+          href="{% url 'sales' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
+          class="page-summary__back-link"
+        >
+          ← Back to sales overview
+        </a>
+      </div>
+      <div class="page-summary__stats">
+        <span class="page-summary__stat">
+          Referrers: <strong>{{ referrers_count }}</strong>
+        </span>
+        <span class="page-summary__stat">
+          Active in range: <strong>{{ totals.with_sales }}</strong>
+        </span>
+        <span class="page-summary__stat">
+          Orders: <strong>{{ totals.orders }}</strong>
+        </span>
+        <span class="page-summary__stat">
+          Items: <strong>{{ totals.items }}</strong>
+        </span>
+        <span class="page-summary__stat">
+          Net sales: ¥{{ totals.sales|floatformat:2 }}
+        </span>
+        <span class="page-summary__stat">
+          Gifted items: <strong>{{ totals.gifted }}</strong>
+        </span>
+      </div>
+    </div>
+
+    <div class="card-panel filter-toolbar">
+      <form method="get" novalidate class="filter-toolbar__form">
+        <div class="filter-toolbar__field">
+          <label for="start_date" class="active">From</label>
+          <input
+            type="date"
+            id="start_date"
+            name="start_date"
+            value="{{ start_date|date:'Y-m-d' }}"
+            class="browser-default"
+          />
+        </div>
+        <div class="filter-toolbar__field">
+          <label for="end_date" class="active">To</label>
+          <input
+            type="date"
+            id="end_date"
+            name="end_date"
+            value="{{ end_date|date:'Y-m-d' }}"
+            class="browser-default"
+          />
+        </div>
+        <div class="filter-toolbar__actions">
+          <button type="submit" class="btn-small waves-effect waves-light">
+            Update
+          </button>
+        </div>
+      </form>
+    </div>
+
+    {% if referrer_rows %}
+      <div class="card">
+        <div class="card-content">
+          <span class="card-title">Referrer performance</span>
+          <p class="grey-text text-darken-1">
+            Sorted by highest net sales. Gifted counts include items sold with no revenue.
+          </p>
+          {% if not has_sales_data %}
+            <p class="grey-text text-darken-1">
+              No referrer sales were recorded for this date range. Showing all referrers with zero totals.
+            </p>
+          {% endif %}
+          <div class="responsive-table">
+            <table class="striped highlight">
+              <thead>
+                <tr>
+                  <th scope="col">Referrer</th>
+                  <th scope="col" class="right-align">Orders</th>
+                  <th scope="col" class="right-align">Items</th>
+                  <th scope="col" class="right-align">Net sales</th>
+                  <th scope="col" class="right-align">Gifted items</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in referrer_rows %}
+                  <tr class="clickable-row" data-href="{% url 'referrer_detail' row.referrer.id %}{% if date_querystring %}?{{ date_querystring }}{% endif %}">
+                    <th scope="row">
+                      <a
+                        href="{% url 'referrer_detail' row.referrer.id %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
+                        class="table-link"
+                      >
+                        {{ row.referrer.name }}
+                      </a>
+                    </th>
+                    <td class="right-align">{{ row.total_orders }}</td>
+                    <td class="right-align">{{ row.total_items }}</td>
+                    <td class="right-align">¥{{ row.total_sales|floatformat:2 }}</td>
+                    <td class="right-align">{{ row.total_gifted }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <p class="grey-text text-darken-1 no-data-message">
+        No referrers have been configured yet.
+      </p>
+    {% endif %}
+  </div>
+{% endblock %}
+
+{% block extrajs %}
+  {{ block.super }}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll(".responsive-table tr.clickable-row").forEach(function (row) {
+        row.setAttribute("tabindex", "0");
+        row.addEventListener("click", function (event) {
+          if (event.target.tagName && event.target.tagName.toLowerCase() === "a") {
+            return;
+          }
+          const target = row.getAttribute("data-href");
+          if (target) {
+            window.location.href = target;
+          }
+        });
+        row.addEventListener("keyup", function (event) {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            const anchor = row.querySelector("a.table-link");
+            if (anchor) {
+              anchor.click();
+            }
+          }
+        });
+      });
+    });
+  </script>
+{% endblock %}
