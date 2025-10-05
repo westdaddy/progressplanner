@@ -1077,13 +1077,7 @@ def product_canvas(request):
         canvas_items.append(
             {
                 "id": product.pk,
-                "productId": product.product_id,
-                "name": product.product_name,
                 "photoUrl": photo_url,
-                "totalInventory": getattr(product, "total_inventory", 0),
-                "lastOrderLabel": getattr(product, "last_order_label", ""),
-                "lastOrderQty": getattr(product, "last_order_qty", 0),
-                "retailPrice": float(product.retail_price) if product.retail_price else None,
                 "index": idx,
             }
         )
