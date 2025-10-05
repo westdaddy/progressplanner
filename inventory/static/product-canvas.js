@@ -38,9 +38,57 @@
 
   var storageAvailable = supportsLocalStorage();
 
+  var MIN_ZOOM = 0.25;
+  var MAX_ZOOM = 4;
+  var ZOOM_STEP = 0.1;
+
+  function isFiniteNumber(value) {
+    return typeof value === 'number' && !isNaN(value) && isFinite(value);
+  }
+
+  function clampZoom(value) {
+    var zoom = parseFloat(value);
+    if (!isFinite(zoom) || zoom <= 0) {
+      return null;
+    }
+    if (zoom < MIN_ZOOM) {
+      return MIN_ZOOM;
+    }
+    if (zoom > MAX_ZOOM) {
+      return MAX_ZOOM;
+    }
+    return zoom;
+  }
+
+  function sanitizeViewport(viewport) {
+    var zoom = clampZoom(viewport && viewport.zoom);
+    if (zoom === null) {
+      zoom = 1;
+    }
+    var x = viewport && isFiniteNumber(Number(viewport.x)) ? Number(viewport.x) : 0;
+    var y = viewport && isFiniteNumber(Number(viewport.y)) ? Number(viewport.y) : 0;
+    return { zoom: zoom, x: x, y: y };
+  }
+
+  function viewportEquals(source, target) {
+    if (!source && !target) {
+      return true;
+    }
+    if (!source || !target) {
+      return false;
+    }
+    var left = sanitizeViewport(source);
+    var right = sanitizeViewport(target);
+    return (
+      Math.abs(left.zoom - right.zoom) < 1e-6 &&
+      Math.abs(left.x - right.x) < 1e-3 &&
+      Math.abs(left.y - right.y) < 1e-3
+    );
+  }
+
   function readStoredLayout(productIds) {
     if (!storageAvailable) {
-      return { objects: {}, groups: [] };
+      return { objects: {}, groups: [], viewport: null };
     }
 
     var allowed = {};
@@ -53,19 +101,23 @@
     try {
       var raw = window.localStorage.getItem(STORAGE_KEY);
       if (!raw) {
-        return { objects: {}, groups: [] };
+        return { objects: {}, groups: [], viewport: null };
       }
       var parsed = JSON.parse(raw);
       if (!parsed || typeof parsed !== 'object') {
-        return { objects: {}, groups: [] };
+        return { objects: {}, groups: [], viewport: null };
       }
 
       var storedObjects;
       var storedGroups = [];
+      var storedViewport = null;
       if (parsed.objects && typeof parsed.objects === 'object') {
         storedObjects = parsed.objects;
         if (Array.isArray(parsed.groups)) {
           storedGroups = parsed.groups;
+        }
+        if (parsed.viewport && typeof parsed.viewport === 'object') {
+          storedViewport = parsed.viewport;
         }
       } else {
         storedObjects = parsed;
@@ -116,14 +168,25 @@
         }
       });
 
-      if (objectsChanged || groupsChanged) {
-        scheduleLayoutWrite({ objects: filteredObjects, groups: filteredGroups });
+      var viewport = null;
+      var viewportChanged = false;
+      if (storedViewport) {
+        viewport = sanitizeViewport(storedViewport);
+        viewportChanged = !viewportEquals(storedViewport, viewport);
       }
 
-      return { objects: filteredObjects, groups: filteredGroups };
+      if (objectsChanged || groupsChanged || viewportChanged) {
+        scheduleLayoutWrite({
+          objects: filteredObjects,
+          groups: filteredGroups,
+          viewport: viewport,
+        });
+      }
+
+      return { objects: filteredObjects, groups: filteredGroups, viewport: viewport };
     } catch (err) {
       console.warn('Unable to read stored product canvas layout', err);
-      return { objects: {}, groups: [] };
+      return { objects: {}, groups: [], viewport: null };
     }
   }
 
@@ -138,6 +201,12 @@
     var vpt = canvas.viewportTransform ? canvas.viewportTransform.slice() : null;
     var invertedVpt = vpt ? fabric.util.invertTransform(vpt) : null;
     var zoom = canvas.getZoom ? canvas.getZoom() : 1;
+
+    layout.viewport = sanitizeViewport({
+      zoom: zoom || 1,
+      x: vpt && vpt.length > 4 ? vpt[4] : 0,
+      y: vpt && vpt.length > 5 ? vpt[5] : 0,
+    });
 
     function recordObject(obj) {
       if (!obj) {
@@ -158,15 +227,8 @@
           point = new fabric.Point(obj.left || 0, obj.top || 0);
         }
 
-        var objectScaling = typeof obj.getObjectScaling === 'function' ? obj.getObjectScaling() : null;
-        var scaleX = objectScaling ? objectScaling.scaleX : obj.scaleX;
-        var scaleY = objectScaling ? objectScaling.scaleY : obj.scaleY;
-        if (typeof scaleX === 'number' && zoom) {
-          scaleX = scaleX / zoom;
-        }
-        if (typeof scaleY === 'number' && zoom) {
-          scaleY = scaleY / zoom;
-        }
+        var scaleX = typeof obj.scaleX === 'number' ? obj.scaleX : 1;
+        var scaleY = typeof obj.scaleY === 'number' ? obj.scaleY : 1;
 
         layout.objects[key] = {
           left: point.x,
@@ -221,13 +283,16 @@
 
     try {
       var payload = layout && typeof layout === 'object' ? layout : {};
-      if (!payload.objects || typeof payload.objects !== 'object') {
-        payload.objects = {};
+      var objects = payload.objects && typeof payload.objects === 'object' ? payload.objects : {};
+      var groups = Array.isArray(payload.groups) ? payload.groups : [];
+      var viewport = payload.viewport ? sanitizeViewport(payload.viewport) : null;
+
+      var serialized = { objects: objects, groups: groups };
+      if (viewport) {
+        serialized.viewport = viewport;
       }
-      if (!Array.isArray(payload.groups)) {
-        payload.groups = [];
-      }
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(serialized));
     } catch (err) {
       console.warn('Unable to persist product canvas layout', err);
     }
@@ -314,18 +379,16 @@
     canvas.backgroundColor = '#ffffff';
 
     applyCanvasSize(canvas, wrapper);
+    restoreViewportFromStorage();
     window.addEventListener('resize', function () {
       applyCanvasSize(canvas, wrapper);
+      schedulePersist(canvas);
     });
-
-    var MIN_ZOOM = 0.25;
-    var MAX_ZOOM = 4;
-    var ZOOM_STEP = 0.1;
 
     wrapper.addEventListener(
       'wheel',
       function (event) {
-        if (!event.metaKey) {
+        if (!(event.metaKey || event.ctrlKey)) {
           return;
         }
 
@@ -344,6 +407,7 @@
         var pointer = pointerFromEvent(canvas, event);
         canvas.zoomToPoint(pointer, nextZoom);
         canvas.requestRenderAll();
+        schedulePersist(canvas);
       },
       { passive: false }
     );
@@ -354,8 +418,32 @@
     var storedLayout = readStoredLayout(products);
     var storedObjects = storedLayout.objects || {};
     var storedGroups = storedLayout.groups || [];
+    var storedViewport = storedLayout.viewport || null;
     var productNodes = {};
     var pendingGroupRestore;
+
+    function restoreViewportFromStorage() {
+      if (!storedViewport) {
+        return;
+      }
+
+      var viewport = sanitizeViewport(storedViewport);
+      storedViewport = viewport;
+
+      var center = new fabric.Point(canvas.getWidth() / 2, canvas.getHeight() / 2);
+      if (viewport.zoom) {
+        canvas.zoomToPoint(center, viewport.zoom);
+      }
+
+      var current = canvas.viewportTransform ? canvas.viewportTransform.slice() : null;
+      if (current) {
+        current[4] = viewport.x;
+        current[5] = viewport.y;
+        canvas.setViewportTransform(current);
+      }
+
+      canvas.requestRenderAll();
+    }
 
     products.forEach(function (product, index) {
       fabric.Image.fromURL(
@@ -464,8 +552,15 @@
         canvas.selection = true;
         canvas.setCursor('default');
         canvas.requestRenderAll();
+        schedulePersist(canvas);
       }
     });
+
+    function resetViewport() {
+      canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+      canvas.requestRenderAll();
+      schedulePersist(canvas);
+    }
 
     function queueGroupRestore() {
       if (!storedGroups.length) {
@@ -569,6 +664,12 @@
       var isMeta = event.metaKey || event.ctrlKey;
 
       if (!isMeta) {
+        return;
+      }
+
+      if (key === '0' || key === 'Digit0' || key === 'Numpad0') {
+        event.preventDefault();
+        resetViewport();
         return;
       }
 
