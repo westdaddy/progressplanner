@@ -1,4 +1,13 @@
 (function () {
+  var CARD_WIDTH = 180;
+  var CARD_HEIGHT = 200;
+  var GRID_GAP = 20;
+  var GRID_COLUMNS = 5;
+  var STORAGE_KEY = 'inventory-product-canvas';
+  var IMAGE_MAX_HEIGHT = 100;
+  var IMAGE_MAX_WIDTH = CARD_WIDTH - 40;
+
+
   function getContainer() {
     return document.getElementById('product-canvas-container');
   }
@@ -19,182 +28,267 @@
     }
   }
 
-  function stageSize(container) {
-    var width = container.offsetWidth || window.innerWidth * 0.9;
-    var height = Math.max(window.innerHeight * 0.6, 480);
+  function canvasSize(container) {
+    var width = 960;
+    var height = 600;
+
+    if (container) {
+      width = container.clientWidth || window.innerWidth * 0.9;
+      height = container.clientHeight || 0;
+    }
+
+    if (!width) {
+      width = window.innerWidth * 0.9;
+    }
+    if (!height) {
+      height = Math.max(window.innerHeight * 0.6, 480);
+    }
+
     return { width: width, height: height };
   }
 
-  function createStage(container) {
-    var size = stageSize(container);
-    return new Konva.Stage({
-      container: 'konva-stage',
-      width: size.width,
-      height: size.height,
+  function createFabricCanvas(container) {
+    var canvasElement = document.getElementById('product-canvas');
+    if (!canvasElement) {
+      return null;
+    }
+
+    var size = canvasSize(container);
+    var canvas = new fabric.Canvas('product-canvas', {
+      preserveObjectStacking: true,
+      selection: true,
     });
+    canvas.setWidth(size.width);
+    canvas.setHeight(size.height);
+    canvas.backgroundColor = '#fafafa';
+    canvas.renderAll();
+
+    return canvas;
   }
 
-  function createPlaceholder(group, text) {
-    var placeholder = new Konva.Text({
-      text: text,
-      fontSize: 14,
-      fill: '#757575',
-      width: 140,
-      height: 80,
-      align: 'center',
-      verticalAlign: 'middle',
-      x: 0,
-      y: 30,
-    });
-    group.add(placeholder);
+  function computeStartPosition(index) {
+    var column = index % GRID_COLUMNS;
+    var row = Math.floor(index / GRID_COLUMNS);
+    var left = GRID_GAP + column * (CARD_WIDTH + GRID_GAP);
+    var top = GRID_GAP + row * (CARD_HEIGHT + GRID_GAP);
+    return { left: left, top: top };
   }
 
-  function createProductNode(product, layer) {
-    var startX = 30 + (product.index % 5) * 160;
-    var startY = 30 + Math.floor(product.index / 5) * 160;
+  function buildMetaLines(product) {
+    var lines = [
+      'SKU: ' + (product.productId || '—'),
+      'Qty: ' + (product.totalInventory || 0),
+    ];
 
-    var group = new Konva.Group({
-      x: startX,
-      y: startY,
-      draggable: true,
-      id: 'product-' + product.id,
-    });
+    if (product.retailPrice) {
+      lines.push('Retail: $' + product.retailPrice.toFixed(2));
+    }
+    if (product.lastOrderLabel) {
+      lines.push(product.lastOrderLabel);
+    }
 
-    group.setAttrs({ startX: startX, startY: startY });
+    return lines;
+  }
 
-    var frame = new Konva.Rect({
-      width: 150,
-      height: 150,
+  function createTextBox(text, options) {
+    var config = Object.assign(
+      {
+        width: CARD_WIDTH - 20,
+        textAlign: 'center',
+        originX: 'center',
+        originY: 'center',
+        editable: false,
+        selectable: false,
+        evented: false,
+      },
+      options || {}
+    );
+    return new fabric.Textbox(text, config);
+  }
+
+  function createProductCard(product, canvas) {
+    var position = computeStartPosition(product.index || 0);
+    var centerLeft = position.left + CARD_WIDTH / 2;
+    var centerTop = position.top + CARD_HEIGHT / 2;
+
+    var frame = new fabric.Rect({
+      width: CARD_WIDTH,
+      height: CARD_HEIGHT,
       fill: '#ffffff',
       stroke: '#26a69a',
       strokeWidth: 2,
-      cornerRadius: 12,
-      shadowBlur: 6,
-      shadowOpacity: 0.1,
-    });
-    group.add(frame);
-
-    var title = product.name || 'Product';
-    var text = new Konva.Text({
-      text: title,
-      fontSize: 14,
-      fontStyle: 'bold',
-      fill: '#004d40',
-      width: 140,
-      x: 5,
-      y: 110,
-      align: 'center',
-      listening: false,
+      rx: 16,
+      ry: 16,
+      originX: 'center',
+      originY: 'center',
+      selectable: false,
+      evented: false,
     });
 
-    var meta = new Konva.Text({
-      text:
-        'SKU: ' + (product.productId || '—') +
-        '\nQty: ' + (product.totalInventory || 0),
-      fontSize: 12,
-      fill: '#546e7a',
-      width: 140,
-      x: 5,
-      y: 130,
-      align: 'center',
-      listening: false,
+    var group = new fabric.Group([frame], {
+      left: centerLeft,
+      top: centerTop,
+      originX: 'center',
+      originY: 'center',
+      lockRotation: true,
+      hasRotatingPoint: false,
+      hoverCursor: 'move',
+      cornerColor: '#26a69a',
+      cornerStyle: 'circle',
+      padding: 8,
     });
 
-    group.add(text);
-    group.add(meta);
+    group.productKey = 'product-' + product.id;
+    group.set('startLeft', centerLeft);
+    group.set('startTop', centerTop);
+    group.set('startScaleX', 1);
+    group.set('startScaleY', 1);
+    group.set('data', { type: 'product-card', productId: product.id });
 
-    if (product.photoUrl) {
-      var imageObj = new window.Image();
-      imageObj.onload = function () {
-        var ratio = Math.min(120 / imageObj.width, 80 / imageObj.height);
-        var imageWidth = imageObj.width * ratio;
-        var imageHeight = imageObj.height * ratio;
-        var image = new Konva.Image({
-          image: imageObj,
-          width: imageWidth,
-          height: imageHeight,
-          x: (150 - imageWidth) / 2,
-          y: 10 + (90 - imageHeight) / 2,
-        });
-        group.add(image);
-        layer.draw();
-      };
-      imageObj.crossOrigin = 'anonymous';
-      imageObj.src = product.photoUrl;
-    } else {
-      createPlaceholder(group, 'No photo');
+    if (group.controls && group.controls.mtr) {
+      group.setControlsVisibility({ mtr: false });
     }
 
-    layer.add(group);
+    var imageOrPlaceholder = createTextBox(
+      product.photoUrl ? 'Loading image…' : 'No photo available',
+      {
+        fontSize: 14,
+        fill: '#757575',
+        top: -CARD_HEIGHT / 2 + 60,
+        width: CARD_WIDTH - 30,
+      }
+    );
+    group.addWithUpdate(imageOrPlaceholder);
+
+    var title = createTextBox(product.name || 'Product', {
+      fontSize: 16,
+      fontWeight: 'bold',
+      fill: '#004d40',
+      top: CARD_HEIGHT / 2 - 60,
+    });
+    group.addWithUpdate(title);
+
+    var meta = createTextBox(buildMetaLines(product).join('\n'), {
+      fontSize: 12,
+      fill: '#546e7a',
+      lineHeight: 1.2,
+      top: CARD_HEIGHT / 2 - 25,
+    });
+    group.addWithUpdate(meta);
+
+    canvas.add(group);
+    canvas.requestRenderAll();
+
+    if (product.photoUrl) {
+      fabric.Image.fromURL(
+        product.photoUrl,
+        function (img) {
+          if (!img) {
+            return;
+          }
+
+          var scale = Math.min(
+            IMAGE_MAX_WIDTH / img.width,
+            IMAGE_MAX_HEIGHT / img.height,
+            1
+          );
+
+          img.set({
+            originX: 'center',
+            originY: 'center',
+            top: -CARD_HEIGHT / 2 + 60,
+            selectable: false,
+            evented: false,
+          });
+          img.scale(scale);
+
+          group.remove(imageOrPlaceholder);
+          group.insertAt(img, 1, true);
+          canvas.requestRenderAll();
+        },
+        { crossOrigin: 'anonymous' }
+      );
+    }
+
     return group;
   }
 
-  function attachTransformer(stage, layer) {
-    var transformer = new Konva.Transformer({
-      rotateEnabled: false,
-      boundBoxFunc: function (oldBox, newBox) {
-        if (newBox.width < 80 || newBox.height < 80) {
-          return oldBox;
-        }
-        return newBox;
-      },
-    });
-    layer.add(transformer);
-
-    stage.on('click tap', function (e) {
-      if (e.target === stage) {
-        transformer.nodes([]);
-        layer.draw();
-        return;
-      }
-      var group = e.target.getParent();
-      if (group) {
-        transformer.nodes([group]);
-        layer.draw();
-      }
-    });
-
-    return transformer;
+  function serializeLayout(canvas) {
+    return canvas
+      .getObjects()
+      .filter(function (obj) {
+        return obj.data && obj.data.type === 'product-card';
+      })
+      .map(function (obj) {
+        return {
+          id: obj.productKey,
+          left: obj.left,
+          top: obj.top,
+          scaleX: obj.scaleX,
+          scaleY: obj.scaleY,
+        };
+      });
   }
 
-  function serializeLayout(stage) {
-    return stage.find('Group').map(function (group) {
-      return {
-        id: group.id(),
-        x: group.x(),
-        y: group.y(),
-        scaleX: group.scaleX(),
-        scaleY: group.scaleY(),
-      };
-    });
-  }
-
-  function restoreLayout(stage, layout) {
+  function restoreLayout(canvas, layout) {
     var layoutMap = {};
     layout.forEach(function (item) {
       layoutMap[item.id] = item;
     });
-    stage.find('Group').forEach(function (group) {
-      var config = layoutMap[group.id()];
+
+    canvas.getObjects().forEach(function (obj) {
+      if (!obj.data || obj.data.type !== 'product-card') {
+        return;
+      }
+      var config = layoutMap[obj.productKey];
       if (!config) {
         return;
       }
-      group.position({ x: config.x, y: config.y });
-      if (config.scaleX && config.scaleY) {
-        group.scale({ x: config.scaleX, y: config.scaleY });
-      }
+      obj.set({
+        left: config.left,
+        top: config.top,
+        scaleX: config.scaleX || 1,
+        scaleY: config.scaleY || 1,
+      });
+      obj.setCoords();
     });
-    stage.batchDraw();
+    canvas.requestRenderAll();
   }
 
-  function exportAsImage(stage) {
-    var dataURL = stage.toDataURL({ pixelRatio: 2 });
+  function clearLayout(canvas) {
+    canvas.getObjects().forEach(function (obj) {
+      if (!obj.data || obj.data.type !== 'product-card') {
+        return;
+      }
+      obj.set({
+        left: obj.startLeft || obj.left,
+        top: obj.startTop || obj.top,
+        scaleX: obj.startScaleX || 1,
+        scaleY: obj.startScaleY || 1,
+      });
+      obj.setCoords();
+    });
+    canvas.requestRenderAll();
+  }
+
+  function exportAsImage(canvas) {
+    var dataURL = canvas.toDataURL({ format: 'png', multiplier: 2 });
     var link = document.createElement('a');
     link.download = 'product-canvas.png';
     link.href = dataURL;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  }
+
+  function resizeCanvas(canvas, container) {
+    if (!canvas || !container) {
+      return;
+    }
+    var size = canvasSize(container);
+    canvas.setWidth(size.width);
+    canvas.setHeight(size.height);
+    canvas.renderAll();
   }
 
   function toast(message, classes) {
@@ -214,8 +308,8 @@
   }
 
   ready(function () {
-    if (typeof Konva === 'undefined') {
-      console.warn('Konva.js is required for the product canvas');
+    if (typeof fabric === 'undefined' || !fabric.Canvas) {
+      console.warn('Fabric.js is required for the product canvas');
       return;
     }
 
@@ -225,24 +319,32 @@
       return;
     }
 
-    var stage = createStage(container);
-    var layer = new Konva.Layer();
-    stage.add(layer);
-    attachTransformer(stage, layer);
+    var canvas = createFabricCanvas(container);
+    if (!canvas) {
+      return;
+    }
 
     products.forEach(function (product) {
-      createProductNode(product, layer);
+      createProductCard(product, canvas);
     });
 
-    layer.draw();
+    canvas.on('object:scaling', function (event) {
+      var target = event.target;
+      if (!target || !target.data || target.data.type !== 'product-card') {
+        return;
+      }
+      var minScale = 0.5;
+      if (target.scaleX < minScale) {
+        target.scaleX = minScale;
+      }
+      if (target.scaleY < minScale) {
+        target.scaleY = minScale;
+      }
+    });
 
     window.addEventListener('resize', function () {
-      var size = stageSize(container);
-      stage.size(size);
-      stage.batchDraw();
+      resizeCanvas(canvas, container);
     });
-
-    var STORAGE_KEY = 'inventory-product-canvas';
 
     var saveBtn = document.getElementById('save-layout');
     var loadBtn = document.getElementById('load-layout');
@@ -251,7 +353,7 @@
 
     if (saveBtn) {
       saveBtn.addEventListener('click', function () {
-        var layout = serializeLayout(stage);
+        var layout = serializeLayout(canvas);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
         toast('Layout saved locally', 'teal');
       });
@@ -266,7 +368,7 @@
         }
         try {
           var layout = JSON.parse(payload);
-          restoreLayout(stage, layout);
+          restoreLayout(canvas, layout);
           toast('Layout restored', 'teal');
         } catch (err) {
           console.error('Unable to restore layout', err);
@@ -278,20 +380,14 @@
     if (clearBtn) {
       clearBtn.addEventListener('click', function () {
         localStorage.removeItem(STORAGE_KEY);
-        stage.find('Group').forEach(function (group) {
-          var originalX = group.getAttr('startX') || 30;
-          var originalY = group.getAttr('startY') || 30;
-          group.position({ x: originalX, y: originalY });
-          group.scale({ x: 1, y: 1 });
-        });
-        stage.batchDraw();
+        clearLayout(canvas);
         toast('Layout cleared', 'grey darken-1');
       });
     }
 
     if (exportBtn) {
       exportBtn.addEventListener('click', function () {
-        exportAsImage(stage);
+        exportAsImage(canvas);
       });
     }
   });
