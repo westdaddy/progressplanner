@@ -7,6 +7,8 @@
     }
   }
 
+  var STORAGE_KEY = 'inventory.product_canvas.layout';
+
   function parseProducts(wrapper) {
     if (!wrapper) {
       return [];
@@ -21,6 +23,103 @@
       console.error('Unable to parse product canvas payload', err);
       return [];
     }
+  }
+
+  function supportsLocalStorage() {
+    try {
+      var testKey = '__product_canvas_storage_test__';
+      window.localStorage.setItem(testKey, testKey);
+      window.localStorage.removeItem(testKey);
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  var storageAvailable = supportsLocalStorage();
+
+  function readStoredLayout(productIds) {
+    if (!storageAvailable) {
+      return {};
+    }
+
+    var allowed = {};
+    productIds.forEach(function (product) {
+      if (product && typeof product.id !== 'undefined' && product.id !== null) {
+        allowed[String(product.id)] = true;
+      }
+    });
+
+    try {
+      var raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        return {};
+      }
+      var parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') {
+        return {};
+      }
+
+      var filtered = {};
+      Object.keys(parsed).forEach(function (key) {
+        if (allowed[key]) {
+          filtered[key] = parsed[key];
+        }
+      });
+
+      if (Object.keys(filtered).length !== Object.keys(parsed).length) {
+        scheduleLayoutWrite(filtered);
+      }
+
+      return filtered;
+    } catch (err) {
+      console.warn('Unable to read stored product canvas layout', err);
+      return {};
+    }
+  }
+
+  var pendingLayout;
+
+  function scheduleLayoutWrite(layout) {
+    if (!storageAvailable) {
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(layout || {}));
+    } catch (err) {
+      console.warn('Unable to persist product canvas layout', err);
+    }
+  }
+
+  function schedulePersist(canvas) {
+    if (!storageAvailable) {
+      return;
+    }
+
+    if (pendingLayout) {
+      return;
+    }
+
+    pendingLayout = window.requestAnimationFrame(function () {
+      pendingLayout = null;
+      var layout = {};
+      canvas.getObjects().forEach(function (obj) {
+        if (!obj || typeof obj.productId === 'undefined' || obj.productId === null) {
+          return;
+        }
+
+        var key = String(obj.productId);
+        layout[key] = {
+          left: typeof obj.left === 'number' ? obj.left : 0,
+          top: typeof obj.top === 'number' ? obj.top : 0,
+          scaleX: typeof obj.scaleX === 'number' ? obj.scaleX : 1,
+          scaleY: typeof obj.scaleY === 'number' ? obj.scaleY : 1,
+        };
+      });
+
+      scheduleLayoutWrite(layout);
+    });
   }
 
   function applyCanvasSize(canvas, wrapper) {
@@ -125,6 +224,8 @@
     var maxItemSize = 220;
     var gap = 40;
 
+    var storedLayout = readStoredLayout(products);
+
     products.forEach(function (product, index) {
       fabric.Image.fromURL(
         product.photoUrl,
@@ -136,7 +237,14 @@
           var scale = Math.min(maxItemSize / img.width, maxItemSize / img.height, 1);
           img.scale(scale);
 
-          var position = gridPosition(index, canvas.getWidth(), maxItemSize, gap);
+          var key = String(product.id);
+          img.productId = key;
+
+          var stored = storedLayout[key];
+          var position = stored && typeof stored.left === 'number' && typeof stored.top === 'number'
+            ? { left: stored.left, top: stored.top }
+            : gridPosition(index, canvas.getWidth(), maxItemSize, gap);
+
           img.set({
             left: position.left,
             top: position.top,
@@ -150,11 +258,27 @@
             lockScalingFlip: true,
           });
 
+          if (stored) {
+            if (typeof stored.scaleX === 'number' && stored.scaleX > 0) {
+              img.scaleX = stored.scaleX;
+            }
+            if (typeof stored.scaleY === 'number' && stored.scaleY > 0) {
+              img.scaleY = stored.scaleY;
+            }
+          }
+
+          img.setCoords();
+
           canvas.add(img);
           canvas.requestRenderAll();
+          schedulePersist(canvas);
         },
         { crossOrigin: 'anonymous' }
       );
+    });
+
+    canvas.on('object:modified', function () {
+      schedulePersist(canvas);
     });
   });
 })();
