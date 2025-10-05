@@ -7,7 +7,7 @@ from collections import defaultdict, namedtuple, OrderedDict
 import calendar
 import statistics
 import math
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urljoin
 import logging
 
 from django.core.cache import cache
@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 from decimal import Decimal, ROUND_HALF_UP
 
+from django.conf import settings
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db import models
 from django.db.models import (
@@ -75,6 +76,12 @@ from .utils import (
     get_variant_speed_map,
     get_category_speed_stats,
 )
+
+
+
+
+# e.g. MEDIA_ROOT/product_photos/default.jpg  (put the file there)
+DEFAULT_PRODUCT_IMAGE = getattr(settings, "DEFAULT_PRODUCT_IMAGE", "product_photos/default.jpg")
 
 
 # used in 'home' view
@@ -1066,13 +1073,22 @@ def product_canvas(request):
 
     canvas_items = []
     for idx, product in enumerate(products):
+        # Try to get the product's own photo URL
         photo_url = None
-        if getattr(product, "product_photo", None):
-            try:
-                if product.product_photo:
-                    photo_url = product.product_photo.url
-            except ValueError:
-                photo_url = None
+        try:
+            if getattr(product, "product_photo", None) and getattr(product.product_photo, "url", None):
+                photo_url = product.product_photo.url
+        except ValueError:
+            # e.g. missing underlying file
+            photo_url = None
+
+        # Fallback to a default media image if missing/invalid
+        if not photo_url:
+            # Make a relative media URL (e.g. "/media/product_photos/default.jpg")
+            photo_url = urljoin(settings.MEDIA_URL, DEFAULT_PRODUCT_IMAGE)
+
+        # (Optional) If you want absolute URLs, uncomment the next line:
+        # photo_url = request.build_absolute_uri(photo_url)
 
         canvas_items.append(
             {
