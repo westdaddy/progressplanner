@@ -7,6 +7,7 @@
   var IMAGE_MAX_HEIGHT = 100;
   var IMAGE_MAX_WIDTH = CARD_WIDTH - 40;
 
+
   function getContainer() {
     return document.getElementById('product-canvas-container');
   }
