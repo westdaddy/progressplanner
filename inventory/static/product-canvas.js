@@ -80,6 +80,67 @@
 
   var pendingLayout;
 
+  function collectPersistableObjects(canvas) {
+    var layout = {};
+    if (!canvas) {
+      return layout;
+    }
+
+    var vpt = canvas.viewportTransform ? canvas.viewportTransform.slice() : null;
+    var invertedVpt = vpt ? fabric.util.invertTransform(vpt) : null;
+    var zoom = canvas.getZoom ? canvas.getZoom() : 1;
+
+    function recordObject(obj) {
+      if (!obj) {
+        return;
+      }
+
+      if (obj.productId !== undefined && obj.productId !== null) {
+        var key = String(obj.productId);
+
+        var bounds = typeof obj.getBoundingRect === 'function' ? obj.getBoundingRect(true, true) : null;
+        var point;
+        if (bounds) {
+          point = new fabric.Point(bounds.left, bounds.top);
+          if (invertedVpt) {
+            point = fabric.util.transformPoint(point, invertedVpt);
+          }
+        } else {
+          point = new fabric.Point(obj.left || 0, obj.top || 0);
+        }
+
+        var objectScaling = typeof obj.getObjectScaling === 'function' ? obj.getObjectScaling() : null;
+        var scaleX = objectScaling ? objectScaling.scaleX : obj.scaleX;
+        var scaleY = objectScaling ? objectScaling.scaleY : obj.scaleY;
+        if (typeof scaleX === 'number' && zoom) {
+          scaleX = scaleX / zoom;
+        }
+        if (typeof scaleY === 'number' && zoom) {
+          scaleY = scaleY / zoom;
+        }
+
+        layout[key] = {
+          left: point.x,
+          top: point.y,
+          scaleX: typeof scaleX === 'number' ? scaleX : 1,
+          scaleY: typeof scaleY === 'number' ? scaleY : 1,
+        };
+      }
+
+      if (obj._objects && obj._objects.length) {
+        obj._objects.forEach(function (child) {
+          recordObject(child);
+        });
+      }
+    }
+
+    canvas.getObjects().forEach(function (obj) {
+      recordObject(obj);
+    });
+
+    return layout;
+  }
+
   function scheduleLayoutWrite(layout) {
     if (!storageAvailable) {
       return;
@@ -103,21 +164,7 @@
 
     pendingLayout = window.requestAnimationFrame(function () {
       pendingLayout = null;
-      var layout = {};
-      canvas.getObjects().forEach(function (obj) {
-        if (!obj || typeof obj.productId === 'undefined' || obj.productId === null) {
-          return;
-        }
-
-        var key = String(obj.productId);
-        layout[key] = {
-          left: typeof obj.left === 'number' ? obj.left : 0,
-          top: typeof obj.top === 'number' ? obj.top : 0,
-          scaleX: typeof obj.scaleX === 'number' ? obj.scaleX : 1,
-          scaleY: typeof obj.scaleY === 'number' ? obj.scaleY : 1,
-        };
-      });
-
+      var layout = collectPersistableObjects(canvas);
       scheduleLayoutWrite(layout);
     });
   }
@@ -182,7 +229,8 @@
     });
 
     var canvas = new fabric.Canvas(canvasElement, {
-      selection: false,
+      selection: true,
+      selectionKey: 'shiftKey',
     });
     canvas.backgroundColor = '#ffffff';
 
@@ -280,5 +328,85 @@
     canvas.on('object:modified', function () {
       schedulePersist(canvas);
     });
+
+    var isPanning = false;
+    var lastPos;
+
+    canvas.on('mouse:down', function (event) {
+      if (event && event.e && !event.target) {
+        isPanning = true;
+        canvas.selection = false;
+        lastPos = new fabric.Point(event.e.clientX, event.e.clientY);
+        canvas.setCursor('grabbing');
+        canvas.requestRenderAll();
+      }
+    });
+
+    canvas.on('mouse:move', function (event) {
+      if (!isPanning || !event || !event.e) {
+        return;
+      }
+
+      var e = event.e;
+      var currentPos = new fabric.Point(e.clientX, e.clientY);
+      var delta = currentPos.subtract(lastPos);
+      lastPos = currentPos;
+      canvas.relativePan(delta);
+      canvas.setCursor('grabbing');
+      canvas.requestRenderAll();
+    });
+
+    canvas.on('mouse:up', function () {
+      if (isPanning) {
+        isPanning = false;
+        canvas.selection = true;
+        canvas.setCursor('default');
+        canvas.requestRenderAll();
+      }
+    });
+
+    function groupActiveSelection() {
+      var activeObject = canvas.getActiveObject();
+      if (!activeObject || activeObject.type !== 'activeSelection') {
+        return;
+      }
+
+      activeObject.toGroup();
+      canvas.requestRenderAll();
+      schedulePersist(canvas);
+    }
+
+    function ungroupActiveGroup() {
+      var activeObject = canvas.getActiveObject();
+      if (!activeObject || activeObject.type !== 'group') {
+        return;
+      }
+
+      activeObject.toActiveSelection();
+      canvas.requestRenderAll();
+      schedulePersist(canvas);
+    }
+
+    document.addEventListener('keydown', function (event) {
+      if (!event) {
+        return;
+      }
+
+      var key = event.key || event.code;
+      var isMeta = event.metaKey || event.ctrlKey;
+
+      if (!isMeta) {
+        return;
+      }
+
+      if ((key === 'g' || key === 'G' || key === 'KeyG') && event.shiftKey) {
+        event.preventDefault();
+        ungroupActiveGroup();
+      } else if (key === 'g' || key === 'G' || key === 'KeyG') {
+        event.preventDefault();
+        groupActiveSelection();
+      }
+    });
+
   });
 })();
