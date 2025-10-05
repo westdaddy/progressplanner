@@ -1071,6 +1071,8 @@ def product_canvas(request):
             try:
                 if product.product_photo:
                     photo_url = product.product_photo.url
+                    if photo_url:
+                        photo_url = request.build_absolute_uri(photo_url)
             except ValueError:
                 photo_url = None
 

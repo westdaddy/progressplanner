@@ -8,6 +8,9 @@
   }
 
   var STORAGE_KEY = 'inventory.product_canvas.layout';
+  var MIN_ZOOM = 0.25;
+  var MAX_ZOOM = 4;
+  var ZOOM_STEP = 0.1;
 
   function parseProducts(wrapper) {
     if (!wrapper) {
@@ -37,10 +40,6 @@
   }
 
   var storageAvailable = supportsLocalStorage();
-
-  var MIN_ZOOM = 0.25;
-  var MAX_ZOOM = 4;
-  var ZOOM_STEP = 0.1;
 
   function isFiniteNumber(value) {
     return typeof value === 'number' && !isNaN(value) && isFinite(value);
@@ -86,6 +85,56 @@
     );
   }
 
+  function sanitizeObjectEntry(entry) {
+    if (!entry || typeof entry !== 'object') {
+      return null;
+    }
+
+    var left = Number(entry.left);
+    var top = Number(entry.top);
+    if (!isFinite(left) || !isFinite(top)) {
+      return null;
+    }
+
+    var scaleX = Number(entry.scaleX);
+    var scaleY = Number(entry.scaleY);
+    if (!isFinite(scaleX) || scaleX <= 0) {
+      scaleX = 1;
+    }
+    if (!isFinite(scaleY) || scaleY <= 0) {
+      scaleY = scaleX;
+    }
+
+    return {
+      left: left,
+      top: top,
+      scaleX: scaleX,
+      scaleY: scaleY,
+    };
+  }
+
+  function scheduleLayoutWrite(layout) {
+    if (!storageAvailable) {
+      return;
+    }
+
+    try {
+      var payload = layout && typeof layout === 'object' ? layout : {};
+      var objects = payload.objects && typeof payload.objects === 'object' ? payload.objects : {};
+      var groups = Array.isArray(payload.groups) ? payload.groups : [];
+      var viewport = payload.viewport ? sanitizeViewport(payload.viewport) : null;
+
+      var serialized = { objects: objects, groups: groups };
+      if (viewport) {
+        serialized.viewport = viewport;
+      }
+
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(serialized));
+    } catch (err) {
+      console.warn('Unable to persist product canvas layout', err);
+    }
+  }
+
   function readStoredLayout(productIds) {
     if (!storageAvailable) {
       return { objects: {}, groups: [], viewport: null };
@@ -126,8 +175,16 @@
       var filteredObjects = {};
       var objectsChanged = false;
       Object.keys(storedObjects).forEach(function (key) {
-        if (allowed[key]) {
-          filteredObjects[key] = storedObjects[key];
+        if (!allowed[key]) {
+          objectsChanged = true;
+          return;
+        }
+        var sanitized = sanitizeObjectEntry(storedObjects[key]);
+        if (sanitized) {
+          filteredObjects[key] = sanitized;
+          if (sanitized !== storedObjects[key]) {
+            objectsChanged = true;
+          }
         } else {
           objectsChanged = true;
         }
@@ -169,7 +226,7 @@
       });
 
       var viewport = null;
-      var viewportChanged = false;
+    var viewportChanged = false;
       if (storedViewport) {
         viewport = sanitizeViewport(storedViewport);
         viewportChanged = !viewportEquals(storedViewport, viewport);
@@ -190,8 +247,6 @@
     }
   }
 
-  var pendingLayout;
-
   function collectPersistableObjects(canvas) {
     var layout = { objects: {}, groups: [] };
     if (!canvas) {
@@ -199,7 +254,7 @@
     }
 
     var vpt = canvas.viewportTransform ? canvas.viewportTransform.slice() : null;
-    var invertedVpt = vpt ? fabric.util.invertTransform(vpt) : null;
+    var invertedVpt = vpt && fabric.util && fabric.util.invertTransform ? fabric.util.invertTransform(vpt) : null;
     var zoom = canvas.getZoom ? canvas.getZoom() : 1;
 
     layout.viewport = sanitizeViewport({
@@ -227,14 +282,18 @@
           point = new fabric.Point(obj.left || 0, obj.top || 0);
         }
 
-        var scaleX = typeof obj.scaleX === 'number' ? obj.scaleX : 1;
-        var scaleY = typeof obj.scaleY === 'number' ? obj.scaleY : 1;
+        if (!isFinite(point.x) || !isFinite(point.y)) {
+          return;
+        }
+
+        var scaleX = typeof obj.scaleX === 'number' && isFinite(obj.scaleX) && obj.scaleX > 0 ? obj.scaleX : 1;
+        var scaleY = typeof obj.scaleY === 'number' && isFinite(obj.scaleY) && obj.scaleY > 0 ? obj.scaleY : scaleX;
 
         layout.objects[key] = {
           left: point.x,
           top: point.y,
-          scaleX: typeof scaleX === 'number' ? scaleX : 1,
-          scaleY: typeof scaleY === 'number' ? scaleY : 1,
+          scaleX: scaleX,
+          scaleY: scaleY,
         };
       }
 
@@ -276,44 +335,6 @@
     return layout;
   }
 
-  function scheduleLayoutWrite(layout) {
-    if (!storageAvailable) {
-      return;
-    }
-
-    try {
-      var payload = layout && typeof layout === 'object' ? layout : {};
-      var objects = payload.objects && typeof payload.objects === 'object' ? payload.objects : {};
-      var groups = Array.isArray(payload.groups) ? payload.groups : [];
-      var viewport = payload.viewport ? sanitizeViewport(payload.viewport) : null;
-
-      var serialized = { objects: objects, groups: groups };
-      if (viewport) {
-        serialized.viewport = viewport;
-      }
-
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(serialized));
-    } catch (err) {
-      console.warn('Unable to persist product canvas layout', err);
-    }
-  }
-
-  function schedulePersist(canvas) {
-    if (!storageAvailable) {
-      return;
-    }
-
-    if (pendingLayout) {
-      return;
-    }
-
-    pendingLayout = window.requestAnimationFrame(function () {
-      pendingLayout = null;
-      var layout = collectPersistableObjects(canvas);
-      scheduleLayoutWrite(layout);
-    });
-  }
-
   function applyCanvasSize(canvas, wrapper) {
     if (!canvas || !wrapper) {
       return;
@@ -328,7 +349,7 @@
       width = wrapper.clientWidth || 960;
     }
     if (!height || height < 320) {
-      height = Math.max(window.innerHeight - headerHeight, 480);
+      height = Math.max((window.innerHeight || 0) - headerHeight, 480);
     }
 
     wrapper.style.height = height + 'px';
@@ -342,7 +363,8 @@
       return new fabric.Point(0, 0);
     }
 
-    var rect = canvas.getElement().getBoundingClientRect();
+    var element = canvas.getElement ? canvas.getElement() : canvas.upperCanvasEl;
+    var rect = element ? element.getBoundingClientRect() : { left: 0, top: 0 };
     var x = evt.clientX - rect.left;
     var y = evt.clientY - rect.top;
     return new fabric.Point(x, y);
@@ -373,16 +395,44 @@
       return product && product.photoUrl;
     });
 
+    var storedLayout = readStoredLayout(products);
+    var storedObjects = storedLayout.objects || {};
+    var storedGroups = storedLayout.groups || [];
+    var storedViewport = storedLayout.viewport || null;
+
     var canvas = new fabric.Canvas(canvasElement, {
       selection: true,
+      preserveObjectStacking: true,
     });
     canvas.backgroundColor = '#ffffff';
 
+    var pendingLayout = null;
+
+    function schedulePersist() {
+      if (!storageAvailable) {
+        return;
+      }
+      if (pendingLayout) {
+        return;
+      }
+
+      pendingLayout = window.requestAnimationFrame(function () {
+        pendingLayout = null;
+        var layout = collectPersistableObjects(canvas);
+        scheduleLayoutWrite(layout);
+        if (layout.viewport) {
+          storedViewport = layout.viewport;
+        }
+      });
+    }
+
     applyCanvasSize(canvas, wrapper);
     restoreViewportFromStorage();
+
     window.addEventListener('resize', function () {
       applyCanvasSize(canvas, wrapper);
-      schedulePersist(canvas);
+      restoreViewportFromStorage();
+      schedulePersist();
     });
 
     wrapper.addEventListener(
@@ -394,56 +444,22 @@
 
         event.preventDefault();
 
-        var delta = event.deltaY;
         var zoom = canvas.getZoom();
-        var zoomChange = 1 + (delta > 0 ? -ZOOM_STEP : ZOOM_STEP);
-        var nextZoom = zoom * zoomChange;
-        if (nextZoom < MIN_ZOOM) {
-          nextZoom = MIN_ZOOM;
-        } else if (nextZoom > MAX_ZOOM) {
-          nextZoom = MAX_ZOOM;
-        }
+        var zoomChange = event.deltaY > 0 ? 1 - ZOOM_STEP : 1 + ZOOM_STEP;
+        var nextZoom = clampZoom(zoom * zoomChange) || zoom;
 
         var pointer = pointerFromEvent(canvas, event);
         canvas.zoomToPoint(pointer, nextZoom);
         canvas.requestRenderAll();
-        schedulePersist(canvas);
+        schedulePersist();
       },
       { passive: false }
     );
 
     var maxItemSize = 220;
     var gap = 40;
-
-    var storedLayout = readStoredLayout(products);
-    var storedObjects = storedLayout.objects || {};
-    var storedGroups = storedLayout.groups || [];
-    var storedViewport = storedLayout.viewport || null;
     var productNodes = {};
-    var pendingGroupRestore;
-
-    function restoreViewportFromStorage() {
-      if (!storedViewport) {
-        return;
-      }
-
-      var viewport = sanitizeViewport(storedViewport);
-      storedViewport = viewport;
-
-      var center = new fabric.Point(canvas.getWidth() / 2, canvas.getHeight() / 2);
-      if (viewport.zoom) {
-        canvas.zoomToPoint(center, viewport.zoom);
-      }
-
-      var current = canvas.viewportTransform ? canvas.viewportTransform.slice() : null;
-      if (current) {
-        current[4] = viewport.x;
-        current[5] = viewport.y;
-        canvas.setViewportTransform(current);
-      }
-
-      canvas.requestRenderAll();
-    }
+    var pendingGroupRestore = null;
 
     products.forEach(function (product, index) {
       fabric.Image.fromURL(
@@ -453,20 +469,27 @@
             return;
           }
 
-          var scale = Math.min(maxItemSize / img.width, maxItemSize / img.height, 1);
-          img.scale(scale);
+          var fallbackScale = 1;
+          if (img.width && img.height) {
+            fallbackScale = Math.min(maxItemSize / img.width, maxItemSize / img.height, 1);
+            if (!isFinite(fallbackScale) || fallbackScale <= 0) {
+              fallbackScale = 1;
+            }
+          }
+
+          img.scale(fallbackScale);
 
           var key = String(product.id);
           img.productId = key;
 
           var stored = storedObjects[key];
-          var position = stored && typeof stored.left === 'number' && typeof stored.top === 'number'
+          var initialPosition = stored
             ? { left: stored.left, top: stored.top }
             : gridPosition(index, canvas.getWidth(), maxItemSize, gap);
 
           img.set({
-            left: position.left,
-            top: position.top,
+            left: initialPosition.left,
+            top: initialPosition.top,
             originX: 'left',
             originY: 'top',
             hasBorders: false,
@@ -478,12 +501,8 @@
           });
 
           if (stored) {
-            if (typeof stored.scaleX === 'number' && stored.scaleX > 0) {
-              img.scaleX = stored.scaleX;
-            }
-            if (typeof stored.scaleY === 'number' && stored.scaleY > 0) {
-              img.scaleY = stored.scaleY;
-            }
+            img.scaleX = stored.scaleX;
+            img.scaleY = stored.scaleY;
           }
 
           img.setCoords();
@@ -491,16 +510,17 @@
           canvas.add(img);
           canvas.requestRenderAll();
           productNodes[key] = img;
-          schedulePersist(canvas);
+          schedulePersist();
           queueGroupRestore();
         },
         { crossOrigin: 'anonymous' }
       );
     });
 
-    canvas.on('object:modified', function () {
-      schedulePersist(canvas);
-    });
+    canvas.on('object:modified', schedulePersist);
+    canvas.on('object:moving', schedulePersist);
+    canvas.on('object:scaling', schedulePersist);
+    canvas.on('object:rotating', schedulePersist);
 
     var isPanning = false;
     var lastPos;
@@ -544,29 +564,25 @@
       canvas.relativePan(delta);
       canvas.setCursor('grabbing');
       canvas.requestRenderAll();
+      schedulePersist();
     });
 
     canvas.on('mouse:up', function () {
-      if (isPanning) {
-        isPanning = false;
-        canvas.selection = true;
-        canvas.setCursor('default');
-        canvas.requestRenderAll();
-        schedulePersist(canvas);
+      if (!isPanning) {
+        return;
       }
-    });
 
-    function resetViewport() {
-      canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+      isPanning = false;
+      canvas.selection = true;
+      canvas.setCursor('default');
       canvas.requestRenderAll();
-      schedulePersist(canvas);
-    }
+      schedulePersist();
+    });
 
     function queueGroupRestore() {
       if (!storedGroups.length) {
         return;
       }
-
       if (pendingGroupRestore) {
         return;
       }
@@ -630,7 +646,7 @@
       storedGroups = [];
       canvas.discardActiveObject();
       canvas.requestRenderAll();
-      schedulePersist(canvas);
+      schedulePersist();
     }
 
     function groupActiveSelection() {
@@ -641,7 +657,7 @@
 
       activeObject.toGroup();
       canvas.requestRenderAll();
-      schedulePersist(canvas);
+      schedulePersist();
     }
 
     function ungroupActiveGroup() {
@@ -652,7 +668,37 @@
 
       activeObject.toActiveSelection();
       canvas.requestRenderAll();
-      schedulePersist(canvas);
+      schedulePersist();
+    }
+
+    function restoreViewportFromStorage() {
+      if (!storedViewport) {
+        return;
+      }
+
+      var viewport = sanitizeViewport(storedViewport);
+      storedViewport = viewport;
+
+      var center = new fabric.Point(canvas.getWidth() / 2, canvas.getHeight() / 2);
+      if (viewport.zoom) {
+        canvas.zoomToPoint(center, viewport.zoom);
+      }
+
+      var current = canvas.viewportTransform ? canvas.viewportTransform.slice() : null;
+      if (current) {
+        current[4] = viewport.x;
+        current[5] = viewport.y;
+        canvas.setViewportTransform(current);
+      }
+
+      canvas.requestRenderAll();
+    }
+
+    function resetViewport() {
+      canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+      storedViewport = { zoom: 1, x: 0, y: 0 };
+      canvas.requestRenderAll();
+      schedulePersist();
     }
 
     document.addEventListener('keydown', function (event) {
@@ -681,6 +727,5 @@
         groupActiveSelection();
       }
     });
-
   });
 })();
