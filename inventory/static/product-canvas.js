@@ -226,7 +226,7 @@
       });
 
       var viewport = null;
-      var viewportChanged = false;
+    var viewportChanged = false;
       if (storedViewport) {
         viewport = sanitizeViewport(storedViewport);
         viewportChanged = !viewportEquals(storedViewport, viewport);
