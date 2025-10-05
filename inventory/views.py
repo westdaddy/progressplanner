@@ -800,7 +800,9 @@ def dashboard(request):
     return render(request, "inventory/dashboard.html", context)
 
 
-def product_list(request):
+def _build_product_list_context(request):
+    """Return the computed context used by the product list style views."""
+
     # ─── Filter flags ───────────────────────────────────────────────────────────
     show_retired = request.GET.get("show_retired", "false").lower() == "true"
     type_filter = request.GET.get("type_filter", None)
@@ -1050,7 +1052,52 @@ def product_list(request):
         }
     )
 
+    return context
+
+
+def product_list(request):
+    context = _build_product_list_context(request)
     return render(request, "inventory/product_list.html", context)
+
+
+def product_canvas(request):
+    base_context = _build_product_list_context(request)
+    products = base_context.get("products", [])
+
+    canvas_items = []
+    for idx, product in enumerate(products):
+        photo_url = None
+        if getattr(product, "product_photo", None):
+            try:
+                if product.product_photo:
+                    photo_url = product.product_photo.url
+                    if photo_url:
+                        photo_url = request.build_absolute_uri(photo_url)
+            except ValueError:
+                photo_url = None
+
+        canvas_items.append(
+            {
+                "id": product.pk,
+                "photoUrl": photo_url,
+                "index": idx,
+            }
+        )
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest" or request.GET.get(
+        "format"
+    ) == "json":
+        return JsonResponse({"products": canvas_items})
+
+    canvas_context = base_context.copy()
+    canvas_context.update(
+        {
+            "product_canvas_items": canvas_items,
+            "product_canvas_json": json.dumps(canvas_items),
+        }
+    )
+
+    return render(request, "inventory/product_canvas.html", canvas_context)
 
 
 def product_detail(request, product_id):
