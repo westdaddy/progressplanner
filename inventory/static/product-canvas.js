@@ -46,6 +46,17 @@
     canvas.renderAll();
   }
 
+  function pointerFromEvent(canvas, evt) {
+    if (!canvas || !evt) {
+      return new fabric.Point(0, 0);
+    }
+
+    var rect = canvas.getElement().getBoundingClientRect();
+    var x = evt.clientX - rect.left;
+    var y = evt.clientY - rect.top;
+    return new fabric.Point(x, y);
+  }
+
   function gridPosition(index, canvasWidth, itemSize, gap) {
     var columns = Math.max(Math.floor((canvasWidth - gap) / (itemSize + gap)), 1);
     var column = index % columns;
@@ -80,6 +91,36 @@
     window.addEventListener('resize', function () {
       applyCanvasSize(canvas, wrapper);
     });
+
+    var MIN_ZOOM = 0.25;
+    var MAX_ZOOM = 4;
+    var ZOOM_STEP = 0.1;
+
+    wrapper.addEventListener(
+      'wheel',
+      function (event) {
+        if (!event.metaKey) {
+          return;
+        }
+
+        event.preventDefault();
+
+        var delta = event.deltaY;
+        var zoom = canvas.getZoom();
+        var zoomChange = 1 + (delta > 0 ? -ZOOM_STEP : ZOOM_STEP);
+        var nextZoom = zoom * zoomChange;
+        if (nextZoom < MIN_ZOOM) {
+          nextZoom = MIN_ZOOM;
+        } else if (nextZoom > MAX_ZOOM) {
+          nextZoom = MAX_ZOOM;
+        }
+
+        var pointer = pointerFromEvent(canvas, event);
+        canvas.zoomToPoint(pointer, nextZoom);
+        canvas.requestRenderAll();
+      },
+      { passive: false }
+    );
 
     var maxItemSize = 220;
     var gap = 40;
