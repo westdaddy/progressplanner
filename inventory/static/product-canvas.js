@@ -40,7 +40,7 @@
 
   function readStoredLayout(productIds) {
     if (!storageAvailable) {
-      return {};
+      return { objects: {}, groups: [] };
     }
 
     var allowed = {};
@@ -53,35 +53,84 @@
     try {
       var raw = window.localStorage.getItem(STORAGE_KEY);
       if (!raw) {
-        return {};
+        return { objects: {}, groups: [] };
       }
       var parsed = JSON.parse(raw);
       if (!parsed || typeof parsed !== 'object') {
-        return {};
+        return { objects: {}, groups: [] };
       }
 
-      var filtered = {};
-      Object.keys(parsed).forEach(function (key) {
+      var storedObjects;
+      var storedGroups = [];
+      if (parsed.objects && typeof parsed.objects === 'object') {
+        storedObjects = parsed.objects;
+        if (Array.isArray(parsed.groups)) {
+          storedGroups = parsed.groups;
+        }
+      } else {
+        storedObjects = parsed;
+      }
+
+      var filteredObjects = {};
+      var objectsChanged = false;
+      Object.keys(storedObjects).forEach(function (key) {
         if (allowed[key]) {
-          filtered[key] = parsed[key];
+          filteredObjects[key] = storedObjects[key];
+        } else {
+          objectsChanged = true;
         }
       });
 
-      if (Object.keys(filtered).length !== Object.keys(parsed).length) {
-        scheduleLayoutWrite(filtered);
+      var filteredGroups = [];
+      var groupsChanged = false;
+      storedGroups.forEach(function (group) {
+        if (!group || !Array.isArray(group.members)) {
+          groupsChanged = true;
+          return;
+        }
+
+        var filteredMembers = group.members
+          .map(function (member) {
+            return String(member);
+          })
+          .filter(function (member) {
+            return allowed[member];
+          });
+
+        if (filteredMembers.length >= 2) {
+          var canonicalMembers = filteredMembers.slice().sort();
+          filteredGroups.push({ members: canonicalMembers });
+
+          var sameSize = canonicalMembers.length === group.members.length;
+          var sameOrder =
+            sameSize &&
+            canonicalMembers.every(function (member, index) {
+              return String(group.members[index]) === member;
+            });
+
+          if (!sameSize || !sameOrder) {
+            groupsChanged = true;
+          }
+        } else {
+          groupsChanged = true;
+        }
+      });
+
+      if (objectsChanged || groupsChanged) {
+        scheduleLayoutWrite({ objects: filteredObjects, groups: filteredGroups });
       }
 
-      return filtered;
+      return { objects: filteredObjects, groups: filteredGroups };
     } catch (err) {
       console.warn('Unable to read stored product canvas layout', err);
-      return {};
+      return { objects: {}, groups: [] };
     }
   }
 
   var pendingLayout;
 
   function collectPersistableObjects(canvas) {
-    var layout = {};
+    var layout = { objects: {}, groups: [] };
     if (!canvas) {
       return layout;
     }
@@ -119,7 +168,7 @@
           scaleY = scaleY / zoom;
         }
 
-        layout[key] = {
+        layout.objects[key] = {
           left: point.x,
           top: point.y,
           scaleX: typeof scaleX === 'number' ? scaleX : 1,
@@ -134,7 +183,31 @@
       }
     }
 
+    var seenGroups = {};
+
     canvas.getObjects().forEach(function (obj) {
+      if (obj && obj.type === 'group' && obj._objects && obj._objects.length) {
+        var members = obj._objects
+          .map(function (child) {
+            if (child && child.productId !== undefined && child.productId !== null) {
+              return String(child.productId);
+            }
+            return null;
+          })
+          .filter(function (value) {
+            return value !== null;
+          });
+
+        if (members.length >= 2) {
+          var canonical = members.slice().sort();
+          var key = canonical.join('::');
+          if (!seenGroups[key]) {
+            seenGroups[key] = true;
+            layout.groups.push({ members: canonical });
+          }
+        }
+      }
+
       recordObject(obj);
     });
 
@@ -147,7 +220,14 @@
     }
 
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(layout || {}));
+      var payload = layout && typeof layout === 'object' ? layout : {};
+      if (!payload.objects || typeof payload.objects !== 'object') {
+        payload.objects = {};
+      }
+      if (!Array.isArray(payload.groups)) {
+        payload.groups = [];
+      }
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch (err) {
       console.warn('Unable to persist product canvas layout', err);
     }
@@ -230,7 +310,6 @@
 
     var canvas = new fabric.Canvas(canvasElement, {
       selection: true,
-      selectionKey: 'shiftKey',
     });
     canvas.backgroundColor = '#ffffff';
 
@@ -273,6 +352,10 @@
     var gap = 40;
 
     var storedLayout = readStoredLayout(products);
+    var storedObjects = storedLayout.objects || {};
+    var storedGroups = storedLayout.groups || [];
+    var productNodes = {};
+    var pendingGroupRestore;
 
     products.forEach(function (product, index) {
       fabric.Image.fromURL(
@@ -288,7 +371,7 @@
           var key = String(product.id);
           img.productId = key;
 
-          var stored = storedLayout[key];
+          var stored = storedObjects[key];
           var position = stored && typeof stored.left === 'number' && typeof stored.top === 'number'
             ? { left: stored.left, top: stored.top }
             : gridPosition(index, canvas.getWidth(), maxItemSize, gap);
@@ -319,7 +402,9 @@
 
           canvas.add(img);
           canvas.requestRenderAll();
+          productNodes[key] = img;
           schedulePersist(canvas);
+          queueGroupRestore();
         },
         { crossOrigin: 'anonymous' }
       );
@@ -331,9 +416,26 @@
 
     var isPanning = false;
     var lastPos;
+    var isSpacePressed = false;
+
+    document.addEventListener('keydown', function (event) {
+      if (event.code === 'Space') {
+        event.preventDefault();
+        isSpacePressed = true;
+        canvas.defaultCursor = 'grab';
+      }
+    });
+
+    document.addEventListener('keyup', function (event) {
+      if (event.code === 'Space') {
+        event.preventDefault();
+        isSpacePressed = false;
+        canvas.defaultCursor = 'default';
+      }
+    });
 
     canvas.on('mouse:down', function (event) {
-      if (event && event.e && !event.target) {
+      if (event && event.e && !event.target && (isSpacePressed || event.e.button === 1 || event.e.button === 2)) {
         isPanning = true;
         canvas.selection = false;
         lastPos = new fabric.Point(event.e.clientX, event.e.clientY);
@@ -364,6 +466,77 @@
         canvas.requestRenderAll();
       }
     });
+
+    function queueGroupRestore() {
+      if (!storedGroups.length) {
+        return;
+      }
+
+      if (pendingGroupRestore) {
+        return;
+      }
+
+      pendingGroupRestore = window.requestAnimationFrame(function () {
+        pendingGroupRestore = null;
+        restoreStoredGroups();
+      });
+    }
+
+    function restoreStoredGroups() {
+      if (!storedGroups.length) {
+        return;
+      }
+
+      storedGroups.forEach(function (group) {
+        if (!group || !Array.isArray(group.members) || group.members.length < 2) {
+          return;
+        }
+
+        var members = group.members
+          .map(function (memberId) {
+            return productNodes[String(memberId)];
+          })
+          .filter(function (node) {
+            return !!node;
+          });
+
+        if (members.length < 2) {
+          return;
+        }
+
+        var existingGroup = members[0].group;
+        var alreadyGrouped =
+          existingGroup &&
+          existingGroup.type === 'group' &&
+          members.every(function (member) {
+            return member.group === existingGroup;
+          });
+
+        if (alreadyGrouped) {
+          return;
+        }
+
+        members.forEach(function (member) {
+          if (member.group && member.group.type === 'group') {
+            member.group.remove(member);
+            canvas.add(member);
+          }
+        });
+
+        var selection = new fabric.ActiveSelection(members, { canvas: canvas });
+        var newGroup = selection.toGroup();
+        if (newGroup) {
+          newGroup.hasBorders = true;
+          newGroup.hasControls = true;
+          newGroup.setCoords();
+        }
+      });
+
+      storedGroups = [];
+      canvas.discardActiveObject();
+      canvas.requestRenderAll();
+      schedulePersist(canvas);
+    }
 
     function groupActiveSelection() {
       var activeObject = canvas.getActiveObject();
