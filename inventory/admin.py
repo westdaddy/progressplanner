@@ -164,6 +164,7 @@ class ProductAdmin(admin.ModelAdmin):
         "type",
         "style",
         "age",
+        "product_photo",
     )
     list_filter = ("groups", "series", "type", "style", "age")
     inlines = [ProductVariantInline]

@@ -13,8 +13,9 @@
     if (!wrapper) return [];
     var raw = wrapper.getAttribute('data-products');
     if (!raw) return [];
-    try { return JSON.parse(raw); }
-    catch (err) {
+    try {
+      return JSON.parse(raw);
+    } catch (err) {
       console.error('Unable to parse product canvas payload', err);
       return [];
     }
@@ -67,51 +68,29 @@
 
   var pendingLayout;
 
+  // Persist RAW object transforms only (no viewport math)
   function collectPersistableObjects(canvas) {
     var layout = {};
     if (!canvas) return layout;
 
-    var vpt = canvas.viewportTransform ? canvas.viewportTransform.slice() : null;
-    var invertedVpt = vpt ? fabric.util.invertTransform(vpt) : null;
-    var zoom = canvas.getZoom ? canvas.getZoom() : 1;
-
-    function recordObject(obj) {
-      if (!obj) return;
-
-      if (obj.productId !== undefined && obj.productId !== null) {
+    canvas.getObjects().forEach(function (obj) {
+      if (obj && obj.productId !== undefined && obj.productId !== null) {
         var key = String(obj.productId);
 
-        var bounds = typeof obj.getBoundingRect === 'function' ? obj.getBoundingRect(true, true) : null;
-        var point;
-        if (bounds) {
-          point = new fabric.Point(bounds.left, bounds.top);
-          if (invertedVpt) {
-            point = fabric.util.transformPoint(point, invertedVpt);
-          }
-        } else {
-          point = new fabric.Point(obj.left || 0, obj.top || 0);
-        }
+        var left   = Number(obj.left);
+        var top    = Number(obj.top);
+        var scaleX = Number(obj.scaleX);
+        var scaleY = Number(obj.scaleY);
 
-        var objectScaling = typeof obj.getObjectScaling === 'function' ? obj.getObjectScaling() : null;
-        var scaleX = objectScaling ? objectScaling.scaleX : obj.scaleX;
-        var scaleY = objectScaling ? objectScaling.scaleY : obj.scaleY;
-        if (typeof scaleX === 'number' && zoom) scaleX = scaleX / zoom;
-        if (typeof scaleY === 'number' && zoom) scaleY = scaleY / zoom;
+        if (!isFinite(left))   left = 0;
+        if (!isFinite(top))    top = 0;
+        if (!isFinite(scaleX) || scaleX <= 0) scaleX = 1;
+        if (!isFinite(scaleY) || scaleY <= 0) scaleY = scaleX;
 
-        layout[key] = {
-          left: point.x,
-          top: point.y,
-          scaleX: typeof scaleX === 'number' ? scaleX : 1,
-          scaleY: typeof scaleY === 'number' ? scaleY : 1,
-        };
+        layout[key] = { left: left, top: top, scaleX: scaleX, scaleY: scaleY };
       }
+    });
 
-      if (obj._objects && obj._objects.length) {
-        obj._objects.forEach(recordObject);
-      }
-    }
-
-    canvas.getObjects().forEach(recordObject);
     return layout;
   }
 
@@ -183,10 +162,9 @@
       return product && product.photoUrl;
     });
 
-    // --- Fabric canvas ---
+    // Fabric canvas with lasso selection by default (pan with Space/middle/right)
     var canvas = new fabric.Canvas(canvasElement, {
-      selection: true, // enable lasso selection
-      // (remove selectionKey so drag on empty space creates selection box)
+      selection: true
     });
     canvas.backgroundColor = '#ffffff';
 
@@ -195,8 +173,8 @@
       applyCanvasSize(canvas, wrapper);
     });
 
-    // --- Zoom (Cmd/Ctrl + wheel) ---
-    var MIN_ZOOM = 0.1;
+    // Zoom (Cmd/Ctrl + wheel) – do NOT persist on zoom
+    var MIN_ZOOM = 0.01;
     var MAX_ZOOM = 4;
     var ZOOM_STEP = 0.1;
 
@@ -204,7 +182,6 @@
       'wheel',
       function (event) {
         if (!(event.metaKey || event.ctrlKey)) return;
-
         event.preventDefault();
 
         var delta = event.deltaY;
@@ -232,17 +209,27 @@
         function (img) {
           if (!img) return;
 
-          var scale = Math.min(maxItemSize / img.width, maxItemSize / img.height, 1);
-          img.scale(scale);
-
           var key = String(product.id);
           img.productId = key;
 
           var stored = storedLayout[key];
+
+          // Position: stored or grid
           var position =
             stored && typeof stored.left === 'number' && typeof stored.top === 'number'
               ? { left: stored.left, top: stored.top }
               : gridPosition(index, canvas.getWidth(), maxItemSize, gap);
+
+          // Choose ONE scale: prefer stored (clamped), else fallback based on natural size
+          var fallbackScale = Math.min(maxItemSize / (img.width || 1), maxItemSize / (img.height || 1), 1) || 1;
+          var useScale = fallbackScale;
+          if (stored && typeof stored.scaleX === 'number' && stored.scaleX > 0) {
+            var s = stored.scaleX;
+            if (!isFinite(s) || s <= 0) s = fallbackScale;
+            if (s < 0.05) s = 0.05;   // clamp tiny
+            if (s > 5)    s = 5;      // clamp huge
+            useScale = s;
+          }
 
           img.set({
             left: position.left,
@@ -254,29 +241,27 @@
             hoverCursor: 'move',
             moveCursor: 'move',
             selectable: true,
-            lockScalingFlip: true,
+            lockScalingFlip: true
           });
 
-          if (stored) {
-            if (typeof stored.scaleX === 'number' && stored.scaleX > 0) img.scaleX = stored.scaleX;
-            if (typeof stored.scaleY === 'number' && stored.scaleY > 0) img.scaleY = stored.scaleY;
-          }
-
+          img.scaleX = useScale;
+          img.scaleY = useScale;
           img.setCoords();
 
           canvas.add(img);
           canvas.requestRenderAll();
-          schedulePersist(canvas);
+          // Do not persist here; wait for user interaction
         },
         { crossOrigin: 'anonymous' }
       );
     });
 
-    canvas.on('object:modified', function () {
-      schedulePersist(canvas);
-    });
+    // Persist ONLY on object changes (not on zoom)
+    canvas.on('object:moving',   function () { schedulePersist(canvas); });
+    canvas.on('object:scaling',  function () { schedulePersist(canvas); });
+    canvas.on('object:modified', function () { schedulePersist(canvas); });
 
-    // --- Restore lasso selection; pan only with Space / middle / right ---
+    // Pan with Space / middle / right mouse; otherwise lasso select
     var isPanning = false;
     var lastPos;
     var isSpacePressed = false;
@@ -297,22 +282,19 @@
 
     canvas.on('mouse:down', function (event) {
       var e = event && event.e;
-      // Only pan when Space is held, or with middle/right mouse buttons.
       if (e && (isSpacePressed || e.button === 1 || e.button === 2)) {
         isPanning = true;
-        canvas.selection = false; // disable lasso while panning
+        canvas.selection = false;
         lastPos = new fabric.Point(e.clientX, e.clientY);
         canvas.setCursor('grabbing');
         canvas.requestRenderAll();
       } else {
-        // default: allow drag-to-lasso
-        canvas.selection = true;
+        canvas.selection = true; // allow lasso
       }
     });
 
     canvas.on('mouse:move', function (event) {
       if (!isPanning || !event || !event.e) return;
-
       var e = event.e;
       var currentPos = new fabric.Point(e.clientX, e.clientY);
       var delta = currentPos.subtract(lastPos);
@@ -325,7 +307,7 @@
     canvas.on('mouse:up', function () {
       if (!isPanning) return;
       isPanning = false;
-      canvas.selection = true; // re-enable lasso
+      canvas.selection = true;
       canvas.setCursor('default');
       canvas.requestRenderAll();
     });
