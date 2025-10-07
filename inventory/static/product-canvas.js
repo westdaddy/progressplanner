@@ -7,7 +7,8 @@
     }
   }
 
-  var STORAGE_KEY = 'inventory.product_canvas.layout';
+  var STORAGE_PREFIX = 'inventory.product_canvas.layout';
+  var STORAGE_KEY = STORAGE_PREFIX;
 
   function parseProducts(wrapper) {
     if (!wrapper) return [];
@@ -33,6 +34,18 @@
   }
 
   var storageAvailable = supportsLocalStorage();
+
+  function parseConfig(wrapper) {
+    if (!wrapper) return {};
+    var raw = wrapper.getAttribute('data-config');
+    if (!raw) return {};
+    try {
+      return JSON.parse(raw);
+    } catch (err) {
+      console.warn('Unable to parse product canvas config', err);
+      return {};
+    }
+  }
 
   function readStoredLayout(productIds) {
     if (!storageAvailable) return {};
@@ -158,9 +171,25 @@
     var canvasElement = document.getElementById('product-canvas');
     if (!wrapper || !canvasElement) return;
 
+    var config = parseConfig(wrapper);
+    var maxDimension = Number(config.maxDimension);
+    if (!isFinite(maxDimension) || maxDimension <= 0) {
+      maxDimension = 1000;
+    }
+    var storageVersion = config.storageVersion ? String(config.storageVersion) : 'v2';
+    STORAGE_KEY = STORAGE_PREFIX + '.' + storageVersion;
+    if (storageAvailable && STORAGE_KEY !== STORAGE_PREFIX) {
+      try {
+        window.localStorage.removeItem(STORAGE_PREFIX);
+      } catch (err) {
+        console.warn('Unable to clear legacy product canvas layout', err);
+      }
+    }
+
     var products = parseProducts(wrapper).filter(function (product) {
       return product && product.photoUrl;
     });
+    if (!products.length) return;
 
     // Fabric canvas with lasso selection by default (pan with Space/middle/right)
     var canvas = new fabric.Canvas(canvasElement, {
@@ -201,6 +230,11 @@
     var maxItemSize = 220;
     var gap = 40;
 
+    var baseScale = maxItemSize / maxDimension;
+    if (!isFinite(baseScale) || baseScale <= 0) {
+      baseScale = 0.22;
+    }
+
     var storedLayout = readStoredLayout(products);
 
     products.forEach(function (product, index) {
@@ -220,15 +254,24 @@
               ? { left: stored.left, top: stored.top }
               : gridPosition(index, canvas.getWidth(), maxItemSize, gap);
 
-          // Choose ONE scale: prefer stored (clamped), else fallback based on natural size
-          var fallbackScale = Math.min(maxItemSize / (img.width || 1), maxItemSize / (img.height || 1), 1) || 1;
+          // Force a consistent base scale per item
+          var fallbackScale = baseScale;
           var useScale = fallbackScale;
-          if (stored && typeof stored.scaleX === 'number' && stored.scaleX > 0) {
+          var shouldPersist = false;
+          if (stored && typeof stored.scaleX === 'number') {
             var s = stored.scaleX;
-            if (!isFinite(s) || s <= 0) s = fallbackScale;
-            if (s < 0.05) s = 0.05;   // clamp tiny
-            if (s > 5)    s = 5;      // clamp huge
-            useScale = s;
+            if (!isFinite(s) || s <= 0) {
+              shouldPersist = true;
+            } else {
+              var deviation = Math.abs(s - fallbackScale);
+              if (fallbackScale && deviation / fallbackScale <= 0.05) {
+                useScale = s;
+              } else {
+                shouldPersist = true;
+              }
+            }
+          } else if (stored && stored.scaleX !== undefined) {
+            shouldPersist = true;
           }
 
           img.set({
@@ -250,7 +293,10 @@
 
           canvas.add(img);
           canvas.requestRenderAll();
-          // Do not persist here; wait for user interaction
+          if (shouldPersist) {
+            schedulePersist(canvas);
+          }
+          // Normal persistence happens on user interaction events
         },
         { crossOrigin: 'anonymous' }
       );

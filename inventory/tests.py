@@ -1576,6 +1576,23 @@ class ProductCanvasImageTests(TestCase):
         with Image.open(BytesIO(response.content)) as img:
             self.assertEqual(img.size, (PRODUCT_CANVAS_MAX_DIMENSION, PRODUCT_CANVAS_MAX_DIMENSION))
 
+    def test_product_canvas_image_upscales_small_square_photos(self):
+        with override_settings(MEDIA_ROOT=self.media_dir.name):
+            product = Product.objects.create(
+                product_id="PX1B",
+                product_name="Small Photo",
+                product_photo=self._upload(size=(320, 320)),
+            )
+
+            response = self.client.get(reverse("product_canvas_image", args=[product.pk]))
+
+        self.assertEqual(response.status_code, 200)
+
+        with Image.open(BytesIO(response.content)) as img:
+            self.assertEqual(img.size, (PRODUCT_CANVAS_MAX_DIMENSION, PRODUCT_CANVAS_MAX_DIMENSION))
+            top_left = img.getpixel((0, 0))
+            self.assertTrue(all(channel < 250 for channel in top_left))
+
     def test_product_canvas_image_uses_default_when_missing_photo(self):
         with override_settings(MEDIA_ROOT=self.media_dir.name):
             default_path = os.path.join(self.media_dir.name, DEFAULT_PRODUCT_IMAGE)

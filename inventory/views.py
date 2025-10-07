@@ -1079,6 +1079,10 @@ def product_canvas(request):
     products = base_context.get("products", [])
 
     canvas_items = []
+    canvas_config = {
+        "maxDimension": PRODUCT_CANVAS_MAX_DIMENSION,
+        "storageVersion": "v2",
+    }
     for idx, product in enumerate(products):
         canvas_items.append(
             {
@@ -1093,13 +1097,14 @@ def product_canvas(request):
     if request.headers.get("x-requested-with") == "XMLHttpRequest" or request.GET.get(
         "format"
     ) == "json":
-        return JsonResponse({"products": canvas_items})
+        return JsonResponse({"products": canvas_items, "config": canvas_config})
 
     canvas_context = base_context.copy()
     canvas_context.update(
         {
             "product_canvas_items": canvas_items,
             "product_canvas_json": json.dumps(canvas_items),
+            "product_canvas_config": json.dumps(canvas_config),
         }
     )
 
@@ -1131,7 +1136,6 @@ def _prepare_canvas_image_bytes(image_path: str) -> tuple[bytes, str]:
     try:
         with Image.open(image_path) as source:
             image = ImageOps.exif_transpose(source)
-            image = ImageOps.contain(image, target_box, Image.LANCZOS)
 
             if image.mode in ("RGBA", "LA"):
                 rgb_image = Image.new("RGB", image.size, (255, 255, 255))
@@ -1140,15 +1144,15 @@ def _prepare_canvas_image_bytes(image_path: str) -> tuple[bytes, str]:
             elif image.mode != "RGB":
                 image = image.convert("RGB")
 
-            canvas = Image.new("RGB", target_box, (255, 255, 255))
-            offset = (
-                (target_box[0] - image.width) // 2,
-                (target_box[1] - image.height) // 2,
+            padded = ImageOps.pad(
+                image,
+                target_box,
+                method=Image.LANCZOS,
+                color=(255, 255, 255),
             )
-            canvas.paste(image, offset)
 
             output = BytesIO()
-            canvas.save(
+            padded.save(
                 output,
                 format="JPEG",
                 quality=PRODUCT_CANVAS_IMAGE_QUALITY,
