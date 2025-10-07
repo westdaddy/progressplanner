@@ -1,15 +1,21 @@
 from datetime import date, timedelta, datetime
 from decimal import Decimal
+import os
+import tempfile
+from io import BytesIO
 
 from unittest.mock import patch
 from dateutil.relativedelta import relativedelta
 from django.contrib.admin.sites import AdminSite
-from django.test import TestCase, RequestFactory
+from django.test import TestCase, RequestFactory, override_settings
 from django.utils import timezone
 from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.auth import get_user_model
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.middleware import SessionMiddleware
+from django.core.files.uploadedfile import SimpleUploadedFile
+
+from PIL import Image
 
 from .models import (
     Product,
@@ -30,6 +36,7 @@ from .utils import (
     calculate_variant_sales_speed,
     get_category_speed_stats,
 )
+from .views import PRODUCT_CANVAS_MAX_DIMENSION, DEFAULT_PRODUCT_IMAGE
 
 
 class LowStockProductsTests(TestCase):
@@ -1537,3 +1544,69 @@ class SaleAdminAssignReferrerActionTests(TestCase):
         self.sale_two.refresh_from_db()
         self.assertEqual(self.sale_one.referrer, self.referrer)
         self.assertEqual(self.sale_two.referrer, self.referrer)
+
+
+class ProductCanvasImageTests(TestCase):
+    def setUp(self):
+        self.media_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.media_dir.cleanup)
+
+    def _image_bytes(self, size=(640, 480), color=(200, 50, 50)):
+        image = Image.new("RGB", size, color)
+        buffer = BytesIO()
+        image.save(buffer, format="JPEG")
+        return buffer.getvalue()
+
+    def _upload(self, name="photo.jpg", size=(640, 480)):
+        return SimpleUploadedFile(name, self._image_bytes(size=size), content_type="image/jpeg")
+
+    def test_product_canvas_image_resizes_large_photos(self):
+        with override_settings(MEDIA_ROOT=self.media_dir.name):
+            product = Product.objects.create(
+                product_id="PX1",
+                product_name="Canvas Product",
+                product_photo=self._upload(size=(1200, 900)),
+            )
+
+            response = self.client.get(reverse("product_canvas_image", args=[product.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "image/jpeg")
+
+        with Image.open(BytesIO(response.content)) as img:
+            self.assertEqual(img.size, (PRODUCT_CANVAS_MAX_DIMENSION, PRODUCT_CANVAS_MAX_DIMENSION))
+
+    def test_product_canvas_image_upscales_small_square_photos(self):
+        with override_settings(MEDIA_ROOT=self.media_dir.name):
+            product = Product.objects.create(
+                product_id="PX1B",
+                product_name="Small Photo",
+                product_photo=self._upload(size=(320, 320)),
+            )
+
+            response = self.client.get(reverse("product_canvas_image", args=[product.pk]))
+
+        self.assertEqual(response.status_code, 200)
+
+        with Image.open(BytesIO(response.content)) as img:
+            self.assertEqual(img.size, (PRODUCT_CANVAS_MAX_DIMENSION, PRODUCT_CANVAS_MAX_DIMENSION))
+            top_left = img.getpixel((0, 0))
+            self.assertTrue(all(channel < 250 for channel in top_left))
+
+    def test_product_canvas_image_uses_default_when_missing_photo(self):
+        with override_settings(MEDIA_ROOT=self.media_dir.name):
+            default_path = os.path.join(self.media_dir.name, DEFAULT_PRODUCT_IMAGE)
+            os.makedirs(os.path.dirname(default_path), exist_ok=True)
+            with open(default_path, "wb") as handle:
+                handle.write(self._image_bytes(size=(300, 300), color=(20, 20, 20)))
+
+            product = Product.objects.create(
+                product_id="PX2",
+                product_name="No Photo Product",
+            )
+
+            response = self.client.get(reverse("product_canvas_image", args=[product.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        with Image.open(BytesIO(response.content)) as img:
+            self.assertEqual(img.size, (PRODUCT_CANVAS_MAX_DIMENSION, PRODUCT_CANVAS_MAX_DIMENSION))

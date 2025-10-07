@@ -27,7 +27,9 @@
     height: 100%;
   }
 </style>
-<div id="product-canvas-wrapper" data-products='{{ product_canvas_json|default:"[]"|safe }}'>
+<div id="product-canvas-wrapper"
+     data-products='{{ product_canvas_json|default:"[]"|safe }}'
+     data-config='{{ product_canvas_config|default:"{}"|safe }}'>
   <canvas id="product-canvas"></canvas>
 </div>
 {% endblock %}

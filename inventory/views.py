@@ -7,8 +7,10 @@ from collections import defaultdict, namedtuple, OrderedDict
 import calendar
 import statistics
 import math
-from urllib.parse import urlencode, urljoin
+from urllib.parse import urlencode
 import logging
+from io import BytesIO
+import os
 
 from django.core.cache import cache
 
@@ -39,10 +41,13 @@ from django.db.models import (
     DateField,
 )
 from django.db.models.functions import Coalesce
-from django.http import HttpResponse, JsonResponse, Http404
+from django.http import Http404, HttpResponse, JsonResponse
 from django.db.models.functions import TruncMonth
 from django.urls import reverse
-from django.views.decorators.http import require_POST
+from django.utils.http import http_date
+from django.views.decorators.cache import cache_control
+from django.views.decorators.http import require_GET, require_POST
+from PIL import Image, ImageOps
 
 from .models import (
     Product,
@@ -82,6 +87,8 @@ from .utils import (
 
 # e.g. MEDIA_ROOT/product_photos/default.jpg  (put the file there)
 DEFAULT_PRODUCT_IMAGE = getattr(settings, "DEFAULT_PRODUCT_IMAGE", "product_photos/default.jpg")
+PRODUCT_CANVAS_MAX_DIMENSION = getattr(settings, "PRODUCT_CANVAS_MAX_DIMENSION", 1000)
+PRODUCT_CANVAS_IMAGE_QUALITY = getattr(settings, "PRODUCT_CANVAS_IMAGE_QUALITY", 85)
 
 
 # used in 'home' view
@@ -1072,28 +1079,17 @@ def product_canvas(request):
     products = base_context.get("products", [])
 
     canvas_items = []
+    canvas_config = {
+        "maxDimension": PRODUCT_CANVAS_MAX_DIMENSION,
+        "storageVersion": "v2",
+    }
     for idx, product in enumerate(products):
-        # Try to get the product's own photo URL
-        photo_url = None
-        try:
-            if getattr(product, "product_photo", None) and getattr(product.product_photo, "url", None):
-                photo_url = product.product_photo.url
-        except ValueError:
-            # e.g. missing underlying file
-            photo_url = None
-
-        # Fallback to a default media image if missing/invalid
-        if not photo_url:
-            # Make a relative media URL (e.g. "/media/product_photos/default.jpg")
-            photo_url = urljoin(settings.MEDIA_URL, DEFAULT_PRODUCT_IMAGE)
-
-        # (Optional) If you want absolute URLs, uncomment the next line:
-        # photo_url = request.build_absolute_uri(photo_url)
-
         canvas_items.append(
             {
                 "id": product.pk,
-                "photoUrl": photo_url,
+                "photoUrl": request.build_absolute_uri(
+                    reverse("product_canvas_image", args=[product.pk])
+                ),
                 "index": idx,
             }
         )
@@ -1101,17 +1097,98 @@ def product_canvas(request):
     if request.headers.get("x-requested-with") == "XMLHttpRequest" or request.GET.get(
         "format"
     ) == "json":
-        return JsonResponse({"products": canvas_items})
+        return JsonResponse({"products": canvas_items, "config": canvas_config})
 
     canvas_context = base_context.copy()
     canvas_context.update(
         {
             "product_canvas_items": canvas_items,
             "product_canvas_json": json.dumps(canvas_items),
+            "product_canvas_config": json.dumps(canvas_config),
         }
     )
 
     return render(request, "inventory/product_canvas.html", canvas_context)
+
+
+def _resolve_product_canvas_image_path(product: Optional[Product]) -> Optional[str]:
+    """Return a filesystem path for the product canvas image."""
+
+    if product and getattr(product, "product_photo", None):
+        try:
+            if product.product_photo and product.product_photo.path:
+                return product.product_photo.path
+        except (ValueError, FileNotFoundError):
+            pass
+
+    fallback_path = os.path.join(settings.MEDIA_ROOT, DEFAULT_PRODUCT_IMAGE)
+    if os.path.isfile(fallback_path):
+        return fallback_path
+
+    return None
+
+
+def _prepare_canvas_image_bytes(image_path: str) -> tuple[bytes, str]:
+    """Resize the image located at ``image_path`` for canvas usage."""
+
+    target_box = (PRODUCT_CANVAS_MAX_DIMENSION, PRODUCT_CANVAS_MAX_DIMENSION)
+
+    try:
+        with Image.open(image_path) as source:
+            image = ImageOps.exif_transpose(source)
+
+            if image.mode in ("RGBA", "LA"):
+                rgb_image = Image.new("RGB", image.size, (255, 255, 255))
+                rgb_image.paste(image, mask=image.split()[-1])
+                image = rgb_image
+            elif image.mode != "RGB":
+                image = image.convert("RGB")
+
+            padded = ImageOps.pad(
+                image,
+                target_box,
+                method=Image.LANCZOS,
+                color=(255, 255, 255),
+            )
+
+            output = BytesIO()
+            padded.save(
+                output,
+                format="JPEG",
+                quality=PRODUCT_CANVAS_IMAGE_QUALITY,
+                optimize=True,
+            )
+            return output.getvalue(), "image/jpeg"
+    except OSError as exc:
+        raise Http404("Unable to process product image") from exc
+
+    raise Http404("Unable to process product image")
+
+
+@require_GET
+@cache_control(max_age=86400)
+def product_canvas_image(request, product_id: int):
+    """Serve a resized product image tailored for the product canvas."""
+
+    product = get_object_or_404(Product, pk=product_id)
+    image_path = _resolve_product_canvas_image_path(product)
+    if not image_path:
+        raise Http404("Product image not found")
+
+    image_bytes, content_type = _prepare_canvas_image_bytes(image_path)
+
+    response = HttpResponse(image_bytes, content_type=content_type)
+    response["Content-Length"] = str(len(image_bytes))
+
+    try:
+        modified_time = os.path.getmtime(image_path)
+    except OSError:
+        modified_time = None
+
+    if modified_time:
+        response["Last-Modified"] = http_date(modified_time)
+
+    return response
 
 
 def product_detail(request, product_id):
