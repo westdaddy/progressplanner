@@ -1574,7 +1574,7 @@ class ProductCanvasImageTests(TestCase):
         self.assertEqual(response["Content-Type"], "image/jpeg")
 
         with Image.open(BytesIO(response.content)) as img:
-            self.assertLessEqual(max(img.size), PRODUCT_CANVAS_MAX_DIMENSION)
+            self.assertEqual(img.size, (PRODUCT_CANVAS_MAX_DIMENSION, PRODUCT_CANVAS_MAX_DIMENSION))
 
     def test_product_canvas_image_uses_default_when_missing_photo(self):
         with override_settings(MEDIA_ROOT=self.media_dir.name):
@@ -1592,4 +1592,4 @@ class ProductCanvasImageTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         with Image.open(BytesIO(response.content)) as img:
-            self.assertLessEqual(max(img.size), PRODUCT_CANVAS_MAX_DIMENSION)
+            self.assertEqual(img.size, (PRODUCT_CANVAS_MAX_DIMENSION, PRODUCT_CANVAS_MAX_DIMENSION))

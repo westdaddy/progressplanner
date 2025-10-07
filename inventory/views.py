@@ -87,7 +87,7 @@ from .utils import (
 
 # e.g. MEDIA_ROOT/product_photos/default.jpg  (put the file there)
 DEFAULT_PRODUCT_IMAGE = getattr(settings, "DEFAULT_PRODUCT_IMAGE", "product_photos/default.jpg")
-PRODUCT_CANVAS_MAX_DIMENSION = getattr(settings, "PRODUCT_CANVAS_MAX_DIMENSION", 320)
+PRODUCT_CANVAS_MAX_DIMENSION = getattr(settings, "PRODUCT_CANVAS_MAX_DIMENSION", 1000)
 PRODUCT_CANVAS_IMAGE_QUALITY = getattr(settings, "PRODUCT_CANVAS_IMAGE_QUALITY", 85)
 
 
@@ -1126,23 +1126,29 @@ def _resolve_product_canvas_image_path(product: Optional[Product]) -> Optional[s
 def _prepare_canvas_image_bytes(image_path: str) -> tuple[bytes, str]:
     """Resize the image located at ``image_path`` for canvas usage."""
 
+    target_box = (PRODUCT_CANVAS_MAX_DIMENSION, PRODUCT_CANVAS_MAX_DIMENSION)
+
     try:
         with Image.open(image_path) as source:
             image = ImageOps.exif_transpose(source)
-            image.thumbnail(
-                (PRODUCT_CANVAS_MAX_DIMENSION, PRODUCT_CANVAS_MAX_DIMENSION),
-                Image.LANCZOS,
-            )
+            image = ImageOps.contain(image, target_box, Image.LANCZOS)
 
             if image.mode in ("RGBA", "LA"):
-                background = Image.new("RGB", image.size, (255, 255, 255))
-                background.paste(image, mask=image.split()[-1])
-                image = background
+                rgb_image = Image.new("RGB", image.size, (255, 255, 255))
+                rgb_image.paste(image, mask=image.split()[-1])
+                image = rgb_image
             elif image.mode != "RGB":
                 image = image.convert("RGB")
 
+            canvas = Image.new("RGB", target_box, (255, 255, 255))
+            offset = (
+                (target_box[0] - image.width) // 2,
+                (target_box[1] - image.height) // 2,
+            )
+            canvas.paste(image, offset)
+
             output = BytesIO()
-            image.save(
+            canvas.save(
                 output,
                 format="JPEG",
                 quality=PRODUCT_CANVAS_IMAGE_QUALITY,
