@@ -6,6 +6,7 @@ urlpatterns = [
     path('dashboard/', views.dashboard, name='dashboard'),
     path('products/', views.product_list, name='product_list'),
     path('products/canvas/', views.product_canvas, name='product_canvas'),
+    path('products/canvas/image/<int:product_id>/', views.product_canvas_image, name='product_canvas_image'),
     path('inventory-snapshots/', views.inventory_snapshots, name='inventory_snapshots'),
     path('products/<int:product_id>/', views.product_detail, name='product_detail'),  # New route
     path('orders/', views.order_list, name='order_list'),  # Order List View
