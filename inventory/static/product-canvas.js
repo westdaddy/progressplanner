@@ -9,6 +9,11 @@
 
   var STORAGE_PREFIX = 'inventory.product_canvas.layout';
   var STORAGE_KEY = STORAGE_PREFIX;
+  var layoutEndpoint = null;
+  var SERVER_SAVE_DELAY = 2000;
+  var serverSaveTimer = null;
+  var pendingServerLayout = null;
+  var csrfToken = null;
 
   function parseProducts(wrapper) {
     if (!wrapper) return [];
@@ -34,6 +39,16 @@
   }
 
   var storageAvailable = supportsLocalStorage();
+
+  function getCsrfToken() {
+    if (csrfToken) return csrfToken;
+    var cookie = document.cookie || '';
+    var match = cookie.match(/csrftoken=([^;]+)/);
+    if (match) {
+      csrfToken = decodeURIComponent(match[1]);
+    }
+    return csrfToken;
+  }
 
   function parseConfig(wrapper) {
     if (!wrapper) return {};
@@ -79,6 +94,32 @@
     }
   }
 
+  function fetchStoredLayout(productIds) {
+    var localLayout = readStoredLayout(productIds);
+    if (!layoutEndpoint) {
+      return Promise.resolve(localLayout);
+    }
+
+    return fetch(layoutEndpoint, { credentials: 'same-origin' })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error('Unexpected response');
+        }
+        return response.json();
+      })
+      .then(function (payload) {
+        if (payload && typeof payload.layout === 'object') {
+          scheduleLayoutWrite(payload.layout);
+          return Object.assign({}, localLayout, payload.layout);
+        }
+        return localLayout;
+      })
+      .catch(function (error) {
+        console.warn('Unable to fetch stored product canvas layout', error);
+        return localLayout;
+      });
+  }
+
   var pendingLayout;
 
   // Persist RAW object transforms only (no viewport math)
@@ -116,14 +157,52 @@
     }
   }
 
+  function sendLayoutToServer(layout) {
+    if (!layoutEndpoint) return;
+
+    var headers = { 'Content-Type': 'application/json' };
+    var token = getCsrfToken();
+    if (token) headers['X-CSRFToken'] = token;
+
+    fetch(layoutEndpoint, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: headers,
+      body: JSON.stringify({ layout: layout || {} })
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error('Unexpected response');
+        }
+      })
+      .catch(function (error) {
+        console.warn('Unable to persist product canvas layout to server', error);
+      });
+  }
+
+  function scheduleServerLayoutSave(layout) {
+    if (!layoutEndpoint) return;
+
+    pendingServerLayout = layout;
+    if (serverSaveTimer) return;
+
+    serverSaveTimer = window.setTimeout(function () {
+      serverSaveTimer = null;
+      var payload = pendingServerLayout;
+      pendingServerLayout = null;
+      if (!payload) return;
+      sendLayoutToServer(payload);
+    }, SERVER_SAVE_DELAY);
+  }
+
   function schedulePersist(canvas) {
-    if (!storageAvailable) return;
     if (pendingLayout) return;
 
     pendingLayout = window.requestAnimationFrame(function () {
       pendingLayout = null;
       var layout = collectPersistableObjects(canvas);
       scheduleLayoutWrite(layout);
+      scheduleServerLayoutSave(layout);
     });
   }
 
@@ -170,6 +249,12 @@
     var wrapper = document.getElementById('product-canvas-wrapper');
     var canvasElement = document.getElementById('product-canvas');
     if (!wrapper || !canvasElement) return;
+
+    layoutEndpoint = wrapper.getAttribute('data-layout-url') || null;
+    if (layoutEndpoint) {
+      layoutEndpoint = layoutEndpoint.trim();
+      if (!layoutEndpoint) layoutEndpoint = null;
+    }
 
     var config = parseConfig(wrapper);
     var maxDimension = Number(config.maxDimension);
@@ -235,71 +320,71 @@
       baseScale = 0.22;
     }
 
-    var storedLayout = readStoredLayout(products);
+    fetchStoredLayout(products).then(function (storedLayout) {
+      products.forEach(function (product, index) {
+        fabric.Image.fromURL(
+          product.photoUrl,
+          function (img) {
+            if (!img) return;
 
-    products.forEach(function (product, index) {
-      fabric.Image.fromURL(
-        product.photoUrl,
-        function (img) {
-          if (!img) return;
+            var key = String(product.id);
+            img.productId = key;
 
-          var key = String(product.id);
-          img.productId = key;
+            var stored = storedLayout[key];
 
-          var stored = storedLayout[key];
+            // Position: stored or grid
+            var position =
+              stored && typeof stored.left === 'number' && typeof stored.top === 'number'
+                ? { left: stored.left, top: stored.top }
+                : gridPosition(index, canvas.getWidth(), maxItemSize, gap);
 
-          // Position: stored or grid
-          var position =
-            stored && typeof stored.left === 'number' && typeof stored.top === 'number'
-              ? { left: stored.left, top: stored.top }
-              : gridPosition(index, canvas.getWidth(), maxItemSize, gap);
-
-          // Force a consistent base scale per item
-          var fallbackScale = baseScale;
-          var useScale = fallbackScale;
-          var shouldPersist = false;
-          if (stored && typeof stored.scaleX === 'number') {
-            var s = stored.scaleX;
-            if (!isFinite(s) || s <= 0) {
-              shouldPersist = true;
-            } else {
-              var deviation = Math.abs(s - fallbackScale);
-              if (fallbackScale && deviation / fallbackScale <= 0.05) {
-                useScale = s;
-              } else {
+            // Force a consistent base scale per item
+            var fallbackScale = baseScale;
+            var useScale = fallbackScale;
+            var shouldPersist = false;
+            if (stored && typeof stored.scaleX === 'number') {
+              var s = stored.scaleX;
+              if (!isFinite(s) || s <= 0) {
                 shouldPersist = true;
+              } else {
+                var deviation = Math.abs(s - fallbackScale);
+                if (fallbackScale && deviation / fallbackScale <= 0.05) {
+                  useScale = s;
+                } else {
+                  shouldPersist = true;
+                }
               }
+            } else if (stored && stored.scaleX !== undefined) {
+              shouldPersist = true;
             }
-          } else if (stored && stored.scaleX !== undefined) {
-            shouldPersist = true;
-          }
 
-          img.set({
-            left: position.left,
-            top: position.top,
-            originX: 'left',
-            originY: 'top',
-            hasBorders: false,
-            hasControls: false,
-            hoverCursor: 'move',
-            moveCursor: 'move',
-            selectable: true,
-            lockScalingFlip: true
-          });
+            img.set({
+              left: position.left,
+              top: position.top,
+              originX: 'left',
+              originY: 'top',
+              hasBorders: false,
+              hasControls: false,
+              hoverCursor: 'move',
+              moveCursor: 'move',
+              selectable: true,
+              lockScalingFlip: true
+            });
 
-          img.scaleX = useScale;
-          img.scaleY = useScale;
-          img.setCoords();
+            img.scaleX = useScale;
+            img.scaleY = useScale;
+            img.setCoords();
 
-          canvas.add(img);
-          canvas.requestRenderAll();
-          if (shouldPersist) {
-            schedulePersist(canvas);
-          }
-          // Normal persistence happens on user interaction events
-        },
-        { crossOrigin: 'anonymous' }
-      );
+            canvas.add(img);
+            canvas.requestRenderAll();
+            if (shouldPersist) {
+              schedulePersist(canvas);
+            }
+            // Normal persistence happens on user interaction events
+          },
+          { crossOrigin: 'anonymous' }
+        );
+      });
     });
 
     // Persist ONLY on object changes (not on zoom)

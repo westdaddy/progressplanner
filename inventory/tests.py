@@ -1,5 +1,6 @@
 from datetime import date, timedelta, datetime
 from decimal import Decimal
+import json
 import os
 import tempfile
 from io import BytesIO
@@ -1544,6 +1545,96 @@ class SaleAdminAssignReferrerActionTests(TestCase):
         self.sale_two.refresh_from_db()
         self.assertEqual(self.sale_one.referrer, self.referrer)
         self.assertEqual(self.sale_two.referrer, self.referrer)
+
+
+class ProductCanvasLayoutTests(TestCase):
+    def setUp(self):
+        self.media_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.media_dir.cleanup)
+
+    def _create_product(self, code="001"):
+        return Product.objects.create(
+            product_id=f"PC{code}", product_name=f"Product {code}"
+        )
+
+    def test_get_returns_empty_layout_when_file_missing(self):
+        with override_settings(MEDIA_ROOT=self.media_dir.name):
+            self._create_product()
+            response = self.client.get(reverse("product_canvas_layout"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"layout": {}})
+
+    def test_post_persists_filtered_layout(self):
+        with override_settings(MEDIA_ROOT=self.media_dir.name):
+            product_a = self._create_product("A")
+            product_b = self._create_product("B")
+            product_c = self._create_product("C")
+
+            url = reverse("product_canvas_layout")
+            payload = {
+                "layout": {
+                    str(product_a.pk): {
+                        "left": 12.5,
+                        "top": 34,
+                        "scaleX": 1.2,
+                        "scaleY": 1.25,
+                    },
+                    str(product_b.pk): {
+                        "left": "50",
+                        "top": "60",
+                        "scaleX": "1.5",
+                        "scaleY": None,
+                    },
+                    str(product_c.pk): {
+                        "left": 70,
+                        "top": 80,
+                        "scaleX": 0,
+                        "scaleY": 0,
+                    },
+                    "unknown": {
+                        "left": 1,
+                        "top": 2,
+                        "scaleX": 1,
+                        "scaleY": 1,
+                    },
+                }
+            }
+
+            response = self.client.post(
+                url, data=json.dumps(payload), content_type="application/json"
+            )
+            self.assertEqual(response.status_code, 200)
+
+            saved_layout = response.json().get("layout")
+            self.assertIn(str(product_a.pk), saved_layout)
+            self.assertIn(str(product_b.pk), saved_layout)
+            self.assertNotIn(str(product_c.pk), saved_layout)
+            self.assertNotIn("unknown", saved_layout)
+
+            self.assertEqual(saved_layout[str(product_a.pk)]["left"], 12.5)
+            self.assertEqual(saved_layout[str(product_a.pk)]["scaleY"], 1.25)
+            self.assertEqual(saved_layout[str(product_b.pk)]["left"], 50)
+            self.assertAlmostEqual(saved_layout[str(product_b.pk)]["scaleX"], 1.5)
+            self.assertAlmostEqual(
+                saved_layout[str(product_b.pk)]["scaleY"],
+                saved_layout[str(product_b.pk)]["scaleX"],
+            )
+
+            # Confirm persisted to disk and filtered output on GET
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json(), {"layout": saved_layout})
+
+    def test_post_rejects_invalid_payload(self):
+        with override_settings(MEDIA_ROOT=self.media_dir.name):
+            self._create_product("Z")
+            url = reverse("product_canvas_layout")
+            response = self.client.post(
+                url, data=json.dumps({"layout": []}), content_type="application/json"
+            )
+
+        self.assertEqual(response.status_code, 400)
 
 
 class ProductCanvasImageTests(TestCase):
