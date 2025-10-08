@@ -29,7 +29,8 @@
 </style>
 <div id="product-canvas-wrapper"
      data-products='{{ product_canvas_json|default:"[]"|safe }}'
-     data-config='{{ product_canvas_config|default:"{}"|safe }}'>
+     data-config='{{ product_canvas_config|default:"{}"|safe }}'
+     data-layout-url="{% url 'product_canvas_layout' %}">
   <canvas id="product-canvas"></canvas>
 </div>
 {% endblock %}

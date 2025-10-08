@@ -11,6 +11,8 @@ from urllib.parse import urlencode
 import logging
 from io import BytesIO
 import os
+from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 from django.core.cache import cache
 
@@ -46,7 +48,7 @@ from django.db.models.functions import TruncMonth
 from django.urls import reverse
 from django.utils.http import http_date
 from django.views.decorators.cache import cache_control
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_POST, require_http_methods
 from PIL import Image, ImageOps
 
 from .models import (
@@ -89,6 +91,98 @@ from .utils import (
 DEFAULT_PRODUCT_IMAGE = getattr(settings, "DEFAULT_PRODUCT_IMAGE", "product_photos/default.jpg")
 PRODUCT_CANVAS_MAX_DIMENSION = getattr(settings, "PRODUCT_CANVAS_MAX_DIMENSION", 1000)
 PRODUCT_CANVAS_IMAGE_QUALITY = getattr(settings, "PRODUCT_CANVAS_IMAGE_QUALITY", 85)
+
+
+def _product_canvas_layout_path() -> Path:
+    return Path(settings.MEDIA_ROOT) / "product_canvas" / "layout.json"
+
+
+def _coerce_number(value):
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(number):
+        return None
+    return number
+
+
+def _coerce_positive_number(value):
+    number = _coerce_number(value)
+    if number is None or number <= 0:
+        return None
+    return number
+
+
+def _normalise_canvas_layout(layout, allowed_ids):
+    allowed = {str(pk) for pk in allowed_ids}
+    cleaned = {}
+
+    if not isinstance(layout, dict):
+        return cleaned
+
+    for key, value in layout.items():
+        product_id = str(key)
+        if product_id not in allowed or not isinstance(value, dict):
+            continue
+
+        left = _coerce_number(value.get("left"))
+        top = _coerce_number(value.get("top"))
+        scale_x = _coerce_positive_number(value.get("scaleX"))
+        scale_y = _coerce_positive_number(value.get("scaleY")) or scale_x
+
+        if left is None or top is None or scale_x is None:
+            continue
+
+        cleaned[product_id] = {
+            "left": left,
+            "top": top,
+            "scaleX": scale_x,
+            "scaleY": scale_y or scale_x,
+        }
+
+    return cleaned
+
+
+def _read_product_canvas_layout(allowed_ids):
+    path = _product_canvas_layout_path()
+
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            raw_layout = json.load(handle)
+    except FileNotFoundError:
+        return {}
+    except (OSError, json.JSONDecodeError) as exc:
+        logger.warning("Unable to read product canvas layout file", exc_info=exc)
+        return {}
+
+    return _normalise_canvas_layout(raw_layout, allowed_ids)
+
+
+def _write_product_canvas_layout(layout):
+    path = _product_canvas_layout_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    temp_path = None
+
+    try:
+        with NamedTemporaryFile(
+            "w", encoding="utf-8", dir=path.parent, delete=False
+        ) as handle:
+            json.dump(layout, handle, sort_keys=True)
+            handle.flush()
+            os.fsync(handle.fileno())
+            temp_path = handle.name
+
+        os.replace(temp_path, path)
+    except OSError as exc:
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.unlink(temp_path)
+            except OSError:
+                pass
+        logger.warning("Unable to persist product canvas layout", exc_info=exc)
+        raise
 
 
 # used in 'home' view
@@ -1109,6 +1203,33 @@ def product_canvas(request):
     )
 
     return render(request, "inventory/product_canvas.html", canvas_context)
+
+
+@require_http_methods(["GET", "POST"])
+def product_canvas_layout(request):
+    product_ids = list(Product.objects.values_list("pk", flat=True))
+
+    if request.method == "GET":
+        layout = _read_product_canvas_layout(product_ids)
+        return JsonResponse({"layout": layout})
+
+    try:
+        payload = json.loads(request.body or b"{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON payload"}, status=400)
+
+    layout_payload = payload.get("layout")
+    if not isinstance(layout_payload, dict):
+        return JsonResponse({"error": "Invalid layout payload"}, status=400)
+
+    cleaned_layout = _normalise_canvas_layout(layout_payload, product_ids)
+
+    try:
+        _write_product_canvas_layout(cleaned_layout)
+    except OSError:
+        return JsonResponse({"error": "Unable to persist layout"}, status=500)
+
+    return JsonResponse({"layout": cleaned_layout})
 
 
 def _resolve_product_canvas_image_path(product: Optional[Product]) -> Optional[str]:
