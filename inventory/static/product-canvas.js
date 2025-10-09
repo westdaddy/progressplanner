@@ -282,6 +282,53 @@
     });
     canvas.backgroundColor = '#ffffff';
 
+    var highlightedGroup = null;
+    var GROUP_HIGHLIGHT_STYLE = {
+      backgroundColor: 'rgba(66, 133, 244, 0.12)',
+      borderColor: '#4285f4',
+      borderDashArray: [6, 4]
+    };
+    var GROUP_HIGHLIGHT_PROPS = Object.keys(GROUP_HIGHLIGHT_STYLE).concat(['hasBorders']);
+
+    function applyGroupHighlight(group) {
+      if (!group) return;
+
+      var original = {};
+      GROUP_HIGHLIGHT_PROPS.forEach(function (prop) {
+        original[prop] = group[prop];
+      });
+      group._originalHighlightStyles = original;
+
+      var highlightValues = Object.assign({ hasBorders: true }, GROUP_HIGHLIGHT_STYLE);
+      group.set(highlightValues);
+    }
+
+    function clearGroupHighlight(group) {
+      if (!group) return;
+
+      var original = group._originalHighlightStyles;
+      if (!original) return;
+
+      group.set(original);
+      delete group._originalHighlightStyles;
+    }
+
+    function setHighlightedGroup(group) {
+      if (highlightedGroup === group) return;
+
+      if (highlightedGroup) {
+        clearGroupHighlight(highlightedGroup);
+      }
+
+      highlightedGroup = group || null;
+
+      if (highlightedGroup) {
+        applyGroupHighlight(highlightedGroup);
+      }
+
+      canvas.requestRenderAll();
+    }
+
     applyCanvasSize(canvas, wrapper);
     window.addEventListener('resize', function () {
       applyCanvasSize(canvas, wrapper);
@@ -443,10 +490,29 @@
       canvas.requestRenderAll();
     });
 
+    function updateGroupHighlightFromSelection() {
+      var activeObject = canvas.getActiveObject();
+      if (activeObject && activeObject.type === 'group') {
+        setHighlightedGroup(activeObject);
+      } else {
+        setHighlightedGroup(null);
+      }
+    }
+
+    canvas.on('selection:created', updateGroupHighlightFromSelection);
+    canvas.on('selection:updated', updateGroupHighlightFromSelection);
+    canvas.on('selection:cleared', function () {
+      setHighlightedGroup(null);
+    });
+
     function groupActiveSelection() {
       var activeObject = canvas.getActiveObject();
       if (!activeObject || activeObject.type !== 'activeSelection') return;
-      activeObject.toGroup();
+      var group = activeObject.toGroup();
+      if (group) {
+        canvas.setActiveObject(group);
+        setHighlightedGroup(group);
+      }
       canvas.requestRenderAll();
       schedulePersist(canvas);
     }
@@ -454,6 +520,7 @@
     function ungroupActiveGroup() {
       var activeObject = canvas.getActiveObject();
       if (!activeObject || activeObject.type !== 'group') return;
+      setHighlightedGroup(null);
       activeObject.toActiveSelection();
       canvas.requestRenderAll();
       schedulePersist(canvas);
