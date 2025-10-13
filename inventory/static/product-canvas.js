@@ -14,6 +14,14 @@
   var serverSaveTimer = null;
   var pendingServerLayout = null;
   var csrfToken = null;
+  var customStorageKey = null;
+  var pendingCustomPersist = null;
+  var isRestoringCustomObjects = false;
+  var activeDrawingTool = null;
+  var lineInProgress = null;
+  var toolbarElement = null;
+  var toolbarButtons = {};
+  var isSpacePressed = false;
 
   function parseProducts(wrapper) {
     if (!wrapper) return [];
@@ -127,23 +135,80 @@
     var layout = {};
     if (!canvas) return layout;
 
-    canvas.getObjects().forEach(function (obj) {
-      if (obj && obj.productId !== undefined && obj.productId !== null) {
-        var key = String(obj.productId);
+    function normalisePosition(obj) {
+      if (!obj) return { left: 0, top: 0 };
 
-        var left   = Number(obj.left);
-        var top    = Number(obj.top);
-        var scaleX = Number(obj.scaleX);
-        var scaleY = Number(obj.scaleY);
-
-        if (!isFinite(left))   left = 0;
-        if (!isFinite(top))    top = 0;
-        if (!isFinite(scaleX) || scaleX <= 0) scaleX = 1;
-        if (!isFinite(scaleY) || scaleY <= 0) scaleY = scaleX;
-
-        layout[key] = { left: left, top: top, scaleX: scaleX, scaleY: scaleY };
+      if (typeof obj.getPointByOrigin === 'function') {
+        try {
+          var point = obj.getPointByOrigin('left', 'top');
+          if (point && typeof point.x === 'number' && typeof point.y === 'number') {
+            return { left: point.x, top: point.y };
+          }
+        } catch (err) {
+          // Fallback to raw properties below.
+        }
       }
-    });
+
+      var fallbackLeft = Number(obj.left);
+      var fallbackTop = Number(obj.top);
+
+      if (!isFinite(fallbackLeft)) fallbackLeft = 0;
+      if (!isFinite(fallbackTop)) fallbackTop = 0;
+
+      return { left: fallbackLeft, top: fallbackTop };
+    }
+
+    function normaliseScale(obj) {
+      if (!obj) return { scaleX: 1, scaleY: 1 };
+
+      if (typeof obj.getObjectScaling === 'function') {
+        var scaling = obj.getObjectScaling();
+        if (scaling && typeof scaling.scaleX === 'number' && typeof scaling.scaleY === 'number') {
+          var scaleX = scaling.scaleX;
+          var scaleY = scaling.scaleY;
+          if (isFinite(scaleX) && scaleX > 0 && isFinite(scaleY) && scaleY > 0) {
+            return { scaleX: scaleX, scaleY: scaleY };
+          }
+        }
+      }
+
+      var fallbackScaleX = Number(obj.scaleX);
+      var fallbackScaleY = Number(obj.scaleY);
+
+      if (!isFinite(fallbackScaleX) || fallbackScaleX <= 0) fallbackScaleX = 1;
+      if (!isFinite(fallbackScaleY) || fallbackScaleY <= 0) fallbackScaleY = fallbackScaleX;
+
+      return { scaleX: fallbackScaleX, scaleY: fallbackScaleY };
+    }
+
+    function collectFromObject(obj) {
+      if (!obj) return;
+
+      if (obj.type === 'group' && typeof obj.forEachObject === 'function') {
+        obj.forEachObject(collectFromObject);
+        return;
+      }
+
+      if (obj.productId === undefined || obj.productId === null) return;
+
+      var key = String(obj.productId);
+      var position = normalisePosition(obj);
+      var scale = normaliseScale(obj);
+
+      var left = Number(position.left);
+      var top = Number(position.top);
+      var scaleX = Number(scale.scaleX);
+      var scaleY = Number(scale.scaleY);
+
+      if (!isFinite(left)) left = 0;
+      if (!isFinite(top)) top = 0;
+      if (!isFinite(scaleX) || scaleX <= 0) scaleX = 1;
+      if (!isFinite(scaleY) || scaleY <= 0) scaleY = scaleX;
+
+      layout[key] = { left: left, top: top, scaleX: scaleX, scaleY: scaleY };
+    }
+
+    canvas.getObjects().forEach(collectFromObject);
 
     return layout;
   }
@@ -204,6 +269,272 @@
       scheduleLayoutWrite(layout);
       scheduleServerLayoutSave(layout);
     });
+  }
+
+  function generateCustomId() {
+    return (
+      'custom-' +
+      Date.now().toString(36) +
+      '-' +
+      Math.random().toString(36).slice(2, 8)
+    );
+  }
+
+  function readStoredCustomObjects() {
+    if (!storageAvailable || !customStorageKey) return [];
+
+    try {
+      var raw = window.localStorage.getItem(customStorageKey);
+      if (!raw) return [];
+      var parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (err) {
+      console.warn('Unable to read product canvas custom objects', err);
+      return [];
+    }
+  }
+
+  function writeStoredCustomObjects(objects) {
+    if (!storageAvailable || !customStorageKey) return;
+
+    try {
+      window.localStorage.setItem(
+        customStorageKey,
+        JSON.stringify(Array.isArray(objects) ? objects : [])
+      );
+    } catch (err) {
+      console.warn('Unable to persist product canvas custom objects', err);
+    }
+  }
+
+  function collectCustomObjects(canvas) {
+    if (!canvas) return [];
+
+    return canvas
+      .getObjects()
+      .filter(function (obj) {
+        return obj && obj.isCustom;
+      })
+      .map(function (obj) {
+        return obj.toObject(['customId', 'isCustom', 'customType']);
+      });
+  }
+
+  function scheduleCustomPersist(canvas) {
+    if (!storageAvailable || !customStorageKey) return;
+    if (pendingCustomPersist) return;
+
+    pendingCustomPersist = window.requestAnimationFrame(function () {
+      pendingCustomPersist = null;
+      var objects = collectCustomObjects(canvas);
+      writeStoredCustomObjects(objects);
+    });
+  }
+
+  function registerCustomObject(obj) {
+    if (!obj) return obj;
+
+    if (!obj.customId) {
+      obj.customId = generateCustomId();
+    }
+
+    obj.isCustom = true;
+    obj.set({
+      lockScalingFlip: true,
+      hasBorders: true,
+      hasControls: true,
+      perPixelTargetFind: true,
+      selectable: true,
+      evented: true
+    });
+
+    if (typeof obj.setCoords === 'function') {
+      obj.setCoords();
+    }
+
+    return obj;
+  }
+
+  function restoreCustomObjects(canvas) {
+    if (!canvas) return;
+
+    var stored = readStoredCustomObjects();
+    if (!stored.length) return;
+
+    isRestoringCustomObjects = true;
+    fabric.util.enlivenObjects(stored, function (objects) {
+      objects.forEach(function (obj) {
+        registerCustomObject(obj);
+        canvas.add(obj);
+      });
+      isRestoringCustomObjects = false;
+      canvas.requestRenderAll();
+    });
+  }
+
+  function refreshToolbarState() {
+    if (!toolbarElement) return;
+    Object.keys(toolbarButtons).forEach(function (key) {
+      var button = toolbarButtons[key];
+      if (!button) return;
+      if (key === activeDrawingTool) {
+        button.classList.add('is-active');
+      } else {
+        button.classList.remove('is-active');
+      }
+    });
+  }
+
+  function refreshCanvasCursor(canvas) {
+    if (!canvas) return;
+    if (isSpacePressed) {
+      canvas.defaultCursor = 'grab';
+    } else if (activeDrawingTool === 'line') {
+      canvas.defaultCursor = 'crosshair';
+    } else {
+      canvas.defaultCursor = 'default';
+    }
+  }
+
+  function setDrawingTool(canvas, tool) {
+    var nextTool = activeDrawingTool === tool ? null : tool;
+    activeDrawingTool = nextTool;
+
+    if (canvas) {
+      if (nextTool !== 'line' && lineInProgress) {
+        canvas.remove(lineInProgress);
+        lineInProgress = null;
+      }
+
+      canvas.discardActiveObject();
+      canvas.selection = !activeDrawingTool;
+      refreshCanvasCursor(canvas);
+      canvas.requestRenderAll();
+    }
+
+    refreshToolbarState();
+  }
+
+  function addCustomTextbox(canvas) {
+    if (!canvas) return;
+
+    var center = canvas.getCenter();
+    var textbox = new fabric.Textbox('Add notes…', {
+      left: center.left - 100,
+      top: center.top - 30,
+      width: 220,
+      fontSize: 24,
+      fontWeight: 500,
+      fill: '#1f1f1f',
+      backgroundColor: 'rgba(255, 255, 255, 0.85)',
+      editingBorderColor: '#4285f4',
+      cornerStyle: 'circle',
+      cornerColor: '#4285f4',
+      borderColor: '#4285f4',
+      padding: 6
+    });
+
+    textbox.customType = 'textbox';
+    registerCustomObject(textbox);
+    canvas.add(textbox);
+    canvas.setActiveObject(textbox);
+    canvas.requestRenderAll();
+    textbox.enterEditing();
+    textbox.selectAll();
+    scheduleCustomPersist(canvas);
+  }
+
+  function addHighlight(canvas) {
+    if (!canvas) return;
+
+    var padding = 20;
+    var activeObject = canvas.getActiveObject();
+    var left = canvas.getWidth() / 2 - 120;
+    var top = canvas.getHeight() / 2 - 80;
+    var width = 240;
+    var height = 160;
+
+    if (activeObject) {
+      var bounds = activeObject.getBoundingRect(true, true);
+      left = bounds.left - padding;
+      top = bounds.top - padding;
+      width = bounds.width + padding * 2;
+      height = bounds.height + padding * 2;
+    }
+
+    var highlight = new fabric.Rect({
+      left: left,
+      top: top,
+      width: width,
+      height: height,
+      rx: 12,
+      ry: 12,
+      fill: 'rgba(66, 133, 244, 0.14)',
+      stroke: '#4285f4',
+      strokeWidth: 2,
+      strokeUniform: true,
+      customType: 'highlight'
+    });
+
+    registerCustomObject(highlight);
+    canvas.add(highlight);
+    canvas.setActiveObject(highlight);
+    highlight.bringToFront();
+    canvas.requestRenderAll();
+    scheduleCustomPersist(canvas);
+  }
+
+  function beginLineDrawing(canvas, pointer) {
+    if (!canvas || !pointer) return;
+
+    var line = new fabric.Line([pointer.x, pointer.y, pointer.x, pointer.y], {
+      stroke: '#212121',
+      strokeWidth: 4,
+      strokeLineCap: 'round',
+      strokeLineJoin: 'round',
+      selectable: true,
+      hasControls: true,
+      customType: 'line'
+    });
+
+    registerCustomObject(line);
+    lineInProgress = line;
+    line._isDraft = true;
+    canvas.add(line);
+    canvas.setActiveObject(line);
+    canvas.requestRenderAll();
+  }
+
+  function updateDraftLine(canvas, pointer) {
+    if (!canvas || !lineInProgress || !pointer) return;
+
+    lineInProgress.set({ x2: pointer.x, y2: pointer.y });
+    lineInProgress.setCoords();
+    canvas.requestRenderAll();
+  }
+
+  function finaliseLineDrawing(canvas, pointer) {
+    if (!canvas || !lineInProgress) return;
+
+    if (pointer) {
+      lineInProgress.set({ x2: pointer.x, y2: pointer.y });
+    }
+
+    var x1 = lineInProgress.x1 || 0;
+    var y1 = lineInProgress.y1 || 0;
+    var x2 = lineInProgress.x2 || 0;
+    var y2 = lineInProgress.y2 || 0;
+    var length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+
+    if (!length || length < 6) {
+      canvas.remove(lineInProgress);
+    } else {
+      delete lineInProgress._isDraft;
+      scheduleCustomPersist(canvas);
+    }
+
+    lineInProgress = null;
+    canvas.requestRenderAll();
   }
 
   function applyCanvasSize(canvas, wrapper) {
@@ -271,16 +602,44 @@
       }
     }
 
+    customStorageKey = STORAGE_KEY + '.custom_objects';
+
     var products = parseProducts(wrapper).filter(function (product) {
       return product && product.photoUrl;
     });
-    if (!products.length) return;
 
     // Fabric canvas with lasso selection by default (pan with Space/middle/right)
     var canvas = new fabric.Canvas(canvasElement, {
       selection: true
     });
     canvas.backgroundColor = '#ffffff';
+    refreshCanvasCursor(canvas);
+
+    toolbarElement = document.getElementById('product-canvas-toolbar');
+    if (toolbarElement) {
+      toolbarButtons = {
+        line: toolbarElement.querySelector('button[data-tool="line"]')
+      };
+
+      toolbarElement.addEventListener('click', function (event) {
+        var button = event && event.target ? event.target.closest('button[data-tool]') : null;
+        if (!button) return;
+
+        var tool = button.getAttribute('data-tool');
+        if (tool === 'text') {
+          event.preventDefault();
+          addCustomTextbox(canvas);
+        } else if (tool === 'highlight') {
+          event.preventDefault();
+          addHighlight(canvas);
+        } else if (tool === 'line') {
+          event.preventDefault();
+          setDrawingTool(canvas, 'line');
+        }
+      });
+
+      refreshToolbarState();
+    }
 
     var highlightedGroup = null;
     var GROUP_HIGHLIGHT_STYLE = {
@@ -367,12 +726,35 @@
       baseScale = 0.22;
     }
 
+    var pendingProducts = products.length;
+    var customObjectsRestored = false;
+
+    function maybeRestoreCustomObjects() {
+      if (customObjectsRestored || pendingProducts > 0) return;
+      customObjectsRestored = true;
+      restoreCustomObjects(canvas);
+    }
+
+    if (!pendingProducts) {
+      maybeRestoreCustomObjects();
+    }
+
     fetchStoredLayout(products).then(function (storedLayout) {
+      if (!products.length) {
+        maybeRestoreCustomObjects();
+        return;
+      }
+
       products.forEach(function (product, index) {
         fabric.Image.fromURL(
           product.photoUrl,
           function (img) {
-            if (!img) return;
+            pendingProducts -= 1;
+
+            if (!img) {
+              maybeRestoreCustomObjects();
+              return;
+            }
 
             var key = String(product.id);
             img.productId = key;
@@ -427,6 +809,8 @@
             if (shouldPersist) {
               schedulePersist(canvas);
             }
+
+            maybeRestoreCustomObjects();
             // Normal persistence happens on user interaction events
           },
           { crossOrigin: 'anonymous' }
@@ -434,32 +818,78 @@
       });
     });
 
+    function handleObjectChange(event) {
+      if (event && event.target && event.target.isCustom) {
+        scheduleCustomPersist(canvas);
+      }
+      schedulePersist(canvas);
+    }
+
     // Persist ONLY on object changes (not on zoom)
-    canvas.on('object:moving',   function () { schedulePersist(canvas); });
-    canvas.on('object:scaling',  function () { schedulePersist(canvas); });
-    canvas.on('object:modified', function () { schedulePersist(canvas); });
+    canvas.on('object:moving', handleObjectChange);
+    canvas.on('object:scaling', handleObjectChange);
+    canvas.on('object:modified', handleObjectChange);
+    canvas.on('object:added', function (event) {
+      var target = event && event.target;
+      if (target && target.isCustom && !target._isDraft && !isRestoringCustomObjects) {
+        scheduleCustomPersist(canvas);
+      }
+    });
+    canvas.on('object:removed', function (event) {
+      var target = event && event.target;
+      if (target && target.isCustom) {
+        scheduleCustomPersist(canvas);
+      }
+    });
+    canvas.on('text:changed', function (event) {
+      var target = event && event.target;
+      if (target && target.isCustom) {
+        scheduleCustomPersist(canvas);
+      }
+    });
 
     // Pan with Space / middle / right mouse; otherwise lasso select
     var isPanning = false;
     var lastPos;
-    var isSpacePressed = false;
+
+    function isInputLike(element) {
+      if (!element) return false;
+      var tagName = element.tagName ? element.tagName.toLowerCase() : '';
+      return (
+        tagName === 'input' ||
+        tagName === 'textarea' ||
+        tagName === 'select' ||
+        element.isContentEditable === true
+      );
+    }
 
     document.addEventListener('keydown', function (e) {
+      if (!e) return;
       if (e.code === 'Space') {
+        if (isInputLike(e.target)) return;
+        var activeObject = canvas.getActiveObject();
+        if (activeObject && activeObject.isEditing) return;
         isSpacePressed = true;
-        canvas.defaultCursor = 'grab';
+        refreshCanvasCursor(canvas);
       }
     });
 
     document.addEventListener('keyup', function (e) {
-      if (e.code === 'Space') {
+      if (e && e.code === 'Space') {
         isSpacePressed = false;
-        canvas.defaultCursor = 'default';
+        refreshCanvasCursor(canvas);
       }
     });
 
     canvas.on('mouse:down', function (event) {
       var e = event && event.e;
+
+      if (activeDrawingTool === 'line' && e && e.button === 0 && !isSpacePressed) {
+        var pointer = canvas.getPointer(e);
+        beginLineDrawing(canvas, pointer);
+        return;
+      }
+
       if (e && (isSpacePressed || e.button === 1 || e.button === 2)) {
         isPanning = true;
         canvas.selection = false;
@@ -467,11 +897,19 @@
         canvas.setCursor('grabbing');
         canvas.requestRenderAll();
       } else {
-        canvas.selection = true; // allow lasso
+        canvas.selection = !activeDrawingTool;
       }
     });
 
     canvas.on('mouse:move', function (event) {
+      if (lineInProgress && activeDrawingTool === 'line') {
+        if (event && event.e) {
+          var pointer = canvas.getPointer(event.e);
+          updateDraftLine(canvas, pointer);
+        }
+        return;
+      }
+
       if (!isPanning || !event || !event.e) return;
       var e = event.e;
       var currentPos = new fabric.Point(e.clientX, e.clientY);
@@ -482,11 +920,20 @@
       canvas.requestRenderAll();
     });
 
-    canvas.on('mouse:up', function () {
-      if (!isPanning) return;
+    canvas.on('mouse:up', function (event) {
+      if (lineInProgress && activeDrawingTool === 'line') {
+        var pointer = event && event.e ? canvas.getPointer(event.e) : null;
+        finaliseLineDrawing(canvas, pointer);
+      }
+
+      if (!isPanning) {
+        refreshCanvasCursor(canvas);
+        return;
+      }
+
       isPanning = false;
-      canvas.selection = true;
-      canvas.setCursor('default');
+      canvas.selection = !activeDrawingTool;
+      refreshCanvasCursor(canvas);
       canvas.requestRenderAll();
     });
 
@@ -529,6 +976,8 @@
     document.addEventListener('keydown', function (event) {
       if (!event) return;
 
+      if (isInputLike(event.target)) return;
+
       var key = event.key || event.code;
       var isMeta = event.metaKey || event.ctrlKey;
       if (!isMeta) return;
@@ -539,6 +988,42 @@
       } else if (key === 'g' || key === 'G' || key === 'KeyG') {
         event.preventDefault();
         groupActiveSelection();
+      }
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (!event) return;
+
+      if (isInputLike(event.target)) return;
+
+      var key = event.key || event.code;
+
+      if (key === 'Escape') {
+        if (lineInProgress && canvas) {
+          canvas.remove(lineInProgress);
+          lineInProgress = null;
+          canvas.requestRenderAll();
+        }
+        if (activeDrawingTool) {
+          setDrawingTool(canvas, null);
+        }
+        return;
+      }
+
+      if (
+        (key === 'Delete' || key === 'Backspace' || key === 'Del') &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey
+      ) {
+        var activeObject = canvas.getActiveObject();
+        if (activeObject && activeObject.isCustom && !activeObject.isEditing) {
+          event.preventDefault();
+          canvas.remove(activeObject);
+          canvas.discardActiveObject();
+          canvas.requestRenderAll();
+          scheduleCustomPersist(canvas);
+        }
       }
     });
 
