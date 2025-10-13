@@ -127,23 +127,80 @@
     var layout = {};
     if (!canvas) return layout;
 
-    canvas.getObjects().forEach(function (obj) {
-      if (obj && obj.productId !== undefined && obj.productId !== null) {
-        var key = String(obj.productId);
+    function normalisePosition(obj) {
+      if (!obj) return { left: 0, top: 0 };
 
-        var left   = Number(obj.left);
-        var top    = Number(obj.top);
-        var scaleX = Number(obj.scaleX);
-        var scaleY = Number(obj.scaleY);
-
-        if (!isFinite(left))   left = 0;
-        if (!isFinite(top))    top = 0;
-        if (!isFinite(scaleX) || scaleX <= 0) scaleX = 1;
-        if (!isFinite(scaleY) || scaleY <= 0) scaleY = scaleX;
-
-        layout[key] = { left: left, top: top, scaleX: scaleX, scaleY: scaleY };
+      if (typeof obj.getPointByOrigin === 'function') {
+        try {
+          var point = obj.getPointByOrigin('left', 'top');
+          if (point && typeof point.x === 'number' && typeof point.y === 'number') {
+            return { left: point.x, top: point.y };
+          }
+        } catch (err) {
+          // Fallback to raw properties below.
+        }
       }
-    });
+
+      var fallbackLeft = Number(obj.left);
+      var fallbackTop = Number(obj.top);
+
+      if (!isFinite(fallbackLeft)) fallbackLeft = 0;
+      if (!isFinite(fallbackTop)) fallbackTop = 0;
+
+      return { left: fallbackLeft, top: fallbackTop };
+    }
+
+    function normaliseScale(obj) {
+      if (!obj) return { scaleX: 1, scaleY: 1 };
+
+      if (typeof obj.getObjectScaling === 'function') {
+        var scaling = obj.getObjectScaling();
+        if (scaling && typeof scaling.scaleX === 'number' && typeof scaling.scaleY === 'number') {
+          var scaleX = scaling.scaleX;
+          var scaleY = scaling.scaleY;
+          if (isFinite(scaleX) && scaleX > 0 && isFinite(scaleY) && scaleY > 0) {
+            return { scaleX: scaleX, scaleY: scaleY };
+          }
+        }
+      }
+
+      var fallbackScaleX = Number(obj.scaleX);
+      var fallbackScaleY = Number(obj.scaleY);
+
+      if (!isFinite(fallbackScaleX) || fallbackScaleX <= 0) fallbackScaleX = 1;
+      if (!isFinite(fallbackScaleY) || fallbackScaleY <= 0) fallbackScaleY = fallbackScaleX;
+
+      return { scaleX: fallbackScaleX, scaleY: fallbackScaleY };
+    }
+
+    function collectFromObject(obj) {
+      if (!obj) return;
+
+      if (obj.type === 'group' && typeof obj.forEachObject === 'function') {
+        obj.forEachObject(collectFromObject);
+        return;
+      }
+
+      if (obj.productId === undefined || obj.productId === null) return;
+
+      var key = String(obj.productId);
+      var position = normalisePosition(obj);
+      var scale = normaliseScale(obj);
+
+      var left = Number(position.left);
+      var top = Number(position.top);
+      var scaleX = Number(scale.scaleX);
+      var scaleY = Number(scale.scaleY);
+
+      if (!isFinite(left)) left = 0;
+      if (!isFinite(top)) top = 0;
+      if (!isFinite(scaleX) || scaleX <= 0) scaleX = 1;
+      if (!isFinite(scaleY) || scaleY <= 0) scaleY = scaleX;
+
+      layout[key] = { left: left, top: top, scaleX: scaleX, scaleY: scaleY };
+    }
+
+    canvas.getObjects().forEach(collectFromObject);
 
     return layout;
   }
