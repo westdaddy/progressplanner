@@ -1179,7 +1179,7 @@ def _choice_label(choices, key):
 
 
 def _render_filtered_products(
-    request, preset_filters, heading, description, category: str | None = None
+    request, preset_filters, heading, description, category: Optional[str] = None
 ):
     context = _build_product_list_context(request, preset_filters=preset_filters)
 
