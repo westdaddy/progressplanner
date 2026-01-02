@@ -1,0 +1,13 @@
+{% extends 'inventory/base.html' %}
+{% block title %}Products - {{ filter_heading }}{% endblock %}
+
+{% block content %}
+<div class="section">
+  <h3>{{ filter_heading }}</h3>
+  {% if filter_description %}
+    <p class="grey-text text-darken-1">{{ filter_description }}</p>
+  {% endif %}
+
+  {% include 'inventory/snippets/product_card_default.html' %}
+</div>
+{% endblock %}
