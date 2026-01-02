@@ -9,21 +9,6 @@
   <h3>Products</h3>
 
   <div id="controls" class="row grey lighten-3">
-    <div class="col s1">
-
-      <div class="view-toggle">
-        <a href="?{{ list_query }}"
-           class="view-icon {% if view_mode == 'list' %}active{% endif %}">
-          <i class="material-icons">view_list</i>
-        </a>
-        <a href="?{{ card_query }}"
-           class="view-icon {% if view_mode == 'card' %}active{% endif %}">
-          <i class="material-icons">view_module</i>
-        </a>
-      </div>
-    </div>
-
-
     <form id="productFilterForm" method="get">
 
 
@@ -98,19 +83,12 @@
           {% endfor %}
         </div>
 
-        <input type="hidden" name="view_mode" value="{{ view_mode }}" />
-
       </div>
     </form>
 
   </div>
 
-  <!-- Conditional Product List Rendering -->
-  {% if view_mode == 'card' %}
-      {% include 'inventory/snippets/product_card_list.html' %}
-  {% else %}
-      {% include 'inventory/snippets/product_card_default.html' %}
-  {% endif %}
+  {% include 'inventory/snippets/product_card_default.html' %}
 </div>
 {% endblock %}
 
