@@ -122,6 +122,12 @@
       justify-content: flex-end;
       margin-top: 8px;
     }
+
+    .filter-divider {
+      border-bottom: 1px solid #e0e0e0;
+      margin: 12px 0 20px;
+      padding-bottom: 8px;
+    }
   </style>
   <h3>{{ filter_heading }}</h3>
   {% if filter_description %}
@@ -195,6 +201,7 @@
         </button>
       </div>
     </form>
+    <div class="filter-divider"></div>
   {% endif %}
 
   <div class="row">
