@@ -288,7 +288,7 @@ def get_category_speed_stats(
 
     speed_map = get_variant_speed_map(variants, weeks=weeks, today=today)
 
-    size_buckets: Dict[str | None, list[float]] = defaultdict(list)
+    size_buckets: Dict[Optional[str], list[float]] = defaultdict(list)
     for v in variants:
         size_buckets[v.size].append(speed_map.get(v.id, 0.0))
 

@@ -31,10 +31,30 @@ table#restock tr#totals {
         </div>
         <div class="card-content" id="product_card">
           <span class="title">{{ product.product_name }}</span><br/>
-          <span>{{ product.type }}</span><br/>
-          <span>{{ product.style }}</span><br/>
-          <span>{{ product.groups }}</span><br/>
-          <span>{{ product.series }}</span><br/>
+          {% if product.type %}
+            <span><a href="{% url 'product_filtered' %}?type_filter={{ product.type }}">{{ product.get_type_display }}</a></span><br/>
+          {% endif %}
+          {% if product.style %}
+            <span><a href="{% url 'product_filtered' %}?style_filter={{ product.style }}">{{ product.get_style_display }}</a></span><br/>
+          {% endif %}
+          {% with product.groups.all as product_groups %}
+            {% if product_groups %}
+              <span>
+                {% for group in product_groups %}
+                  <a href="{% url 'product_filtered' %}?group_filter={{ group.id }}">{{ group.name }}</a>{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+              </span><br/>
+            {% endif %}
+          {% endwith %}
+          {% with product.series.all as product_series %}
+            {% if product_series %}
+              <span>
+                {% for series in product_series %}
+                  <a href="{% url 'product_filtered' %}?series_filter={{ series.id }}">{{ series.name }}</a>{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+              </span><br/>
+            {% endif %}
+          {% endwith %}
         </div>
       </div>
     </div>
