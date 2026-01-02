@@ -254,15 +254,8 @@
         const categoryLabel = filterCard.dataset.categoryLabel || '';
 
         const updateHeading = () => {
-          if (!heading || !selectedChips) return;
-
-          const labels = Array.from(
-            selectedChips.querySelectorAll('[data-selected-value] .chip__label, .chip__label')
-          ).map((node) => node.textContent.trim());
-
-          heading.textContent = labels.length
-            ? `${categoryLabel}: ${labels.join(', ')}`
-            : `Filter by ${categoryLabel}`;
+          if (!heading) return;
+          heading.textContent = categoryLabel;
         };
 
         const syncHiddenInputs = () => {

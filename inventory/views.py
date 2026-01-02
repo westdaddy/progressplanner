@@ -1209,19 +1209,13 @@ def _render_filtered_products(
         selected_labels = [
             option["label"] for option in options if option.get("checked")
         ]
-        header_text = (
-            f"{display_label}: {', '.join(selected_labels)}"
-            if selected_labels
-            else f"Filter by {display_label}"
-        )
-
         return {
             "category_label": category_label,
             "category_title": display_label,
             "field_name": field_name,
             "options": options,
             "selected_labels": sorted(selected_labels, key=str.lower),
-            "header_text": header_text,
+            "header_text": display_label,
         }
 
     type_selected = set(context.get("type_filters", []))
