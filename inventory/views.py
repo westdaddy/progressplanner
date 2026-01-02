@@ -1150,10 +1150,79 @@ def _choice_label(choices, key):
 
 def _render_filtered_products(request, preset_filters, heading, description):
     context = _build_product_list_context(request, preset_filters=preset_filters)
-    context.update({
-        "filter_heading": heading,
-        "filter_description": description,
-    })
+
+    def _quarter_start(dt: date) -> date:
+        quarter_month = ((dt.month - 1) // 3) * 3 + 1
+        return dt.replace(month=quarter_month, day=1)
+
+    products = context.get("products", [])
+    variant_ids = [
+        variant.pk
+        for product in products
+        for variant in getattr(product, "variants_with_inventory", [])
+    ]
+
+    filtered_inventory_total = sum(
+        getattr(product, "total_inventory", 0) for product in products
+    )
+
+    today = now().date()
+    current_quarter_start = _quarter_start(today)
+    earliest_quarter_start = current_quarter_start - relativedelta(months=3 * 11)
+    latest_quarter_end = current_quarter_start + relativedelta(months=3)
+
+    quarter_starts = [
+        earliest_quarter_start + relativedelta(months=3 * i) for i in range(12)
+    ]
+
+    quarter_labels = [
+        f"{start.year} {start.strftime('%b')}" for start in quarter_starts
+    ]
+    quarter_totals = OrderedDict(
+        (
+            (start.year, (start.month - 1) // 3 + 1),
+            0,
+        )
+        for start in quarter_starts
+    )
+
+    start_year = today.year - 2
+    year_totals = OrderedDict((year, 0) for year in range(start_year, today.year + 1))
+
+    if variant_ids:
+        sales_qs = Sale.objects.filter(
+            variant_id__in=variant_ids,
+            date__gte=earliest_quarter_start,
+            date__lt=latest_quarter_end,
+        ).values("date", "sold_quantity", "return_quantity")
+
+        for sale in sales_qs:
+            sale_date = sale["date"]
+            net_sold = sale["sold_quantity"] - (sale["return_quantity"] or 0)
+            sale_quarter_key = (sale_date.year, (sale_date.month - 1) // 3 + 1)
+
+            if sale_quarter_key in quarter_totals:
+                quarter_totals[sale_quarter_key] += net_sold
+
+            if sale_date.year in year_totals:
+                year_totals[sale_date.year] += net_sold
+
+    quarterly_values = list(quarter_totals.values())
+    yearly_sales = [
+        {"year": year, "total": total} for year, total in year_totals.items()
+    ]
+
+    context.update(
+        {
+            "filter_heading": heading,
+            "filter_description": description,
+            "filtered_inventory_total": filtered_inventory_total,
+            "quarterly_labels": json.dumps(quarter_labels),
+            "quarterly_sales": json.dumps(quarterly_values),
+            "yearly_sales": yearly_sales,
+            "has_quarterly_data": bool(variant_ids),
+        }
+    )
     return render(request, "inventory/product_filtered_list.html", context)
 
 

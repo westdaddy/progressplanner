@@ -8,6 +8,98 @@
     <p class="grey-text text-darken-1">{{ filter_description }}</p>
   {% endif %}
 
+  <div class="row">
+    <div class="col s12 m4">
+      <div class="card-panel">
+        <h6 class="grey-text text-darken-1">Total In Stock</h6>
+        <h4 class="teal-text text-darken-2" style="margin-top: 0;">{{ filtered_inventory_total }}</h4>
+        <p class="grey-text text-darken-1" style="margin-bottom: 0;">Units across all matching products</p>
+      </div>
+    </div>
+
+    <div class="col s12 m4">
+      <div class="card-panel">
+        <h6 class="grey-text text-darken-1">Total Sold by Year (last 3 years)</h6>
+        <ul class="collection">
+          {% for entry in yearly_sales %}
+            <li class="collection-item" style="border-left: 3px solid #26a69a;">
+              <strong>{{ entry.year }}</strong>
+              <span class="secondary-content teal-text text-darken-2">{{ entry.total }}</span>
+            </li>
+          {% empty %}
+            <li class="collection-item">No sales data available.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <div class="col s12 m4">
+      <div class="card-panel">
+        <h6 class="grey-text text-darken-1">Quarterly Sales (last 12 quarters)</h6>
+        {% if has_quarterly_data %}
+          <canvas id="quarterlySalesChart" height="220"></canvas>
+        {% else %}
+          <p class="grey-text text-darken-1" style="margin: 0;">No sales recorded in this period.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
   {% include 'inventory/snippets/product_card_default.html' %}
 </div>
+{% endblock %}
+
+{% block extrajs %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    (function() {
+      const labels = {{ quarterly_labels|safe }};
+      const dataPoints = {{ quarterly_sales|safe }};
+
+      if (!dataPoints || !dataPoints.length || !document.getElementById('quarterlySalesChart')) {
+        return;
+      }
+
+      const ctx = document.getElementById('quarterlySalesChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Units Sold',
+            data: dataPoints,
+            backgroundColor: 'rgba(38, 166, 154, 0.5)',
+            borderColor: '#26a69a',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (context) => `${context.parsed.y} units`
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Quarter (Year/Month)'
+              }
+            },
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Number Sold'
+              }
+            }
+          }
+        }
+      });
+    })();
+  </script>
 {% endblock %}
