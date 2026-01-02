@@ -1,5 +1,5 @@
 from datetime import datetime, date, timedelta
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple
 from django.utils.timezone import now
 from dateutil.relativedelta import relativedelta
 import json
@@ -950,7 +950,15 @@ def _build_product_list_context(request, preset_filters=None):
         raw_style_filters = [raw_style_filters]
     style_filters = [str(val) for val in raw_style_filters if val]
 
-    age_filter = _get_filter("age_filter", None)
+    raw_age_filters = _get_filter("age_filter", None)
+    if raw_age_filters is None:
+        raw_age_filters = request.GET.getlist("age_filter")
+        if not raw_age_filters:
+            first_age = request.GET.get("age_filter")
+            raw_age_filters = [first_age] if first_age else []
+    elif not isinstance(raw_age_filters, (list, tuple, set)):
+        raw_age_filters = [raw_age_filters]
+    age_filters = [str(val) for val in raw_age_filters if val]
 
     group_filters = preset_filters.get("group_filters")
     if group_filters is None:
@@ -998,8 +1006,8 @@ def _build_product_list_context(request, preset_filters=None):
     if style_filters:
         products_qs = products_qs.filter(style__in=style_filters)
 
-    if age_filter:
-        products_qs = products_qs.filter(age=age_filter)
+    if age_filters:
+        products_qs = products_qs.filter(age__in=age_filters)
 
     if group_filters:
         products_qs = products_qs.filter(groups__id__in=group_filters).distinct()
@@ -1111,7 +1119,8 @@ def _build_product_list_context(request, preset_filters=None):
         "type_filters": type_filters,
         "style_filter": style_filters[0] if style_filters else None,
         "style_filters": style_filters,
-        "age_filter": age_filter,
+        "age_filter": age_filters[0] if age_filters else None,
+        "age_filters": age_filters,
         "group_filters": group_filters,
         "series_filters": series_filters,
         "zero_inventory": zero_inventory,
@@ -1183,98 +1192,105 @@ def _render_filtered_products(
 ):
     context = _build_product_list_context(request, preset_filters=preset_filters)
 
-    category = category or (
-        "type"
-        if "type_filter" in preset_filters
-        else "style"
-        if "style_filter" in preset_filters
-        else "group"
-        if "group_filters" in preset_filters
-        else "series"
-        if "series_filters" in preset_filters
-        else None
-    )
+    filter_controls: list[dict[str, Any]] = []
 
-    filter_controls = None
+    def build_control(category_label: str, field_name: str, options: list[dict[str, Any]]):
+        selected_labels = [
+            option["label"] for option in options if option.get("checked")
+        ]
+        header_text = (
+            f"{category_label.capitalize()}: {', '.join(selected_labels)}"
+            if selected_labels
+            else f"Filter by {category_label}"
+        )
 
-    if category == "type":
-        selected_values = set(context.get("type_filters", []))
-        options = PRODUCT_TYPE_CHOICES
-        filter_controls = {
-            "category_label": "type",
-            "field_name": "type_filter",
-            "options": [
+        return {
+            "category_label": category_label,
+            "category_title": category_label.capitalize(),
+            "field_name": field_name,
+            "options": options,
+            "selected_labels": sorted(selected_labels, key=str.lower),
+            "header_text": header_text,
+        }
+
+    type_selected = set(context.get("type_filters", []))
+    style_selected = set(context.get("style_filters", []))
+    age_selected = set(context.get("age_filters", []))
+    group_selected = set(context.get("group_filters", []))
+    series_selected = set(context.get("series_filters", []))
+
+    control_candidates = [
+        build_control(
+            "type",
+            "type_filter",
+            [
                 {
                     "value": value,
                     "label": label,
-                    "checked": str(value) in selected_values,
+                    "checked": str(value) in type_selected,
                 }
-                for value, label in options
+                for value, label in PRODUCT_TYPE_CHOICES
             ],
-        }
-    elif category == "style":
-        selected_values = set(context.get("style_filters", []))
-        options = PRODUCT_STYLE_CHOICES
-        filter_controls = {
-            "category_label": "style",
-            "field_name": "style_filter",
-            "options": [
+        ),
+        build_control(
+            "style",
+            "style_filter",
+            [
                 {
                     "value": value,
                     "label": label,
-                    "checked": str(value) in selected_values,
+                    "checked": str(value) in style_selected,
                 }
-                for value, label in options
+                for value, label in PRODUCT_STYLE_CHOICES
             ],
-        }
-    elif category == "group":
-        selected_values = set(context.get("group_filters", []))
-        groups = context.get("group_choices") or Group.objects.all()
-        filter_controls = {
-            "category_label": "group",
-            "field_name": "group_filter",
-            "options": [
+        ),
+        build_control(
+            "age",
+            "age_filter",
+            [
+                {
+                    "value": value,
+                    "label": label,
+                    "checked": str(value) in age_selected,
+                }
+                for value, label in PRODUCT_AGE_CHOICES
+            ],
+        ),
+        build_control(
+            "group",
+            "group_filter",
+            [
                 {
                     "value": str(group.id),
                     "label": group.name,
-                    "checked": str(group.id) in selected_values,
+                    "checked": str(group.id) in group_selected,
                 }
-                for group in groups
+                for group in (context.get("group_choices") or Group.objects.all())
             ],
-        }
-    elif category == "series":
-        selected_values = set(context.get("series_filters", []))
-        series_list = context.get("series_choices") or Series.objects.all()
-        filter_controls = {
-            "category_label": "series",
-            "field_name": "series_filter",
-            "options": [
+        ),
+        build_control(
+            "series",
+            "series_filter",
+            [
                 {
                     "value": str(series.id),
                     "label": series.name,
-                    "checked": str(series.id) in selected_values,
+                    "checked": str(series.id) in series_selected,
                 }
-                for series in series_list
+                for series in (context.get("series_choices") or Series.objects.all())
             ],
-        }
+        ),
+    ]
 
-    if filter_controls:
-        selected_labels = [
-            option["label"]
-            for option in filter_controls["options"]
-            if option.get("checked")
-        ]
-        filter_controls["selected_labels"] = sorted(selected_labels, key=str.lower)
-        filter_controls["category_title"] = filter_controls["category_label"].capitalize()
-        if selected_labels:
-            filter_controls["header_text"] = (
-                f"{filter_controls['category_title']}: "
-                f"{', '.join(filter_controls['selected_labels'])}"
-            )
-        else:
-            filter_controls["header_text"] = (
-                f"Filter by {filter_controls['category_label']}"
-            )
+    if category:
+        # Prioritise the requested category first, followed by the remaining ones
+        control_candidates.sort(
+            key=lambda control: 0
+            if control.get("category_label") == category
+            else 1
+        )
+
+    filter_controls.extend(control_candidates)
 
     def _quarter_start(dt: date) -> date:
         quarter_month = ((dt.month - 1) // 3) * 3 + 1

@@ -131,58 +131,62 @@
   {% if filter_controls %}
     <form method="get" class="filter-bar__form">
       <div class="filter-bar">
-        <div
-          class="card-panel filter-card"
-          data-field-name="{{ filter_controls.field_name }}"
-          data-category-label="{{ filter_controls.category_title }}"
-        >
-          <div class="filter-card__header">
-            <div style="flex: 1; min-width: 0;">
-              <p class="grey-text text-darken-1" style="margin: 0 0 6px;" data-filter-heading>
-                {{ filter_controls.header_text }}
-              </p>
-              <div class="chip-set" data-selected-chips>
-                {% if filter_controls.selected_labels %}
-                  {% for option in filter_controls.options %}
-                    {% if option.checked %}
-                      <span class="chip chip--selected" data-selected-value="{{ option.value }}">
-                        <span class="chip__label">{{ option.label }}</span>
-                        <button type="button" class="chip__remove" aria-label="Remove {{ option.label }}">&times;</button>
-                      </span>
+        {% for control in filter_controls %}
+          {% with option_id="filter-options-"|add:forloop.counter %}
+            <div
+              class="card-panel filter-card"
+              data-field-name="{{ control.field_name }}"
+              data-category-label="{{ control.category_title }}"
+            >
+              <div class="filter-card__header">
+                <div style="flex: 1; min-width: 0;">
+                  <p class="grey-text text-darken-1" style="margin: 0 0 6px;" data-filter-heading>
+                    {{ control.header_text }}
+                  </p>
+                  <div class="chip-set" data-selected-chips>
+                    {% if control.selected_labels %}
+                      {% for option in control.options %}
+                        {% if option.checked %}
+                          <span class="chip chip--selected" data-selected-value="{{ option.value }}">
+                            <span class="chip__label">{{ option.label }}</span>
+                            <button type="button" class="chip__remove" aria-label="Remove {{ option.label }}">&times;</button>
+                          </span>
+                        {% endif %}
+                      {% endfor %}
+                    {% else %}
+                      <span class="chip__placeholder" data-placeholder>None selected</span>
                     {% endif %}
-                  {% endfor %}
-                {% else %}
-                  <span class="chip__placeholder" data-placeholder>None selected</span>
-                {% endif %}
+                  </div>
+                </div>
+                <button type="button" class="btn-flat filter-card__toggle" aria-expanded="false" aria-controls="{{ option_id }}">
+                  <span class="filter-card__toggle-symbol">+</span>
+                </button>
               </div>
-            </div>
-            <button type="button" class="btn-flat filter-card__toggle" aria-expanded="false" aria-controls="filter-options">
-              <span class="filter-card__toggle-symbol">+</span>
-            </button>
-          </div>
 
-          <div id="filter-options" class="filter-card__options" hidden>
-            <p class="grey-text text-darken-1" style="margin: 0 0 8px;">Add or remove {{ filter_controls.category_label }} options</p>
-            <div class="option-list" data-available-options>
-              {% for option in filter_controls.options %}
-                {% if not option.checked %}
-                  <button
-                    type="button"
-                    class="filter-option"
-                    data-option-value="{{ option.value }}"
-                    data-option-label="{{ option.label }}"
-                  >
-                    {{ option.label }}
-                  </button>
-                {% endif %}
-              {% empty %}
-                <p class="grey-text text-darken-1" style="margin: 0;">No options available.</p>
-              {% endfor %}
-            </div>
-          </div>
+              <div id="{{ option_id }}" class="filter-card__options" hidden>
+                <p class="grey-text text-darken-1" style="margin: 0 0 8px;">Add or remove {{ control.category_label }} options</p>
+                <div class="option-list" data-available-options>
+                  {% for option in control.options %}
+                    {% if not option.checked %}
+                      <button
+                        type="button"
+                        class="filter-option"
+                        data-option-value="{{ option.value }}"
+                        data-option-label="{{ option.label }}"
+                      >
+                        {{ option.label }}
+                      </button>
+                    {% endif %}
+                  {% empty %}
+                    <p class="grey-text text-darken-1" style="margin: 0;">No options available.</p>
+                  {% endfor %}
+                </div>
+              </div>
 
-          <div data-hidden-inputs></div>
-        </div>
+              <div data-hidden-inputs></div>
+            </div>
+          {% endwith %}
+        {% endfor %}
       </div>
 
       <div class="filter-bar__footer">
@@ -238,8 +242,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
     (function() {
-      const filterCard = document.querySelector('.filter-card');
-      if (filterCard) {
+      const initFilterCard = (filterCard) => {
         const optionPanel = filterCard.querySelector('.filter-card__options');
         const toggleButtons = filterCard.querySelectorAll('.filter-card__toggle');
         const symbol = filterCard.querySelector('.filter-card__toggle-symbol');
@@ -389,7 +392,9 @@
         });
 
         setExpanded(false);
-      }
+      };
+
+      document.querySelectorAll('.filter-card').forEach((card) => initFilterCard(card));
 
       const labels = {{ quarterly_labels|safe }};
       const dataPoints = {{ quarterly_sales|safe }};
