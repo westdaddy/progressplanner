@@ -1,5 +1,5 @@
 from datetime import datetime, date, timedelta
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple
 from django.utils.timezone import now
 from dateutil.relativedelta import relativedelta
 import json
@@ -587,340 +587,70 @@ def sales_data(request):
     return JsonResponse(data)
 
 
-def dashboard(request):
-    today = date.today()
-    # Calculate last month's date range.
-    first_day_this_month = today.replace(day=1)
-    last_day_previous = first_day_this_month - timedelta(days=1)
-    first_day_last_month = last_day_previous.replace(day=1)
-
-    # Calculate the last 3 full months range.
-    first_day_last_3_months = (first_day_this_month - relativedelta(months=3)).replace(
-        day=1
-    )
-    # Calculate the last 12 months range.
-    one_year_ago = today - relativedelta(months=12)
-
-    # 1. Aggregate sales by variant type for last month.
-    sales_by_type_qs = (
-        Sale.objects.filter(date__range=(first_day_last_month, last_day_previous))
-        .values("variant__product__type")
-        .annotate(total_sold=Sum("sold_quantity"))
-    )
-    sales_by_type = {
-        item["variant__product__type"]: item["total_sold"] for item in sales_by_type_qs
-    }
-
-    # 2. Aggregate sales for the last 3 months.
-    sales_3m_qs = (
-        Sale.objects.filter(date__range=(first_day_last_3_months, last_day_previous))
-        .values("variant__product__type")
-        .annotate(total_sold=Sum("sold_quantity"))
-    )
-    sales_3m_by_type = {
-        item["variant__product__type"]: item["total_sold"] for item in sales_3m_qs
-    }
-
-    # 3. Aggregate sales for the last 12 months.
-    sales_12_qs = (
-        Sale.objects.filter(date__gte=one_year_ago)
-        .values("variant__product__type")
-        .annotate(total_sold=Sum("sold_quantity"))
-    )
-    sales_12_by_type = {
-        item["variant__product__type"]: item["total_sold"] for item in sales_12_qs
-    }
-
-    # 4. Annotate each ProductVariant with its latest inventory.
-    latest_snapshot_subquery = (
-        InventorySnapshot.objects.filter(product_variant=OuterRef("pk"))
-        .order_by("-date")
-        .values("inventory_count")[:1]
-    )
-    variants = ProductVariant.objects.annotate(
-        latest_inventory=Coalesce(Subquery(latest_snapshot_subquery), 0)
-    )
-
-    # 5. Calculate current stock by type.
-    stock_by_type_qs = variants.values("product__type").annotate(
-        total_stock=Sum("latest_inventory")
-    )
-    stock_by_type = {
-        item["product__type"]: item["total_stock"] for item in stock_by_type_qs
-    }
-
-    # 6. Aggregate items on order by variant type.
-    orders_qs = (
-        OrderItem.objects.filter(date_expected__gte=first_day_this_month)
-        .values("product_variant__product__type")
-        .annotate(total_order=Sum("quantity"))
-    )
-    orders_by_type = {
-        item["product_variant__product__type"]: item["total_order"]
-        for item in orders_qs
-    }
-
-    # 7. Define allowed categories.
-    allowed = {
-        "gi": "Gi",
-        "rg": "Rashguard",
-        "dk": "Shorts",
-        "ck": "Spats",
-        "bt": "Belts",
-    }
-
-    # Helper function: Build product breakdown for a given filter expression.
-    def get_product_breakdown(filter_expr):
-        qs = (
-            ProductVariant.objects.annotate(
-                latest_inventory=Coalesce(Subquery(latest_snapshot_subquery), 0)
-            )
-            .filter(filter_expr, sales__date__gte=first_day_last_3_months)
-            .distinct()
-        )
-        products_dict = {}
-        for variant in qs:
-            key = variant.product_id
-            if key not in products_dict:
-                products_dict[key] = {
-                    "product_id": key,
-                    "product_name": variant.product.product_name,
-                    "last_month_sales": 0,
-                    "sales_3m": 0,
-                    "current_stock": 0,
-                }
-            variant_last_month_sales = variant.sales.filter(
-                date__range=(first_day_last_month, last_day_previous)
-            ).aggregate(total=Coalesce(Sum("sold_quantity"), 0))["total"]
-            variant_3m_sales = variant.sales.filter(
-                date__range=(first_day_last_3_months, last_day_previous)
-            ).aggregate(total=Coalesce(Sum("sold_quantity"), 0))["total"]
-            products_dict[key]["last_month_sales"] += variant_last_month_sales
-            products_dict[key]["sales_3m"] += variant_3m_sales
-            products_dict[key]["current_stock"] += variant.latest_inventory
-        products_list = []
-        for prod in products_dict.values():
-            if prod["last_month_sales"] > 0:
-                products_list.append(
-                    {
-                        "product_id": prod["product_id"],
-                        "product_name": prod["product_name"],
-                        "last_month_sales": prod["last_month_sales"],
-                        "avg_sales": prod["sales_3m"] / 3,
-                        "current_stock": prod["current_stock"],
-                    }
-                )
-        products_list.sort(key=lambda x: x["last_month_sales"], reverse=True)
-        return products_list
-
-    # 8. Build category data for allowed types.
-    categories = []
-    for type_code, label in allowed.items():
-        lm_sales = sales_by_type.get(type_code, 0)
-        total_12 = sales_12_by_type.get(type_code, 0)
-        avg_12 = total_12 / 12.0
-        total_3 = sales_3m_by_type.get(type_code, 0)
-        avg_3 = total_3 / 3.0
-        cat_stock = stock_by_type.get(type_code, 0)
-        orders = orders_by_type.get(type_code, 0)
-        products_list = get_product_breakdown(Q(type=type_code))
-        categories.append(
-            {
-                "type_code": type_code,
-                "label": label,
-                "stock": cat_stock,
-                "last_month_sales": lm_sales,
-                "avg_sales_12": avg_12,
-                "avg_sales_3": avg_3,
-                "items_on_order": orders,
-                "products": products_list,
-            }
-        )
-
-    # 9. Build category data for "Others" (types not in allowed).
-    others_sales_last = sum(
-        sales for key, sales in sales_by_type.items() if key not in allowed
-    )
-    others_sales_12 = sum(
-        sales for key, sales in sales_12_by_type.items() if key not in allowed
-    )
-    others_avg_12 = others_sales_12 / 12.0
-    others_sales_3 = sum(
-        sales for key, sales in sales_3m_by_type.items() if key not in allowed
-    )
-    others_avg_3 = others_sales_3 / 3.0
-    others_stock = sum(
-        stock for key, stock in stock_by_type.items() if key not in allowed
-    )
-    others_orders = sum(
-        orders for key, orders in orders_by_type.items() if key not in allowed
-    )
-    categories.append(
-        {
-            "type_code": "others",
-            "label": "Others",
-            "stock": others_stock,
-            "last_month_sales": others_sales_last,
-            "avg_sales_12": others_avg_12,
-            "avg_sales_3": others_avg_3,
-            "items_on_order": others_orders,
-            "products": get_product_breakdown(~Q(type__in=list(allowed.keys()))),
-        }
-    )
-
-    # --- PREVIOUS CODE (Charts, Top-Selling, etc.) ---
-    # Normalize today to first of month for chart projections.
-    chart_today = datetime.today().replace(day=1)
-    next_12_months = [chart_today + relativedelta(months=i) for i in range(13)]
-
-    # Stock Projection Chart Data
-    stock_chart_data = {
-        "months": [month.strftime("%b %Y") for month in next_12_months],
-        "variant_lines": [],
-    }
-    historic_sales_data = {}
-    for v in ProductVariant.objects.all():
-        snapshot = (
-            InventorySnapshot.objects.filter(product_variant=v)
-            .order_by("-date")
-            .values("inventory_count")
-            .first()
-        )
-        current_stock = snapshot["inventory_count"] if snapshot else 0
-        sales_speed = calculate_variant_sales_speed(v)
-        order_items = v.order_items.filter(date_expected__gte=chart_today).values(
-            "date_expected", "quantity"
-        )
-        restocks = {}
-        for item in order_items:
-            restock_month = item["date_expected"].replace(day=1)
-            restocks[restock_month] = restocks.get(restock_month, 0) + item["quantity"]
-        stock_levels = [current_stock]
-        for i in range(1, 13):
-            projected = stock_levels[-1] - sales_speed
-            month = (chart_today + relativedelta(months=i)).date()
-            if month in restocks:
-                projected += restocks[month]
-            stock_levels.append(max(projected, 0))
-        stock_chart_data["variant_lines"].append(
-            {
-                "variant_name": v.variant_code,
-                "stock_levels": stock_levels,
-            }
-        )
-
-        sales = (
-            v.sales.filter(date__gte=one_year_ago)
-            .annotate(month=TruncMonth("date"))
-            .values("month")
-            .annotate(total_quantity=Sum("sold_quantity"))
-            .order_by("month")
-        )
-        for sale in sales:
-            m = sale["month"].strftime("%Y-%m")
-            if m not in historic_sales_data:
-                historic_sales_data[m] = {}
-            historic_sales_data[m][v.variant_code] = sale["total_quantity"]
-
-    sorted_months = sorted(historic_sales_data.keys())
-    historic_chart_data = {"months": sorted_months, "datasets": []}
-    for v in ProductVariant.objects.all():
-        variant_sales = [
-            historic_sales_data.get(m, {}).get(v.variant_code, 0) for m in sorted_months
-        ]
-        historic_chart_data["datasets"].append(
-            {
-                "label": v.variant_code,
-                "data": variant_sales,
-            }
-        )
-
-    # Top-Selling Analysis (80/20)
-    top_selling_variants = ProductVariant.objects.annotate(
-        total_sales=Sum("sales__sold_quantity", filter=Q(sales__date__gte=one_year_ago))
-    ).order_by("-total_sales")
-    total_sales_all_variants = sum(v.total_sales or 0 for v in top_selling_variants)
-    cumulative_sales = 0
-    top_80_percent_variants = []
-    for v in top_selling_variants:
-        cumulative_sales += v.total_sales or 0
-        top_80_percent_variants.append(v)
-        if cumulative_sales >= 0.8 * total_sales_all_variants:
-            break
-
-    top_selling_sizes = (
-        ProductVariant.objects.filter(size__isnull=False)
-        .values("size")
-        .annotate(
-            total_sales=Sum(
-                "sales__sold_quantity", filter=Q(sales__date__gte=one_year_ago)
-            )
-        )
-        .order_by("-total_sales")
-    )
-    total_sales_sizes = sum((s["total_sales"] or 0) for s in top_selling_sizes)
-    top_selling_sizes = [
-        {
-            "size": s["size"],
-            "total_sales": s["total_sales"] or 0,
-            "percentage": (
-                round(((s["total_sales"] or 0) / total_sales_sizes) * 100, 2)
-                if total_sales_sizes > 0
-                else 0
-            ),
-        }
-        for s in top_selling_sizes
-    ]
-
-    top_selling_colors = (
-        ProductVariant.objects.filter(primary_color__isnull=False)
-        .values("primary_color")
-        .annotate(
-            total_sales=Sum(
-                "sales__sold_quantity", filter=Q(sales__date__gte=one_year_ago)
-            )
-        )
-        .order_by("-total_sales")
-    )
-
-    context = {
-        "categories": categories,
-        "labels": json.dumps([month.strftime("%b %Y") for month in next_12_months]),
-        "stock_levels": json.dumps(
-            [
-                sum(variant_stock["stock_levels"])
-                for variant_stock in stock_chart_data["variant_lines"]
-            ]
-        ),
-        "stacked_bar_data": json.dumps(
-            {
-                "labels": [month.strftime("%b %Y") for month in next_12_months],
-                "datasets": [],  # (Assume you fill this in similarly if needed)
-            }
-        ),
-        "projected_stock_levels": json.dumps(stock_chart_data),
-        "historic_chart_data": json.dumps(historic_chart_data),
-        "top_selling_variants": top_80_percent_variants,
-        "top_selling_sizes": top_selling_sizes,
-        "top_selling_colors": top_selling_colors,
-    }
-
-    return render(request, "inventory/dashboard.html", context)
-
-
-def _build_product_list_context(request):
+def _build_product_list_context(request, preset_filters=None):
     """Return the computed context used by the product list style views."""
 
+    preset_filters = preset_filters or {}
+
+    def _get_filter(name, default=None):
+        request_values = request.GET.getlist(name)
+        if request_values:
+            return request_values if len(request_values) > 1 else request_values[0]
+
+        if request.GET.get(name) is not None:
+            return request.GET.get(name)
+
+        if name in preset_filters:
+            return preset_filters[name]
+
+        return default
+
     # ─── Filter flags ───────────────────────────────────────────────────────────
-    show_retired = request.GET.get("show_retired", "false").lower() == "true"
-    type_filter = request.GET.get("type_filter", None)
-    style_filter = request.GET.get("style_filter", None)
-    age_filter = request.GET.get("age_filter", None)
-    group_filters = [gid.strip() for gid in request.GET.getlist("group_filter") if gid]
-    series_filters = [
-        sid.strip() for sid in request.GET.getlist("series_filter") if sid
-    ]
-    zero_inventory = request.GET.get("zero_inventory", "false").lower() == "true"
+    show_retired = _get_filter("show_retired", "false")
+    show_retired = show_retired if isinstance(show_retired, bool) else str(show_retired).lower() == "true"
+
+    raw_type_filters = _get_filter("type_filter", None)
+    if raw_type_filters is None:
+        raw_type_filters = request.GET.getlist("type_filter")
+        if not raw_type_filters:
+            first_type = request.GET.get("type_filter")
+            raw_type_filters = [first_type] if first_type else []
+    elif not isinstance(raw_type_filters, (list, tuple, set)):
+        raw_type_filters = [raw_type_filters]
+    type_filters = [str(val) for val in raw_type_filters if val]
+
+    raw_style_filters = _get_filter("style_filter", None)
+    if raw_style_filters is None:
+        raw_style_filters = request.GET.getlist("style_filter")
+        if not raw_style_filters:
+            first_style = request.GET.get("style_filter")
+            raw_style_filters = [first_style] if first_style else []
+    elif not isinstance(raw_style_filters, (list, tuple, set)):
+        raw_style_filters = [raw_style_filters]
+    style_filters = [str(val) for val in raw_style_filters if val]
+
+    raw_age_filters = _get_filter("age_filter", None)
+    if raw_age_filters is None:
+        raw_age_filters = request.GET.getlist("age_filter")
+        if not raw_age_filters:
+            first_age = request.GET.get("age_filter")
+            raw_age_filters = [first_age] if first_age else []
+    elif not isinstance(raw_age_filters, (list, tuple, set)):
+        raw_age_filters = [raw_age_filters]
+    age_filters = [str(val) for val in raw_age_filters if val]
+
+    group_filters = preset_filters.get("group_filters")
+    if group_filters is None:
+        group_filters = [gid.strip() for gid in request.GET.getlist("group_filter") if gid]
+    group_filters = [str(g) for g in group_filters]
+
+    series_filters = preset_filters.get("series_filters")
+    if series_filters is None:
+        series_filters = [sid.strip() for sid in request.GET.getlist("series_filter") if sid]
+    series_filters = [str(s) for s in series_filters]
+
+    zero_inventory = _get_filter("zero_inventory", "false")
+    zero_inventory = zero_inventory if isinstance(zero_inventory, bool) else str(zero_inventory).lower() == "true"
 
     # ─── Date ranges ────────────────────────────────────────────────────────────
     today = now().date()
@@ -949,14 +679,14 @@ def _build_product_list_context(request):
         .annotate(variant_count=Count("variants", distinct=True))
     )
 
-    if type_filter:
-        products_qs = products_qs.filter(type=type_filter)
+    if type_filters:
+        products_qs = products_qs.filter(type__in=type_filters)
 
-    if style_filter:
-        products_qs = products_qs.filter(style=style_filter)
+    if style_filters:
+        products_qs = products_qs.filter(style__in=style_filters)
 
-    if age_filter:
-        products_qs = products_qs.filter(age=age_filter)
+    if age_filters:
+        products_qs = products_qs.filter(age__in=age_filters)
 
     if group_filters:
         products_qs = products_qs.filter(groups__id__in=group_filters).distinct()
@@ -1064,9 +794,12 @@ def _build_product_list_context(request):
     context = {
         "products": products,
         "show_retired": show_retired,
-        "type_filter": type_filter,
-        "style_filter": style_filter,
-        "age_filter": age_filter,
+        "type_filter": type_filters[0] if type_filters else None,
+        "type_filters": type_filters,
+        "style_filter": style_filters[0] if style_filters else None,
+        "style_filters": style_filters,
+        "age_filter": age_filters[0] if age_filters else None,
+        "age_filters": age_filters,
         "group_filters": group_filters,
         "series_filters": series_filters,
         "zero_inventory": zero_inventory,
@@ -1127,6 +860,272 @@ def _build_product_list_context(request):
 def product_list(request):
     context = _build_product_list_context(request)
     return render(request, "inventory/product_list.html", context)
+
+
+def _choice_label(choices, key):
+    return dict(choices).get(key)
+
+
+def _render_filtered_products(
+    request,
+    preset_filters=None,
+    heading: Optional[str] = None,
+    description: Optional[str] = None,
+    category: Optional[str] = None,
+):
+    preset_filters = preset_filters or {}
+    context = _build_product_list_context(request, preset_filters=preset_filters)
+
+    filter_controls: list[dict[str, Any]] = []
+
+    def build_control(
+        category_label: str,
+        field_name: str,
+        options: list[dict[str, Any]],
+        display_label: Optional[str] = None,
+    ):
+        display_label = display_label or category_label.capitalize()
+        selected_labels = [
+            option["label"] for option in options if option.get("checked")
+        ]
+        return {
+            "category_label": category_label,
+            "category_title": display_label,
+            "field_name": field_name,
+            "options": options,
+            "selected_labels": sorted(selected_labels, key=str.lower),
+            "header_text": display_label,
+        }
+
+    type_selected = set(context.get("type_filters", []))
+    style_selected = set(context.get("style_filters", []))
+    age_selected = set(context.get("age_filters", []))
+    group_selected = set(context.get("group_filters", []))
+    series_selected = set(context.get("series_filters", []))
+
+    control_candidates = [
+        build_control(
+            "type",
+            "type_filter",
+            [
+                {
+                    "value": value,
+                    "label": label,
+                    "checked": str(value) in type_selected,
+                }
+                for value, label in PRODUCT_TYPE_CHOICES
+            ],
+        ),
+        build_control(
+            "style",
+            "style_filter",
+            [
+                {
+                    "value": value,
+                    "label": label,
+                    "checked": str(value) in style_selected,
+                }
+                for value, label in PRODUCT_STYLE_CHOICES
+            ],
+            display_label="Product Category",
+        ),
+        build_control(
+            "age",
+            "age_filter",
+            [
+                {
+                    "value": value,
+                    "label": label,
+                    "checked": str(value) in age_selected,
+                }
+                for value, label in PRODUCT_AGE_CHOICES
+            ],
+        ),
+        build_control(
+            "group",
+            "group_filter",
+            [
+                {
+                    "value": str(group.id),
+                    "label": group.name,
+                    "checked": str(group.id) in group_selected,
+                }
+                for group in (context.get("group_choices") or Group.objects.all())
+            ],
+        ),
+        build_control(
+            "series",
+            "series_filter",
+            [
+                {
+                    "value": str(series.id),
+                    "label": series.name,
+                    "checked": str(series.id) in series_selected,
+                }
+                for series in (context.get("series_choices") or Series.objects.all())
+            ],
+        ),
+    ]
+
+    if category:
+        # Prioritise the requested category first, followed by the remaining ones
+        control_candidates.sort(
+            key=lambda control: 0
+            if control.get("category_label") == category
+            else 1
+        )
+
+    filter_controls.extend(control_candidates)
+
+    selected_labels_flat = [
+        label
+        for control in filter_controls
+        for label in control.get("selected_labels", [])
+    ]
+
+    if heading is None:
+        heading = "Products"
+
+    if description is None:
+        description = None
+
+    def _quarter_start(dt: date) -> date:
+        quarter_month = ((dt.month - 1) // 3) * 3 + 1
+        return dt.replace(month=quarter_month, day=1)
+
+    products = context.get("products", [])
+    variant_ids = [
+        variant.pk
+        for product in products
+        for variant in getattr(product, "variants_with_inventory", [])
+    ]
+
+    filtered_inventory_total = sum(
+        getattr(product, "total_inventory", 0) for product in products
+    )
+
+    today = now().date()
+    current_quarter_start = _quarter_start(today)
+    earliest_quarter_start = current_quarter_start - relativedelta(months=3 * 11)
+    latest_quarter_end = current_quarter_start + relativedelta(months=3)
+
+    quarter_starts = [
+        earliest_quarter_start + relativedelta(months=3 * i) for i in range(12)
+    ]
+
+    quarter_labels = [
+        f"{start.year} {start.strftime('%b')}" for start in quarter_starts
+    ]
+    quarter_totals = OrderedDict(
+        (
+            (start.year, (start.month - 1) // 3 + 1),
+            0,
+        )
+        for start in quarter_starts
+    )
+
+    rolling_start_date = today - relativedelta(years=3)
+    yearly_periods = []
+
+    for i in range(3):
+        period_start = rolling_start_date + relativedelta(years=i)
+        period_end = period_start + relativedelta(years=1)
+        label = f"{period_start.strftime('%b %d, %Y')} - {period_end.strftime('%b %d, %Y')}"
+        yearly_periods.append({
+            "start": period_start,
+            "end": period_end,
+            "total": 0,
+            "label": label,
+        })
+
+    if variant_ids:
+        sales_qs = Sale.objects.filter(
+            variant_id__in=variant_ids,
+            date__gte=min(rolling_start_date, earliest_quarter_start),
+            date__lt=max(latest_quarter_end, today),
+        ).values("date", "sold_quantity", "return_quantity")
+
+        for sale in sales_qs:
+            sale_date = sale["date"]
+            net_sold = sale["sold_quantity"] - (sale["return_quantity"] or 0)
+            sale_quarter_key = (sale_date.year, (sale_date.month - 1) // 3 + 1)
+
+            if sale_quarter_key in quarter_totals:
+                quarter_totals[sale_quarter_key] += net_sold
+
+            for period in yearly_periods:
+                if period["start"] <= sale_date < period["end"]:
+                    period["total"] += net_sold
+                    break
+
+    quarterly_values = list(quarter_totals.values())
+    yearly_sales = [
+        {"label": period["label"], "total": period["total"]}
+        for period in yearly_periods
+    ]
+
+    context.update(
+        {
+            "filter_heading": heading,
+            "filter_description": description,
+            "filtered_inventory_total": filtered_inventory_total,
+            "quarterly_labels": json.dumps(quarter_labels),
+            "quarterly_sales": json.dumps(quarterly_values),
+            "yearly_sales": yearly_sales,
+            "has_quarterly_data": bool(variant_ids),
+            "filter_controls": filter_controls,
+            "showing_summary": " | ".join(selected_labels_flat)
+            if selected_labels_flat
+            else "All products",
+        }
+    )
+    return render(request, "inventory/product_filtered_list.html", context)
+
+
+def product_filtered(request):
+    primary_category = None
+    for query_name, label in (
+        ("type_filter", "type"),
+        ("style_filter", "style"),
+        ("age_filter", "age"),
+        ("group_filter", "group"),
+        ("series_filter", "series"),
+    ):
+        if request.GET.getlist(query_name) or request.GET.get(query_name):
+            primary_category = label
+            break
+
+    return _render_filtered_products(request, category=primary_category)
+
+
+def product_type_list(request, type_code: str):
+    label = _choice_label(PRODUCT_TYPE_CHOICES, type_code)
+    if not label:
+        raise Http404("Unknown product type")
+
+    query = urlencode({"type_filter": type_code})
+    return redirect(f"{reverse('product_filtered')}?{query}")
+
+
+def product_style_list(request, style_code: str):
+    label = _choice_label(PRODUCT_STYLE_CHOICES, style_code)
+    if not label:
+        raise Http404("Unknown product style")
+
+    query = urlencode({"style_filter": style_code})
+    return redirect(f"{reverse('product_filtered')}?{query}")
+
+
+def product_group_list(request, group_id: int):
+    get_object_or_404(Group, pk=group_id)
+    query = urlencode({"group_filter": group_id})
+    return redirect(f"{reverse('product_filtered')}?{query}")
+
+
+def product_series_list(request, series_id: int):
+    get_object_or_404(Series, pk=series_id)
+    query = urlencode({"series_filter": series_id})
+    return redirect(f"{reverse('product_filtered')}?{query}")
 
 
 def product_canvas(request):
@@ -1279,7 +1278,9 @@ def product_detail(request, product_id):
     Delegates safe stock, variant projection, and sales aggregation to helpers.
     """
     # Fetch product
-    product = get_object_or_404(Product, id=product_id)
+    product = get_object_or_404(
+        Product.objects.prefetch_related("groups", "series"), id=product_id
+    )
 
     # Annotate variants with latest inventory snapshot
     latest_snapshot_sq = (

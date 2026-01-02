@@ -3,8 +3,12 @@ from . import views
 
 urlpatterns = [
     path('', views.home, name='home'),
-    path('dashboard/', views.dashboard, name='dashboard'),
     path('products/', views.product_list, name='product_list'),
+    path('products/filtered/', views.product_filtered, name='product_filtered'),
+    path('products/type/<str:type_code>/', views.product_type_list, name='product_type_list'),
+    path('products/style/<str:style_code>/', views.product_style_list, name='product_style_list'),
+    path('products/group/<int:group_id>/', views.product_group_list, name='product_group_list'),
+    path('products/series/<int:series_id>/', views.product_series_list, name='product_series_list'),
     path('products/canvas/', views.product_canvas, name='product_canvas'),
     path('products/canvas/layout/', views.product_canvas_layout, name='product_canvas_layout'),
     path('products/canvas/image/<int:product_id>/', views.product_canvas_image, name='product_canvas_image'),
