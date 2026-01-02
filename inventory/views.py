@@ -1186,14 +1186,25 @@ def _render_filtered_products(request, preset_filters, heading, description):
         for start in quarter_starts
     )
 
-    start_year = today.year - 2
-    year_totals = OrderedDict((year, 0) for year in range(start_year, today.year + 1))
+    rolling_start_date = today - relativedelta(years=3)
+    yearly_periods = []
+
+    for i in range(3):
+        period_start = rolling_start_date + relativedelta(years=i)
+        period_end = period_start + relativedelta(years=1)
+        label = f"{period_start.strftime('%b %d, %Y')} - {period_end.strftime('%b %d, %Y')}"
+        yearly_periods.append({
+            "start": period_start,
+            "end": period_end,
+            "total": 0,
+            "label": label,
+        })
 
     if variant_ids:
         sales_qs = Sale.objects.filter(
             variant_id__in=variant_ids,
-            date__gte=earliest_quarter_start,
-            date__lt=latest_quarter_end,
+            date__gte=min(rolling_start_date, earliest_quarter_start),
+            date__lt=max(latest_quarter_end, today),
         ).values("date", "sold_quantity", "return_quantity")
 
         for sale in sales_qs:
@@ -1204,12 +1215,15 @@ def _render_filtered_products(request, preset_filters, heading, description):
             if sale_quarter_key in quarter_totals:
                 quarter_totals[sale_quarter_key] += net_sold
 
-            if sale_date.year in year_totals:
-                year_totals[sale_date.year] += net_sold
+            for period in yearly_periods:
+                if period["start"] <= sale_date < period["end"]:
+                    period["total"] += net_sold
+                    break
 
     quarterly_values = list(quarter_totals.values())
     yearly_sales = [
-        {"year": year, "total": total} for year, total in year_totals.items()
+        {"label": period["label"], "total": period["total"]}
+        for period in yearly_periods
     ]
 
     context.update(

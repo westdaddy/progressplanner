@@ -23,7 +23,7 @@
         <ul class="collection">
           {% for entry in yearly_sales %}
             <li class="collection-item" style="border-left: 3px solid #26a69a;">
-              <strong>{{ entry.year }}</strong>
+              <strong>{{ entry.label }}</strong>
               <span class="secondary-content teal-text text-darken-2">{{ entry.total }}</span>
             </li>
           {% empty %}
