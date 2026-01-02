@@ -59,6 +59,7 @@
       gap: 6px;
       background: #e0f2f1;
       border: 1px solid #b2dfdb;
+      border-radius: 0;
     }
 
     .chip__remove {
@@ -72,27 +73,19 @@
     }
 
     .filter-card__toggle {
-      border-radius: 50%;
-      height: 34px;
-      width: 34px;
-      min-width: 34px;
       padding: 0;
-      border: 1px solid #cfd8dc;
+      border: none;
+      background: transparent;
       color: #546e7a;
       box-shadow: none;
-    }
-
-    .filter-card__toggle:hover,
-    .filter-card--expanded .filter-card__toggle {
-      background: #eceff1;
     }
 
     .filter-card__toggle-symbol {
       display: inline-block;
       font-size: 18px;
-      line-height: 32px;
-      width: 100%;
-      text-align: center;
+      line-height: 1;
+      width: 24px;
+      text-align: right;
     }
 
     .filter-card__options {
@@ -102,30 +95,32 @@
     }
 
     .option-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
+      display: block;
       margin: 0 0 12px;
     }
 
     .filter-option {
-      border: 1px dashed #cfd8dc;
-      border-radius: 16px;
-      padding: 6px 10px;
-      background: #fafafa;
-      color: #455a64;
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 6px 0;
+      border: none;
+      background: transparent;
+      color: #039be5;
+      font-weight: 700;
       cursor: pointer;
-      transition: background 0.2s ease;
+      text-decoration: underline;
+      transition: color 0.2s ease;
     }
 
     .filter-option:hover {
-      background: #eceff1;
+      color: #0277bd;
     }
 
-    .filter-card__actions {
+    .filter-bar__footer {
       display: flex;
-      gap: 8px;
-      justify-content: flex-start;
+      justify-content: flex-end;
+      margin-top: 8px;
     }
   </style>
   <h3>{{ filter_heading }}</h3>
@@ -134,13 +129,13 @@
   {% endif %}
 
   {% if filter_controls %}
-    <div class="filter-bar">
-      <div
-        class="card-panel filter-card"
-        data-field-name="{{ filter_controls.field_name }}"
-        data-category-label="{{ filter_controls.category_title }}"
-      >
-        <form method="get" class="filter-card__form">
+    <form method="get" class="filter-bar__form">
+      <div class="filter-bar">
+        <div
+          class="card-panel filter-card"
+          data-field-name="{{ filter_controls.field_name }}"
+          data-category-label="{{ filter_controls.category_title }}"
+        >
           <div class="filter-card__header">
             <div style="flex: 1; min-width: 0;">
               <p class="grey-text text-darken-1" style="margin: 0 0 6px;" data-filter-heading>
@@ -184,20 +179,18 @@
                 <p class="grey-text text-darken-1" style="margin: 0;">No options available.</p>
               {% endfor %}
             </div>
-
-            <div class="filter-card__actions">
-              <div data-hidden-inputs></div>
-              <button type="submit" class="btn waves-effect waves-light">
-                Apply
-              </button>
-              <button type="button" class="btn-flat filter-card__toggle" aria-expanded="true" aria-controls="filter-options">
-                Cancel
-              </button>
-            </div>
           </div>
-        </form>
+
+          <div data-hidden-inputs></div>
+        </div>
       </div>
-    </div>
+
+      <div class="filter-bar__footer">
+        <button type="submit" class="btn waves-effect waves-light">
+          Apply
+        </button>
+      </div>
+    </form>
   {% endif %}
 
   <div class="row">
