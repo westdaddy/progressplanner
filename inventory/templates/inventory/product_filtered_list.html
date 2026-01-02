@@ -1,5 +1,5 @@
 {% extends 'inventory/base.html' %}
-{% block title %}Products - {{ filter_heading }}{% endblock %}
+{% block title %}Products{% endblock %}
 
 {% block content %}
 <div class="section">
@@ -19,6 +19,24 @@
       flex: 0 0 15%;
       max-width: 20%;
       min-width: 245px;
+    }
+
+    .filter-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin: 0 0 12px;
+    }
+
+    .filter-title {
+      margin: 0 0 6px;
+    }
+
+    .filter-showing {
+      margin: 0;
+      color: #546e7a;
+      font-weight: 600;
     }
 
     @media (max-width: 992px) {
@@ -117,25 +135,42 @@
       color: #0277bd;
     }
 
-    .filter-bar__footer {
-      display: flex;
-      justify-content: flex-end;
-      margin-top: 8px;
-    }
-
     .filter-divider {
       border-bottom: 1px solid #e0e0e0;
       margin: 12px 0 20px;
       padding-bottom: 8px;
     }
-  </style>
-  <h3>{{ filter_heading }}</h3>
-  {% if filter_description %}
-    <p class="grey-text text-darken-1">{{ filter_description }}</p>
-  {% endif %}
 
+    .filter-apply-button {
+      background: #f5f5f5;
+      color: #455a64;
+      border: 1px solid #dcdcdc;
+      border-radius: 10px;
+      box-shadow: none;
+      text-transform: none;
+      padding: 8px 14px;
+      opacity: 0.5;
+      transition: opacity 0.2s ease, color 0.2s ease;
+      cursor: default;
+    }
+
+    .filter-apply-button.is-dirty {
+      opacity: 1;
+      cursor: pointer;
+    }
+  </style>
   {% if filter_controls %}
     <form method="get" class="filter-bar__form">
+      <div class="filter-section-header">
+        <div>
+          <h3 class="filter-title">Products</h3>
+          <p class="filter-showing">Showing: {{ showing_summary }}</p>
+        </div>
+        <button type="submit" class="btn filter-apply-button" disabled>
+          Apply
+        </button>
+      </div>
+
       <div class="filter-bar">
         {% for control in filter_controls %}
           {% with option_id="filter-options-"|add:forloop.counter %}
@@ -194,14 +229,8 @@
           {% endwith %}
         {% endfor %}
       </div>
-
-      <div class="filter-bar__footer">
-        <button type="submit" class="btn waves-effect waves-light">
-          Apply
-        </button>
-      </div>
+      <div class="filter-divider"></div>
     </form>
-    <div class="filter-divider"></div>
   {% endif %}
 
   <div class="row">
@@ -249,6 +278,27 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
     (function() {
+      const filterControllers = [];
+      const applyButton = document.querySelector('.filter-apply-button');
+
+      const selectionsDiffer = (a, b) => {
+        if (a.length !== b.length) return true;
+        return a.some((value, index) => value !== b[index]);
+      };
+
+      const rebuildApplyState = () => {
+        if (!applyButton) return;
+
+        const isDirty = filterControllers.some((controller) => {
+          const current = controller.getSelection();
+          const initial = controller.initialSelection || [];
+          return selectionsDiffer(current, initial);
+        });
+
+        applyButton.disabled = !isDirty;
+        applyButton.classList.toggle('is-dirty', isDirty);
+      };
+
       const initFilterCard = (filterCard) => {
         const optionPanel = filterCard.querySelector('.filter-card__options');
         const toggleButtons = filterCard.querySelectorAll('.filter-card__toggle');
@@ -296,6 +346,21 @@
           }
         };
 
+        const notifyChange = () => {
+          rebuildApplyState();
+        };
+
+        const getSelection = () => {
+          const values = [];
+          if (selectedChips) {
+            selectedChips.querySelectorAll('[data-selected-value]').forEach((chip) => {
+              const value = chip.getAttribute('data-selected-value');
+              if (value) values.push(value);
+            });
+          }
+          return values.sort();
+        };
+
         const removeOption = (chip) => {
           const value = chip.getAttribute('data-selected-value');
           const labelNode = chip.querySelector('.chip__label');
@@ -316,6 +381,7 @@
           ensurePlaceholder();
           syncHiddenInputs();
           updateHeading();
+          notifyChange();
         };
 
         const addOption = (value, label, optionBtn) => {
@@ -345,6 +411,7 @@
           ensurePlaceholder();
           syncHiddenInputs();
           updateHeading();
+          notifyChange();
         };
 
         if (availableOptions) {
@@ -371,6 +438,8 @@
         syncHiddenInputs();
         updateHeading();
 
+        const initialSelection = getSelection();
+
         const setExpanded = (expanded) => {
           if (!optionPanel) return;
           optionPanel.hidden = !expanded;
@@ -387,15 +456,17 @@
           setExpanded,
           isExpanded: () => optionPanel && !optionPanel.hidden,
           toggleButtons,
+          getSelection,
+          initialSelection,
         };
       };
-
-      const filterControllers = [];
 
       document.querySelectorAll('.filter-card').forEach((card) => {
         const controller = initFilterCard(card);
         filterControllers.push(controller);
       });
+
+      rebuildApplyState();
 
       const setAllExpanded = (expanded) => {
         filterControllers.forEach((controller) => controller.setExpanded(expanded));

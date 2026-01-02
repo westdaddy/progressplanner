@@ -32,7 +32,6 @@
       <a href="{% url 'home' %}" class="brand-logo"><img src="/media/logo.png"></a>
       <ul class="right hide-on-med-and-down">
         <li class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}"><a href="{% url 'home' %}">Home</a></li>
-        <li class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"><a href="{% url 'dashboard' %}">Dashboard</a></li>
         <li class="{% if request.resolver_match.url_name == 'product_filtered' or request.resolver_match.url_name == 'product_list' or request.resolver_match.url_name == 'product_type_list' or request.resolver_match.url_name == 'product_style_list' or request.resolver_match.url_name == 'product_group_list' or request.resolver_match.url_name == 'product_series_list' %}active{% endif %}"><a href="{% url 'product_filtered' %}">Products</a></li>
         <li class="{% if request.resolver_match.url_name == 'product_canvas' %}active{% endif %}"><a href="{% url 'product_canvas' %}">Product Canvas</a></li>
         <li class="{% if request.resolver_match.url_name == 'inventory_snapshots' %}active{% endif %}"><a href="{% url 'inventory_snapshots' %}">Inventory</a></li>
