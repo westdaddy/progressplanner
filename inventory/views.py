@@ -1199,19 +1199,25 @@ def _render_filtered_products(
 
     filter_controls: list[dict[str, Any]] = []
 
-    def build_control(category_label: str, field_name: str, options: list[dict[str, Any]]):
+    def build_control(
+        category_label: str,
+        field_name: str,
+        options: list[dict[str, Any]],
+        display_label: Optional[str] = None,
+    ):
+        display_label = display_label or category_label.capitalize()
         selected_labels = [
             option["label"] for option in options if option.get("checked")
         ]
         header_text = (
-            f"{category_label.capitalize()}: {', '.join(selected_labels)}"
+            f"{display_label}: {', '.join(selected_labels)}"
             if selected_labels
-            else f"Filter by {category_label}"
+            else f"Filter by {display_label}"
         )
 
         return {
             "category_label": category_label,
-            "category_title": category_label.capitalize(),
+            "category_title": display_label,
             "field_name": field_name,
             "options": options,
             "selected_labels": sorted(selected_labels, key=str.lower),
@@ -1248,6 +1254,7 @@ def _render_filtered_products(
                 }
                 for value, label in PRODUCT_STYLE_CHOICES
             ],
+            display_label="Product Category",
         ),
         build_control(
             "age",

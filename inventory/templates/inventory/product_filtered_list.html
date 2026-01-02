@@ -164,7 +164,7 @@
               </div>
 
               <div id="{{ option_id }}" class="filter-card__options" hidden>
-                <p class="grey-text text-darken-1" style="margin: 0 0 8px;">Add or remove {{ control.category_label }} options</p>
+                <p class="grey-text text-darken-1" style="margin: 0 0 8px;">Add or remove {{ control.category_title }} options</p>
                 <div class="option-list" data-available-options>
                   {% for option in control.options %}
                     {% if not option.checked %}
@@ -260,11 +260,9 @@
             selectedChips.querySelectorAll('[data-selected-value] .chip__label, .chip__label')
           ).map((node) => node.textContent.trim());
 
-          if (!labels.length) {
-            heading.textContent = `Filter by ${categoryLabel.toLowerCase()}`;
-          } else {
-            heading.textContent = `${categoryLabel}: ${labels.join(', ')}`;
-          }
+          heading.textContent = labels.length
+            ? `${categoryLabel}: ${labels.join(', ')}`
+            : `Filter by ${categoryLabel}`;
         };
 
         const syncHiddenInputs = () => {
