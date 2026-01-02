@@ -26,12 +26,12 @@
 
         <div class="input-field">
           <select name="style_filter" onchange="this.form.submit()">
-            <option value="" {% if not style_filter %}selected{% endif %}>All styles</option>
+            <option value="" {% if not style_filter %}selected{% endif %}>All product categories</option>
             {% for value, label in style_choices %}
               <option value="{{ value }}" {% if style_filter == value %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
           </select>
-          <label class="hide">Style</label>
+          <label class="hide">Product Category</label>
         </div>
 
         <div class="input-field">

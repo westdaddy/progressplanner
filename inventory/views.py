@@ -1,5 +1,5 @@
 from datetime import datetime, date, timedelta
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple
 from django.utils.timezone import now
 from dateutil.relativedelta import relativedelta
 import json
@@ -908,19 +908,70 @@ def dashboard(request):
     return render(request, "inventory/dashboard.html", context)
 
 
-def _build_product_list_context(request):
+def _build_product_list_context(request, preset_filters=None):
     """Return the computed context used by the product list style views."""
 
+    preset_filters = preset_filters or {}
+
+    def _get_filter(name, default=None):
+        request_values = request.GET.getlist(name)
+        if request_values:
+            return request_values if len(request_values) > 1 else request_values[0]
+
+        if request.GET.get(name) is not None:
+            return request.GET.get(name)
+
+        if name in preset_filters:
+            return preset_filters[name]
+
+        return default
+
     # ─── Filter flags ───────────────────────────────────────────────────────────
-    show_retired = request.GET.get("show_retired", "false").lower() == "true"
-    type_filter = request.GET.get("type_filter", None)
-    style_filter = request.GET.get("style_filter", None)
-    age_filter = request.GET.get("age_filter", None)
-    group_filters = [gid.strip() for gid in request.GET.getlist("group_filter") if gid]
-    series_filters = [
-        sid.strip() for sid in request.GET.getlist("series_filter") if sid
-    ]
-    zero_inventory = request.GET.get("zero_inventory", "false").lower() == "true"
+    show_retired = _get_filter("show_retired", "false")
+    show_retired = show_retired if isinstance(show_retired, bool) else str(show_retired).lower() == "true"
+
+    raw_type_filters = _get_filter("type_filter", None)
+    if raw_type_filters is None:
+        raw_type_filters = request.GET.getlist("type_filter")
+        if not raw_type_filters:
+            first_type = request.GET.get("type_filter")
+            raw_type_filters = [first_type] if first_type else []
+    elif not isinstance(raw_type_filters, (list, tuple, set)):
+        raw_type_filters = [raw_type_filters]
+    type_filters = [str(val) for val in raw_type_filters if val]
+
+    raw_style_filters = _get_filter("style_filter", None)
+    if raw_style_filters is None:
+        raw_style_filters = request.GET.getlist("style_filter")
+        if not raw_style_filters:
+            first_style = request.GET.get("style_filter")
+            raw_style_filters = [first_style] if first_style else []
+    elif not isinstance(raw_style_filters, (list, tuple, set)):
+        raw_style_filters = [raw_style_filters]
+    style_filters = [str(val) for val in raw_style_filters if val]
+
+    raw_age_filters = _get_filter("age_filter", None)
+    if raw_age_filters is None:
+        raw_age_filters = request.GET.getlist("age_filter")
+        if not raw_age_filters:
+            first_age = request.GET.get("age_filter")
+            raw_age_filters = [first_age] if first_age else []
+    elif not isinstance(raw_age_filters, (list, tuple, set)):
+        raw_age_filters = [raw_age_filters]
+    age_filters = [str(val) for val in raw_age_filters if val]
+
+    group_filters = preset_filters.get("group_filters")
+    if group_filters is None:
+        group_filters = [gid.strip() for gid in request.GET.getlist("group_filter") if gid]
+    group_filters = [str(g) for g in group_filters]
+
+    series_filters = preset_filters.get("series_filters")
+    if series_filters is None:
+        series_filters = [sid.strip() for sid in request.GET.getlist("series_filter") if sid]
+    series_filters = [str(s) for s in series_filters]
+
+    zero_inventory = _get_filter("zero_inventory", "false")
+    zero_inventory = zero_inventory if isinstance(zero_inventory, bool) else str(zero_inventory).lower() == "true"
 
     # ─── Date ranges ────────────────────────────────────────────────────────────
     today = now().date()
@@ -949,14 +1000,14 @@ def _build_product_list_context(request):
         .annotate(variant_count=Count("variants", distinct=True))
     )
 
-    if type_filter:
-        products_qs = products_qs.filter(type=type_filter)
+    if type_filters:
+        products_qs = products_qs.filter(type__in=type_filters)
 
-    if style_filter:
-        products_qs = products_qs.filter(style=style_filter)
+    if style_filters:
+        products_qs = products_qs.filter(style__in=style_filters)
 
-    if age_filter:
-        products_qs = products_qs.filter(age=age_filter)
+    if age_filters:
+        products_qs = products_qs.filter(age__in=age_filters)
 
     if group_filters:
         products_qs = products_qs.filter(groups__id__in=group_filters).distinct()
@@ -1064,9 +1115,12 @@ def _build_product_list_context(request):
     context = {
         "products": products,
         "show_retired": show_retired,
-        "type_filter": type_filter,
-        "style_filter": style_filter,
-        "age_filter": age_filter,
+        "type_filter": type_filters[0] if type_filters else None,
+        "type_filters": type_filters,
+        "style_filter": style_filters[0] if style_filters else None,
+        "style_filters": style_filters,
+        "age_filter": age_filters[0] if age_filters else None,
+        "age_filters": age_filters,
         "group_filters": group_filters,
         "series_filters": series_filters,
         "zero_inventory": zero_inventory,
@@ -1127,6 +1181,272 @@ def _build_product_list_context(request):
 def product_list(request):
     context = _build_product_list_context(request)
     return render(request, "inventory/product_list.html", context)
+
+
+def _choice_label(choices, key):
+    return dict(choices).get(key)
+
+
+def _render_filtered_products(
+    request,
+    preset_filters=None,
+    heading: Optional[str] = None,
+    description: Optional[str] = None,
+    category: Optional[str] = None,
+):
+    preset_filters = preset_filters or {}
+    context = _build_product_list_context(request, preset_filters=preset_filters)
+
+    filter_controls: list[dict[str, Any]] = []
+
+    def build_control(
+        category_label: str,
+        field_name: str,
+        options: list[dict[str, Any]],
+        display_label: Optional[str] = None,
+    ):
+        display_label = display_label or category_label.capitalize()
+        selected_labels = [
+            option["label"] for option in options if option.get("checked")
+        ]
+        return {
+            "category_label": category_label,
+            "category_title": display_label,
+            "field_name": field_name,
+            "options": options,
+            "selected_labels": sorted(selected_labels, key=str.lower),
+            "header_text": display_label,
+        }
+
+    type_selected = set(context.get("type_filters", []))
+    style_selected = set(context.get("style_filters", []))
+    age_selected = set(context.get("age_filters", []))
+    group_selected = set(context.get("group_filters", []))
+    series_selected = set(context.get("series_filters", []))
+
+    control_candidates = [
+        build_control(
+            "type",
+            "type_filter",
+            [
+                {
+                    "value": value,
+                    "label": label,
+                    "checked": str(value) in type_selected,
+                }
+                for value, label in PRODUCT_TYPE_CHOICES
+            ],
+        ),
+        build_control(
+            "style",
+            "style_filter",
+            [
+                {
+                    "value": value,
+                    "label": label,
+                    "checked": str(value) in style_selected,
+                }
+                for value, label in PRODUCT_STYLE_CHOICES
+            ],
+            display_label="Product Category",
+        ),
+        build_control(
+            "age",
+            "age_filter",
+            [
+                {
+                    "value": value,
+                    "label": label,
+                    "checked": str(value) in age_selected,
+                }
+                for value, label in PRODUCT_AGE_CHOICES
+            ],
+        ),
+        build_control(
+            "group",
+            "group_filter",
+            [
+                {
+                    "value": str(group.id),
+                    "label": group.name,
+                    "checked": str(group.id) in group_selected,
+                }
+                for group in (context.get("group_choices") or Group.objects.all())
+            ],
+        ),
+        build_control(
+            "series",
+            "series_filter",
+            [
+                {
+                    "value": str(series.id),
+                    "label": series.name,
+                    "checked": str(series.id) in series_selected,
+                }
+                for series in (context.get("series_choices") or Series.objects.all())
+            ],
+        ),
+    ]
+
+    if category:
+        # Prioritise the requested category first, followed by the remaining ones
+        control_candidates.sort(
+            key=lambda control: 0
+            if control.get("category_label") == category
+            else 1
+        )
+
+    filter_controls.extend(control_candidates)
+
+    selected_summaries = [
+        f"{control['category_title']}: {', '.join(control['selected_labels'])}"
+        for control in filter_controls
+        if control.get("selected_labels")
+    ]
+
+    if heading is None:
+        heading = "Filtered Products" if selected_summaries else "All Products"
+
+    if description is None:
+        if selected_summaries:
+            description = f"Products filtered by {'; '.join(selected_summaries)}."
+        else:
+            description = "All products with current filters."
+
+    def _quarter_start(dt: date) -> date:
+        quarter_month = ((dt.month - 1) // 3) * 3 + 1
+        return dt.replace(month=quarter_month, day=1)
+
+    products = context.get("products", [])
+    variant_ids = [
+        variant.pk
+        for product in products
+        for variant in getattr(product, "variants_with_inventory", [])
+    ]
+
+    filtered_inventory_total = sum(
+        getattr(product, "total_inventory", 0) for product in products
+    )
+
+    today = now().date()
+    current_quarter_start = _quarter_start(today)
+    earliest_quarter_start = current_quarter_start - relativedelta(months=3 * 11)
+    latest_quarter_end = current_quarter_start + relativedelta(months=3)
+
+    quarter_starts = [
+        earliest_quarter_start + relativedelta(months=3 * i) for i in range(12)
+    ]
+
+    quarter_labels = [
+        f"{start.year} {start.strftime('%b')}" for start in quarter_starts
+    ]
+    quarter_totals = OrderedDict(
+        (
+            (start.year, (start.month - 1) // 3 + 1),
+            0,
+        )
+        for start in quarter_starts
+    )
+
+    rolling_start_date = today - relativedelta(years=3)
+    yearly_periods = []
+
+    for i in range(3):
+        period_start = rolling_start_date + relativedelta(years=i)
+        period_end = period_start + relativedelta(years=1)
+        label = f"{period_start.strftime('%b %d, %Y')} - {period_end.strftime('%b %d, %Y')}"
+        yearly_periods.append({
+            "start": period_start,
+            "end": period_end,
+            "total": 0,
+            "label": label,
+        })
+
+    if variant_ids:
+        sales_qs = Sale.objects.filter(
+            variant_id__in=variant_ids,
+            date__gte=min(rolling_start_date, earliest_quarter_start),
+            date__lt=max(latest_quarter_end, today),
+        ).values("date", "sold_quantity", "return_quantity")
+
+        for sale in sales_qs:
+            sale_date = sale["date"]
+            net_sold = sale["sold_quantity"] - (sale["return_quantity"] or 0)
+            sale_quarter_key = (sale_date.year, (sale_date.month - 1) // 3 + 1)
+
+            if sale_quarter_key in quarter_totals:
+                quarter_totals[sale_quarter_key] += net_sold
+
+            for period in yearly_periods:
+                if period["start"] <= sale_date < period["end"]:
+                    period["total"] += net_sold
+                    break
+
+    quarterly_values = list(quarter_totals.values())
+    yearly_sales = [
+        {"label": period["label"], "total": period["total"]}
+        for period in yearly_periods
+    ]
+
+    context.update(
+        {
+            "filter_heading": heading,
+            "filter_description": description,
+            "filtered_inventory_total": filtered_inventory_total,
+            "quarterly_labels": json.dumps(quarter_labels),
+            "quarterly_sales": json.dumps(quarterly_values),
+            "yearly_sales": yearly_sales,
+            "has_quarterly_data": bool(variant_ids),
+            "filter_controls": filter_controls,
+        }
+    )
+    return render(request, "inventory/product_filtered_list.html", context)
+
+
+def product_filtered(request):
+    primary_category = None
+    for query_name, label in (
+        ("type_filter", "type"),
+        ("style_filter", "style"),
+        ("age_filter", "age"),
+        ("group_filter", "group"),
+        ("series_filter", "series"),
+    ):
+        if request.GET.getlist(query_name) or request.GET.get(query_name):
+            primary_category = label
+            break
+
+    return _render_filtered_products(request, category=primary_category)
+
+
+def product_type_list(request, type_code: str):
+    label = _choice_label(PRODUCT_TYPE_CHOICES, type_code)
+    if not label:
+        raise Http404("Unknown product type")
+
+    query = urlencode({"type_filter": type_code})
+    return redirect(f"{reverse('product_filtered')}?{query}")
+
+
+def product_style_list(request, style_code: str):
+    label = _choice_label(PRODUCT_STYLE_CHOICES, style_code)
+    if not label:
+        raise Http404("Unknown product style")
+
+    query = urlencode({"style_filter": style_code})
+    return redirect(f"{reverse('product_filtered')}?{query}")
+
+
+def product_group_list(request, group_id: int):
+    get_object_or_404(Group, pk=group_id)
+    query = urlencode({"group_filter": group_id})
+    return redirect(f"{reverse('product_filtered')}?{query}")
+
+
+def product_series_list(request, series_id: int):
+    get_object_or_404(Series, pk=series_id)
+    query = urlencode({"series_filter": series_id})
+    return redirect(f"{reverse('product_filtered')}?{query}")
 
 
 def product_canvas(request):
@@ -1279,7 +1599,9 @@ def product_detail(request, product_id):
     Delegates safe stock, variant projection, and sales aggregation to helpers.
     """
     # Fetch product
-    product = get_object_or_404(Product, id=product_id)
+    product = get_object_or_404(
+        Product.objects.prefetch_related("groups", "series"), id=product_id
+    )
 
     # Annotate variants with latest inventory snapshot
     latest_snapshot_sq = (
