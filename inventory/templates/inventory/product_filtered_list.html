@@ -4,11 +4,28 @@
 {% block content %}
 <div class="section">
   <style>
+    .filter-bar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
     .filter-card {
       padding: 12px 16px 4px;
       border: 1px solid #e0e0e0;
       border-radius: 10px;
       box-shadow: none;
+      flex: 0 0 20%;
+      max-width: 20%;
+      min-width: 260px;
+    }
+
+    @media (max-width: 992px) {
+      .filter-card {
+        flex: 1 1 100%;
+        max-width: 100%;
+      }
     }
 
     .filter-card__header {
@@ -23,6 +40,35 @@
       flex-wrap: wrap;
       gap: 8px;
       margin: 0;
+      min-height: 32px;
+    }
+
+    .chip-set .chip__placeholder {
+      background: #eceff1;
+      color: #607d8b;
+      padding: 6px 10px;
+      border-radius: 16px;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .chip--selected {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #e0f2f1;
+      border: 1px solid #b2dfdb;
+    }
+
+    .chip__remove {
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 0 4px;
+      color: #00695c;
+      font-size: 16px;
+      line-height: 1;
     }
 
     .filter-card__toggle {
@@ -55,11 +101,25 @@
       padding-top: 12px;
     }
 
-    .checkbox-set {
+    .option-list {
       display: flex;
-      flex-direction: column;
-      gap: 4px;
+      flex-wrap: wrap;
+      gap: 8px;
       margin: 0 0 12px;
+    }
+
+    .filter-option {
+      border: 1px dashed #cfd8dc;
+      border-radius: 16px;
+      padding: 6px 10px;
+      background: #fafafa;
+      color: #455a64;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .filter-option:hover {
+      background: #eceff1;
     }
 
     .filter-card__actions {
@@ -74,57 +134,69 @@
   {% endif %}
 
   {% if filter_controls %}
-    <div class="card-panel filter-card">
-      <form method="get" class="filter-card__form">
-        <div class="filter-card__header">
-          <div>
-            <p class="grey-text text-darken-1" style="margin: 0 0 6px;">
-              Products filtered by {{ filter_controls.category_label }}
-            </p>
-            <div class="chip-set">
-              {% if filter_controls.selected_labels %}
-                {% for label in filter_controls.selected_labels %}
-                  <span class="chip">{{ label }}</span>
-                {% endfor %}
-              {% else %}
-                <span class="chip grey lighten-3 grey-text text-darken-1">None selected</span>
-              {% endif %}
+    <div class="filter-bar">
+      <div
+        class="card-panel filter-card"
+        data-field-name="{{ filter_controls.field_name }}"
+        data-category-label="{{ filter_controls.category_title }}"
+      >
+        <form method="get" class="filter-card__form">
+          <div class="filter-card__header">
+            <div style="flex: 1; min-width: 0;">
+              <p class="grey-text text-darken-1" style="margin: 0 0 6px;" data-filter-heading>
+                {{ filter_controls.header_text }}
+              </p>
+              <div class="chip-set" data-selected-chips>
+                {% if filter_controls.selected_labels %}
+                  {% for option in filter_controls.options %}
+                    {% if option.checked %}
+                      <span class="chip chip--selected" data-selected-value="{{ option.value }}">
+                        <span class="chip__label">{{ option.label }}</span>
+                        <button type="button" class="chip__remove" aria-label="Remove {{ option.label }}">&times;</button>
+                      </span>
+                    {% endif %}
+                  {% endfor %}
+                {% else %}
+                  <span class="chip__placeholder" data-placeholder>None selected</span>
+                {% endif %}
+              </div>
+            </div>
+            <button type="button" class="btn-flat filter-card__toggle" aria-expanded="false" aria-controls="filter-options">
+              <span class="filter-card__toggle-symbol">+</span>
+            </button>
+          </div>
+
+          <div id="filter-options" class="filter-card__options" hidden>
+            <p class="grey-text text-darken-1" style="margin: 0 0 8px;">Add or remove {{ filter_controls.category_label }} options</p>
+            <div class="option-list" data-available-options>
+              {% for option in filter_controls.options %}
+                {% if not option.checked %}
+                  <button
+                    type="button"
+                    class="filter-option"
+                    data-option-value="{{ option.value }}"
+                    data-option-label="{{ option.label }}"
+                  >
+                    {{ option.label }}
+                  </button>
+                {% endif %}
+              {% empty %}
+                <p class="grey-text text-darken-1" style="margin: 0;">No options available.</p>
+              {% endfor %}
+            </div>
+
+            <div class="filter-card__actions">
+              <div data-hidden-inputs></div>
+              <button type="submit" class="btn waves-effect waves-light">
+                Apply
+              </button>
+              <button type="button" class="btn-flat filter-card__toggle" aria-expanded="true" aria-controls="filter-options">
+                Cancel
+              </button>
             </div>
           </div>
-          <button type="button" class="btn-flat filter-card__toggle" aria-expanded="false" aria-controls="filter-options">
-            <span class="filter-card__toggle-symbol">+</span>
-          </button>
-        </div>
-
-        <div id="filter-options" class="filter-card__options" hidden>
-          <p class="grey-text text-darken-1" style="margin: 0 0 8px;">Choose one or more {{ filter_controls.category_label }}s</p>
-          <div class="checkbox-set">
-            {% for option in filter_controls.options %}
-              <label class="checkbox-field">
-                <input
-                  type="checkbox"
-                  name="{{ filter_controls.field_name }}"
-                  value="{{ option.value }}"
-                  class="filled-in"
-                  {% if option.checked %}checked{% endif %}
-                />
-                <span>{{ option.label }}</span>
-              </label>
-            {% empty %}
-              <p class="grey-text text-darken-1" style="margin: 0;">No options available.</p>
-            {% endfor %}
-          </div>
-
-          <div class="filter-card__actions">
-            <button type="submit" class="btn waves-effect waves-light">
-              Apply
-            </button>
-            <button type="button" class="btn-flat filter-card__toggle" aria-expanded="true" aria-controls="filter-options">
-              Cancel
-            </button>
-          </div>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   {% endif %}
 
@@ -178,6 +250,132 @@
         const optionPanel = filterCard.querySelector('.filter-card__options');
         const toggleButtons = filterCard.querySelectorAll('.filter-card__toggle');
         const symbol = filterCard.querySelector('.filter-card__toggle-symbol');
+        const selectedChips = filterCard.querySelector('[data-selected-chips]');
+        const availableOptions = filterCard.querySelector('[data-available-options]');
+        const hiddenInputs = filterCard.querySelector('[data-hidden-inputs]');
+        const heading = filterCard.querySelector('[data-filter-heading]');
+        const fieldName = filterCard.dataset.fieldName;
+        const categoryLabel = filterCard.dataset.categoryLabel || '';
+
+        const updateHeading = () => {
+          if (!heading || !selectedChips) return;
+
+          const labels = Array.from(
+            selectedChips.querySelectorAll('[data-selected-value] .chip__label, .chip__label')
+          ).map((node) => node.textContent.trim());
+
+          if (!labels.length) {
+            heading.textContent = `Filter by ${categoryLabel.toLowerCase()}`;
+          } else {
+            heading.textContent = `${categoryLabel}: ${labels.join(', ')}`;
+          }
+        };
+
+        const syncHiddenInputs = () => {
+          if (!hiddenInputs || !selectedChips) return;
+          hiddenInputs.innerHTML = '';
+
+          selectedChips.querySelectorAll('[data-selected-value]').forEach((chip) => {
+            const value = chip.getAttribute('data-selected-value');
+            if (!value) return;
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = fieldName;
+            input.value = value;
+            hiddenInputs.appendChild(input);
+          });
+        };
+
+        const ensurePlaceholder = () => {
+          if (!selectedChips) return;
+
+          const hasSelection = !!selectedChips.querySelector('[data-selected-value]');
+          const placeholder = selectedChips.querySelector('[data-placeholder]');
+          if (!hasSelection && !placeholder) {
+            const span = document.createElement('span');
+            span.className = 'chip__placeholder';
+            span.setAttribute('data-placeholder', '');
+            span.textContent = 'None selected';
+            selectedChips.appendChild(span);
+          } else if (hasSelection && placeholder) {
+            placeholder.remove();
+          }
+        };
+
+        const removeOption = (chip) => {
+          const value = chip.getAttribute('data-selected-value');
+          const labelNode = chip.querySelector('.chip__label');
+          const label = labelNode ? labelNode.textContent.trim() : value;
+
+          if (availableOptions) {
+            const optionBtn = document.createElement('button');
+            optionBtn.type = 'button';
+            optionBtn.className = 'filter-option';
+            optionBtn.dataset.optionValue = value;
+            optionBtn.dataset.optionLabel = label;
+            optionBtn.textContent = label;
+            optionBtn.addEventListener('click', () => addOption(value, label, optionBtn));
+            availableOptions.appendChild(optionBtn);
+          }
+
+          chip.remove();
+          ensurePlaceholder();
+          syncHiddenInputs();
+          updateHeading();
+        };
+
+        const addOption = (value, label, optionBtn) => {
+          const chip = document.createElement('span');
+          chip.className = 'chip chip--selected';
+          chip.setAttribute('data-selected-value', value);
+
+          const labelSpan = document.createElement('span');
+          labelSpan.className = 'chip__label';
+          labelSpan.textContent = label;
+
+          const removeBtn = document.createElement('button');
+          removeBtn.type = 'button';
+          removeBtn.className = 'chip__remove';
+          removeBtn.setAttribute('aria-label', `Remove ${label}`);
+          removeBtn.textContent = '×';
+          removeBtn.addEventListener('click', () => removeOption(chip));
+
+          chip.appendChild(labelSpan);
+          chip.appendChild(removeBtn);
+          selectedChips.appendChild(chip);
+
+          if (optionBtn) {
+            optionBtn.remove();
+          }
+
+          ensurePlaceholder();
+          syncHiddenInputs();
+          updateHeading();
+        };
+
+        if (availableOptions) {
+          availableOptions.querySelectorAll('.filter-option').forEach((btn) => {
+            btn.addEventListener('click', () =>
+              addOption(btn.dataset.optionValue, btn.dataset.optionLabel, btn)
+            );
+          });
+        }
+
+        if (selectedChips) {
+          selectedChips.querySelectorAll('.chip__remove').forEach((btn) => {
+            btn.addEventListener('click', (event) => {
+              event.preventDefault();
+              const chip = btn.closest('[data-selected-value]');
+              if (chip) {
+                removeOption(chip);
+              }
+            });
+          });
+        }
+
+        ensurePlaceholder();
+        syncHiddenInputs();
+        updateHeading();
 
         const setExpanded = (expanded) => {
           if (!optionPanel) return;

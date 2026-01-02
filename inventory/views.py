@@ -914,9 +914,17 @@ def _build_product_list_context(request, preset_filters=None):
     preset_filters = preset_filters or {}
 
     def _get_filter(name, default=None):
+        request_values = request.GET.getlist(name)
+        if request_values:
+            return request_values if len(request_values) > 1 else request_values[0]
+
+        if request.GET.get(name) is not None:
+            return request.GET.get(name)
+
         if name in preset_filters:
             return preset_filters[name]
-        return request.GET.get(name, default)
+
+        return default
 
     # ─── Filter flags ───────────────────────────────────────────────────────────
     show_retired = _get_filter("show_retired", "false")
@@ -1170,13 +1178,28 @@ def _choice_label(choices, key):
     return dict(choices).get(key)
 
 
-def _render_filtered_products(request, preset_filters, heading, description):
+def _render_filtered_products(
+    request, preset_filters, heading, description, category: str | None = None
+):
     context = _build_product_list_context(request, preset_filters=preset_filters)
+
+    category = category or (
+        "type"
+        if "type_filter" in preset_filters
+        else "style"
+        if "style_filter" in preset_filters
+        else "group"
+        if "group_filters" in preset_filters
+        else "series"
+        if "series_filters" in preset_filters
+        else None
+    )
 
     filter_controls = None
 
-    if context.get("type_filters"):
-        selected_values = set(context["type_filters"])
+    if category == "type":
+        selected_values = set(context.get("type_filters", []))
+        options = PRODUCT_TYPE_CHOICES
         filter_controls = {
             "category_label": "type",
             "field_name": "type_filter",
@@ -1186,11 +1209,12 @@ def _render_filtered_products(request, preset_filters, heading, description):
                     "label": label,
                     "checked": str(value) in selected_values,
                 }
-                for value, label in PRODUCT_TYPE_CHOICES
+                for value, label in options
             ],
         }
-    elif context.get("style_filters"):
-        selected_values = set(context["style_filters"])
+    elif category == "style":
+        selected_values = set(context.get("style_filters", []))
+        options = PRODUCT_STYLE_CHOICES
         filter_controls = {
             "category_label": "style",
             "field_name": "style_filter",
@@ -1200,11 +1224,11 @@ def _render_filtered_products(request, preset_filters, heading, description):
                     "label": label,
                     "checked": str(value) in selected_values,
                 }
-                for value, label in PRODUCT_STYLE_CHOICES
+                for value, label in options
             ],
         }
-    elif context.get("group_filters"):
-        selected_values = set(context["group_filters"])
+    elif category == "group":
+        selected_values = set(context.get("group_filters", []))
         groups = context.get("group_choices") or Group.objects.all()
         filter_controls = {
             "category_label": "group",
@@ -1218,8 +1242,8 @@ def _render_filtered_products(request, preset_filters, heading, description):
                 for group in groups
             ],
         }
-    elif context.get("series_filters"):
-        selected_values = set(context["series_filters"])
+    elif category == "series":
+        selected_values = set(context.get("series_filters", []))
         series_list = context.get("series_choices") or Series.objects.all()
         filter_controls = {
             "category_label": "series",
@@ -1241,6 +1265,16 @@ def _render_filtered_products(request, preset_filters, heading, description):
             if option.get("checked")
         ]
         filter_controls["selected_labels"] = sorted(selected_labels, key=str.lower)
+        filter_controls["category_title"] = filter_controls["category_label"].capitalize()
+        if selected_labels:
+            filter_controls["header_text"] = (
+                f"{filter_controls['category_title']}: "
+                f"{', '.join(filter_controls['selected_labels'])}"
+            )
+        else:
+            filter_controls["header_text"] = (
+                f"Filter by {filter_controls['category_label']}"
+            )
 
     def _quarter_start(dt: date) -> date:
         quarter_month = ((dt.month - 1) // 3) * 3 + 1
@@ -1340,7 +1374,7 @@ def product_type_list(request, type_code: str):
     heading = f"{label} Products"
     description = f"Products filtered by type: {label}."
     return _render_filtered_products(
-        request, {"type_filter": type_code}, heading, description
+        request, {"type_filter": type_code}, heading, description, category="type"
     )
 
 
@@ -1352,7 +1386,7 @@ def product_style_list(request, style_code: str):
     heading = f"{label} Products"
     description = f"Products filtered by style: {label}."
     return _render_filtered_products(
-        request, {"style_filter": style_code}, heading, description
+        request, {"style_filter": style_code}, heading, description, category="style"
     )
 
 
@@ -1361,7 +1395,11 @@ def product_group_list(request, group_id: int):
     heading = f"{group.name} Products"
     description = f"Products belonging to the {group.name} group."
     return _render_filtered_products(
-        request, {"group_filters": [str(group_id)]}, heading, description
+        request,
+        {"group_filters": [str(group_id)]},
+        heading,
+        description,
+        category="group",
     )
 
 
@@ -1370,7 +1408,11 @@ def product_series_list(request, series_id: int):
     heading = f"{series.name} Products"
     description = f"Products from the {series.name} series."
     return _render_filtered_products(
-        request, {"series_filters": [str(series_id)]}, heading, description
+        request,
+        {"series_filters": [str(series_id)]},
+        heading,
+        description,
+        category="series",
     )
 
 
