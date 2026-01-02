@@ -30,7 +30,35 @@ table#restock tr#totals {
           {% endif %}
         </div>
         <div class="card-content" id="product_card">
-          <span class="title">{{ product.product_name }}</span>
+          <span class="title">{{ product.product_name }}</span><br/>
+          <span>{{ product.type }}</span><br/>
+          <span>{{ product.style }}</span><br/>
+          <span>{{ product.groups }}</span><br/>
+          <span>{{ product.series }}</span><br/>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Product-level Stock Forecast -->
+    <div class="col s9">
+      <div class="card z-depth-2" style="overflow: hidden;">
+        <div class="card-content cyan darken-2 white-text" style="padding: 0;">
+          <div style="padding: 20px;">
+            <!-- Place this where you want the 12-month past/future inventory chart -->
+            <canvas id="inventoryLineChart" height="130"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="row" id="Sold">
+    <div class="col s12">
+      <div class="card z-depth-0">
+        <div class="card-content red lighten-4 white-text">
+          <span class="title">Sales Statistics</span>
           <p>
             <span class="price teal-text text-darken-2">
               ¥{{ product.retail_price|floatformat:"0" }}
@@ -51,30 +79,6 @@ table#restock tr#totals {
               {{ sz }}: {{ val }}{% if not forloop.last %}<br/> {% endif %}
             {% endfor %} / month
           </p>
-
-        </div>
-      </div>
-    </div>
-
-
-    <!-- Product-level Stock Forecast -->
-    <div class="col s9">
-      <div class="card z-depth-2" style="overflow: hidden;">
-        <div class="card-content cyan darken-2 white-text" style="padding: 0;">
-          <div style="padding: 20px;">
-            <!-- Place this where you want the 12-month past/future inventory chart -->
-            <canvas id="inventoryLineChart" height="130"></canvas>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-
-  <div class="row">
-    <div class="col s12">
-      <div class="card z-depth-0">
-        <div class="card-content red lighten-4 white-text">
         </div>
       </div>
     </div>
