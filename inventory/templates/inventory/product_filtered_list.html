@@ -1,0 +1,252 @@
+{% extends 'inventory/base.html' %}
+{% block title %}Products - {{ filter_heading }}{% endblock %}
+
+{% block content %}
+<div class="section">
+  <style>
+    .filter-card {
+      padding: 12px 16px 4px;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      box-shadow: none;
+    }
+
+    .filter-card__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .chip-set {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0;
+    }
+
+    .filter-card__toggle {
+      border-radius: 50%;
+      height: 34px;
+      width: 34px;
+      min-width: 34px;
+      padding: 0;
+      border: 1px solid #cfd8dc;
+      color: #546e7a;
+      box-shadow: none;
+    }
+
+    .filter-card__toggle:hover,
+    .filter-card--expanded .filter-card__toggle {
+      background: #eceff1;
+    }
+
+    .filter-card__toggle-symbol {
+      display: inline-block;
+      font-size: 18px;
+      line-height: 32px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .filter-card__options {
+      border-top: 1px solid #eceff1;
+      margin-top: 12px;
+      padding-top: 12px;
+    }
+
+    .checkbox-set {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin: 0 0 12px;
+    }
+
+    .filter-card__actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-start;
+    }
+  </style>
+  <h3>{{ filter_heading }}</h3>
+  {% if filter_description %}
+    <p class="grey-text text-darken-1">{{ filter_description }}</p>
+  {% endif %}
+
+  {% if filter_controls %}
+    <div class="card-panel filter-card">
+      <form method="get" class="filter-card__form">
+        <div class="filter-card__header">
+          <div>
+            <p class="grey-text text-darken-1" style="margin: 0 0 6px;">
+              Products filtered by {{ filter_controls.category_label }}
+            </p>
+            <div class="chip-set">
+              {% if filter_controls.selected_labels %}
+                {% for label in filter_controls.selected_labels %}
+                  <span class="chip">{{ label }}</span>
+                {% endfor %}
+              {% else %}
+                <span class="chip grey lighten-3 grey-text text-darken-1">None selected</span>
+              {% endif %}
+            </div>
+          </div>
+          <button type="button" class="btn-flat filter-card__toggle" aria-expanded="false" aria-controls="filter-options">
+            <span class="filter-card__toggle-symbol">+</span>
+          </button>
+        </div>
+
+        <div id="filter-options" class="filter-card__options" hidden>
+          <p class="grey-text text-darken-1" style="margin: 0 0 8px;">Choose one or more {{ filter_controls.category_label }}s</p>
+          <div class="checkbox-set">
+            {% for option in filter_controls.options %}
+              <label class="checkbox-field">
+                <input
+                  type="checkbox"
+                  name="{{ filter_controls.field_name }}"
+                  value="{{ option.value }}"
+                  class="filled-in"
+                  {% if option.checked %}checked{% endif %}
+                />
+                <span>{{ option.label }}</span>
+              </label>
+            {% empty %}
+              <p class="grey-text text-darken-1" style="margin: 0;">No options available.</p>
+            {% endfor %}
+          </div>
+
+          <div class="filter-card__actions">
+            <button type="submit" class="btn waves-effect waves-light">
+              Apply
+            </button>
+            <button type="button" class="btn-flat filter-card__toggle" aria-expanded="true" aria-controls="filter-options">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  {% endif %}
+
+  <div class="row">
+    <div class="col s12 m4">
+      <div class="card-panel">
+        <h6 class="grey-text text-darken-1">Total In Stock</h6>
+        <h4 class="teal-text text-darken-2" style="margin-top: 0;">{{ filtered_inventory_total }}</h4>
+        <p class="grey-text text-darken-1" style="margin-bottom: 0;">Units across all matching products</p>
+      </div>
+    </div>
+
+    <div class="col s12 m4">
+      <div class="card-panel">
+        <h6 class="grey-text text-darken-1">Total Sold by Year (last 3 years)</h6>
+        <ul class="collection">
+          {% for entry in yearly_sales %}
+            <li class="collection-item" style="border-left: 3px solid #26a69a;">
+              <strong>{{ entry.label }}</strong>
+              <span class="secondary-content teal-text text-darken-2">{{ entry.total }}</span>
+            </li>
+          {% empty %}
+            <li class="collection-item">No sales data available.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <div class="col s12 m4">
+      <div class="card-panel">
+        <h6 class="grey-text text-darken-1">Quarterly Sales (last 12 quarters)</h6>
+        {% if has_quarterly_data %}
+          <canvas id="quarterlySalesChart" height="220"></canvas>
+        {% else %}
+          <p class="grey-text text-darken-1" style="margin: 0;">No sales recorded in this period.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% include 'inventory/snippets/product_card_default.html' %}
+</div>
+{% endblock %}
+
+{% block extrajs %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    (function() {
+      const filterCard = document.querySelector('.filter-card');
+      if (filterCard) {
+        const optionPanel = filterCard.querySelector('.filter-card__options');
+        const toggleButtons = filterCard.querySelectorAll('.filter-card__toggle');
+        const symbol = filterCard.querySelector('.filter-card__toggle-symbol');
+
+        const setExpanded = (expanded) => {
+          if (!optionPanel) return;
+          optionPanel.hidden = !expanded;
+          filterCard.classList.toggle('filter-card--expanded', expanded);
+          toggleButtons.forEach((btn) => btn.setAttribute('aria-expanded', expanded));
+          if (symbol) {
+            symbol.textContent = expanded ? '−' : '+';
+          }
+        };
+
+        toggleButtons.forEach((btn) => {
+          btn.addEventListener('click', (event) => {
+            event.preventDefault();
+            const isExpanded = optionPanel && !optionPanel.hidden;
+            setExpanded(!isExpanded);
+          });
+        });
+
+        setExpanded(false);
+      }
+
+      const labels = {{ quarterly_labels|safe }};
+      const dataPoints = {{ quarterly_sales|safe }};
+
+      if (!dataPoints || !dataPoints.length || !document.getElementById('quarterlySalesChart')) {
+        return;
+      }
+
+      const ctx = document.getElementById('quarterlySalesChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Units Sold',
+            data: dataPoints,
+            backgroundColor: 'rgba(38, 166, 154, 0.5)',
+            borderColor: '#26a69a',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (context) => `${context.parsed.y} units`
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Quarter (Year/Month)'
+              }
+            },
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Number Sold'
+              }
+            }
+          }
+        }
+      });
+    })();
+  </script>
+{% endblock %}
