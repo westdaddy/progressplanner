@@ -12,13 +12,13 @@
     }
 
     .filter-card {
-      padding: 12px 16px 4px;
+      padding: 12px 16px 10px;
       border: 1px solid #e0e0e0;
       border-radius: 10px;
       box-shadow: none;
-      flex: 0 0 20%;
+      flex: 0 0 15%;
       max-width: 20%;
-      min-width: 260px;
+      min-width: 245px;
     }
 
     @media (max-width: 992px) {
@@ -374,18 +374,36 @@
           }
         };
 
-        toggleButtons.forEach((btn) => {
-          btn.addEventListener('click', (event) => {
-            event.preventDefault();
-            const isExpanded = optionPanel && !optionPanel.hidden;
-            setExpanded(!isExpanded);
-          });
-        });
-
         setExpanded(false);
+
+        return {
+          setExpanded,
+          isExpanded: () => optionPanel && !optionPanel.hidden,
+          toggleButtons,
+        };
       };
 
-      document.querySelectorAll('.filter-card').forEach((card) => initFilterCard(card));
+      const filterControllers = [];
+
+      document.querySelectorAll('.filter-card').forEach((card) => {
+        const controller = initFilterCard(card);
+        filterControllers.push(controller);
+      });
+
+      const setAllExpanded = (expanded) => {
+        filterControllers.forEach((controller) => controller.setExpanded(expanded));
+      };
+
+      filterControllers.forEach((controller) => {
+        controller.toggleButtons.forEach((btn) => {
+          btn.addEventListener('click', (event) => {
+            event.preventDefault();
+            const allExpanded = filterControllers.every((c) => c.isExpanded());
+            const newState = !allExpanded;
+            setAllExpanded(newState);
+          });
+        });
+      });
 
       const labels = {{ quarterly_labels|safe }};
       const dataPoints = {{ quarterly_sales|safe }};
