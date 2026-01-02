@@ -8,6 +8,39 @@
     <p class="grey-text text-darken-1">{{ filter_description }}</p>
   {% endif %}
 
+  {% if filter_controls %}
+    <div class="card-panel" style="padding-bottom: 12px;">
+      <form method="get">
+        <div class="row" style="margin-bottom: 0;">
+          <div class="col s12 m9">
+            <p class="grey-text text-darken-1" style="margin: 0 0 8px;">
+              Products filtered by {{ filter_controls.category_label }}:
+            </p>
+            <div class="checkbox-set" style="display: flex; flex-wrap: wrap; gap: 12px;">
+              {% for option in filter_controls.options %}
+                <label class="checkbox-field" style="margin-right: 12px;">
+                  <input
+                    type="checkbox"
+                    name="{{ filter_controls.field_name }}"
+                    value="{{ option.value }}"
+                    class="filled-in"
+                    {% if option.checked %}checked{% endif %}
+                  />
+                  <span>{{ option.label }}</span>
+                </label>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="col s12 m3 right-align">
+            <button type="submit" class="btn waves-effect waves-light" style="margin-top: 12px;">
+              Update filters
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  {% endif %}
+
   <div class="row">
     <div class="col s12 m4">
       <div class="card-panel">
