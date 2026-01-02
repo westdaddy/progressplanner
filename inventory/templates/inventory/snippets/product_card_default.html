@@ -8,6 +8,8 @@
         <div class="col s2 photo">
           {% if product.product_photo %}
             <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" class="circle product-photo-large">
+          {% else %}
+            <img src="{{ MEDIA_URL }}product_photos/product-placeholder.jpg" alt="{{ product.product_name }}" class="circle product-photo-large">
           {% endif %}
         </div>
         <div class="col s10 content">

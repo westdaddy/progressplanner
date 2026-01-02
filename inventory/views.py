@@ -969,23 +969,8 @@ def _build_product_list_context(request):
 
     products = list(products_qs)
 
-    # Default ordering: by style, then type, then age
-    STYLE_ORDER = {
-        code: idx for idx, (code, _) in enumerate(PRODUCT_STYLE_CHOICES)
-    }
-    TYPE_ORDER = {
-        code: idx for idx, (code, _) in enumerate(PRODUCT_TYPE_CHOICES)
-    }
-    AGE_ORDER = {code: idx for idx, (code, _) in enumerate(PRODUCT_AGE_CHOICES)}
-
-    products.sort(
-        key=lambda p: (
-            STYLE_ORDER.get(p.style, len(STYLE_ORDER)),
-            TYPE_ORDER.get(p.type, len(TYPE_ORDER)),
-            AGE_ORDER.get(p.age, len(AGE_ORDER)),
-            p.product_id,
-        )
-    )
+    # Default ordering: by product ID (e.g. PG001, PG002, ...)
+    products.sort(key=lambda p: p.product_id)
 
     # ─── Compute per‐product stats ───────────────────────────────────────────────
     SIZE_ORDER = {
@@ -1076,27 +1061,6 @@ def _build_product_list_context(request):
         products = [p for p in products if p.total_inventory == 0]
 
     # ─── Prepare context & render ───────────────────────────────────────────────
-    view_mode = request.GET.get("view_mode", "card").strip()
-
-    params = []
-    if show_retired:
-        params.append(("show_retired", "true"))
-    if type_filter:
-        params.append(("type_filter", type_filter))
-    if style_filter:
-        params.append(("style_filter", style_filter))
-    if age_filter:
-        params.append(("age_filter", age_filter))
-    for gid in group_filters:
-        params.append(("group_filter", gid))
-    for sid in series_filters:
-        params.append(("series_filter", sid))
-    if zero_inventory:
-        params.append(("zero_inventory", "true"))
-
-    list_query = urlencode(params + [("view_mode", "list")])
-    card_query = urlencode(params + [("view_mode", "card")])
-
     context = {
         "products": products,
         "show_retired": show_retired,
@@ -1111,9 +1075,6 @@ def _build_product_list_context(request):
         "age_choices": PRODUCT_AGE_CHOICES,
         "group_choices": Group.objects.all(),
         "series_choices": Series.objects.all(),
-        "view_mode": view_mode,
-        "list_query": list_query,
-        "card_query": card_query,
     }
 
     # optional groupings (discounted/current/on‐order)
