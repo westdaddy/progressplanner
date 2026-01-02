@@ -1234,6 +1234,14 @@ def _render_filtered_products(request, preset_filters, heading, description):
             ],
         }
 
+    if filter_controls:
+        selected_labels = [
+            option["label"]
+            for option in filter_controls["options"]
+            if option.get("checked")
+        ]
+        filter_controls["selected_labels"] = sorted(selected_labels, key=str.lower)
+
     def _quarter_start(dt: date) -> date:
         quarter_month = ((dt.month - 1) // 3) * 3 + 1
         return dt.replace(month=quarter_month, day=1)
