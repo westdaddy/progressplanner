@@ -18,7 +18,7 @@ table#restock tr#totals {
 <!-- SUMMARY CARDS -->
 <div class="section">
 
-    <h3>Products > {{ product.product_name }}</h3>
+    <h3><a href="{% url 'product_list' %}">Products</a> > {{ product.product_name }}</h3>
 
   <div class="row">
     <!-- Photo and name -->
@@ -65,6 +65,34 @@ table#restock tr#totals {
             <!-- Place this where you want the 12-month past/future inventory chart -->
             <canvas id="inventoryLineChart" height="130"></canvas>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="row">
+    <div class="col s12">
+      <div class="card z-depth-0">
+        <div class="card-content red lighten-4 white-text">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col s12">
+      <div class="card z-depth-0">
+        <div class="card-content blue lighten-4 white-text">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col s12">
+      <div class="card z-depth-0">
+        <div class="card-content yellow lighten-4 white-text">
         </div>
       </div>
     </div>
