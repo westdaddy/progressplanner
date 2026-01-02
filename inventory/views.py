@@ -1188,8 +1188,13 @@ def _choice_label(choices, key):
 
 
 def _render_filtered_products(
-    request, preset_filters, heading, description, category: Optional[str] = None
+    request,
+    preset_filters=None,
+    heading: Optional[str] = None,
+    description: Optional[str] = None,
+    category: Optional[str] = None,
 ):
+    preset_filters = preset_filters or {}
     context = _build_product_list_context(request, preset_filters=preset_filters)
 
     filter_controls: list[dict[str, Any]] = []
@@ -1292,6 +1297,21 @@ def _render_filtered_products(
 
     filter_controls.extend(control_candidates)
 
+    selected_summaries = [
+        f"{control['category_title']}: {', '.join(control['selected_labels'])}"
+        for control in filter_controls
+        if control.get("selected_labels")
+    ]
+
+    if heading is None:
+        heading = "Filtered Products" if selected_summaries else "All Products"
+
+    if description is None:
+        if selected_summaries:
+            description = f"Products filtered by {'; '.join(selected_summaries)}."
+        else:
+            description = "All products with current filters."
+
     def _quarter_start(dt: date) -> date:
         quarter_month = ((dt.month - 1) // 3) * 3 + 1
         return dt.replace(month=quarter_month, day=1)
@@ -1382,16 +1402,29 @@ def _render_filtered_products(
     return render(request, "inventory/product_filtered_list.html", context)
 
 
+def product_filtered(request):
+    primary_category = None
+    for query_name, label in (
+        ("type_filter", "type"),
+        ("style_filter", "style"),
+        ("age_filter", "age"),
+        ("group_filter", "group"),
+        ("series_filter", "series"),
+    ):
+        if request.GET.getlist(query_name) or request.GET.get(query_name):
+            primary_category = label
+            break
+
+    return _render_filtered_products(request, category=primary_category)
+
+
 def product_type_list(request, type_code: str):
     label = _choice_label(PRODUCT_TYPE_CHOICES, type_code)
     if not label:
         raise Http404("Unknown product type")
 
-    heading = f"{label} Products"
-    description = f"Products filtered by type: {label}."
-    return _render_filtered_products(
-        request, {"type_filter": type_code}, heading, description, category="type"
-    )
+    query = urlencode({"type_filter": type_code})
+    return redirect(f"{reverse('product_filtered')}?{query}")
 
 
 def product_style_list(request, style_code: str):
@@ -1399,37 +1432,20 @@ def product_style_list(request, style_code: str):
     if not label:
         raise Http404("Unknown product style")
 
-    heading = f"{label} Products"
-    description = f"Products filtered by style: {label}."
-    return _render_filtered_products(
-        request, {"style_filter": style_code}, heading, description, category="style"
-    )
+    query = urlencode({"style_filter": style_code})
+    return redirect(f"{reverse('product_filtered')}?{query}")
 
 
 def product_group_list(request, group_id: int):
-    group = get_object_or_404(Group, pk=group_id)
-    heading = f"{group.name} Products"
-    description = f"Products belonging to the {group.name} group."
-    return _render_filtered_products(
-        request,
-        {"group_filters": [str(group_id)]},
-        heading,
-        description,
-        category="group",
-    )
+    get_object_or_404(Group, pk=group_id)
+    query = urlencode({"group_filter": group_id})
+    return redirect(f"{reverse('product_filtered')}?{query}")
 
 
 def product_series_list(request, series_id: int):
-    series = get_object_or_404(Series, pk=series_id)
-    heading = f"{series.name} Products"
-    description = f"Products from the {series.name} series."
-    return _render_filtered_products(
-        request,
-        {"series_filters": [str(series_id)]},
-        heading,
-        description,
-        category="series",
-    )
+    get_object_or_404(Series, pk=series_id)
+    query = urlencode({"series_filter": series_id})
+    return redirect(f"{reverse('product_filtered')}?{query}")
 
 
 def product_canvas(request):
