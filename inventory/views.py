@@ -908,19 +908,34 @@ def dashboard(request):
     return render(request, "inventory/dashboard.html", context)
 
 
-def _build_product_list_context(request):
+def _build_product_list_context(request, preset_filters=None):
     """Return the computed context used by the product list style views."""
 
+    preset_filters = preset_filters or {}
+
+    def _get_filter(name, default=None):
+        if name in preset_filters:
+            return preset_filters[name]
+        return request.GET.get(name, default)
+
     # ─── Filter flags ───────────────────────────────────────────────────────────
-    show_retired = request.GET.get("show_retired", "false").lower() == "true"
-    type_filter = request.GET.get("type_filter", None)
-    style_filter = request.GET.get("style_filter", None)
-    age_filter = request.GET.get("age_filter", None)
-    group_filters = [gid.strip() for gid in request.GET.getlist("group_filter") if gid]
-    series_filters = [
-        sid.strip() for sid in request.GET.getlist("series_filter") if sid
-    ]
-    zero_inventory = request.GET.get("zero_inventory", "false").lower() == "true"
+    show_retired = _get_filter("show_retired", "false")
+    show_retired = show_retired if isinstance(show_retired, bool) else str(show_retired).lower() == "true"
+
+    type_filter = _get_filter("type_filter", None)
+    style_filter = _get_filter("style_filter", None)
+    age_filter = _get_filter("age_filter", None)
+
+    group_filters = preset_filters.get("group_filters")
+    if group_filters is None:
+        group_filters = [gid.strip() for gid in request.GET.getlist("group_filter") if gid]
+
+    series_filters = preset_filters.get("series_filters")
+    if series_filters is None:
+        series_filters = [sid.strip() for sid in request.GET.getlist("series_filter") if sid]
+
+    zero_inventory = _get_filter("zero_inventory", "false")
+    zero_inventory = zero_inventory if isinstance(zero_inventory, bool) else str(zero_inventory).lower() == "true"
 
     # ─── Date ranges ────────────────────────────────────────────────────────────
     today = now().date()
@@ -1129,6 +1144,144 @@ def product_list(request):
     return render(request, "inventory/product_list.html", context)
 
 
+def _choice_label(choices, key):
+    return dict(choices).get(key)
+
+
+def _render_filtered_products(request, preset_filters, heading, description):
+    context = _build_product_list_context(request, preset_filters=preset_filters)
+
+    def _quarter_start(dt: date) -> date:
+        quarter_month = ((dt.month - 1) // 3) * 3 + 1
+        return dt.replace(month=quarter_month, day=1)
+
+    products = context.get("products", [])
+    variant_ids = [
+        variant.pk
+        for product in products
+        for variant in getattr(product, "variants_with_inventory", [])
+    ]
+
+    filtered_inventory_total = sum(
+        getattr(product, "total_inventory", 0) for product in products
+    )
+
+    today = now().date()
+    current_quarter_start = _quarter_start(today)
+    earliest_quarter_start = current_quarter_start - relativedelta(months=3 * 11)
+    latest_quarter_end = current_quarter_start + relativedelta(months=3)
+
+    quarter_starts = [
+        earliest_quarter_start + relativedelta(months=3 * i) for i in range(12)
+    ]
+
+    quarter_labels = [
+        f"{start.year} {start.strftime('%b')}" for start in quarter_starts
+    ]
+    quarter_totals = OrderedDict(
+        (
+            (start.year, (start.month - 1) // 3 + 1),
+            0,
+        )
+        for start in quarter_starts
+    )
+
+    rolling_start_date = today - relativedelta(years=3)
+    yearly_periods = []
+
+    for i in range(3):
+        period_start = rolling_start_date + relativedelta(years=i)
+        period_end = period_start + relativedelta(years=1)
+        label = f"{period_start.strftime('%b %d, %Y')} - {period_end.strftime('%b %d, %Y')}"
+        yearly_periods.append({
+            "start": period_start,
+            "end": period_end,
+            "total": 0,
+            "label": label,
+        })
+
+    if variant_ids:
+        sales_qs = Sale.objects.filter(
+            variant_id__in=variant_ids,
+            date__gte=min(rolling_start_date, earliest_quarter_start),
+            date__lt=max(latest_quarter_end, today),
+        ).values("date", "sold_quantity", "return_quantity")
+
+        for sale in sales_qs:
+            sale_date = sale["date"]
+            net_sold = sale["sold_quantity"] - (sale["return_quantity"] or 0)
+            sale_quarter_key = (sale_date.year, (sale_date.month - 1) // 3 + 1)
+
+            if sale_quarter_key in quarter_totals:
+                quarter_totals[sale_quarter_key] += net_sold
+
+            for period in yearly_periods:
+                if period["start"] <= sale_date < period["end"]:
+                    period["total"] += net_sold
+                    break
+
+    quarterly_values = list(quarter_totals.values())
+    yearly_sales = [
+        {"label": period["label"], "total": period["total"]}
+        for period in yearly_periods
+    ]
+
+    context.update(
+        {
+            "filter_heading": heading,
+            "filter_description": description,
+            "filtered_inventory_total": filtered_inventory_total,
+            "quarterly_labels": json.dumps(quarter_labels),
+            "quarterly_sales": json.dumps(quarterly_values),
+            "yearly_sales": yearly_sales,
+            "has_quarterly_data": bool(variant_ids),
+        }
+    )
+    return render(request, "inventory/product_filtered_list.html", context)
+
+
+def product_type_list(request, type_code: str):
+    label = _choice_label(PRODUCT_TYPE_CHOICES, type_code)
+    if not label:
+        raise Http404("Unknown product type")
+
+    heading = f"{label} Products"
+    description = f"Products filtered by type: {label}."
+    return _render_filtered_products(
+        request, {"type_filter": type_code}, heading, description
+    )
+
+
+def product_style_list(request, style_code: str):
+    label = _choice_label(PRODUCT_STYLE_CHOICES, style_code)
+    if not label:
+        raise Http404("Unknown product style")
+
+    heading = f"{label} Products"
+    description = f"Products filtered by style: {label}."
+    return _render_filtered_products(
+        request, {"style_filter": style_code}, heading, description
+    )
+
+
+def product_group_list(request, group_id: int):
+    group = get_object_or_404(Group, pk=group_id)
+    heading = f"{group.name} Products"
+    description = f"Products belonging to the {group.name} group."
+    return _render_filtered_products(
+        request, {"group_filters": [str(group_id)]}, heading, description
+    )
+
+
+def product_series_list(request, series_id: int):
+    series = get_object_or_404(Series, pk=series_id)
+    heading = f"{series.name} Products"
+    description = f"Products from the {series.name} series."
+    return _render_filtered_products(
+        request, {"series_filters": [str(series_id)]}, heading, description
+    )
+
+
 def product_canvas(request):
     base_context = _build_product_list_context(request)
     products = base_context.get("products", [])
@@ -1279,7 +1432,9 @@ def product_detail(request, product_id):
     Delegates safe stock, variant projection, and sales aggregation to helpers.
     """
     # Fetch product
-    product = get_object_or_404(Product, id=product_id)
+    product = get_object_or_404(
+        Product.objects.prefetch_related("groups", "series"), id=product_id
+    )
 
     # Annotate variants with latest inventory snapshot
     latest_snapshot_sq = (
