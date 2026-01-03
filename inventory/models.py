@@ -5,29 +5,81 @@ from datetime import date
 # Choice constants shared by Product and ProductVariant
 # ---------------------------------------------------------------------------
 
-PRODUCT_TYPE_CHOICES = [
-    ("gi", "Gi"),
-    ("rg", "Rashguard"),
-    ("dk", "Shorts"),
-    ("ck", "Spats"),
-    ("bt", "Belt"),
-    ("te", "Tee"),
-    ("cn", "Crewneck"),
-    ("ho", "Hoodie"),
-    ("bo", "Bottle"),
-    ("tr", "Trousers"),
-    ("ft", "Finger Tape"),
-    ("br", "Bra"),
-    ("bg", "Bag"),
-    ("jk", "Jacket"),
-]
-
 PRODUCT_STYLE_CHOICES = [
-    ("ap", "Apparel"),
-    ("ac", "Accessories"),
     ("gi", "Gi"),
     ("ng", "Nogi"),
+    ("ap", "Apparel"),
+    ("ac", "Accessories"),
 ]
+
+PRODUCT_TYPE_CHOICES_BY_STYLE = {
+    "gi": [
+        ("gi", "Gi (full set)"),
+        ("tr", "Trousers"),
+        ("jk", "Jacket"),
+        ("bt", "Belt"),
+    ],
+    "ng": [
+        ("rg", "Rashguard"),
+        ("dk", "Shorts"),
+        ("ck", "Spats"),
+    ],
+    "ap": [
+        ("te", "Tee"),
+        ("ho", "Hoodie"),
+        ("jg", "Joggers"),
+        ("cn", "Crewneck"),
+        ("br", "Bra"),
+        ("jk", "Jacket"),
+        ("bg", "Bag"),
+    ],
+    "ac": [
+        ("bg", "Bag"),
+        ("ft", "Finger Tape"),
+        ("bo", "Bottle"),
+    ],
+}
+
+
+def _flatten_type_choices():
+    seen = set()
+    choices = []
+    for style_code, _label in PRODUCT_STYLE_CHOICES:
+        for code, label in PRODUCT_TYPE_CHOICES_BY_STYLE.get(style_code, []):
+            if code in seen:
+                continue
+            seen.add(code)
+            choices.append((code, label))
+    return choices
+
+
+def _build_type_to_styles_map():
+    mapping: dict[str, set[str]] = {}
+    for style_code, type_choices in PRODUCT_TYPE_CHOICES_BY_STYLE.items():
+        for type_code, _label in type_choices:
+            mapping.setdefault(type_code, set()).add(style_code)
+    return mapping
+
+
+PRODUCT_TYPE_CHOICES = _flatten_type_choices()
+PRODUCT_TYPE_TO_STYLES = _build_type_to_styles_map()
+
+
+def get_type_choices_for_styles(styles: list[str] | tuple[str, ...] | set[str] | None):
+    """Return type choices limited to the provided style codes."""
+
+    if not styles:
+        return PRODUCT_TYPE_CHOICES
+
+    selected = []
+    seen = set()
+    for style_code in styles:
+        for code, label in PRODUCT_TYPE_CHOICES_BY_STYLE.get(style_code, []):
+            if code in seen:
+                continue
+            seen.add(code)
+            selected.append((code, label))
+    return selected
 
 PRODUCT_AGE_CHOICES = [
     ("adult", "Adult"),
