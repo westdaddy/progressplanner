@@ -764,7 +764,6 @@ def _build_product_list_context(request, preset_filters=None):
         product.sales_last_6_months = sales_6
         product.sales_speed_12_months = sales_12 / 12 if sales_12 else 0
         product.sales_speed_30_days = sales_30
-        product.sales_speed_6_months = sales_6 / 6
         product.average_sale_price = (
             product.total_sales_value / Decimal(total_sales) if total_sales else None
         )
@@ -836,6 +835,20 @@ def _build_product_list_context(request, preset_filters=None):
         product.time_on_market_months = (
             (today - first_sale).days / Decimal("30") if first_sale else None
         )
+
+        if (
+            product.time_on_market_months
+            and product.time_on_market_months < Decimal("6")
+        ):
+            product.sales_speed_6_months = (
+                Decimal(total_sales) / product.time_on_market_months
+                if product.time_on_market_months > 0
+                else None
+            )
+        else:
+            product.sales_speed_6_months = (
+                Decimal(sales_6) / Decimal("6") if sales_6 is not None else None
+            )
 
         # last order info
         last_item = (
