@@ -45,12 +45,7 @@
                     </span>
                   {% endif %}
                   <div>
-                    <small class="grey-text text-darken-1">
-                      Average Discount
-                      {% if sitewide_average_discount is not None %}
-                        <span class="grey-text">(Site avg {{ sitewide_average_discount|floatformat:1 }}%)</span>
-                      {% endif %}
-                    </small>
+
                     <p class="discount-value">
                       {% if product.average_discount_percentage is not None %}
                         {{ product.average_discount_percentage|floatformat:1 }}%
@@ -58,6 +53,9 @@
                         -
                       {% endif %}
                     </p>
+                    <small class="grey-text text-darken-1">
+                      Average Discount
+                    </small>
                   </div>
                 </div>
                 <div class="metric">
