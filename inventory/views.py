@@ -757,6 +757,67 @@ def _build_product_list_context(request, preset_filters=None):
         product.sales_last_30_days = sales_30
         product.sales_speed_12_months = sales_12 / 12 if sales_12 else 0
         product.sales_speed_30_days = sales_30
+        product.average_sale_price = (
+            product.total_sales_value / Decimal(total_sales) if total_sales else None
+        )
+
+        quantity_expression = Coalesce(F("actual_quantity"), F("quantity"))
+        order_item_totals = OrderItem.objects.filter(
+            product_variant__product=product
+        ).aggregate(
+            total_cost=Coalesce(
+                Sum(
+                    ExpressionWrapper(
+                        F("item_cost_price") * quantity_expression,
+                        output_field=DecimalField(),
+                    )
+                ),
+                Decimal("0.00"),
+            ),
+            total_quantity=Coalesce(Sum(quantity_expression), 0),
+        )
+
+        product.average_cost_price = (
+            order_item_totals["total_cost"]
+            / Decimal(order_item_totals["total_quantity"])
+            if order_item_totals["total_quantity"]
+            else None
+        )
+
+        product.retail_vs_sale_percentage = (
+            (product.average_sale_price / product.retail_price) * Decimal("100")
+            if product.retail_price
+            and product.retail_price > 0
+            and product.average_sale_price
+            else None
+        )
+
+        product.average_discount_percentage = (
+            (
+                (product.retail_price - product.average_sale_price)
+                / product.retail_price
+            )
+            * Decimal("100")
+            if product.retail_price
+            and product.retail_price > 0
+            and product.average_sale_price
+            else None
+        )
+
+        product.profit_amount = (
+            product.average_sale_price - product.average_cost_price
+            if product.average_sale_price is not None
+            and product.average_cost_price is not None
+            else None
+        )
+
+        product.profit_percentage = (
+            (product.profit_amount / product.average_sale_price) * Decimal("100")
+            if product.profit_amount is not None
+            and product.average_sale_price
+            and product.average_sale_price != 0
+            else None
+        )
 
         # last order info
         last_item = (
