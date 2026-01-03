@@ -21,62 +21,7 @@
                 </a>
               </span>
               ({{ product.product_id }})
-              <!-- Variant Stock Dots -->
-              <p class="variant-stock">
-                {% for variant in product.variants_with_inventory %}
-                  {% with stock=variant.latest_inventory|default:0 %}
-                    {% if stock|floatformat:0|to_int > 4 %}
-                      <span class="stock-dot green" data-size="{{ variant.size|default:'N/A' }}" data-stock="{{ stock }}"></span>
-                    {% elif stock|floatformat:0|to_int > 0 %}
-                      <span class="stock-dot orange" data-size="{{ variant.size|default:'N/A' }}" data-stock="{{ stock }}"></span>
-                    {% else %}
-                      <span class="stock-dot red" data-size="{{ variant.size|default:'N/A' }}" data-stock="{{ stock }}"></span>
-                    {% endif %}
-                  {% endwith %}
-                {% endfor %}
-              </p>
             </div>
-          </div>
-          <div class="row table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Ordered</th>
-                  <th>Sold</th>
-                  <th>Current Stock</th>
-                  <th>Cost / Sales</th>
-                  <th>Profit</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td class="ordered">
-                    {% if product.last_order_label %}
-                      {% if product.last_order_date %}
-                        <span class="float grey-text">{{ product.last_order_date }}</span>
-                      {% endif %}
-                      <span class="number">{{ product.last_order_qty }}</span>
-                    {% else %}
-                      <span class="number">-</span>
-                    {% endif %}
-                  </td>
-                  <td class="sold">
-                    <span class="number">{{ product.total_sales|default:0 }}</span>
-                  </td>
-                  <td class="stock">
-                    <span class="number">{{ product.total_inventory|default:0 }}</span>
-                  </td>
-                  <td>
-                    <span class="float middle">¥{{ product.total_sales_value|floatformat:2|default:"0.00" }}</span>
-                    <span class="float top">¥{{ product.last_order_cost|floatformat:2|default:"0.00" }}</span>
-                  </td>
-                  <td class="profit">
-                    <span class="number">¥{{ product.profit|floatformat:2|default:"0.00" }}</span>
-                  </td>
-
-                </tr>
-              </tbody>
-            </table>
           </div>
           <div class="row scorecard-boxes">
             <div class="col s12 m6 l3">
