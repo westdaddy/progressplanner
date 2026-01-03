@@ -804,22 +804,18 @@ def _build_product_list_context(request, preset_filters=None):
             else None
         )
 
-        product.profit_percentage = (
-            (
-                (product.average_sale_price - product.average_cost_price)
-                / product.average_cost_price
-            )
-            * Decimal("100")
-            if product.average_sale_price
-            and product.average_cost_price
-            and product.average_cost_price != 0
-            else None
-        )
-
         product.profit_amount = (
             product.average_sale_price - product.average_cost_price
             if product.average_sale_price is not None
             and product.average_cost_price is not None
+            else None
+        )
+
+        product.profit_percentage = (
+            (product.profit_amount / product.average_sale_price) * Decimal("100")
+            if product.profit_amount is not None
+            and product.average_sale_price
+            and product.average_sale_price != 0
             else None
         )
 

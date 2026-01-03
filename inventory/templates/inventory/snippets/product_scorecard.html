@@ -58,13 +58,10 @@
                     <i class="material-icons white-text">priority_high</i>
                   </span>
                   <div>
-                    <small class="grey-text text-darken-1">Profit per Sale</small>
+                    <small class="grey-text text-darken-1">Gross Margin</small>
                     <p class="profit-value">
-                      {% if product.profit_amount is not None %}
-                        ¥{{ product.profit_amount|floatformat:2 }}
-                        {% if product.profit_percentage is not None %}
-                          <span class="grey-text">({{ product.profit_percentage|floatformat:1 }}%)</span>
-                        {% endif %}
+                      {% if product.profit_percentage is not None %}
+                        {{ product.profit_percentage|floatformat:1 }}%
                       {% else %}
                         -
                       {% endif %}
@@ -72,8 +69,8 @@
                   </div>
                 </div>
                 <div class="metric">
-                  <small class="grey-text">Actual Sold Price</small>
-                  <p class="metric-value">¥{{ product.average_sale_price|floatformat:2|default_if_none:"-" }}</p>
+                  <small class="grey-text">Avg Profit / Sale</small>
+                  <p class="metric-value">¥{{ product.profit_amount|floatformat:2|default_if_none:"-" }}</p>
                 </div>
                 <div class="metric">
                   <small class="grey-text">Avg Cost / Item</small>
