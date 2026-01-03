@@ -1,0 +1,138 @@
+{% load inventory_extras %}
+
+<!-- Product Scorecard List -->
+<ul class="collection">
+  {% for product in products %}
+  <li class="collection-item avatar lighten-4 {% if product.total_sales|default:0 == 0 and product.total_inventory|default:0 == 0 %}new{% endif %}">
+      <div class="row item">
+        <div class="col s2 photo">
+          {% if product.product_photo %}
+            <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" class="circle product-photo-large">
+          {% else %}
+            <img src="{{ MEDIA_URL }}product_photos/product-placeholder.jpg" alt="{{ product.product_name }}" class="circle product-photo-large">
+          {% endif %}
+        </div>
+        <div class="col s10 content">
+          <div class="row title">
+            <div class="col s12">
+              <span class="title">
+                <a href="{% url 'product_detail' product.id %}">
+                  <strong>{{ product.product_name }}</strong>
+                </a>
+              </span>
+              ({{ product.product_id }})
+              <!-- Variant Stock Dots -->
+              <p class="variant-stock">
+                {% for variant in product.variants_with_inventory %}
+                  {% with stock=variant.latest_inventory|default:0 %}
+                    {% if stock|floatformat:0|to_int > 4 %}
+                      <span class="stock-dot green" data-size="{{ variant.size|default:'N/A' }}" data-stock="{{ stock }}"></span>
+                    {% elif stock|floatformat:0|to_int > 0 %}
+                      <span class="stock-dot orange" data-size="{{ variant.size|default:'N/A' }}" data-stock="{{ stock }}"></span>
+                    {% else %}
+                      <span class="stock-dot red" data-size="{{ variant.size|default:'N/A' }}" data-stock="{{ stock }}"></span>
+                    {% endif %}
+                  {% endwith %}
+                {% endfor %}
+              </p>
+            </div>
+          </div>
+          <div class="row table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ordered</th>
+                  <th>Sold</th>
+                  <th>Current Stock</th>
+                  <th>Cost / Sales</th>
+                  <th>Profit</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="ordered">
+                    {% if product.last_order_label %}
+                      {% if product.last_order_date %}
+                        <span class="float grey-text">{{ product.last_order_date }}</span>
+                      {% endif %}
+                      <span class="number">{{ product.last_order_qty }}</span>
+                    {% else %}
+                      <span class="number">-</span>
+                    {% endif %}
+                  </td>
+                  <td class="sold">
+                    <span class="number">{{ product.total_sales|default:0 }}</span>
+                  </td>
+                  <td class="stock">
+                    <span class="number">{{ product.total_inventory|default:0 }}</span>
+                  </td>
+                  <td>
+                    <span class="float middle">¥{{ product.total_sales_value|floatformat:2|default:"0.00" }}</span>
+                    <span class="float top">¥{{ product.last_order_cost|floatformat:2|default:"0.00" }}</span>
+                  </td>
+                  <td class="profit">
+                    <span class="number">¥{{ product.profit|floatformat:2|default:"0.00" }}</span>
+                  </td>
+
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="row scorecard-boxes">
+            <div class="col s12 m6 l3">
+              <div class="card-panel scorecard-box">
+                <span class="grey-text text-darken-1">Profit &amp; Pricing</span>
+                <div class="metric">
+                  <small class="grey-text">Retail vs Actual</small>
+                  <p class="metric-value">
+                    {% if product.retail_vs_sale_percentage is not None %}
+                      {{ product.retail_vs_sale_percentage|floatformat:1 }}%
+                    {% else %}
+                      -
+                    {% endif %}
+                  </p>
+                </div>
+                <div class="metric">
+                  <small class="grey-text">Profit %</small>
+                  <p class="metric-value">
+                    {% if product.profit_percentage is not None %}
+                      {{ product.profit_percentage|floatformat:1 }}%
+                    {% else %}
+                      -
+                    {% endif %}
+                  </p>
+                </div>
+                <div class="metric">
+                  <small class="grey-text">Avg Sale Price</small>
+                  <p class="metric-value">¥{{ product.average_sale_price|floatformat:2|default_if_none:"-" }}</p>
+                </div>
+                <div class="metric">
+                  <small class="grey-text">Avg Cost Price</small>
+                  <p class="metric-value">¥{{ product.average_cost_price|floatformat:2|default_if_none:"-" }}</p>
+                </div>
+              </div>
+            </div>
+            <div class="col s12 m6 l3">
+              <div class="card-panel scorecard-box">
+                <span class="grey-text text-darken-1">Sales Momentum</span>
+                <p class="grey-text">Add sales metrics here.</p>
+              </div>
+            </div>
+            <div class="col s12 m6 l3">
+              <div class="card-panel scorecard-box">
+                <span class="grey-text text-darken-1">Inventory Health</span>
+                <p class="grey-text">Add inventory metrics here.</p>
+              </div>
+            </div>
+            <div class="col s12 m6 l3">
+              <div class="card-panel scorecard-box">
+                <span class="grey-text text-darken-1">Engagement</span>
+                <p class="grey-text">Add engagement metrics here.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </li>
+  {% endfor %}
+</ul>
