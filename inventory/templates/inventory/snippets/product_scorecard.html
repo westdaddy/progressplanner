@@ -27,6 +27,21 @@
             <div class="col s12 m6 l3">
               <div class="card-panel scorecard-box">
                 <span class="grey-text text-darken-1">Pricing Snapshot</span>
+                <div class="discount-highlight">
+                  <span class="discount-icon green lighten-1">
+                    <i class="material-icons white-text">check</i>
+                  </span>
+                  <div>
+                    <small class="grey-text text-darken-1">Average Discount</small>
+                    <p class="discount-value">
+                      {% if product.average_discount_percentage is not None %}
+                        {{ product.average_discount_percentage|floatformat:1 }}%
+                      {% else %}
+                        -
+                      {% endif %}
+                    </p>
+                  </div>
+                </div>
                 <div class="metric">
                   <small class="grey-text">Retail Price</small>
                   <p class="metric-value">¥{{ product.retail_price|floatformat:2|default_if_none:"-" }}</p>
@@ -34,16 +49,6 @@
                 <div class="metric">
                   <small class="grey-text">Avg Actual Sold Price</small>
                   <p class="metric-value">¥{{ product.average_sale_price|floatformat:2|default_if_none:"-" }}</p>
-                </div>
-                <div class="metric">
-                  <small class="grey-text">Avg % Discount</small>
-                  <p class="metric-value">
-                    {% if product.average_discount_percentage is not None %}
-                      {{ product.average_discount_percentage|floatformat:1 }}%
-                    {% else %}
-                      -
-                    {% endif %}
-                  </p>
                 </div>
               </div>
             </div>
