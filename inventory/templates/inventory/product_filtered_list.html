@@ -243,6 +243,14 @@
         <h6 class="grey-text text-darken-1">Total In Stock</h6>
         <h4 class="teal-text text-darken-2" style="margin-top: 0;">{{ filtered_inventory_total }}</h4>
         <p class="grey-text text-darken-1" style="margin-bottom: 0;">Units across all matching products</p>
+        <div class="filter-divider"></div>
+        <h6 class="grey-text text-darken-1" style="margin-top: 0;">Size Breakdown</h6>
+        {% if size_breakdown_values %}
+          <canvas id="sizeBreakdownChart"></canvas>
+          <p class="grey-text text-darken-1" style="margin-bottom: 0;">Sizes across selected products</p>
+        {% else %}
+          <p class="grey-text text-darken-1" style="margin: 0;">No size data available.</p>
+        {% endif %}
       </div>
     </div>
 
@@ -496,6 +504,55 @@
 
       const labels = {{ quarterly_labels|safe }};
       const dataPoints = {{ quarterly_sales|safe }};
+      const sizeLabels = {{ size_breakdown_labels|default:'[]'|safe }};
+      const sizeValues = {{ size_breakdown_values|default:'[]'|safe }};
+
+      const sizeChartElement = document.getElementById('sizeBreakdownChart');
+
+      if (sizeChartElement && sizeLabels && sizeLabels.length && sizeValues && sizeValues.length) {
+        sizeChartElement.height = Math.max(sizeLabels.length * 28, 160);
+        new Chart(sizeChartElement.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: sizeLabels,
+            datasets: [{
+              label: 'Units',
+              data: sizeValues,
+              backgroundColor: 'rgba(38, 166, 154, 0.5)',
+              borderColor: '#26a69a',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (context) => `${context.parsed.x} units`
+                }
+              }
+            },
+            scales: {
+              x: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: 'Units in stock'
+                }
+              },
+              y: {
+                title: {
+                  display: true,
+                  text: 'Size'
+                },
+                ticks: { autoSkip: false }
+              }
+            }
+          }
+        });
+      }
 
       if (!dataPoints || !dataPoints.length || !document.getElementById('quarterlySalesChart')) {
         return;
