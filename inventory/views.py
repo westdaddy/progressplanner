@@ -64,6 +64,7 @@ from .models import (
     PRODUCT_TYPE_CHOICES,
     PRODUCT_STYLE_CHOICES,
     PRODUCT_AGE_CHOICES,
+    PRODUCT_GENDER_CHOICES,
 )
 from .utils import (
     calculate_size_order_mix,
@@ -1004,6 +1005,66 @@ def _render_filtered_products(
         getattr(product, "total_inventory", 0) for product in products
     )
 
+    size_totals: dict[str, int] = {}
+    size_label_map = dict(ProductVariant.SIZE_CHOICES)
+    age_totals: dict[str, int] = {}
+    gender_totals: dict[str, int] = {}
+    age_label_map = dict(PRODUCT_AGE_CHOICES)
+    gender_label_map = dict(PRODUCT_GENDER_CHOICES)
+
+    for product in products:
+        for variant in getattr(product, "variants_with_inventory", []):
+            if not variant.size:
+                continue
+            inventory_count = getattr(variant, "latest_inventory", 0) or 0
+            if inventory_count <= 0:
+                continue
+            size_totals[variant.size] = size_totals.get(variant.size, 0) + inventory_count
+
+        product_age = product.age or "unspecified"
+        product_inventory_total = sum(
+            getattr(variant, "latest_inventory", 0) or 0
+            for variant in getattr(product, "variants_with_inventory", [])
+            if (getattr(variant, "latest_inventory", 0) or 0) > 0
+        )
+
+        if product_inventory_total > 0:
+            age_totals[product_age] = (
+                age_totals.get(product_age, 0) + product_inventory_total
+            )
+
+        for variant in getattr(product, "variants_with_inventory", []):
+            inventory_count = getattr(variant, "latest_inventory", 0) or 0
+            if inventory_count <= 0:
+                continue
+
+            gender_key = variant.gender or "unspecified"
+            gender_totals[gender_key] = (
+                gender_totals.get(gender_key, 0) + inventory_count
+            )
+
+    SIZE_ORDER = {code: idx for idx, (code, _) in enumerate(ProductVariant.SIZE_CHOICES)}
+    ordered_sizes = sorted(size_totals.keys(), key=lambda code: SIZE_ORDER.get(code, 9999))
+    size_breakdown_labels = [size_label_map.get(code, code) for code in ordered_sizes]
+    size_breakdown_values = [size_totals[code] for code in ordered_sizes]
+
+    age_order = {code: idx for idx, (code, _) in enumerate(PRODUCT_AGE_CHOICES)}
+    ordered_ages = sorted(
+        age_totals.keys(), key=lambda code: age_order.get(code, len(age_order))
+    )
+    age_breakdown_labels = [age_label_map.get(code, "Unspecified") for code in ordered_ages]
+    age_breakdown_values = [age_totals[code] for code in ordered_ages]
+
+    gender_order = {code: idx for idx, (code, _) in enumerate(PRODUCT_GENDER_CHOICES)}
+    ordered_genders = sorted(
+        gender_totals.keys(),
+        key=lambda code: gender_order.get(code, len(gender_order)),
+    )
+    gender_breakdown_labels = [
+        gender_label_map.get(code, "Unspecified") for code in ordered_genders
+    ]
+    gender_breakdown_values = [gender_totals[code] for code in ordered_genders]
+
     today = now().date()
     current_quarter_start = _quarter_start(today)
     earliest_quarter_start = current_quarter_start - relativedelta(months=3 * 11)
@@ -1077,6 +1138,12 @@ def _render_filtered_products(
             "showing_summary": " | ".join(selected_labels_flat)
             if selected_labels_flat
             else "All products",
+            "size_breakdown_labels": json.dumps(size_breakdown_labels),
+            "size_breakdown_values": json.dumps(size_breakdown_values),
+            "age_breakdown_labels": json.dumps(age_breakdown_labels),
+            "age_breakdown_values": json.dumps(age_breakdown_values),
+            "gender_breakdown_labels": json.dumps(gender_breakdown_labels),
+            "gender_breakdown_values": json.dumps(gender_breakdown_values),
         }
     )
     return render(request, "inventory/product_filtered_list.html", context)
