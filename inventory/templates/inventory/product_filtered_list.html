@@ -65,7 +65,7 @@
       background: #eceff1;
       color: #607d8b;
       padding: 6px 10px;
-      border-radius: 16px;
+      border-radius: 5px;
       font-size: 13px;
       display: inline-flex;
       align-items: center;
@@ -90,21 +90,17 @@
       line-height: 1;
     }
 
-    .filter-card__toggle {
-      padding: 0;
-      border: none;
-      background: transparent;
-      color: #546e7a;
-      box-shadow: none;
-    }
-
     .filter-card__toggle-symbol {
       display: inline-block;
-      font-size: 18px;
-      line-height: 1;
+      font-size: 22px;
+      line-height: 0;
       width: 24px;
       text-align: right;
+      position:relative;
+      top:-6px;
+      right:-16px;
     }
+
 
     .filter-card__options {
       border-top: 1px solid #eceff1;
@@ -208,7 +204,7 @@
                   </div>
                 </div>
                 <button type="button" class="btn-flat filter-card__toggle" aria-expanded="false" aria-controls="{{ option_id }}">
-                  <span class="filter-card__toggle-symbol">+</span>
+                  <span class="filter-card__toggle-symbol blue">+</span>
                 </button>
               </div>
 
@@ -252,17 +248,7 @@
 
     <div class="col s12 m4">
       <div class="card-panel">
-        <h6 class="grey-text text-darken-1">Total Sold by Year (last 3 years)</h6>
-        <ul class="collection">
-          {% for entry in yearly_sales %}
-            <li class="collection-item" style="border-left: 3px solid #26a69a;">
-              <strong>{{ entry.label }}</strong>
-              <span class="secondary-content teal-text text-darken-2">{{ entry.total }}</span>
-            </li>
-          {% empty %}
-            <li class="collection-item">No sales data available.</li>
-          {% endfor %}
-        </ul>
+
       </div>
     </div>
 
@@ -274,9 +260,26 @@
         {% else %}
           <p class="grey-text text-darken-1" style="margin: 0;">No sales recorded in this period.</p>
         {% endif %}
+
+        <div class="filter-divider"></div>
+
+        <h6 class="grey-text text-darken-1">Total Sold Year on Year (last 3 years)</h6>
+        <ul class="collection">
+          {% for entry in yearly_sales %}
+            <li class="collection-item" style="border-left: 3px solid #26a69a;">
+              <strong>{{ entry.label }}</strong>
+              <span class="secondary-content teal-text text-darken-2">{{ entry.total }}</span>
+            </li>
+          {% empty %}
+            <li class="collection-item">No sales data available.</li>
+          {% endfor %}
+        </ul>
+
       </div>
     </div>
   </div>
+
+  <div class="filter-divider"></div>
 
   {% include 'inventory/snippets/product_card_default.html' %}
 </div>
