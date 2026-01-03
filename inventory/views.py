@@ -921,19 +921,6 @@ def _render_filtered_products(
 
     control_candidates = [
         build_control(
-            "type",
-            "type_filter",
-            [
-                {
-                    "value": value,
-                    "label": label,
-                    "checked": str(value) in type_selected,
-                }
-                for value, label in context.get("type_choices", PRODUCT_TYPE_CHOICES)
-            ],
-            display_label="Product Subcategory",
-        ),
-        build_control(
             "style",
             "style_filter",
             [
@@ -945,6 +932,19 @@ def _render_filtered_products(
                 for value, label in PRODUCT_STYLE_CHOICES
             ],
             display_label="Product Category",
+        ),
+        build_control(
+            "type",
+            "type_filter",
+            [
+                {
+                    "value": value,
+                    "label": label,
+                    "checked": str(value) in type_selected,
+                }
+                for value, label in context.get("type_choices", PRODUCT_TYPE_CHOICES)
+            ],
+            display_label="Product Subcategory",
         ),
         build_control(
             "age",
