@@ -4,15 +4,10 @@
 <ul class="collection">
   {% for product in products %}
   <li class="collection-item avatar lighten-4 {% if product.total_sales|default:0 == 0 and product.total_inventory|default:0 == 0 %}new{% endif %}">
+
       <div class="row item">
-        <div class="col s2 photo">
-          {% if product.product_photo %}
-            <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" class="circle product-photo-large">
-          {% else %}
-            <img src="{{ MEDIA_URL }}product_photos/product-placeholder.jpg" alt="{{ product.product_name }}" class="circle product-photo-large">
-          {% endif %}
-        </div>
-        <div class="col s10 content">
+
+        <div class="col s12 content">
           <div class="row title">
             <div class="col s12">
               <span class="title">
@@ -23,8 +18,25 @@
               ({{ product.product_id }})
             </div>
           </div>
+
+
+
+
+
+
+
           <div class="row scorecard-boxes">
+
+            <div class="col s12 m6 l2 photo">
+              {% if product.product_photo %}
+                <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" class="circle product-photo-large">
+              {% else %}
+                <img src="{{ MEDIA_URL }}product_photos/product-placeholder.jpg" alt="{{ product.product_name }}" class="circle product-photo-large">
+              {% endif %}
+            </div>
+
             <div class="col s12 m6 l3">
+
               <div class="card-panel scorecard-box">
                 <div class="discount-highlight">
                   {% if product.discount_status == "better" %}
@@ -68,6 +80,7 @@
                 </div>
               </div>
             </div>
+
             <div class="col s12 m6 l3">
               <div class="card-panel scorecard-box">
                 <div class="profit-highlight">
@@ -95,7 +108,7 @@
                 </div>
               </div>
             </div>
-            <div class="col s12 m6 l3">
+            <div class="col s12 m6 l2">
               <div class="card-panel scorecard-box">
                 <div class="speed-highlight">
                   <span class="speed-icon amber lighten-1">
@@ -134,7 +147,7 @@
                 </div>
               </div>
             </div>
-            <div class="col s12 m6 l3">
+            <div class="col s12 m6 l2">
               <div class="card-panel scorecard-box">
                 <p class="grey-text">Add engagement metrics here.</p>
               </div>

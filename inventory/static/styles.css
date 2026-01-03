@@ -936,10 +936,13 @@ tr.small {
 
 
 .collection .collection-item.avatar:not(.circle-clipper)>.circle, .collection .collection-item.avatar :not(.circle-clipper)>.circle {
-  height: 150px;
-  width: 150px;
+  height: 190px;
+  width: 190px;
   border-radius: 10px;
   position: relative;
+  left: 0px;
+  top: 9px;
+  border: 1px solid #e1e1e1;
   }
 
 .collection-item .row.item {
