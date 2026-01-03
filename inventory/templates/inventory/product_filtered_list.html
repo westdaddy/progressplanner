@@ -256,6 +256,28 @@
 
     <div class="col s12 m4">
       <div class="card-panel">
+        <h6 class="grey-text text-darken-1">Age & Gender Breakdown</h6>
+        <div class="row" style="margin-bottom: 0;">
+          <div class="col s12">
+            <h6 class="grey-text text-darken-1" style="margin-top: 0;">Age</h6>
+            {% if age_breakdown_values %}
+              <canvas id="ageBreakdownChart"></canvas>
+              <p class="grey-text text-darken-1" style="margin-bottom: 0;">Inventory split by age category</p>
+            {% else %}
+              <p class="grey-text text-darken-1" style="margin: 0;">No age data available.</p>
+            {% endif %}
+          </div>
+
+          <div class="col s12" style="margin-top: 16px;">
+            <h6 class="grey-text text-darken-1" style="margin-top: 0;">Gender</h6>
+            {% if gender_breakdown_values %}
+              <canvas id="genderBreakdownChart"></canvas>
+              <p class="grey-text text-darken-1" style="margin-bottom: 0;">Inventory split by gender</p>
+            {% else %}
+              <p class="grey-text text-darken-1" style="margin: 0;">No gender data available.</p>
+            {% endif %}
+          </div>
+        </div>
 
       </div>
     </div>
@@ -506,6 +528,10 @@
       const dataPoints = {{ quarterly_sales|safe }};
       const sizeLabels = {{ size_breakdown_labels|default:'[]'|safe }};
       const sizeValues = {{ size_breakdown_values|default:'[]'|safe }};
+      const ageLabels = {{ age_breakdown_labels|default:'[]'|safe }};
+      const ageValues = {{ age_breakdown_values|default:'[]'|safe }};
+      const genderLabels = {{ gender_breakdown_labels|default:'[]'|safe }};
+      const genderValues = {{ gender_breakdown_values|default:'[]'|safe }};
 
       const sizeChartElement = document.getElementById('sizeBreakdownChart');
 
@@ -553,6 +579,49 @@
           }
         });
       }
+
+      const renderVerticalBarChart = (elementId, labels, values, categoryTitle) => {
+        const el = document.getElementById(elementId);
+        if (!el || !labels || !labels.length || !values || !values.length) return;
+
+        new Chart(el.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Units',
+              data: values,
+              backgroundColor: 'rgba(38, 166, 154, 0.5)',
+              borderColor: '#26a69a',
+              borderWidth: 1,
+            }],
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (context) => `${context.parsed.y} units`,
+                },
+              },
+            },
+            scales: {
+              x: {
+                title: { display: true, text: categoryTitle },
+              },
+              y: {
+                title: { display: true, text: 'Units in stock' },
+                ticks: { autoSkip: false },
+                beginAtZero: true,
+              },
+            },
+          },
+        });
+      };
+
+      renderVerticalBarChart('ageBreakdownChart', ageLabels, ageValues, 'Age');
+      renderVerticalBarChart('genderBreakdownChart', genderLabels, genderValues, 'Gender');
 
       if (!dataPoints || !dataPoints.length || !document.getElementById('quarterlySalesChart')) {
         return;
