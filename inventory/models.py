@@ -1,5 +1,7 @@
-from django.db import models
 from datetime import date
+from typing import Iterable, Optional
+
+from django.db import models
 
 # ---------------------------------------------------------------------------
 # Choice constants shared by Product and ProductVariant
@@ -65,7 +67,7 @@ PRODUCT_TYPE_CHOICES = _flatten_type_choices()
 PRODUCT_TYPE_TO_STYLES = _build_type_to_styles_map()
 
 
-def get_type_choices_for_styles(styles: list[str] | tuple[str, ...] | set[str] | None):
+def get_type_choices_for_styles(styles: Optional[Iterable[str]]):
     """Return type choices limited to the provided style codes."""
 
     if not styles:
