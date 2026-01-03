@@ -1026,8 +1026,10 @@ def _render_filtered_products(
     age_totals: dict[str, int] = {}
     style_totals: dict[str, int] = {}
     gender_totals: dict[str, int] = {}
+    type_totals_by_style: dict[str, dict[str, int]] = {}
     age_label_map = dict(PRODUCT_AGE_CHOICES)
     style_label_map = dict(PRODUCT_STYLE_CHOICES)
+    type_label_map = dict(PRODUCT_TYPE_CHOICES)
     gender_label_map = dict(PRODUCT_GENDER_CHOICES)
 
     for product in products:
@@ -1055,6 +1057,14 @@ def _render_filtered_products(
             if product_style in style_label_map:
                 style_totals[product_style] = (
                     style_totals.get(product_style, 0) + product_inventory_total
+                )
+
+            if product.type and product_style in style_label_map:
+                style_type_totals = type_totals_by_style.setdefault(
+                    product_style, {}
+                )
+                style_type_totals[product.type] = (
+                    style_type_totals.get(product.type, 0) + product_inventory_total
                 )
 
         for variant in getattr(product, "variants_with_inventory", []):
@@ -1097,6 +1107,49 @@ def _render_filtered_products(
         style_label_map.get(code, "Unspecified") for code in ordered_styles
     ]
     style_breakdown_values = [style_totals[code] for code in ordered_styles]
+
+    selected_style_for_breakdown = next(iter(style_selected)) if len(style_selected) == 1 else None
+
+    category_breakdown_labels = style_breakdown_labels
+    category_breakdown_values = style_breakdown_values
+    category_breakdown_codes = ordered_styles
+    category_breakdown_mode = "style"
+    category_breakdown_style = None
+    category_breakdown_title = "Product Category Breakdown"
+    category_breakdown_description = "Inventory split by product category"
+
+    if selected_style_for_breakdown:
+        type_totals = type_totals_by_style.get(selected_style_for_breakdown, {})
+        if type_totals:
+            type_order = {
+                code: idx for idx, (code, _) in enumerate(PRODUCT_TYPE_CHOICES)
+            }
+            ordered_types = sorted(
+                type_totals.keys(),
+                key=lambda code: type_order.get(code, len(type_order)),
+            )
+            type_label_map_for_style = dict(
+                get_type_choices_for_styles([selected_style_for_breakdown])
+            )
+            type_breakdown_labels = [
+                type_label_map_for_style.get(code, type_label_map.get(code, "Unspecified"))
+                for code in ordered_types
+            ]
+            type_breakdown_values = [type_totals[code] for code in ordered_types]
+
+            category_breakdown_labels = type_breakdown_labels
+            category_breakdown_values = type_breakdown_values
+            category_breakdown_codes = ordered_types
+            category_breakdown_mode = "type"
+            category_breakdown_style = selected_style_for_breakdown
+
+            selected_style_label = style_label_map.get(
+                selected_style_for_breakdown, "Selected"
+            )
+            category_breakdown_title = f"{selected_style_label} Subcategory Breakdown"
+            category_breakdown_description = (
+                f"Inventory split by subcategory within {selected_style_label}"
+            )
 
     today = now().date()
     current_quarter_start = _quarter_start(today)
@@ -1177,9 +1230,13 @@ def _render_filtered_products(
             "age_breakdown_values": json.dumps(age_breakdown_values),
             "gender_breakdown_labels": json.dumps(gender_breakdown_labels),
             "gender_breakdown_values": json.dumps(gender_breakdown_values),
-            "category_breakdown_labels": json.dumps(style_breakdown_labels),
-            "category_breakdown_values": json.dumps(style_breakdown_values),
-            "category_breakdown_codes": json.dumps(ordered_styles),
+            "category_breakdown_labels": json.dumps(category_breakdown_labels),
+            "category_breakdown_values": json.dumps(category_breakdown_values),
+            "category_breakdown_codes": json.dumps(category_breakdown_codes),
+            "category_breakdown_mode": category_breakdown_mode,
+            "category_breakdown_style": category_breakdown_style,
+            "category_breakdown_title": category_breakdown_title,
+            "category_breakdown_description": category_breakdown_description,
             "style_filters_json": json.dumps(style_filters),
         }
     )
