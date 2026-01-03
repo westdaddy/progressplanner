@@ -890,6 +890,7 @@ def _render_filtered_products(
 ):
     preset_filters = preset_filters or {}
     context = _build_product_list_context(request, preset_filters=preset_filters)
+    style_filters = context.get("style_filters", [])
 
     filter_controls: list[dict[str, Any]] = []
 
@@ -1023,8 +1024,10 @@ def _render_filtered_products(
     size_totals: dict[str, int] = {}
     size_label_map = dict(ProductVariant.SIZE_CHOICES)
     age_totals: dict[str, int] = {}
+    style_totals: dict[str, int] = {}
     gender_totals: dict[str, int] = {}
     age_label_map = dict(PRODUCT_AGE_CHOICES)
+    style_label_map = dict(PRODUCT_STYLE_CHOICES)
     gender_label_map = dict(PRODUCT_GENDER_CHOICES)
 
     for product in products:
@@ -1037,6 +1040,7 @@ def _render_filtered_products(
             size_totals[variant.size] = size_totals.get(variant.size, 0) + inventory_count
 
         product_age = product.age or "unspecified"
+        product_style = product.style or "unspecified"
         product_inventory_total = sum(
             getattr(variant, "latest_inventory", 0) or 0
             for variant in getattr(product, "variants_with_inventory", [])
@@ -1047,6 +1051,11 @@ def _render_filtered_products(
             age_totals[product_age] = (
                 age_totals.get(product_age, 0) + product_inventory_total
             )
+
+            if product_style in style_label_map:
+                style_totals[product_style] = (
+                    style_totals.get(product_style, 0) + product_inventory_total
+                )
 
         for variant in getattr(product, "variants_with_inventory", []):
             inventory_count = getattr(variant, "latest_inventory", 0) or 0
@@ -1079,6 +1088,15 @@ def _render_filtered_products(
         gender_label_map.get(code, "Unspecified") for code in ordered_genders
     ]
     gender_breakdown_values = [gender_totals[code] for code in ordered_genders]
+
+    style_order = {code: idx for idx, (code, _) in enumerate(PRODUCT_STYLE_CHOICES)}
+    ordered_styles = sorted(
+        style_totals.keys(), key=lambda code: style_order.get(code, len(style_order))
+    )
+    style_breakdown_labels = [
+        style_label_map.get(code, "Unspecified") for code in ordered_styles
+    ]
+    style_breakdown_values = [style_totals[code] for code in ordered_styles]
 
     today = now().date()
     current_quarter_start = _quarter_start(today)
@@ -1159,6 +1177,10 @@ def _render_filtered_products(
             "age_breakdown_values": json.dumps(age_breakdown_values),
             "gender_breakdown_labels": json.dumps(gender_breakdown_labels),
             "gender_breakdown_values": json.dumps(gender_breakdown_values),
+            "category_breakdown_labels": json.dumps(style_breakdown_labels),
+            "category_breakdown_values": json.dumps(style_breakdown_values),
+            "category_breakdown_codes": json.dumps(ordered_styles),
+            "style_filters_json": json.dumps(style_filters),
         }
     )
     return render(request, "inventory/product_filtered_list.html", context)
