@@ -1004,6 +1004,23 @@ def _render_filtered_products(
         getattr(product, "total_inventory", 0) for product in products
     )
 
+    size_totals: dict[str, int] = {}
+    size_label_map = dict(ProductVariant.SIZE_CHOICES)
+
+    for product in products:
+        for variant in getattr(product, "variants_with_inventory", []):
+            if not variant.size:
+                continue
+            inventory_count = getattr(variant, "latest_inventory", 0) or 0
+            if inventory_count <= 0:
+                continue
+            size_totals[variant.size] = size_totals.get(variant.size, 0) + inventory_count
+
+    SIZE_ORDER = {code: idx for idx, (code, _) in enumerate(ProductVariant.SIZE_CHOICES)}
+    ordered_sizes = sorted(size_totals.keys(), key=lambda code: SIZE_ORDER.get(code, 9999))
+    size_breakdown_labels = [size_label_map.get(code, code) for code in ordered_sizes]
+    size_breakdown_values = [size_totals[code] for code in ordered_sizes]
+
     today = now().date()
     current_quarter_start = _quarter_start(today)
     earliest_quarter_start = current_quarter_start - relativedelta(months=3 * 11)
@@ -1077,6 +1094,8 @@ def _render_filtered_products(
             "showing_summary": " | ".join(selected_labels_flat)
             if selected_labels_flat
             else "All products",
+            "size_breakdown_labels": json.dumps(size_breakdown_labels),
+            "size_breakdown_values": json.dumps(size_breakdown_values),
         }
     )
     return render(request, "inventory/product_filtered_list.html", context)
