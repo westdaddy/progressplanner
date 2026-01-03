@@ -78,6 +78,36 @@
               </tbody>
             </table>
           </div>
+          <div class="row metrics">
+            <div class="col s6 m3">
+              <small class="grey-text">Retail vs Actual</small>
+              <p class="metric-value">
+                {% if product.retail_vs_sale_percentage is not None %}
+                  {{ product.retail_vs_sale_percentage|floatformat:1 }}%
+                {% else %}
+                  -
+                {% endif %}
+              </p>
+            </div>
+            <div class="col s6 m3">
+              <small class="grey-text">Profit %</small>
+              <p class="metric-value">
+                {% if product.profit_percentage is not None %}
+                  {{ product.profit_percentage|floatformat:1 }}%
+                {% else %}
+                  -
+                {% endif %}
+              </p>
+            </div>
+            <div class="col s6 m3">
+              <small class="grey-text">Avg Sale Price</small>
+              <p class="metric-value">¥{{ product.average_sale_price|floatformat:2|default_if_none:"-" }}</p>
+            </div>
+            <div class="col s6 m3">
+              <small class="grey-text">Avg Cost Price</small>
+              <p class="metric-value">¥{{ product.average_cost_price|floatformat:2|default_if_none:"-" }}</p>
+            </div>
+          </div>
         </div>
       </div>
     </li>
