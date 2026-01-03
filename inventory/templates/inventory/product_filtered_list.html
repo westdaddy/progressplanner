@@ -244,6 +244,14 @@
         <h4 class="teal-text text-darken-2" style="margin-top: 0;">{{ filtered_inventory_total }}</h4>
         <p class="grey-text text-darken-1" style="margin-bottom: 0;">Total in stock across all matching products</p>
         <div class="filter-divider"></div>
+        <h6 class="grey-text text-darken-1" style="margin-top: 0;">Product Category Breakdown</h6>
+        {% if category_breakdown_values %}
+          <canvas id="categoryBreakdownChart"></canvas>
+          <p class="grey-text text-darken-1" style="margin-bottom: 0;">Inventory split by product category</p>
+        {% else %}
+          <p class="grey-text text-darken-1" style="margin: 0;">No category data available.</p>
+        {% endif %}
+        <div class="filter-divider"></div>
         <h6 class="grey-text text-darken-1" style="margin-top: 0;">Size Breakdown</h6>
         {% if size_breakdown_values %}
           <canvas id="sizeBreakdownChart"></canvas>
@@ -539,6 +547,83 @@
       const ageValues = {{ age_breakdown_values|default:'[]'|safe }};
       const genderLabels = {{ gender_breakdown_labels|default:'[]'|safe }};
       const genderValues = {{ gender_breakdown_values|default:'[]'|safe }};
+      const categoryLabels = {{ category_breakdown_labels|default:'[]'|safe }};
+      const categoryValues = {{ category_breakdown_values|default:'[]'|safe }};
+      const categoryCodes = {{ category_breakdown_codes|default:'[]'|safe }};
+      const selectedStyles = JSON.parse('{{ style_filters_json|default:"[]"|escapejs }}' || '[]');
+
+      const categoryChartElement = document.getElementById('categoryBreakdownChart');
+      if (
+        categoryChartElement &&
+        categoryLabels &&
+        categoryLabels.length &&
+        categoryValues &&
+        categoryValues.length
+      ) {
+        const CATEGORY_COLORS = {
+          gi: '#42a5f5',
+          ng: '#ab47bc',
+          ap: '#66bb6a',
+          ac: '#ffa726',
+        };
+
+        const selectedStyleSet = Array.isArray(selectedStyles)
+          ? new Set(selectedStyles)
+          : new Set();
+        const hasSelection = selectedStyleSet.size > 0;
+        const totalCategoryUnits = categoryValues.reduce(
+          (sum, value) => sum + value,
+          0
+        );
+
+        const backgroundColors = categoryCodes.map((code) => {
+          const baseColor = CATEGORY_COLORS[code] || '#26a69a';
+          if (!hasSelection) return baseColor;
+          return selectedStyleSet.has(code)
+            ? baseColor
+            : 'rgba(189, 189, 189, 0.5)';
+        });
+
+        const borderColors = categoryCodes.map((code) => {
+          const baseColor = CATEGORY_COLORS[code] || '#26a69a';
+          if (!hasSelection) return baseColor;
+          return selectedStyleSet.has(code)
+            ? baseColor
+            : 'rgba(176, 190, 197, 0.8)';
+        });
+
+        new Chart(categoryChartElement.getContext('2d'), {
+          type: 'pie',
+          data: {
+            labels: categoryLabels,
+            datasets: [
+              {
+                data: categoryValues,
+                backgroundColor: backgroundColors,
+                borderColor: borderColors,
+                borderWidth: 1.5,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: (context) => {
+                    const value = context.parsed;
+                    const percentage = totalCategoryUnits
+                      ? ((value / totalCategoryUnits) * 100).toFixed(1)
+                      : '0.0';
+                    return `${context.label}: ${value} (${percentage}%)`;
+                  },
+                },
+              },
+            },
+          },
+        });
+      }
 
       const sizeChartElement = document.getElementById('sizeBreakdownChart');
 
