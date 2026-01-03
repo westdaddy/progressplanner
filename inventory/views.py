@@ -724,6 +724,9 @@ def _build_product_list_context(request, preset_filters=None):
         code: idx for idx, (code, _) in enumerate(ProductVariant.SIZE_CHOICES)
     }
 
+    sitewide_retail_total = Decimal("0.00")
+    sitewide_actual_total = Decimal("0.00")
+
     for product in products:
         # sort variants by size
         product.variants_with_inventory.sort(key=lambda v: SIZE_ORDER.get(v.size, 9999))
@@ -810,6 +813,15 @@ def _build_product_list_context(request, preset_filters=None):
             and product.average_sale_price
             else None
         )
+
+        if (
+            product.retail_price
+            and product.retail_price > 0
+            and total_sales
+            and product.total_sales_value is not None
+        ):
+            sitewide_retail_total += product.retail_price * Decimal(total_sales)
+            sitewide_actual_total += product.total_sales_value
 
         product.profit_amount = (
             product.average_sale_price - product.average_cost_price
@@ -899,6 +911,29 @@ def _build_product_list_context(request, preset_filters=None):
 
         product.profit = product.total_sales_value - product.last_order_cost
 
+    sitewide_average_discount = (
+        ((sitewide_retail_total - sitewide_actual_total) / sitewide_retail_total)
+        * Decimal("100")
+        if sitewide_retail_total
+        else None
+    )
+
+    discount_tolerance = Decimal("3")
+
+    for product in products:
+        product.discount_status = None
+        if product.average_discount_percentage is None or sitewide_average_discount is None:
+            continue
+
+        diff = product.average_discount_percentage - sitewide_average_discount
+
+        if diff < -discount_tolerance:
+            product.discount_status = "better"
+        elif abs(diff) <= discount_tolerance:
+            product.discount_status = "similar"
+        elif diff > discount_tolerance:
+            product.discount_status = "worse"
+
     # ───  Apply zero‐inventory filter if requested ──────────────────────────────
     if zero_inventory:
         products = [p for p in products if p.total_inventory == 0]
@@ -921,6 +956,7 @@ def _build_product_list_context(request, preset_filters=None):
         "age_choices": PRODUCT_AGE_CHOICES,
         "group_choices": Group.objects.all(),
         "series_choices": Series.objects.all(),
+        "sitewide_average_discount": sitewide_average_discount,
     }
 
     # optional groupings (discounted/current/on‐order)
