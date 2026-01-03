@@ -568,27 +568,7 @@
       const categoryBreakdownMode = '{{ category_breakdown_mode|default:"style" }}';
       const salesCategoryMode = '{{ sales_category_mode|default:"style" }}';
 
-      const CATEGORY_COLORS = {
-        gi: '#42a5f5',
-        ng: '#ab47bc',
-        ap: '#66bb6a',
-        ac: '#ffa726',
-      };
-
-      const TYPE_COLORS = [
-        '#42a5f5',
-        '#ab47bc',
-        '#66bb6a',
-        '#ffa726',
-        '#ef5350',
-        '#26c6da',
-        '#8d6e63',
-        '#7e57c2',
-        '#5c6bc0',
-        '#26a69a',
-      ];
-
-      const CATEGORY_COLORS = {
+      const STYLE_CATEGORY_COLORS = {
         gi: '#42a5f5',
         ng: '#ab47bc',
         ap: '#66bb6a',
@@ -628,7 +608,7 @@
 
         const backgroundColors = categoryCodes.map((code, index) => {
           if (categoryBreakdownMode === 'style') {
-            const baseColor = CATEGORY_COLORS[code] || '#26a69a';
+            const baseColor = STYLE_CATEGORY_COLORS[code] || '#26a69a';
             if (!hasSelection) return baseColor;
             return selectedStyleSet.has(code)
               ? baseColor
@@ -641,7 +621,7 @@
 
         const borderColors = categoryCodes.map((code, index) => {
           if (categoryBreakdownMode === 'style') {
-            const baseColor = CATEGORY_COLORS[code] || '#26a69a';
+            const baseColor = STYLE_CATEGORY_COLORS[code] || '#26a69a';
             if (!hasSelection) return baseColor;
             return selectedStyleSet.has(code)
               ? baseColor
@@ -705,7 +685,7 @@
 
         const salesBackgroundColors = (salesCategoryCodes || []).map((code, index) => {
           if (salesMode === 'style') {
-            const baseColor = CATEGORY_COLORS[code] || '#26a69a';
+            const baseColor = STYLE_CATEGORY_COLORS[code] || '#26a69a';
             if (!hasSalesSelection) return baseColor;
             return selectedStyleSet.has(code)
               ? baseColor
@@ -718,7 +698,7 @@
 
         const salesBorderColors = (salesCategoryCodes || []).map((code, index) => {
           if (salesMode === 'style') {
-            const baseColor = CATEGORY_COLORS[code] || '#26a69a';
+            const baseColor = STYLE_CATEGORY_COLORS[code] || '#26a69a';
             if (!hasSalesSelection) return baseColor;
             return selectedStyleSet.has(code)
               ? baseColor
