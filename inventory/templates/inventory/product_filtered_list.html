@@ -264,29 +264,16 @@
 
     <div class="col s12 m4">
       <div class="card-panel">
-        <h6 class="grey-text text-darken-1">Age & Gender Breakdown</h6>
-        <div class="row" style="margin-bottom: 0;">
-          <div class="col s12">
-            <h6 class="grey-text text-darken-1" style="margin-top: 0;">Age</h6>
-            {% if age_breakdown_values %}
-              <canvas id="ageBreakdownChart"></canvas>
-              <p class="grey-text text-darken-1" style="margin-bottom: 0;">Inventory split by age category</p>
-            {% else %}
-              <p class="grey-text text-darken-1" style="margin: 0;">No age data available.</p>
-            {% endif %}
-          </div>
-
-          <div class="col s12" style="margin-top: 16px;">
-            <h6 class="grey-text text-darken-1" style="margin-top: 0;">Gender</h6>
-            {% if gender_breakdown_values %}
-              <canvas id="genderBreakdownChart"></canvas>
-              <p class="grey-text text-darken-1" style="margin-bottom: 0;">Inventory split by gender</p>
-            {% else %}
-              <p class="grey-text text-darken-1" style="margin: 0;">No gender data available.</p>
-            {% endif %}
-          </div>
-        </div>
-
+        <h4 class="teal-text text-darken-2" style="margin-top: 0;">{{ sales_last_year_total }}</h4>
+        <p class="grey-text text-darken-1" style="margin-bottom: 0;">Items sold in the last 12 months</p>
+        <div class="filter-divider"></div>
+        <h6 class="grey-text text-darken-1" style="margin-top: 0;">Sales by Product Category (last 12 months)</h6>
+        {% if sales_category_values %}
+          <canvas id="salesCategoryChart"></canvas>
+          <p class="grey-text text-darken-1" style="margin-bottom: 0;">Sales split by product category</p>
+        {% else %}
+          <p class="grey-text text-darken-1" style="margin: 0;">No sales data available.</p>
+        {% endif %}
       </div>
     </div>
 
@@ -312,6 +299,31 @@
             <li class="collection-item">No sales data available.</li>
           {% endfor %}
         </ul>
+
+      </div>
+      <div class="card-panel" style="margin-top: 16px;">
+        <h6 class="grey-text text-darken-1">Age & Gender Breakdown</h6>
+        <div class="row" style="margin-bottom: 0;">
+          <div class="col s12">
+            <h6 class="grey-text text-darken-1" style="margin-top: 0;">Age</h6>
+            {% if age_breakdown_values %}
+              <canvas id="ageBreakdownChart"></canvas>
+              <p class="grey-text text-darken-1" style="margin-bottom: 0;">Inventory split by age category</p>
+            {% else %}
+              <p class="grey-text text-darken-1" style="margin: 0;">No age data available.</p>
+            {% endif %}
+          </div>
+
+          <div class="col s12" style="margin-top: 16px;">
+            <h6 class="grey-text text-darken-1" style="margin-top: 0;">Gender</h6>
+            {% if gender_breakdown_values %}
+              <canvas id="genderBreakdownChart"></canvas>
+              <p class="grey-text text-darken-1" style="margin-bottom: 0;">Inventory split by gender</p>
+            {% else %}
+              <p class="grey-text text-darken-1" style="margin: 0;">No gender data available.</p>
+            {% endif %}
+          </div>
+        </div>
 
       </div>
     </div>
@@ -550,8 +562,31 @@
       const categoryLabels = {{ category_breakdown_labels|default:'[]'|safe }};
       const categoryValues = {{ category_breakdown_values|default:'[]'|safe }};
       const categoryCodes = {{ category_breakdown_codes|default:'[]'|safe }};
+      const salesCategoryLabels = {{ sales_category_labels|default:'[]'|safe }};
+      const salesCategoryValues = {{ sales_category_values|default:'[]'|safe }};
+      const salesCategoryCodes = {{ sales_category_codes|default:'[]'|safe }};
       const selectedStyles = JSON.parse('{{ style_filters_json|default:"[]"|escapejs }}' || '[]');
       const categoryBreakdownMode = '{{ category_breakdown_mode|default:"style" }}';
+
+      const CATEGORY_COLORS = {
+        gi: '#42a5f5',
+        ng: '#ab47bc',
+        ap: '#66bb6a',
+        ac: '#ffa726',
+      };
+
+      const TYPE_COLORS = [
+        '#42a5f5',
+        '#ab47bc',
+        '#66bb6a',
+        '#ffa726',
+        '#ef5350',
+        '#26c6da',
+        '#8d6e63',
+        '#7e57c2',
+        '#5c6bc0',
+        '#26a69a',
+      ];
 
       const categoryChartElement = document.getElementById('categoryBreakdownChart');
       if (
@@ -561,26 +596,6 @@
         categoryValues &&
         categoryValues.length
       ) {
-        const CATEGORY_COLORS = {
-          gi: '#42a5f5',
-          ng: '#ab47bc',
-          ap: '#66bb6a',
-          ac: '#ffa726',
-        };
-
-        const TYPE_COLORS = [
-          '#42a5f5',
-          '#ab47bc',
-          '#66bb6a',
-          '#ffa726',
-          '#ef5350',
-          '#26c6da',
-          '#8d6e63',
-          '#7e57c2',
-          '#5c6bc0',
-          '#26a69a',
-        ];
-
         const selectedStyleSet = Array.isArray(selectedStyles)
           ? new Set(selectedStyles)
           : new Set();
@@ -642,6 +657,56 @@
                       ? ((value / totalCategoryUnits) * 100).toFixed(1)
                       : '0.0';
                     return `${context.label}: ${value} (${percentage}%)`;
+                  },
+                },
+              },
+            },
+          },
+        });
+      }
+
+      const salesCategoryChartElement = document.getElementById('salesCategoryChart');
+      if (
+        salesCategoryChartElement &&
+        salesCategoryLabels &&
+        salesCategoryLabels.length &&
+        salesCategoryValues &&
+        salesCategoryValues.length
+      ) {
+        const totalSalesUnits = salesCategoryValues.reduce(
+          (sum, value) => sum + value,
+          0
+        );
+
+        const salesBackgroundColors = (salesCategoryCodes || []).map(
+          (code) => CATEGORY_COLORS[code] || '#26a69a'
+        );
+
+        new Chart(salesCategoryChartElement.getContext('2d'), {
+          type: 'pie',
+          data: {
+            labels: salesCategoryLabels,
+            datasets: [
+              {
+                data: salesCategoryValues,
+                backgroundColor: salesBackgroundColors,
+                borderColor: salesBackgroundColors,
+                borderWidth: 1.5,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: (context) => {
+                    const value = context.parsed;
+                    const percentage = totalSalesUnits
+                      ? ((value / totalSalesUnits) * 100).toFixed(1)
+                      : 0;
+                    return `${context.label}: ${value} units (${percentage}%)`;
                   },
                 },
               },
