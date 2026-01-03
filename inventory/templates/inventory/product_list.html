@@ -16,12 +16,12 @@
 
         <div class="input-field">
           <select name="type_filter" onchange="this.form.submit()">
-            <option value="" {% if not type_filter %}selected{% endif %}>All types</option>
+            <option value="" {% if not type_filter %}selected{% endif %}>All subcategories</option>
             {% for value, label in type_choices %}
               <option value="{{ value }}" {% if type_filter == value %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
           </select>
-          <label class="hide">Type</label>
+          <label class="hide">Product Subcategory</label>
         </div>
 
         <div class="input-field">

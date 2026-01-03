@@ -62,9 +62,11 @@ from .models import (
     Series,
     Referrer,
     PRODUCT_TYPE_CHOICES,
+    PRODUCT_TYPE_TO_STYLES,
     PRODUCT_STYLE_CHOICES,
     PRODUCT_AGE_CHOICES,
     PRODUCT_GENDER_CHOICES,
+    get_type_choices_for_styles,
 )
 from .utils import (
     calculate_size_order_mix,
@@ -630,6 +632,14 @@ def _build_product_list_context(request, preset_filters=None):
         raw_style_filters = [raw_style_filters]
     style_filters = [str(val) for val in raw_style_filters if val]
 
+    if type_filters and not style_filters:
+        derived_styles = {
+            style
+            for type_code in type_filters
+            for style in PRODUCT_TYPE_TO_STYLES.get(type_code, set())
+        }
+        style_filters = list(derived_styles)
+
     raw_age_filters = _get_filter("age_filter", None)
     if raw_age_filters is None:
         raw_age_filters = request.GET.getlist("age_filter")
@@ -639,6 +649,10 @@ def _build_product_list_context(request, preset_filters=None):
     elif not isinstance(raw_age_filters, (list, tuple, set)):
         raw_age_filters = [raw_age_filters]
     age_filters = [str(val) for val in raw_age_filters if val]
+
+    available_type_choices = get_type_choices_for_styles(style_filters or None)
+    allowed_type_codes = {code for code, _ in available_type_choices}
+    type_filters = [t for t in type_filters if t in allowed_type_codes]
 
     group_filters = preset_filters.get("group_filters")
     if group_filters is None:
@@ -804,7 +818,7 @@ def _build_product_list_context(request, preset_filters=None):
         "group_filters": group_filters,
         "series_filters": series_filters,
         "zero_inventory": zero_inventory,
-        "type_choices": PRODUCT_TYPE_CHOICES,
+        "type_choices": available_type_choices,
         "style_choices": PRODUCT_STYLE_CHOICES,
         "age_choices": PRODUCT_AGE_CHOICES,
         "group_choices": Group.objects.all(),
@@ -914,8 +928,9 @@ def _render_filtered_products(
                     "label": label,
                     "checked": str(value) in type_selected,
                 }
-                for value, label in PRODUCT_TYPE_CHOICES
+                for value, label in context.get("type_choices", PRODUCT_TYPE_CHOICES)
             ],
+            display_label="Product Subcategory",
         ),
         build_control(
             "style",
@@ -1170,7 +1185,12 @@ def product_type_list(request, type_code: str):
     if not label:
         raise Http404("Unknown product type")
 
-    query = urlencode({"type_filter": type_code})
+    styles = sorted(PRODUCT_TYPE_TO_STYLES.get(type_code, []))
+    query_params = {"type_filter": type_code}
+    if styles:
+        query_params["style_filter"] = styles[0]
+
+    query = urlencode(query_params)
     return redirect(f"{reverse('product_filtered')}?{query}")
 
 
