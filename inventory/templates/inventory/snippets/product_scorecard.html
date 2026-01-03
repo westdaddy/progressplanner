@@ -26,41 +26,51 @@
           <div class="row scorecard-boxes">
             <div class="col s12 m6 l3">
               <div class="card-panel scorecard-box">
-                <span class="grey-text text-darken-1">Profit &amp; Pricing</span>
+                <span class="grey-text text-darken-1">Pricing Snapshot</span>
                 <div class="metric">
-                  <small class="grey-text">Retail vs Actual</small>
-                  <p class="metric-value">
-                    {% if product.retail_vs_sale_percentage is not None %}
-                      {{ product.retail_vs_sale_percentage|floatformat:1 }}%
-                    {% else %}
-                      -
-                    {% endif %}
-                  </p>
+                  <small class="grey-text">Retail Price</small>
+                  <p class="metric-value">¥{{ product.retail_price|floatformat:2|default_if_none:"-" }}</p>
                 </div>
                 <div class="metric">
-                  <small class="grey-text">Profit %</small>
-                  <p class="metric-value">
-                    {% if product.profit_percentage is not None %}
-                      {{ product.profit_percentage|floatformat:1 }}%
-                    {% else %}
-                      -
-                    {% endif %}
-                  </p>
-                </div>
-                <div class="metric">
-                  <small class="grey-text">Avg Sale Price</small>
+                  <small class="grey-text">Avg Actual Sold Price</small>
                   <p class="metric-value">¥{{ product.average_sale_price|floatformat:2|default_if_none:"-" }}</p>
                 </div>
                 <div class="metric">
-                  <small class="grey-text">Avg Cost Price</small>
-                  <p class="metric-value">¥{{ product.average_cost_price|floatformat:2|default_if_none:"-" }}</p>
+                  <small class="grey-text">Avg % Discount</small>
+                  <p class="metric-value">
+                    {% if product.average_discount_percentage is not None %}
+                      {{ product.average_discount_percentage|floatformat:1 }}%
+                    {% else %}
+                      -
+                    {% endif %}
+                  </p>
                 </div>
               </div>
             </div>
             <div class="col s12 m6 l3">
               <div class="card-panel scorecard-box">
-                <span class="grey-text text-darken-1">Sales Momentum</span>
-                <p class="grey-text">Add sales metrics here.</p>
+                <span class="grey-text text-darken-1">Profitability</span>
+                <div class="metric">
+                  <small class="grey-text">Actual Sold Price</small>
+                  <p class="metric-value">¥{{ product.average_sale_price|floatformat:2|default_if_none:"-" }}</p>
+                </div>
+                <div class="metric">
+                  <small class="grey-text">Avg Cost / Item</small>
+                  <p class="metric-value">¥{{ product.average_cost_price|floatformat:2|default_if_none:"-" }}</p>
+                </div>
+                <div class="metric">
+                  <small class="grey-text">Profit per Sale</small>
+                  <p class="metric-value">
+                    {% if product.profit_amount is not None %}
+                      ¥{{ product.profit_amount|floatformat:2 }}
+                      {% if product.profit_percentage is not None %}
+                        <span class="grey-text">({{ product.profit_percentage|floatformat:1 }}%)</span>
+                      {% endif %}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </p>
+                </div>
               </div>
             </div>
             <div class="col s12 m6 l3">
