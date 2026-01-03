@@ -80,7 +80,41 @@
             </div>
             <div class="col s12 m6 l3">
               <div class="card-panel scorecard-box">
-                <p class="grey-text">Add inventory metrics here.</p>
+                <div class="speed-highlight">
+                  <span class="speed-icon amber lighten-1">
+                    <i class="material-icons white-text">warning</i>
+                  </span>
+                  <div>
+                    <small class="grey-text text-darken-1">Sales Speed (Last 6 Months)</small>
+                    <p class="speed-value">
+                      {% if product.sales_speed_6_months is not None %}
+                        {{ product.sales_speed_6_months|floatformat:1 }} / month
+                      {% else %}
+                        -
+                      {% endif %}
+                    </p>
+                  </div>
+                </div>
+                <div class="metric">
+                  <small class="grey-text">Time on Market</small>
+                  <p class="metric-value">
+                    {% if product.time_on_market_months is not None %}
+                      {{ product.time_on_market_months|floatformat:1 }} months
+                    {% else %}
+                      -
+                    {% endif %}
+                  </p>
+                </div>
+                <div class="metric">
+                  <small class="grey-text">Ordered vs Stock</small>
+                  <p class="metric-value">
+                    {% if product.sold_since_last_order is not None and product.last_order_qty %}
+                      {{ product.sold_since_last_order }} of {{ product.last_order_qty }} sold ({{ product.total_inventory|default:0 }} in stock)
+                    {% else %}
+                      -
+                    {% endif %}
+                  </p>
+                </div>
               </div>
             </div>
             <div class="col s12 m6 l3">
