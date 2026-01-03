@@ -1342,51 +1342,6 @@ def _render_filtered_products(
             "date", "sold_quantity", "return_quantity", "variant_id", "sold_value", "return_value"
         )
 
-    quarterly_values = list(quarter_totals.values())
-    yearly_sales = [
-        {"label": period["label"], "total": period["total"]}
-        for period in yearly_periods
-    ]
-
-    ordered_sales_styles = sorted(
-        (sales_style_totals or {}).keys(),
-        key=lambda code: style_order.get(code, len(style_order)),
-    )
-    sales_category_labels = [
-        style_label_map.get(code, "Unspecified") for code in ordered_sales_styles
-    ]
-    sales_category_values = [sales_style_totals.get(code, 0) for code in ordered_sales_styles]
-    sales_category_mode = "style"
-    sales_category_style = None
-
-    if selected_style_for_breakdown:
-        sales_type_totals = sales_type_totals_by_style.get(
-            selected_style_for_breakdown
-        )
-        if sales_type_totals:
-            type_order = {
-                code: idx for idx, (code, _) in enumerate(PRODUCT_TYPE_CHOICES)
-            }
-            ordered_sales_types = sorted(
-                sales_type_totals.keys(),
-                key=lambda code: type_order.get(code, len(type_order)),
-            )
-            type_label_map_for_style = dict(
-                get_type_choices_for_styles([selected_style_for_breakdown])
-            )
-            sales_category_labels = [
-                type_label_map_for_style.get(
-                    code, type_label_map.get(code, "Unspecified")
-                )
-                for code in ordered_sales_types
-            ]
-            sales_category_values = [
-                sales_type_totals.get(code, 0) for code in ordered_sales_types
-            ]
-            ordered_sales_styles = ordered_sales_types
-            sales_category_mode = "type"
-            sales_category_style = selected_style_for_breakdown
-
     # Estimated inventory value (RMB) using historical average sale prices
     price_stats = (
         Sale.objects.filter(variant_id__in=variant_ids)
@@ -1541,6 +1496,51 @@ def _render_filtered_products(
             if period["start"] <= sale_date < period["end"]:
                 period["total"] += net_sold
                 break
+
+    quarterly_values = list(quarter_totals.values())
+    yearly_sales = [
+        {"label": period["label"], "total": period["total"]}
+        for period in yearly_periods
+    ]
+
+    ordered_sales_styles = sorted(
+        (sales_style_totals or {}).keys(),
+        key=lambda code: style_order.get(code, len(style_order)),
+    )
+    sales_category_labels = [
+        style_label_map.get(code, "Unspecified") for code in ordered_sales_styles
+    ]
+    sales_category_values = [sales_style_totals.get(code, 0) for code in ordered_sales_styles]
+    sales_category_mode = "style"
+    sales_category_style = None
+
+    if selected_style_for_breakdown:
+        sales_type_totals = sales_type_totals_by_style.get(
+            selected_style_for_breakdown
+        )
+        if sales_type_totals:
+            type_order = {
+                code: idx for idx, (code, _) in enumerate(PRODUCT_TYPE_CHOICES)
+            }
+            ordered_sales_types = sorted(
+                sales_type_totals.keys(),
+                key=lambda code: type_order.get(code, len(type_order)),
+            )
+            type_label_map_for_style = dict(
+                get_type_choices_for_styles([selected_style_for_breakdown])
+            )
+            sales_category_labels = [
+                type_label_map_for_style.get(
+                    code, type_label_map.get(code, "Unspecified")
+                )
+                for code in ordered_sales_types
+            ]
+            sales_category_values = [
+                sales_type_totals.get(code, 0) for code in ordered_sales_types
+            ]
+            ordered_sales_styles = ordered_sales_types
+            sales_category_mode = "type"
+            sales_category_style = selected_style_for_breakdown
 
     ordered_sales_value_styles = sorted(
         (sales_value_style_totals or {}).keys(),
