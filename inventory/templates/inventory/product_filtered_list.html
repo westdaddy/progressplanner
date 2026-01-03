@@ -237,12 +237,12 @@
     </form>
   {% endif %}
 
+  <!-- STATISTICS SECTION -->
   <div class="row">
     <div class="col s12 m4">
       <div class="card-panel">
-        <h6 class="grey-text text-darken-1">Total In Stock</h6>
         <h4 class="teal-text text-darken-2" style="margin-top: 0;">{{ filtered_inventory_total }}</h4>
-        <p class="grey-text text-darken-1" style="margin-bottom: 0;">Units across all matching products</p>
+        <p class="grey-text text-darken-1" style="margin-bottom: 0;">Total in stock across all matching products</p>
         <div class="filter-divider"></div>
         <h6 class="grey-text text-darken-1" style="margin-top: 0;">Size Breakdown</h6>
         {% if size_breakdown_values %}
@@ -311,7 +311,14 @@
 
   <div class="filter-divider"></div>
 
+  <!-- END STATISTICS SECTION -->
+
+  <!-- PRODUCT LIST SECTION -->
+
   {% include 'inventory/snippets/product_card_default.html' %}
+
+  <!-- END PRODUCT LIST SECTION -->
+
 </div>
 {% endblock %}
 
