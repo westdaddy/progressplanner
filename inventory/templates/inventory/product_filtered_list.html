@@ -250,15 +250,12 @@
         {% else %}
           <p class="grey-text text-darken-1" style="margin: 0;">No category data available.</p>
         {% endif %}
-        <div class="filter-divider"></div>
-        <h6 class="grey-text text-darken-1" style="margin-top: 0;">Size Breakdown</h6>
-        {% if size_breakdown_values %}
-          <canvas id="sizeBreakdownChart"></canvas>
-          <p class="grey-text text-darken-1" style="margin-bottom: 0;">Sizes across selected products</p>
-        {% else %}
-          <p class="grey-text text-darken-1" style="margin: 0;">No size data available.</p>
-        {% endif %}
       </div>
+
+      <div class="card-panel">
+        <!-- PLACEHOLDER FOR VALUE OF STOCK IN RMB -->
+      </div>
+
     </div>
 
     <div class="col s12 m4">
@@ -266,7 +263,6 @@
         <h4 class="teal-text text-darken-2" style="margin-top: 0;">{{ sales_last_year_total }}</h4>
         <p class="grey-text text-darken-1" style="margin-bottom: 0;">Items sold in the last 12 months</p>
         <div class="filter-divider"></div>
-        <h6 class="grey-text text-darken-1" style="margin-top: 0;">Sales by Product Category (last 12 months)</h6>
         {% if sales_category_values %}
           <canvas id="salesCategoryChart"></canvas>
           <p class="grey-text text-darken-1" style="margin-bottom: 0;">Sales split by product category</p>
@@ -274,6 +270,11 @@
           <p class="grey-text text-darken-1" style="margin: 0;">No sales data available.</p>
         {% endif %}
       </div>
+
+      <div class="card-panel">
+          <!-- PLACEHOLDER FOR SALES VALUE IN RMB -->
+      </div>
+
     </div>
 
     <div class="col s12 m4">
@@ -300,6 +301,7 @@
         </ul>
 
       </div>
+
       <div class="card-panel" style="margin-top: 16px;">
         <h6 class="grey-text text-darken-1">Age & Gender Breakdown</h6>
         <div class="row" style="margin-bottom: 0;">
@@ -313,6 +315,8 @@
             {% endif %}
           </div>
 
+
+
           <div class="col s12" style="margin-top: 16px;">
             <h6 class="grey-text text-darken-1" style="margin-top: 0;">Gender</h6>
             {% if gender_breakdown_values %}
@@ -322,7 +326,20 @@
               <p class="grey-text text-darken-1" style="margin: 0;">No gender data available.</p>
             {% endif %}
           </div>
+
+          <div class="col s12" style="margin-top: 16px;">
+            <h6 class="grey-text text-darken-1" style="margin-top: 0;">Size Breakdown</h6>
+            {% if size_breakdown_values %}
+              <canvas id="sizeBreakdownChart"></canvas>
+              <p class="grey-text text-darken-1" style="margin-bottom: 0;">Sizes across selected products</p>
+            {% else %}
+              <p class="grey-text text-darken-1" style="margin: 0;">No size data available.</p>
+            {% endif %}
+          </div>
+
         </div>
+
+
 
       </div>
     </div>
