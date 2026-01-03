@@ -27,11 +27,30 @@
             <div class="col s12 m6 l3">
               <div class="card-panel scorecard-box">
                 <div class="discount-highlight">
-                  <span class="discount-icon green lighten-1">
-                    <i class="material-icons white-text">check</i>
-                  </span>
+                  {% if product.discount_status == "better" %}
+                    <span class="discount-icon green lighten-1">
+                      <i class="material-icons white-text">check</i>
+                    </span>
+                  {% elif product.discount_status == "similar" %}
+                    <span class="discount-icon amber lighten-1">
+                      <i class="material-icons white-text">priority_high</i>
+                    </span>
+                  {% elif product.discount_status == "worse" %}
+                    <span class="discount-icon red lighten-1">
+                      <i class="material-icons white-text">brightness_1</i>
+                    </span>
+                  {% else %}
+                    <span class="discount-icon grey lighten-1">
+                      <i class="material-icons white-text">help_outline</i>
+                    </span>
+                  {% endif %}
                   <div>
-                    <small class="grey-text text-darken-1">Average Discount</small>
+                    <small class="grey-text text-darken-1">
+                      Average Discount
+                      {% if sitewide_average_discount is not None %}
+                        <span class="grey-text">(Site avg {{ sitewide_average_discount|floatformat:1 }}%)</span>
+                      {% endif %}
+                    </small>
                     <p class="discount-value">
                       {% if product.average_discount_percentage is not None %}
                         {{ product.average_discount_percentage|floatformat:1 }}%
