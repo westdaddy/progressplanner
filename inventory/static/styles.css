@@ -46,6 +46,30 @@ main {
   line-height: 1.2;
 }
 
+.scorecard-box .profit-highlight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.scorecard-box .profit-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+
+.scorecard-box .profit-value {
+  margin: 0;
+  font-weight: 700;
+  font-size: 1.4rem;
+  line-height: 1.2;
+}
+
 :where(.card, .card-panel).amber.lighten-5 { --card-border-color: #ffecb3; }
 :where(.card, .card-panel).amber.lighten-4 { --card-border-color: #ffe082; }
 :where(.card, .card-panel).amber.lighten-3 { --card-border-color: #ffd54f; }

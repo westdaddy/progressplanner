@@ -26,7 +26,6 @@
           <div class="row scorecard-boxes">
             <div class="col s12 m6 l3">
               <div class="card-panel scorecard-box">
-                <span class="grey-text text-darken-1">Pricing Snapshot</span>
                 <div class="discount-highlight">
                   <span class="discount-icon green lighten-1">
                     <i class="material-icons white-text">check</i>
@@ -54,7 +53,24 @@
             </div>
             <div class="col s12 m6 l3">
               <div class="card-panel scorecard-box">
-                <span class="grey-text text-darken-1">Profitability</span>
+                <div class="profit-highlight">
+                  <span class="profit-icon red lighten-1">
+                    <i class="material-icons white-text">priority_high</i>
+                  </span>
+                  <div>
+                    <small class="grey-text text-darken-1">Profit per Sale</small>
+                    <p class="profit-value">
+                      {% if product.profit_amount is not None %}
+                        ¥{{ product.profit_amount|floatformat:2 }}
+                        {% if product.profit_percentage is not None %}
+                          <span class="grey-text">({{ product.profit_percentage|floatformat:1 }}%)</span>
+                        {% endif %}
+                      {% else %}
+                        -
+                      {% endif %}
+                    </p>
+                  </div>
+                </div>
                 <div class="metric">
                   <small class="grey-text">Actual Sold Price</small>
                   <p class="metric-value">¥{{ product.average_sale_price|floatformat:2|default_if_none:"-" }}</p>
@@ -63,30 +79,15 @@
                   <small class="grey-text">Avg Cost / Item</small>
                   <p class="metric-value">¥{{ product.average_cost_price|floatformat:2|default_if_none:"-" }}</p>
                 </div>
-                <div class="metric">
-                  <small class="grey-text">Profit per Sale</small>
-                  <p class="metric-value">
-                    {% if product.profit_amount is not None %}
-                      ¥{{ product.profit_amount|floatformat:2 }}
-                      {% if product.profit_percentage is not None %}
-                        <span class="grey-text">({{ product.profit_percentage|floatformat:1 }}%)</span>
-                      {% endif %}
-                    {% else %}
-                      -
-                    {% endif %}
-                  </p>
-                </div>
               </div>
             </div>
             <div class="col s12 m6 l3">
               <div class="card-panel scorecard-box">
-                <span class="grey-text text-darken-1">Inventory Health</span>
                 <p class="grey-text">Add inventory metrics here.</p>
               </div>
             </div>
             <div class="col s12 m6 l3">
               <div class="card-panel scorecard-box">
-                <span class="grey-text text-darken-1">Engagement</span>
                 <p class="grey-text">Add engagement metrics here.</p>
               </div>
             </div>
