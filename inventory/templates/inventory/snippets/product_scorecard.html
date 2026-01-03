@@ -1,0 +1,130 @@
+{% load inventory_extras %}
+
+<!-- Product Scorecard List -->
+<ul class="collection">
+  {% for product in products %}
+  <li class="collection-item avatar lighten-4 {% if product.total_sales|default:0 == 0 and product.total_inventory|default:0 == 0 %}new{% endif %}">
+      <div class="row item">
+        <div class="col s2 photo">
+          {% if product.product_photo %}
+            <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" class="circle product-photo-large">
+          {% else %}
+            <img src="{{ MEDIA_URL }}product_photos/product-placeholder.jpg" alt="{{ product.product_name }}" class="circle product-photo-large">
+          {% endif %}
+        </div>
+        <div class="col s10 content">
+          <div class="row title">
+            <div class="col s12">
+              <span class="title">
+                <a href="{% url 'product_detail' product.id %}">
+                  <strong>{{ product.product_name }}</strong>
+                </a>
+              </span>
+              ({{ product.product_id }})
+            </div>
+          </div>
+          <div class="row scorecard-boxes">
+            <div class="col s12 m6 l3">
+              <div class="card-panel scorecard-box">
+                <div class="discount-highlight">
+                  <span class="discount-icon green lighten-1">
+                    <i class="material-icons white-text">check</i>
+                  </span>
+                  <div>
+                    <small class="grey-text text-darken-1">Average Discount</small>
+                    <p class="discount-value">
+                      {% if product.average_discount_percentage is not None %}
+                        {{ product.average_discount_percentage|floatformat:1 }}%
+                      {% else %}
+                        -
+                      {% endif %}
+                    </p>
+                  </div>
+                </div>
+                <div class="metric">
+                  <small class="grey-text">Retail Price</small>
+                  <p class="metric-value">¥{{ product.retail_price|floatformat:2|default_if_none:"-" }}</p>
+                </div>
+                <div class="metric">
+                  <small class="grey-text">Avg Actual Sold Price</small>
+                  <p class="metric-value">¥{{ product.average_sale_price|floatformat:2|default_if_none:"-" }}</p>
+                </div>
+              </div>
+            </div>
+            <div class="col s12 m6 l3">
+              <div class="card-panel scorecard-box">
+                <div class="profit-highlight">
+                  <span class="profit-icon red lighten-1">
+                    <i class="material-icons white-text">priority_high</i>
+                  </span>
+                  <div>
+                    <small class="grey-text text-darken-1">Gross Margin</small>
+                    <p class="profit-value">
+                      {% if product.profit_percentage is not None %}
+                        {{ product.profit_percentage|floatformat:1 }}%
+                      {% else %}
+                        -
+                      {% endif %}
+                    </p>
+                  </div>
+                </div>
+                <div class="metric">
+                  <small class="grey-text">Avg Profit / Sale</small>
+                  <p class="metric-value">¥{{ product.profit_amount|floatformat:2|default_if_none:"-" }}</p>
+                </div>
+                <div class="metric">
+                  <small class="grey-text">Avg Cost / Item</small>
+                  <p class="metric-value">¥{{ product.average_cost_price|floatformat:2|default_if_none:"-" }}</p>
+                </div>
+              </div>
+            </div>
+            <div class="col s12 m6 l3">
+              <div class="card-panel scorecard-box">
+                <div class="speed-highlight">
+                  <span class="speed-icon amber lighten-1">
+                    <i class="material-icons white-text">warning</i>
+                  </span>
+                  <div>
+                    <small class="grey-text text-darken-1">Sales Speed (Last 6 Months)</small>
+                    <p class="speed-value">
+                      {% if product.sales_speed_6_months is not None %}
+                        {{ product.sales_speed_6_months|floatformat:1 }} / month
+                      {% else %}
+                        -
+                      {% endif %}
+                    </p>
+                  </div>
+                </div>
+                <div class="metric">
+                  <small class="grey-text">Time on Market</small>
+                  <p class="metric-value">
+                    {% if product.time_on_market_months is not None %}
+                      {{ product.time_on_market_months|floatformat:1 }} months
+                    {% else %}
+                      -
+                    {% endif %}
+                  </p>
+                </div>
+                <div class="metric">
+                  <small class="grey-text">Ordered vs Stock</small>
+                  <p class="metric-value">
+                    {% if product.sold_since_last_order is not None and product.last_order_qty %}
+                      {{ product.sold_since_last_order }} of {{ product.last_order_qty }} sold ({{ product.total_inventory|default:0 }} in stock)
+                    {% else %}
+                      -
+                    {% endif %}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div class="col s12 m6 l3">
+              <div class="card-panel scorecard-box">
+                <p class="grey-text">Add engagement metrics here.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </li>
+  {% endfor %}
+</ul>

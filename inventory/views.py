@@ -41,6 +41,7 @@ from django.db.models import (
     Case,
     When,
     DateField,
+    Min,
 )
 from django.db.models.functions import Coalesce
 from django.http import Http404, HttpResponse, JsonResponse
@@ -671,6 +672,7 @@ def _build_product_list_context(request, preset_filters=None):
     today = now().date()
     last_12_months = today - timedelta(days=365)
     last_30_days = today - timedelta(days=30)
+    last_6_months = today - relativedelta(months=6)
 
     # ─── Annotate each variant with its latest snapshot ─────────────────────────
     latest_snapshot = (
@@ -736,6 +738,7 @@ def _build_product_list_context(request, preset_filters=None):
         total_sales_value = Decimal("0.00")
         sales_12 = 0
         sales_30 = 0
+        sales_6 = 0
 
         for v in product.variants_with_inventory:
             total_sales += v.sales.aggregate(total=Coalesce(Sum("sold_quantity"), 0))[
@@ -750,13 +753,89 @@ def _build_product_list_context(request, preset_filters=None):
             sales_30 += v.sales.filter(date__gte=last_30_days).aggregate(
                 total=Coalesce(Sum("sold_quantity"), 0)
             )["total"]
+            sales_6 += v.sales.filter(date__gte=last_6_months).aggregate(
+                total=Coalesce(Sum("sold_quantity"), 0)
+            )["total"]
 
         product.total_sales = total_sales
         product.total_sales_value = total_sales_value
         product.sales_last_12_months = sales_12
         product.sales_last_30_days = sales_30
+        product.sales_last_6_months = sales_6
         product.sales_speed_12_months = sales_12 / 12 if sales_12 else 0
         product.sales_speed_30_days = sales_30
+        product.sales_speed_6_months = sales_6 / 6
+        product.average_sale_price = (
+            product.total_sales_value / Decimal(total_sales) if total_sales else None
+        )
+
+        quantity_expression = Coalesce(F("actual_quantity"), F("quantity"))
+        order_item_totals = OrderItem.objects.filter(
+            product_variant__product=product
+        ).aggregate(
+            total_cost=Coalesce(
+                Sum(
+                    ExpressionWrapper(
+                        F("item_cost_price") * quantity_expression,
+                        output_field=DecimalField(),
+                    )
+                ),
+                Decimal("0.00"),
+            ),
+            total_quantity=Coalesce(Sum(quantity_expression), 0),
+        )
+
+        product.average_cost_price = (
+            order_item_totals["total_cost"]
+            / Decimal(order_item_totals["total_quantity"])
+            if order_item_totals["total_quantity"]
+            else None
+        )
+
+        product.retail_vs_sale_percentage = (
+            (product.average_sale_price / product.retail_price) * Decimal("100")
+            if product.retail_price
+            and product.retail_price > 0
+            and product.average_sale_price
+            else None
+        )
+
+        product.average_discount_percentage = (
+            (
+                (product.retail_price - product.average_sale_price)
+                / product.retail_price
+            )
+            * Decimal("100")
+            if product.retail_price
+            and product.retail_price > 0
+            and product.average_sale_price
+            else None
+        )
+
+        product.profit_amount = (
+            product.average_sale_price - product.average_cost_price
+            if product.average_sale_price is not None
+            and product.average_cost_price is not None
+            else None
+        )
+
+        product.profit_percentage = (
+            (product.profit_amount / product.average_sale_price) * Decimal("100")
+            if product.profit_amount is not None
+            and product.average_sale_price
+            and product.average_sale_price != 0
+            else None
+        )
+
+        first_sale = (
+            Sale.objects.filter(variant__product=product)
+            .aggregate(first_date=Min("date"))
+            .get("first_date")
+        )
+
+        product.time_on_market_months = (
+            (today - first_sale).days / Decimal("30") if first_sale else None
+        )
 
         # last order info
         last_item = (
@@ -797,6 +876,12 @@ def _build_product_list_context(request, preset_filters=None):
             product.last_order_cost = Decimal("0.00")
             product.last_order_date = None
             product.last_order_qty = 0
+
+        if product.last_order_qty:
+            sold_since_last_order = product.last_order_qty - product.total_inventory
+            product.sold_since_last_order = sold_since_last_order if sold_since_last_order > 0 else 0
+        else:
+            product.sold_since_last_order = None
             product.last_order_label = ""
 
         product.profit = product.total_sales_value - product.last_order_cost
