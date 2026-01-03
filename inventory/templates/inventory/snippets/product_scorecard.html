@@ -1,6 +1,6 @@
 {% load inventory_extras %}
 
-<!-- Product List -->
+<!-- Product Scorecard List -->
 <ul class="collection">
   {% for product in products %}
   <li class="collection-item avatar lighten-4 {% if product.total_sales|default:0 == 0 and product.total_inventory|default:0 == 0 %}new{% endif %}">
@@ -78,34 +78,57 @@
               </tbody>
             </table>
           </div>
-          <div class="row metrics">
-            <div class="col s6 m3">
-              <small class="grey-text">Retail vs Actual</small>
-              <p class="metric-value">
-                {% if product.retail_vs_sale_percentage is not None %}
-                  {{ product.retail_vs_sale_percentage|floatformat:1 }}%
-                {% else %}
-                  -
-                {% endif %}
-              </p>
+          <div class="row scorecard-boxes">
+            <div class="col s12 m6 l3">
+              <div class="card-panel scorecard-box">
+                <span class="grey-text text-darken-1">Profit &amp; Pricing</span>
+                <div class="metric">
+                  <small class="grey-text">Retail vs Actual</small>
+                  <p class="metric-value">
+                    {% if product.retail_vs_sale_percentage is not None %}
+                      {{ product.retail_vs_sale_percentage|floatformat:1 }}%
+                    {% else %}
+                      -
+                    {% endif %}
+                  </p>
+                </div>
+                <div class="metric">
+                  <small class="grey-text">Profit %</small>
+                  <p class="metric-value">
+                    {% if product.profit_percentage is not None %}
+                      {{ product.profit_percentage|floatformat:1 }}%
+                    {% else %}
+                      -
+                    {% endif %}
+                  </p>
+                </div>
+                <div class="metric">
+                  <small class="grey-text">Avg Sale Price</small>
+                  <p class="metric-value">¥{{ product.average_sale_price|floatformat:2|default_if_none:"-" }}</p>
+                </div>
+                <div class="metric">
+                  <small class="grey-text">Avg Cost Price</small>
+                  <p class="metric-value">¥{{ product.average_cost_price|floatformat:2|default_if_none:"-" }}</p>
+                </div>
+              </div>
             </div>
-            <div class="col s6 m3">
-              <small class="grey-text">Profit %</small>
-              <p class="metric-value">
-                {% if product.profit_percentage is not None %}
-                  {{ product.profit_percentage|floatformat:1 }}%
-                {% else %}
-                  -
-                {% endif %}
-              </p>
+            <div class="col s12 m6 l3">
+              <div class="card-panel scorecard-box">
+                <span class="grey-text text-darken-1">Sales Momentum</span>
+                <p class="grey-text">Add sales metrics here.</p>
+              </div>
             </div>
-            <div class="col s6 m3">
-              <small class="grey-text">Avg Sale Price</small>
-              <p class="metric-value">¥{{ product.average_sale_price|floatformat:2|default_if_none:"-" }}</p>
+            <div class="col s12 m6 l3">
+              <div class="card-panel scorecard-box">
+                <span class="grey-text text-darken-1">Inventory Health</span>
+                <p class="grey-text">Add inventory metrics here.</p>
+              </div>
             </div>
-            <div class="col s6 m3">
-              <small class="grey-text">Avg Cost Price</small>
-              <p class="metric-value">¥{{ product.average_cost_price|floatformat:2|default_if_none:"-" }}</p>
+            <div class="col s12 m6 l3">
+              <div class="card-panel scorecard-box">
+                <span class="grey-text text-darken-1">Engagement</span>
+                <p class="grey-text">Add engagement metrics here.</p>
+              </div>
             </div>
           </div>
         </div>
