@@ -244,7 +244,6 @@
         <h4 class="teal-text text-darken-2" style="margin-top: 0;">{{ filtered_inventory_total }}</h4>
         <p class="grey-text text-darken-1" style="margin-bottom: 0;">Total in stock across all matching products</p>
         <div class="filter-divider"></div>
-        <h6 class="grey-text text-darken-1" style="margin-top: 0;">{{ category_breakdown_title|default:"Product Category Breakdown" }}</h6>
         {% if category_breakdown_values %}
           <canvas id="categoryBreakdownChart"></canvas>
           <p class="grey-text text-darken-1" style="margin-bottom: 0;">{{ category_breakdown_description|default:"Inventory split by product category" }}</p>
