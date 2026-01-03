@@ -244,7 +244,6 @@
         <h4 class="teal-text text-darken-2" style="margin-top: 0;">{{ filtered_inventory_total }}</h4>
         <p class="grey-text text-darken-1" style="margin-bottom: 0;">Total in stock across all matching products</p>
         <div class="filter-divider"></div>
-        <h6 class="grey-text text-darken-1" style="margin-top: 0;">{{ category_breakdown_title|default:"Product Category Breakdown" }}</h6>
         {% if category_breakdown_values %}
           <canvas id="categoryBreakdownChart"></canvas>
           <p class="grey-text text-darken-1" style="margin-bottom: 0;">{{ category_breakdown_description|default:"Inventory split by product category" }}</p>
@@ -568,6 +567,26 @@
       const selectedStyles = JSON.parse('{{ style_filters_json|default:"[]"|escapejs }}' || '[]');
       const categoryBreakdownMode = '{{ category_breakdown_mode|default:"style" }}';
       const salesCategoryMode = '{{ sales_category_mode|default:"style" }}';
+
+      const CATEGORY_COLORS = {
+        gi: '#42a5f5',
+        ng: '#ab47bc',
+        ap: '#66bb6a',
+        ac: '#ffa726',
+      };
+
+      const TYPE_COLORS = [
+        '#42a5f5',
+        '#ab47bc',
+        '#66bb6a',
+        '#ffa726',
+        '#ef5350',
+        '#26c6da',
+        '#8d6e63',
+        '#7e57c2',
+        '#5c6bc0',
+        '#26a69a',
+      ];
 
       const CATEGORY_COLORS = {
         gi: '#42a5f5',

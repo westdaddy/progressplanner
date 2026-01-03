@@ -1258,7 +1258,7 @@ def _render_filtered_products(
     for product in products:
         for variant in getattr(product, "variants_with_inventory", []):
             variant_style_map[variant.pk] = product.style or "unspecified"
-            variant_type_map[variant.pk] = product.type or "unspecified"
+          variant_type_map[variant.pk] = product.type or "unspecified"
 
     if selected_style_for_breakdown:
         type_totals = type_totals_by_style.get(selected_style_for_breakdown, {})
