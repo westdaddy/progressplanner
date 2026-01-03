@@ -266,6 +266,7 @@
         <h4 class="teal-text text-darken-2" style="margin-top: 0;">{{ sales_last_year_total }}</h4>
         <p class="grey-text text-darken-1" style="margin-bottom: 0;">Items sold in the last 12 months</p>
         <div class="filter-divider"></div>
+        <h6 class="grey-text text-darken-1" style="margin-top: 0;">Sales by Product Category (last 12 months)</h6>
         {% if sales_category_values %}
           <canvas id="salesCategoryChart"></canvas>
           <p class="grey-text text-darken-1" style="margin-bottom: 0;">Sales split by product category</p>
@@ -565,6 +566,27 @@
       const salesCategoryCodes = {{ sales_category_codes|default:'[]'|safe }};
       const selectedStyles = JSON.parse('{{ style_filters_json|default:"[]"|escapejs }}' || '[]');
       const categoryBreakdownMode = '{{ category_breakdown_mode|default:"style" }}';
+      const salesCategoryMode = '{{ sales_category_mode|default:"style" }}';
+
+      const CATEGORY_COLORS = {
+        gi: '#42a5f5',
+        ng: '#ab47bc',
+        ap: '#66bb6a',
+        ac: '#ffa726',
+      };
+
+      const TYPE_COLORS = [
+        '#42a5f5',
+        '#ab47bc',
+        '#66bb6a',
+        '#ffa726',
+        '#ef5350',
+        '#26c6da',
+        '#8d6e63',
+        '#7e57c2',
+        '#5c6bc0',
+        '#26a69a',
+      ];
 
       const CATEGORY_COLORS = {
         gi: '#42a5f5',
@@ -675,10 +697,37 @@
           (sum, value) => sum + value,
           0
         );
+        const salesMode = salesCategoryMode === 'type' ? 'type' : 'style';
+        const selectedStyleSet = Array.isArray(selectedStyles)
+          ? new Set(selectedStyles)
+          : new Set();
+        const hasSalesSelection = salesMode === 'style' && selectedStyleSet.size > 0;
 
-        const salesBackgroundColors = (salesCategoryCodes || []).map(
-          (code) => CATEGORY_COLORS[code] || '#26a69a'
-        );
+        const salesBackgroundColors = (salesCategoryCodes || []).map((code, index) => {
+          if (salesMode === 'style') {
+            const baseColor = CATEGORY_COLORS[code] || '#26a69a';
+            if (!hasSalesSelection) return baseColor;
+            return selectedStyleSet.has(code)
+              ? baseColor
+              : 'rgba(189, 189, 189, 0.5)';
+          }
+
+          const paletteColor = TYPE_COLORS[index % TYPE_COLORS.length];
+          return paletteColor;
+        });
+
+        const salesBorderColors = (salesCategoryCodes || []).map((code, index) => {
+          if (salesMode === 'style') {
+            const baseColor = CATEGORY_COLORS[code] || '#26a69a';
+            if (!hasSalesSelection) return baseColor;
+            return selectedStyleSet.has(code)
+              ? baseColor
+              : 'rgba(176, 190, 197, 0.8)';
+          }
+
+          const paletteColor = TYPE_COLORS[index % TYPE_COLORS.length];
+          return paletteColor;
+        });
 
         new Chart(salesCategoryChartElement.getContext('2d'), {
           type: 'pie',
@@ -688,7 +737,7 @@
               {
                 data: salesCategoryValues,
                 backgroundColor: salesBackgroundColors,
-                borderColor: salesBackgroundColors,
+                borderColor: salesBorderColors,
                 borderWidth: 1.5,
               },
             ],

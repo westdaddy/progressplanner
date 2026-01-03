@@ -1253,10 +1253,12 @@ def _render_filtered_products(
     category_breakdown_description = "Inventory split by product category"
 
     variant_style_map = {}
+    variant_type_map = {}
 
     for product in products:
         for variant in getattr(product, "variants_with_inventory", []):
             variant_style_map[variant.pk] = product.style or "unspecified"
+          variant_type_map[variant.pk] = product.type or "unspecified"
 
     if selected_style_for_breakdown:
         type_totals = type_totals_by_style.get(selected_style_for_breakdown, {})
@@ -1327,6 +1329,7 @@ def _render_filtered_products(
 
     last_year_sales_total = 0
     sales_style_totals: dict[str, int] = {}
+    sales_type_totals_by_style: dict[str, dict[str, int]] = {}
 
     if variant_ids:
         sales_qs = Sale.objects.filter(
@@ -1348,6 +1351,19 @@ def _render_filtered_products(
                 sales_style_totals[style_key] = (
                     sales_style_totals.get(style_key, 0) + net_sold
                 )
+
+                if selected_style_for_breakdown and (
+                    style_key == selected_style_for_breakdown
+                ):
+                    type_key = variant_type_map.get(
+                        sale["variant_id"], "unspecified"
+                    )
+                    style_type_totals = sales_type_totals_by_style.setdefault(
+                        style_key, {}
+                    )
+                    style_type_totals[type_key] = (
+                        style_type_totals.get(type_key, 0) + net_sold
+                    )
 
             if sale_quarter_key in quarter_totals:
                 quarter_totals[sale_quarter_key] += net_sold
@@ -1371,6 +1387,36 @@ def _render_filtered_products(
         style_label_map.get(code, "Unspecified") for code in ordered_sales_styles
     ]
     sales_category_values = [sales_style_totals.get(code, 0) for code in ordered_sales_styles]
+    sales_category_mode = "style"
+    sales_category_style = None
+
+    if selected_style_for_breakdown:
+        sales_type_totals = sales_type_totals_by_style.get(
+            selected_style_for_breakdown
+        )
+        if sales_type_totals:
+            type_order = {
+                code: idx for idx, (code, _) in enumerate(PRODUCT_TYPE_CHOICES)
+            }
+            ordered_sales_types = sorted(
+                sales_type_totals.keys(),
+                key=lambda code: type_order.get(code, len(type_order)),
+            )
+            type_label_map_for_style = dict(
+                get_type_choices_for_styles([selected_style_for_breakdown])
+            )
+            sales_category_labels = [
+                type_label_map_for_style.get(
+                    code, type_label_map.get(code, "Unspecified")
+                )
+                for code in ordered_sales_types
+            ]
+            sales_category_values = [
+                sales_type_totals.get(code, 0) for code in ordered_sales_types
+            ]
+            ordered_sales_styles = ordered_sales_types
+            sales_category_mode = "type"
+            sales_category_style = selected_style_for_breakdown
 
     context.update(
         {
@@ -1384,6 +1430,8 @@ def _render_filtered_products(
             "sales_category_labels": json.dumps(sales_category_labels),
             "sales_category_values": json.dumps(sales_category_values),
             "sales_category_codes": json.dumps(ordered_sales_styles),
+            "sales_category_mode": sales_category_mode,
+            "sales_category_style": sales_category_style,
             "has_quarterly_data": bool(variant_ids),
             "filter_controls": filter_controls,
             "showing_summary": " | ".join(selected_labels_flat)
