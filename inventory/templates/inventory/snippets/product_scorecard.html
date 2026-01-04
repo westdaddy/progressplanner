@@ -108,7 +108,7 @@
                 </div>
               </div>
             </div>
-            <div class="col s12 m6 l3">
+            <div class="col s12 m6 l2">
               <div class="card-panel scorecard-box">
                 <div class="speed-highlight">
                   <span class="speed-icon amber lighten-1">
@@ -145,6 +145,52 @@
                     {% endif %}
                   </p>
                 </div>
+              </div>
+            </div>
+
+            <div class="col s12 m6 l2">
+              <div class="card-panel scorecard-box">
+                <div class="confidence-highlight">
+                  {% if product.confidence_level == "High" %}
+                    <span class="confidence-icon green lighten-1">
+                      <i class="material-icons white-text">check_circle</i>
+                    </span>
+                  {% elif product.confidence_level == "Medium" %}
+                    <span class="confidence-icon amber lighten-1">
+                      <i class="material-icons white-text">priority_high</i>
+                    </span>
+                  {% elif product.confidence_level == "Low" %}
+                    <span class="confidence-icon red lighten-1">
+                      <i class="material-icons white-text">warning</i>
+                    </span>
+                  {% else %}
+                    <span class="confidence-icon grey lighten-2">
+                      <i class="material-icons white-text">help_outline</i>
+                    </span>
+                  {% endif %}
+                  <div>
+                    <small class="grey-text text-darken-1">Confidence</small>
+                    <p class="confidence-value">
+                      {% if product.confidence_level %}
+                        {{ product.confidence_level }}
+                        {% if product.confidence_score %}
+                          ({{ product.confidence_score|floatformat:0 }}%)
+                        {% endif %}
+                      {% else %}
+                        -
+                      {% endif %}
+                    </p>
+                  </div>
+                </div>
+                {% if product.confidence_advisories %}
+                  <ul class="advisories">
+                    {% for note in product.confidence_advisories %}
+                      <li>{{ note }}</li>
+                    {% endfor %}
+                  </ul>
+                {% else %}
+                  <small class="grey-text">No advisories</small>
+                {% endif %}
               </div>
             </div>
 
