@@ -78,10 +78,11 @@ def compute_product_confidence(
 
     # Sell-through: faster is better. Core products are allowed deeper stock
     # coverage so they can avoid stock-outs, while seasonal/one-off items need
-    # quicker sell-through.
+    # quicker sell-through. Core items with up to ~12 months of coverage should
+    # still be rewarded so they can confidently maintain supply.
     if is_core:
         sell_score = _banded_score(
-            months_to_sell_out, [Decimal("6"), Decimal("12")]
+            months_to_sell_out, [Decimal("12"), Decimal("18")]
         )
     else:
         sell_score = _banded_score(
@@ -96,13 +97,14 @@ def compute_product_confidence(
         threshold_high = avg_return * Decimal("1.1")
         return_score = _banded_score(return_rate, [threshold_low, threshold_high])
 
-    # Discounting: lower than shop average is good
+    # Discounting: lower than shop average is good. Treat "at or below average"
+    # as the strongest signal so consistently full-price items are rewarded.
     if discount_pct is None or avg_discount is None:
         discount_score = 1
     else:
-        better = avg_discount - Decimal("3")
-        similar = avg_discount + Decimal("3")
-        discount_score = _banded_score(discount_pct, [better, similar])
+        at_or_better = avg_discount
+        modestly_higher = avg_discount + Decimal("5")
+        discount_score = _banded_score(discount_pct, [at_or_better, modestly_higher])
 
     # Margin: higher than average is good
     if margin_pct is None or avg_margin is None:
@@ -137,9 +139,19 @@ def compute_product_confidence(
             severe_signals.append("Gross margin is substantially below the store average.")
 
     weights = (
-        {"sell": 0.35, "returns": 0.25, "discount": 0.15, "margin": 0.25}
+        {
+            "sell": Decimal("0.35"),
+            "returns": Decimal("0.25"),
+            "discount": Decimal("0.15"),
+            "margin": Decimal("0.25"),
+        }
         if is_core
-        else {"sell": 0.4, "returns": 0.15, "discount": 0.25, "margin": 0.2}
+        else {
+            "sell": Decimal("0.4"),
+            "returns": Decimal("0.15"),
+            "discount": Decimal("0.25"),
+            "margin": Decimal("0.2"),
+        }
     )
 
     weighted_sum = (
@@ -148,6 +160,19 @@ def compute_product_confidence(
         + discount_score * weights["discount"]
         + margin_score * weights["margin"]
     )
+
+    performance_bonus = Decimal("0")
+
+    if sell_score == 2 and discount_score == 2:
+        performance_bonus += Decimal("0.1")
+
+    if margin_score == 2:
+        performance_bonus += Decimal("0.05")
+
+    if sales_volume >= 50:
+        performance_bonus += Decimal("0.05")
+
+    weighted_sum = min(weighted_sum + performance_bonus, Decimal("2"))
     score_pct = (weighted_sum / 2) * 100
 
     if score_pct >= 67:
