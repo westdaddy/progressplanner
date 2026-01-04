@@ -73,6 +73,7 @@ from .models import (
     Series,
     get_subtype_choices_for_types,
     get_type_choices_for_styles,
+    get_subtype_choices_for_types,
 )
 from .utils import (
     calculate_size_order_mix,
