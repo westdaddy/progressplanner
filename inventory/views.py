@@ -598,6 +598,192 @@ def sales_data(request):
     return JsonResponse(data)
 
 
+def _compute_product_metrics(
+    product,
+    *,
+    size_order,
+    today,
+    last_12_months,
+    last_30_days,
+    last_6_months,
+):
+    """Compute per-product aggregates used for both display and baselines."""
+
+    # sort variants by size
+    product.variants_with_inventory.sort(key=lambda v: size_order.get(v.size, 9999))
+
+    # total inventory
+    total_inventory = sum(v.latest_inventory for v in product.variants_with_inventory)
+
+    # sales aggregates
+    total_sales = 0
+    total_returns = 0
+    total_sales_value = Decimal("0.00")
+    sales_12 = 0
+    sales_30 = 0
+    sales_6 = 0
+
+    for v in product.variants_with_inventory:
+        total_sales += v.sales.aggregate(total=Coalesce(Sum("sold_quantity"), 0))["total"]
+        total_returns += v.sales.aggregate(total=Coalesce(Sum("return_quantity"), 0))["total"]
+        total_sales_value += v.sales.aggregate(
+            total=Coalesce(Sum("sold_value"), Decimal("0.00"))
+        )["total"]
+        sales_12 += v.sales.filter(date__gte=last_12_months).aggregate(
+            total=Coalesce(Sum("sold_quantity"), 0)
+        )["total"]
+        sales_30 += v.sales.filter(date__gte=last_30_days).aggregate(
+            total=Coalesce(Sum("sold_quantity"), 0)
+        )["total"]
+        sales_6 += v.sales.filter(date__gte=last_6_months).aggregate(
+            total=Coalesce(Sum("sold_quantity"), 0)
+        )["total"]
+
+    average_sale_price = (
+        total_sales_value / Decimal(total_sales) if total_sales else None
+    )
+
+    quantity_expression = Coalesce(F("actual_quantity"), F("quantity"))
+    order_item_totals = OrderItem.objects.filter(product_variant__product=product).aggregate(
+        total_cost=Coalesce(
+            Sum(
+                ExpressionWrapper(
+                    F("item_cost_price") * quantity_expression,
+                    output_field=DecimalField(),
+                )
+            ),
+            Decimal("0.00"),
+        ),
+        total_quantity=Coalesce(Sum(quantity_expression), 0),
+    )
+
+    average_cost_price = (
+        order_item_totals["total_cost"] / Decimal(order_item_totals["total_quantity"])
+        if order_item_totals["total_quantity"]
+        else None
+    )
+
+    retail_vs_sale_percentage = (
+        (average_sale_price / product.retail_price) * Decimal("100")
+        if product.retail_price and product.retail_price > 0 and average_sale_price
+        else None
+    )
+
+    average_discount_percentage = (
+        ((product.retail_price - average_sale_price) / product.retail_price)
+        * Decimal("100")
+        if product.retail_price and product.retail_price > 0 and average_sale_price
+        else None
+    )
+
+    profit_amount = (
+        average_sale_price - average_cost_price
+        if average_sale_price is not None and average_cost_price is not None
+        else None
+    )
+
+    profit_percentage = (
+        (profit_amount / average_sale_price) * Decimal("100")
+        if profit_amount is not None
+        and average_sale_price
+        and average_sale_price != 0
+        else None
+    )
+
+    first_sale = (
+        Sale.objects.filter(variant__product=product)
+        .aggregate(first_date=Min("date"))
+        .get("first_date")
+    )
+
+    time_on_market_months = (
+        (today - first_sale).days / Decimal("30") if first_sale else None
+    )
+
+    if time_on_market_months and time_on_market_months < Decimal("6"):
+        sales_speed_6_months = (
+            Decimal(total_sales) / time_on_market_months
+            if time_on_market_months > 0
+            else None
+        )
+    else:
+        sales_speed_6_months = Decimal(sales_6) / Decimal("6") if sales_6 is not None else None
+
+    last_item = (
+        OrderItem.objects.filter(product_variant__product=product)
+        .order_by("-order__order_date")
+        .first()
+    )
+
+    last_order_cost = Decimal("0.00")
+    last_order_date = None
+    last_order_label = ""
+    last_order_qty = 0
+
+    if last_item:
+        order_items = OrderItem.objects.filter(product_variant__product=product, order=last_item.order)
+        last_order_cost = (
+            order_items.aggregate(
+                total_cost=Coalesce(
+                    Sum(
+                        ExpressionWrapper(
+                            F("item_cost_price") * F("quantity"),
+                            output_field=DecimalField(),
+                        )
+                    ),
+                    Decimal("0.00"),
+                )
+            )["total_cost"]
+            or Decimal("0.00")
+        )
+
+        delivered = all(i.date_arrived for i in order_items)
+        last_order_label = "Last Order" if delivered else "On Order"
+        last_order_date = order_items.first().date_arrived if delivered else None
+
+        last_order_qty = order_items.aggregate(total=Coalesce(Sum("quantity"), 0))["total"]
+
+    sold_since_last_order = (
+        (last_order_qty - total_inventory) if last_order_qty else None
+    )
+    if sold_since_last_order is not None and sold_since_last_order <= 0:
+        sold_since_last_order = 0
+
+    profit_total_contrib = profit_amount * Decimal(total_sales) if profit_amount is not None else Decimal("0.00")
+
+    return {
+        "total_inventory": total_inventory,
+        "total_sales": total_sales,
+        "total_returns": total_returns,
+        "total_sales_value": total_sales_value,
+        "sales_last_12_months": sales_12,
+        "sales_last_30_days": sales_30,
+        "sales_last_6_months": sales_6,
+        "sales_speed_12_months": sales_12 / 12 if sales_12 else 0,
+        "sales_speed_30_days": sales_30,
+        "average_sale_price": average_sale_price,
+        "average_discount_percentage": average_discount_percentage,
+        "average_cost_price": average_cost_price,
+        "retail_vs_sale_percentage": retail_vs_sale_percentage,
+        "profit_amount": profit_amount,
+        "profit_percentage": profit_percentage,
+        "profit_total_contrib": profit_total_contrib,
+        "retail_total_contrib": product.retail_price * Decimal(total_sales)
+        if product.retail_price and product.retail_price > 0 and total_sales
+        else Decimal("0.00"),
+        "actual_total_contrib": total_sales_value,
+        "sold_units_contrib": total_sales,
+        "return_units_contrib": total_returns,
+        "time_on_market_months": time_on_market_months,
+        "sales_speed_6_months": sales_speed_6_months,
+        "last_order_cost": last_order_cost,
+        "last_order_date": last_order_date,
+        "last_order_label": last_order_label,
+        "last_order_qty": last_order_qty,
+        "sold_since_last_order": sold_since_last_order,
+    }
+
+
 def _build_product_list_context(request, preset_filters=None):
     """Return the computed context used by the product list style views."""
 
@@ -717,7 +903,7 @@ def _build_product_list_context(request, preset_filters=None):
     )
 
     # ─── Build product queryset ─────────────────────────────────────────────────
-    products_qs = (
+    base_products_qs = (
         Product.objects.all()
         .prefetch_related(
             Prefetch(
@@ -726,6 +912,15 @@ def _build_product_list_context(request, preset_filters=None):
         )
         .annotate(variant_count=Count("variants", distinct=True))
     )
+
+    if not show_retired:
+        base_products_qs = base_products_qs.filter(decommissioned=False)
+
+    # Baseline products are calculated from the unfiltered set so confidence
+    # baselines remain stable regardless of UI filters.
+    baseline_products = list(base_products_qs)
+
+    products_qs = base_products_qs
 
     if type_filters:
         products_qs = products_qs.filter(type__in=type_filters)
@@ -745,9 +940,6 @@ def _build_product_list_context(request, preset_filters=None):
     if series_filters:
         products_qs = products_qs.filter(series__id__in=series_filters).distinct()
 
-    if not show_retired:
-        products_qs = products_qs.filter(decommissioned=False)
-
     products = list(products_qs)
 
     # Default ordering: by product ID (e.g. PG001, PG002, ...)
@@ -764,198 +956,59 @@ def _build_product_list_context(request, preset_filters=None):
     sitewide_sold_units = 0
     sitewide_return_units = 0
 
+    # Pre-compute metrics for the baseline set to keep baselines stable and
+    # reuse the work for any filtered subset.
+    baseline_metrics_map = {}
+    for product in baseline_products:
+        metrics = _compute_product_metrics(
+            product,
+            size_order=SIZE_ORDER,
+            today=today,
+            last_12_months=last_12_months,
+            last_30_days=last_30_days,
+            last_6_months=last_6_months,
+        )
+        baseline_metrics_map[product.id] = metrics
+        sitewide_retail_total += metrics["retail_total_contrib"]
+        sitewide_actual_total += metrics["actual_total_contrib"]
+        sitewide_profit_total += metrics["profit_total_contrib"]
+        sitewide_sold_units += metrics["sold_units_contrib"]
+        sitewide_return_units += metrics["return_units_contrib"]
+
     for product in products:
-        # sort variants by size
-        product.variants_with_inventory.sort(key=lambda v: SIZE_ORDER.get(v.size, 9999))
-
-        # total inventory
-        product.total_inventory = sum(
-            v.latest_inventory for v in product.variants_with_inventory
-        )
-
-        # sales aggregates
-        total_sales = 0
-        total_returns = 0
-        total_sales_value = Decimal("0.00")
-        sales_12 = 0
-        sales_30 = 0
-        sales_6 = 0
-
-        for v in product.variants_with_inventory:
-            total_sales += v.sales.aggregate(total=Coalesce(Sum("sold_quantity"), 0))[
-                "total"
-            ]
-            total_returns += v.sales.aggregate(
-                total=Coalesce(Sum("return_quantity"), 0)
-            )["total"]
-            total_sales_value += v.sales.aggregate(
-                total=Coalesce(Sum("sold_value"), Decimal("0.00"))
-            )["total"]
-            sales_12 += v.sales.filter(date__gte=last_12_months).aggregate(
-                total=Coalesce(Sum("sold_quantity"), 0)
-            )["total"]
-            sales_30 += v.sales.filter(date__gte=last_30_days).aggregate(
-                total=Coalesce(Sum("sold_quantity"), 0)
-            )["total"]
-            sales_6 += v.sales.filter(date__gte=last_6_months).aggregate(
-                total=Coalesce(Sum("sold_quantity"), 0)
-            )["total"]
-
-        product.total_sales = total_sales
-        product.total_returns = total_returns
-        product.total_sales_value = total_sales_value
-        product.sales_last_12_months = sales_12
-        product.sales_last_30_days = sales_30
-        product.sales_last_6_months = sales_6
-        product.sales_speed_12_months = sales_12 / 12 if sales_12 else 0
-        product.sales_speed_30_days = sales_30
-        product.average_sale_price = (
-            product.total_sales_value / Decimal(total_sales) if total_sales else None
-        )
-
-        quantity_expression = Coalesce(F("actual_quantity"), F("quantity"))
-        order_item_totals = OrderItem.objects.filter(
-            product_variant__product=product
-        ).aggregate(
-            total_cost=Coalesce(
-                Sum(
-                    ExpressionWrapper(
-                        F("item_cost_price") * quantity_expression,
-                        output_field=DecimalField(),
-                    )
-                ),
-                Decimal("0.00"),
-            ),
-            total_quantity=Coalesce(Sum(quantity_expression), 0),
-        )
-
-        product.average_cost_price = (
-            order_item_totals["total_cost"]
-            / Decimal(order_item_totals["total_quantity"])
-            if order_item_totals["total_quantity"]
-            else None
-        )
-
-        product.retail_vs_sale_percentage = (
-            (product.average_sale_price / product.retail_price) * Decimal("100")
-            if product.retail_price
-            and product.retail_price > 0
-            and product.average_sale_price
-            else None
-        )
-
-        product.average_discount_percentage = (
-            (
-                (product.retail_price - product.average_sale_price)
-                / product.retail_price
-            )
-            * Decimal("100")
-            if product.retail_price
-            and product.retail_price > 0
-            and product.average_sale_price
-            else None
-        )
-
-        if (
-            product.retail_price
-            and product.retail_price > 0
-            and total_sales
-            and product.total_sales_value is not None
-        ):
-            sitewide_retail_total += product.retail_price * Decimal(total_sales)
-            sitewide_actual_total += product.total_sales_value
-
-        product.profit_amount = (
-            product.average_sale_price - product.average_cost_price
-            if product.average_sale_price is not None
-            and product.average_cost_price is not None
-            else None
-        )
-
-        product.profit_percentage = (
-            (product.profit_amount / product.average_sale_price) * Decimal("100")
-            if product.profit_amount is not None
-            and product.average_sale_price
-            and product.average_sale_price != 0
-            else None
-        )
-
-        if product.profit_amount is not None:
-            sitewide_profit_total += product.profit_amount * Decimal(total_sales)
-        sitewide_sold_units += total_sales
-        sitewide_return_units += total_returns
-
-        first_sale = (
-            Sale.objects.filter(variant__product=product)
-            .aggregate(first_date=Min("date"))
-            .get("first_date")
-        )
-
-        product.time_on_market_months = (
-            (today - first_sale).days / Decimal("30") if first_sale else None
-        )
-
-        if (
-            product.time_on_market_months
-            and product.time_on_market_months < Decimal("6")
-        ):
-            product.sales_speed_6_months = (
-                Decimal(total_sales) / product.time_on_market_months
-                if product.time_on_market_months > 0
-                else None
-            )
-        else:
-            product.sales_speed_6_months = (
-                Decimal(sales_6) / Decimal("6") if sales_6 is not None else None
+        metrics = baseline_metrics_map.get(product.id)
+        if metrics is None:
+            metrics = _compute_product_metrics(
+                product,
+                size_order=SIZE_ORDER,
+                today=today,
+                last_12_months=last_12_months,
+                last_30_days=last_30_days,
+                last_6_months=last_6_months,
             )
 
-        # last order info
-        last_item = (
-            OrderItem.objects.filter(product_variant__product=product)
-            .order_by("-order__order_date")
-            .first()
-        )
-
-        if last_item:
-            order_items = OrderItem.objects.filter(
-                product_variant__product=product, order=last_item.order
-            )
-            cost = order_items.aggregate(
-                total_cost=Coalesce(
-                    Sum(
-                        ExpressionWrapper(
-                            F("item_cost_price") * F("quantity"),
-                            output_field=DecimalField(),
-                        )
-                    ),
-                    Decimal("0.00"),
-                )
-            )["total_cost"] or Decimal("0.00")
-            product.last_order_cost = cost
-
-            delivered = all(i.date_arrived for i in order_items)
-            if delivered:
-                product.last_order_date = order_items.first().date_arrived
-                product.last_order_label = "Last Order"
-            else:
-                product.last_order_date = None
-                product.last_order_label = "On Order"
-
-            product.last_order_qty = order_items.aggregate(
-                total=Coalesce(Sum("quantity"), 0)
-            )["total"]
-        else:
-            product.last_order_cost = Decimal("0.00")
-            product.last_order_date = None
-            product.last_order_qty = 0
-
-        if product.last_order_qty:
-            sold_since_last_order = product.last_order_qty - product.total_inventory
-            product.sold_since_last_order = sold_since_last_order if sold_since_last_order > 0 else 0
-        else:
-            product.sold_since_last_order = None
-            product.last_order_label = ""
-
+        product.total_inventory = metrics["total_inventory"]
+        product.total_sales = metrics["total_sales"]
+        product.total_returns = metrics["total_returns"]
+        product.total_sales_value = metrics["total_sales_value"]
+        product.sales_last_12_months = metrics["sales_last_12_months"]
+        product.sales_last_30_days = metrics["sales_last_30_days"]
+        product.sales_last_6_months = metrics["sales_last_6_months"]
+        product.sales_speed_12_months = metrics["sales_speed_12_months"]
+        product.sales_speed_30_days = metrics["sales_speed_30_days"]
+        product.average_sale_price = metrics["average_sale_price"]
+        product.average_cost_price = metrics["average_cost_price"]
+        product.retail_vs_sale_percentage = metrics["retail_vs_sale_percentage"]
+        product.average_discount_percentage = metrics["average_discount_percentage"]
+        product.profit_amount = metrics["profit_amount"]
+        product.profit_percentage = metrics["profit_percentage"]
+        product.time_on_market_months = metrics["time_on_market_months"]
+        product.sales_speed_6_months = metrics["sales_speed_6_months"]
+        product.last_order_cost = metrics["last_order_cost"]
+        product.last_order_date = metrics["last_order_date"]
+        product.last_order_label = metrics["last_order_label"]
+        product.last_order_qty = metrics["last_order_qty"]
+        product.sold_since_last_order = metrics["sold_since_last_order"]
         product.profit = product.total_sales_value - product.last_order_cost
 
     sitewide_average_discount = (
