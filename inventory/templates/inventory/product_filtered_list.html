@@ -253,7 +253,15 @@
       </div>
 
       <div class="card-panel">
-        <!-- PLACEHOLDER FOR VALUE OF STOCK IN RMB -->
+        <h4 class="teal-text text-darken-2" style="margin-top: 0;">¥{{ inventory_value_total|floatformat:2 }}</h4>
+        <p class="grey-text text-darken-1" style="margin-bottom: 0;">Estimated value of stock (RMB)</p>
+        <div class="filter-divider"></div>
+        {% if inventory_value_category_values %}
+          <canvas id="inventoryValueChart"></canvas>
+          <p class="grey-text text-darken-1" style="margin-bottom: 0;">Inventory value split by product category</p>
+        {% else %}
+          <p class="grey-text text-darken-1" style="margin: 0;">No value data available.</p>
+        {% endif %}
       </div>
 
     </div>
@@ -272,7 +280,15 @@
       </div>
 
       <div class="card-panel">
-          <!-- PLACEHOLDER FOR SALES VALUE IN RMB -->
+        <h4 class="teal-text text-darken-2" style="margin-top: 0;">¥{{ sales_last_year_value_total|floatformat:2 }}</h4>
+        <p class="grey-text text-darken-1" style="margin-bottom: 0;">Sales value in the last 12 months (RMB)</p>
+        <div class="filter-divider"></div>
+        {% if sales_value_category_values %}
+          <canvas id="salesValueChart"></canvas>
+          <p class="grey-text text-darken-1" style="margin-bottom: 0;">Sales value split by product category</p>
+        {% else %}
+          <p class="grey-text text-darken-1" style="margin: 0;">No sales value data available.</p>
+        {% endif %}
       </div>
 
     </div>
@@ -584,6 +600,16 @@
       const selectedStyles = JSON.parse('{{ style_filters_json|default:"[]"|escapejs }}' || '[]');
       const categoryBreakdownMode = '{{ category_breakdown_mode|default:"style" }}';
       const salesCategoryMode = '{{ sales_category_mode|default:"style" }}';
+      const inventoryValueLabels = {{ inventory_value_category_labels|default:'[]'|safe }};
+      const inventoryValueValues = {{ inventory_value_category_values|default:'[]'|safe }};
+      const inventoryValueCodes = {{ inventory_value_category_codes|default:'[]'|safe }};
+      const inventoryValueMode = '{{ inventory_value_category_mode|default:"style" }}';
+      const inventoryValueStyle = '{{ inventory_value_category_style|default:"" }}';
+      const salesValueLabels = {{ sales_value_category_labels|default:'[]'|safe }};
+      const salesValueValues = {{ sales_value_category_values|default:'[]'|safe }};
+      const salesValueCodes = {{ sales_value_category_codes|default:'[]'|safe }};
+      const salesValueMode = '{{ sales_value_category_mode|default:"style" }}';
+      const salesValueStyle = '{{ sales_value_category_style|default:"" }}';
 
       const STYLE_CATEGORY_COLORS = {
         gi: '#42a5f5',
@@ -605,6 +631,16 @@
         '#26a69a',
       ];
 
+      const formatCurrency = (value) =>
+        `¥${Number(value || 0).toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`;
+
+      const selectedStyleSet = Array.isArray(selectedStyles)
+        ? new Set(selectedStyles)
+        : new Set();
+
       const categoryChartElement = document.getElementById('categoryBreakdownChart');
       if (
         categoryChartElement &&
@@ -613,9 +649,6 @@
         categoryValues &&
         categoryValues.length
       ) {
-        const selectedStyleSet = Array.isArray(selectedStyles)
-          ? new Set(selectedStyles)
-          : new Set();
         const hasSelection =
           categoryBreakdownMode === 'style' && selectedStyleSet.size > 0;
         const totalCategoryUnits = categoryValues.reduce(
@@ -682,6 +715,82 @@
         });
       }
 
+      const inventoryValueChartElement = document.getElementById('inventoryValueChart');
+      if (
+        inventoryValueChartElement &&
+        inventoryValueLabels &&
+        inventoryValueLabels.length &&
+        inventoryValueValues &&
+        inventoryValueValues.length
+      ) {
+        const hasValueSelection =
+          inventoryValueMode === 'style' && selectedStyleSet.size > 0;
+        const totalInventoryValue = inventoryValueValues.reduce(
+          (sum, value) => sum + Number(value || 0),
+          0
+        );
+
+        const inventoryBackgroundColors = (inventoryValueCodes || []).map(
+          (code, index) => {
+            if (inventoryValueMode === 'style') {
+              const baseColor = STYLE_CATEGORY_COLORS[code] || '#26a69a';
+              if (!hasValueSelection) return baseColor;
+              return selectedStyleSet.has(code)
+                ? baseColor
+                : 'rgba(189, 189, 189, 0.5)';
+            }
+
+            return TYPE_COLORS[index % TYPE_COLORS.length];
+          }
+        );
+
+        const inventoryBorderColors = (inventoryValueCodes || []).map(
+          (code, index) => {
+            if (inventoryValueMode === 'style') {
+              const baseColor = STYLE_CATEGORY_COLORS[code] || '#26a69a';
+              if (!hasValueSelection) return baseColor;
+              return selectedStyleSet.has(code)
+                ? baseColor
+                : 'rgba(176, 190, 197, 0.8)';
+            }
+
+            return TYPE_COLORS[index % TYPE_COLORS.length];
+          }
+        );
+
+        new Chart(inventoryValueChartElement.getContext('2d'), {
+          type: 'pie',
+          data: {
+            labels: inventoryValueLabels,
+            datasets: [
+              {
+                data: inventoryValueValues,
+                backgroundColor: inventoryBackgroundColors,
+                borderColor: inventoryBorderColors,
+                borderWidth: 1.5,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: (context) => {
+                    const value = context.parsed;
+                    const percentage = totalInventoryValue
+                      ? ((value / totalInventoryValue) * 100).toFixed(1)
+                      : 0;
+                    return `${context.label}: ${formatCurrency(value)} (${percentage}%)`;
+                  },
+                },
+              },
+            },
+          },
+        });
+      }
+
       const salesCategoryChartElement = document.getElementById('salesCategoryChart');
       if (
         salesCategoryChartElement &&
@@ -695,9 +804,6 @@
           0
         );
         const salesMode = salesCategoryMode === 'type' ? 'type' : 'style';
-        const selectedStyleSet = Array.isArray(selectedStyles)
-          ? new Set(selectedStyles)
-          : new Set();
         const hasSalesSelection = salesMode === 'style' && selectedStyleSet.size > 0;
 
         const salesBackgroundColors = (salesCategoryCodes || []).map((code, index) => {
@@ -751,6 +857,83 @@
                       ? ((value / totalSalesUnits) * 100).toFixed(1)
                       : 0;
                     return `${context.label}: ${value} units (${percentage}%)`;
+                  },
+                },
+              },
+            },
+          },
+        });
+      }
+
+      const salesValueChartElement = document.getElementById('salesValueChart');
+      if (
+        salesValueChartElement &&
+        salesValueLabels &&
+        salesValueLabels.length &&
+        salesValueValues &&
+        salesValueValues.length
+      ) {
+        const totalSalesValue = salesValueValues.reduce(
+          (sum, value) => sum + Number(value || 0),
+          0
+        );
+        const salesValueModeNormalized = salesValueMode === 'type' ? 'type' : 'style';
+        const hasSalesValueSelection =
+          salesValueModeNormalized === 'style' && selectedStyleSet.size > 0;
+
+        const salesValueBackgroundColors = (salesValueCodes || []).map(
+          (code, index) => {
+            if (salesValueModeNormalized === 'style') {
+              const baseColor = STYLE_CATEGORY_COLORS[code] || '#26a69a';
+              if (!hasSalesValueSelection) return baseColor;
+              return selectedStyleSet.has(code)
+                ? baseColor
+                : 'rgba(189, 189, 189, 0.5)';
+            }
+
+            return TYPE_COLORS[index % TYPE_COLORS.length];
+          }
+        );
+
+        const salesValueBorderColors = (salesValueCodes || []).map(
+          (code, index) => {
+            if (salesValueModeNormalized === 'style') {
+              const baseColor = STYLE_CATEGORY_COLORS[code] || '#26a69a';
+              if (!hasSalesValueSelection) return baseColor;
+              return selectedStyleSet.has(code)
+                ? baseColor
+                : 'rgba(176, 190, 197, 0.8)';
+            }
+
+            return TYPE_COLORS[index % TYPE_COLORS.length];
+          }
+        );
+
+        new Chart(salesValueChartElement.getContext('2d'), {
+          type: 'pie',
+          data: {
+            labels: salesValueLabels,
+            datasets: [
+              {
+                data: salesValueValues,
+                backgroundColor: salesValueBackgroundColors,
+                borderColor: salesValueBorderColors,
+                borderWidth: 1.5,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: (context) => {
+                    const value = context.parsed;
+                    const percentage = totalSalesValue
+                      ? ((value / totalSalesValue) * 100).toFixed(1)
+                      : 0;
+                    return `${context.label}: ${formatCurrency(value)} (${percentage}%)`;
                   },
                 },
               },
