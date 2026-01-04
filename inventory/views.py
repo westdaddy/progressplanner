@@ -64,10 +64,13 @@ from .models import (
     Referrer,
     PRODUCT_TYPE_CHOICES,
     PRODUCT_TYPE_TO_STYLES,
+    PRODUCT_SUBTYPE_CHOICES,
+    PRODUCT_SUBTYPE_TO_TYPES,
     PRODUCT_STYLE_CHOICES,
     PRODUCT_AGE_CHOICES,
     PRODUCT_GENDER_CHOICES,
     get_type_choices_for_styles,
+    get_subtype_choices_for_types,
 )
 from .utils import (
     calculate_size_order_mix,
@@ -633,6 +636,24 @@ def _build_product_list_context(request, preset_filters=None):
         raw_style_filters = [raw_style_filters]
     style_filters = [str(val) for val in raw_style_filters if val]
 
+    raw_subtype_filters = _get_filter("subtype_filter", None)
+    if raw_subtype_filters is None:
+        raw_subtype_filters = request.GET.getlist("subtype_filter")
+        if not raw_subtype_filters:
+            first_subtype = request.GET.get("subtype_filter")
+            raw_subtype_filters = [first_subtype] if first_subtype else []
+    elif not isinstance(raw_subtype_filters, (list, tuple, set)):
+        raw_subtype_filters = [raw_subtype_filters]
+    subtype_filters = [str(val) for val in raw_subtype_filters if val]
+
+    if subtype_filters and not type_filters:
+        derived_types = {
+            type_code
+            for subtype_code in subtype_filters
+            for type_code in PRODUCT_SUBTYPE_TO_TYPES.get(subtype_code, set())
+        }
+        type_filters = list(derived_types)
+
     if type_filters and not style_filters:
         derived_styles = {
             style
@@ -654,6 +675,12 @@ def _build_product_list_context(request, preset_filters=None):
     available_type_choices = get_type_choices_for_styles(style_filters or None)
     allowed_type_codes = {code for code, _ in available_type_choices}
     type_filters = [t for t in type_filters if t in allowed_type_codes]
+
+    available_subtype_choices = get_subtype_choices_for_types(
+        type_filters or allowed_type_codes or None
+    )
+    allowed_subtype_codes = {code for code, _ in available_subtype_choices}
+    subtype_filters = [s for s in subtype_filters if s in allowed_subtype_codes]
 
     group_filters = preset_filters.get("group_filters")
     if group_filters is None:
@@ -698,6 +725,9 @@ def _build_product_list_context(request, preset_filters=None):
 
     if type_filters:
         products_qs = products_qs.filter(type__in=type_filters)
+
+    if subtype_filters:
+        products_qs = products_qs.filter(subtype__in=subtype_filters)
 
     if style_filters:
         products_qs = products_qs.filter(style__in=style_filters)
@@ -944,6 +974,8 @@ def _build_product_list_context(request, preset_filters=None):
         "show_retired": show_retired,
         "type_filter": type_filters[0] if type_filters else None,
         "type_filters": type_filters,
+        "subtype_filter": subtype_filters[0] if subtype_filters else None,
+        "subtype_filters": subtype_filters,
         "style_filter": style_filters[0] if style_filters else None,
         "style_filters": style_filters,
         "age_filter": age_filters[0] if age_filters else None,
@@ -952,6 +984,7 @@ def _build_product_list_context(request, preset_filters=None):
         "series_filters": series_filters,
         "zero_inventory": zero_inventory,
         "type_choices": available_type_choices,
+        "subtype_choices": available_subtype_choices,
         "style_choices": PRODUCT_STYLE_CHOICES,
         "age_choices": PRODUCT_AGE_CHOICES,
         "group_choices": Group.objects.all(),
@@ -1048,6 +1081,7 @@ def _render_filtered_products(
         }
 
     type_selected = set(context.get("type_filters", []))
+    subtype_selected = set(context.get("subtype_filters", []))
     style_selected = set(context.get("style_filters", []))
     age_selected = set(context.get("age_filters", []))
     group_selected = set(context.get("group_filters", []))
@@ -1079,6 +1113,19 @@ def _render_filtered_products(
                 for value, label in context.get("type_choices", PRODUCT_TYPE_CHOICES)
             ],
             display_label="Product Subcategory",
+        ),
+        build_control(
+            "subtype",
+            "subtype_filter",
+            [
+                {
+                    "value": value,
+                    "label": label,
+                    "checked": str(value) in subtype_selected,
+                }
+                for value, label in context.get("subtype_choices", PRODUCT_SUBTYPE_CHOICES)
+            ],
+            display_label="Product Subtype",
         ),
         build_control(
             "age",
