@@ -324,7 +324,7 @@
       </div>
 
       <div class="card-panel">
-        <h4 class="teal-text text-darken-2" style="margin-top: 0;">¥{{ inventory_value_total|floatformat:2 }}</h4>
+        <h4 class="teal-text text-darken-2" style="margin-top: 0;">¥{{ inventory_value_total|floatformat:"0g" }}</h4>
         <p class="grey-text text-darken-1" style="margin-bottom: 0;">Estimated value of stock (RMB)</p>
         <div class="filter-divider"></div>
         {% if inventory_value_category_values %}
@@ -353,7 +353,7 @@
       </div>
 
       <div class="card-panel">
-        <h4 class="teal-text text-darken-2" style="margin-top: 0;">¥{{ sales_last_year_value_total|floatformat:2 }}</h4>
+        <h4 class="teal-text text-darken-2" style="margin-top: 0;">¥{{ sales_last_year_value_total|floatformat:"0g" }}</h4>
         <p class="grey-text text-darken-1" style="margin-bottom: 0;">Sales value in the last 12 months (RMB)</p>
         <div class="filter-divider"></div>
         {% if sales_value_category_values %}
