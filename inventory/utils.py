@@ -76,10 +76,17 @@ def compute_product_confidence(
     avg_discount = baselines.get("avg_discount_pct")
     avg_margin = baselines.get("avg_margin_pct")
 
-    # Sell-through: faster is better. Target bands: 5mo (good), 9mo (ok)
-    sell_score = _banded_score(
-        months_to_sell_out, [Decimal("5"), Decimal("9")]
-    )
+    # Sell-through: faster is better. Core products are allowed deeper stock
+    # coverage so they can avoid stock-outs, while seasonal/one-off items need
+    # quicker sell-through.
+    if is_core:
+        sell_score = _banded_score(
+            months_to_sell_out, [Decimal("6"), Decimal("12")]
+        )
+    else:
+        sell_score = _banded_score(
+            months_to_sell_out, [Decimal("5"), Decimal("9")]
+        )
 
     # Returns: lower than average is good
     if return_rate is None or avg_return in (None, Decimal("0")):
@@ -112,8 +119,8 @@ def compute_product_confidence(
 
     severe_signals: list[str] = []
 
-    if months_to_sell_out is not None and months_to_sell_out >= Decimal("12"):
-        severe_signals.append("Projected to take a year or more to sell through.")
+    if months_to_sell_out is not None and months_to_sell_out >= Decimal("15"):
+        severe_signals.append("Projected to take well over a year to sell through.")
 
     if return_rate is not None and avg_return not in (None, Decimal("0")):
         if return_rate >= avg_return * Decimal("1.5"):
