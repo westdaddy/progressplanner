@@ -110,6 +110,25 @@ def compute_product_confidence(
         else:
             margin_score = 0
 
+    severe_signals: list[str] = []
+
+    if months_to_sell_out is not None and months_to_sell_out >= Decimal("12"):
+        severe_signals.append("Projected to take a year or more to sell through.")
+
+    if return_rate is not None and avg_return not in (None, Decimal("0")):
+        if return_rate >= avg_return * Decimal("1.5"):
+            severe_signals.append("Return rate is far above the store average.")
+
+    if discount_pct is not None:
+        if discount_pct >= Decimal("50"):
+            severe_signals.append("Clearance-level discounting is required to sell this item.")
+        elif avg_discount is not None and discount_pct >= avg_discount + Decimal("25"):
+            severe_signals.append("Discounting is dramatically above the store average.")
+
+    if margin_pct is not None and avg_margin is not None:
+        if margin_pct <= avg_margin - Decimal("15"):
+            severe_signals.append("Gross margin is substantially below the store average.")
+
     weights = (
         {"sell": 0.35, "returns": 0.25, "discount": 0.15, "margin": 0.25}
         if is_core
@@ -131,6 +150,10 @@ def compute_product_confidence(
     else:
         level = "Low"
 
+    if severe_signals:
+        level = "Low"
+        score_pct = min(score_pct, 30)
+
     advisories: list[str] = []
 
     if months_to_sell_out is None:
@@ -146,6 +169,8 @@ def compute_product_confidence(
             advisories.append("Slow sell-through—consider promotion or markdown.")
         if months_to_sell_out < Decimal("3") and inventory_units < 5:
             advisories.append("Fast seller with low stock—prioritise replenishment.")
+
+    advisories.extend(severe_signals)
 
     if (
         return_rate is not None
