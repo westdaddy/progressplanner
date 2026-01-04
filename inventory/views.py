@@ -622,6 +622,7 @@ def _compute_product_metrics(
     sales_12 = 0
     sales_30 = 0
     sales_6 = 0
+    variant_months_to_sell_out: dict[str, Optional[Decimal]] = {}
 
     for v in product.variants_with_inventory:
         total_sales += v.sales.aggregate(total=Coalesce(Sum("sold_quantity"), 0))["total"]
@@ -635,9 +636,17 @@ def _compute_product_metrics(
         sales_30 += v.sales.filter(date__gte=last_30_days).aggregate(
             total=Coalesce(Sum("sold_quantity"), 0)
         )["total"]
-        sales_6 += v.sales.filter(date__gte=last_6_months).aggregate(
+        variant_sales_6 = v.sales.filter(date__gte=last_6_months).aggregate(
             total=Coalesce(Sum("sold_quantity"), 0)
         )["total"]
+        sales_6 += variant_sales_6
+
+        monthly_rate_6 = (
+            Decimal(variant_sales_6) / Decimal("6") if variant_sales_6 else Decimal("0")
+        )
+        variant_months_to_sell_out[v.size] = (
+            Decimal(v.latest_inventory) / monthly_rate_6 if monthly_rate_6 > 0 else None
+        )
 
     average_sale_price = (
         total_sales_value / Decimal(total_sales) if total_sales else None
@@ -781,6 +790,7 @@ def _compute_product_metrics(
         "last_order_label": last_order_label,
         "last_order_qty": last_order_qty,
         "sold_since_last_order": sold_since_last_order,
+        "variant_months_to_sell_out": variant_months_to_sell_out,
     }
 
 
@@ -788,6 +798,20 @@ def _build_product_list_context(request, preset_filters=None):
     """Return the computed context used by the product list style views."""
 
     preset_filters = preset_filters or {}
+
+    KEY_SIZE_RULES = {
+        "ng": {"sizes": ["S", "M", "L"], "min_order": 30},
+        "gi": {"sizes": ["A1", "A2", "F1", "F2"], "min_order": 100},
+    }
+
+    def _resolve_style_code(product):
+        if product.style:
+            return product.style
+        if product.type:
+            styles = PRODUCT_TYPE_TO_STYLES.get(product.type)
+            if styles:
+                return sorted(styles)[0]
+        return None
 
     def _get_filter(name, default=None):
         request_values = request.GET.getlist(name)
@@ -1009,6 +1033,7 @@ def _build_product_list_context(request, preset_filters=None):
         product.last_order_label = metrics["last_order_label"]
         product.last_order_qty = metrics["last_order_qty"]
         product.sold_since_last_order = metrics["sold_since_last_order"]
+        product.variant_months_to_sell_out = metrics["variant_months_to_sell_out"]
         product.profit = product.total_sales_value - product.last_order_cost
 
     sitewide_average_discount = (
@@ -1079,10 +1104,40 @@ def _build_product_list_context(request, preset_filters=None):
             inventory_units=product.total_inventory,
         )
 
+        advisories = list(confidence["advisories"])
+
+        if is_core:
+            style_code = _resolve_style_code(product)
+            rules = KEY_SIZE_RULES.get(style_code) if style_code else None
+            if rules:
+                key_sizes = rules["sizes"]
+                min_order_qty = rules["min_order"]
+                months_by_size = product.variant_months_to_sell_out or {}
+                for size_code in key_sizes:
+                    variant = next(
+                        (v for v in product.variants_with_inventory if v.size == size_code),
+                        None,
+                    )
+                    if not variant:
+                        continue
+
+                    on_hand = getattr(variant, "latest_inventory", 0) or 0
+                    months_left = months_by_size.get(size_code)
+
+                    if on_hand <= 0:
+                        advisories.append(
+                            f"Core key size {size_code} is out of stock—restock ASAP (minimum order {min_order_qty})."
+                        )
+                    elif months_left is not None and months_left <= Decimal("3"):
+                        months_display = months_left.quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
+                        advisories.append(
+                            f"Core key size {size_code} projected to run out in ~{months_display} months—plan reorder (minimum order {min_order_qty})."
+                        )
+
         product.confidence_level = confidence["level"]
         product.confidence_score = confidence["score"]
         product.confidence_components = confidence["components"]
-        product.confidence_advisories = confidence["advisories"]
+        product.confidence_advisories = advisories
 
     # ───  Apply zero‐inventory filter if requested ──────────────────────────────
     if zero_inventory:
