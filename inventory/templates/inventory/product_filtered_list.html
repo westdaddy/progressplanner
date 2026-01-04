@@ -512,6 +512,10 @@
           (subtypeOptions || []).map((opt) => [opt.value, opt.label])
         );
 
+        const notifyChange = () => {
+          rebuildApplyState();
+        };
+
         let selectedStyles = new Set(
           (styleOptions || [])
             .filter((opt) => opt.checked)
