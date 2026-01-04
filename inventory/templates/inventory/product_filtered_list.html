@@ -156,6 +156,26 @@
       opacity: 1;
       cursor: pointer;
     }
+
+    .filter-card--tiered .tiered-section {
+      margin-bottom: 12px;
+    }
+
+    .filter-card--tiered .tiered-section[hidden] {
+      display: none;
+    }
+
+    .filter-card--tiered .tiered-section__title {
+      margin: 0 0 6px;
+      font-weight: 600;
+      color: #455a64;
+    }
+
+    .filter-card--tiered .filter-option {
+      display: inline-flex;
+      width: auto;
+      margin-right: 10px;
+    }
   </style>
   {% if filter_controls %}
 
@@ -176,6 +196,47 @@
 
 
       <div class="filter-bar">
+        {% if category_filter %}
+          <div
+            class="card-panel filter-card filter-card--tiered"
+            data-category-filter-card
+            data-style-field="style_filter"
+            data-type-field="type_filter"
+            data-subtype-field="subtype_filter"
+          >
+            <div class="filter-card__header">
+              <div style="flex: 1; min-width: 0;">
+                <p class="grey-text text-darken-1" style="margin: 0 0 6px;">Product Category</p>
+                <div class="chip-set" data-selected-chips>
+                  <span class="chip__placeholder" data-placeholder>None selected</span>
+                </div>
+              </div>
+              <button type="button" class="btn-flat filter-card__toggle" aria-expanded="false">
+                <span class="filter-card__toggle-symbol blue">+</span>
+              </button>
+            </div>
+
+            <div class="filter-card__options" hidden data-tiered-options>
+              <div class="tiered-section" data-style-section>
+                <p class="tiered-section__title">Product Category</p>
+                <div class="option-list" data-style-options></div>
+              </div>
+
+              <div class="tiered-section" data-type-section hidden>
+                <p class="tiered-section__title">Product Subcategory</p>
+                <div class="option-list" data-type-options></div>
+              </div>
+
+              <div class="tiered-section" data-subtype-section hidden>
+                <p class="tiered-section__title">Product Subtype</p>
+                <div class="option-list" data-subtype-options></div>
+              </div>
+            </div>
+
+            <div data-hidden-inputs></div>
+          </div>
+        {% endif %}
+
         {% for control in filter_controls %}
           {% with option_id="filter-options-"|add:forloop.counter %}
             <div
@@ -237,6 +298,14 @@
     </form>
   {% endif %}
 
+  {% if category_filter %}
+    {{ category_filter.styles|json_script:"category-style-options" }}
+    {{ category_filter.types|json_script:"category-type-options" }}
+    {{ category_filter.subtypes|json_script:"category-subtype-options" }}
+    {{ category_filter.type_map|json_script:"category-type-map" }}
+    {{ category_filter.subtype_map|json_script:"category-subtype-map" }}
+  {% endif %}
+
   <!-- STATISTICS SECTION -->
   <div class="row">
     <div class="col s12 m4">
@@ -253,7 +322,15 @@
       </div>
 
       <div class="card-panel">
-        <!-- PLACEHOLDER FOR VALUE OF STOCK IN RMB -->
+        <h4 class="teal-text text-darken-2" style="margin-top: 0;">¥{{ inventory_value_total|floatformat:2 }}</h4>
+        <p class="grey-text text-darken-1" style="margin-bottom: 0;">Estimated value of stock (RMB)</p>
+        <div class="filter-divider"></div>
+        {% if inventory_value_category_values %}
+          <canvas id="inventoryValueChart"></canvas>
+          <p class="grey-text text-darken-1" style="margin-bottom: 0;">Inventory value split by product category</p>
+        {% else %}
+          <p class="grey-text text-darken-1" style="margin: 0;">No value data available.</p>
+        {% endif %}
       </div>
 
     </div>
@@ -272,7 +349,15 @@
       </div>
 
       <div class="card-panel">
-          <!-- PLACEHOLDER FOR SALES VALUE IN RMB -->
+        <h4 class="teal-text text-darken-2" style="margin-top: 0;">¥{{ sales_last_year_value_total|floatformat:2 }}</h4>
+        <p class="grey-text text-darken-1" style="margin-bottom: 0;">Sales value in the last 12 months (RMB)</p>
+        <div class="filter-divider"></div>
+        {% if sales_value_category_values %}
+          <canvas id="salesValueChart"></canvas>
+          <p class="grey-text text-darken-1" style="margin-bottom: 0;">Sales value split by product category</p>
+        {% else %}
+          <p class="grey-text text-darken-1" style="margin: 0;">No sales value data available.</p>
+        {% endif %}
       </div>
 
     </div>
@@ -381,6 +466,288 @@
 
         applyButton.disabled = !isDirty;
         applyButton.classList.toggle('is-dirty', isDirty);
+      };
+
+      const parseJsonScript = (id, fallback = []) => {
+        const el = document.getElementById(id);
+        if (!el) return fallback;
+        try {
+          return JSON.parse(el.textContent);
+        } catch (e) {
+          return fallback;
+        }
+      };
+
+      const initCategoryFilterCard = (card) => {
+        if (!card) return null;
+
+        const selectedChips = card.querySelector('[data-selected-chips]');
+        const optionsPanel = card.querySelector('[data-tiered-options]');
+        const toggleButtons = card.querySelectorAll('.filter-card__toggle');
+        const symbol = card.querySelector('.filter-card__toggle-symbol');
+        const hiddenInputs = card.querySelector('[data-hidden-inputs]');
+        const styleOptionsContainer = card.querySelector('[data-style-options]');
+        const typeOptionsContainer = card.querySelector('[data-type-options]');
+        const subtypeOptionsContainer = card.querySelector('[data-subtype-options]');
+        const typeSection = card.querySelector('[data-type-section]');
+        const subtypeSection = card.querySelector('[data-subtype-section]');
+
+        const styleFieldName = card.dataset.styleField;
+        const typeFieldName = card.dataset.typeField;
+        const subtypeFieldName = card.dataset.subtypeField;
+
+        const styleOptions = parseJsonScript('category-style-options', []);
+        const typeOptions = parseJsonScript('category-type-options', []);
+        const subtypeOptions = parseJsonScript('category-subtype-options', []);
+        const typeMap = parseJsonScript('category-type-map', {});
+        const subtypeMap = parseJsonScript('category-subtype-map', {});
+
+        const styleLabelMap = Object.fromEntries(
+          (styleOptions || []).map((opt) => [opt.value, opt.label])
+        );
+        const typeLabelMap = Object.fromEntries(
+          (typeOptions || []).map((opt) => [opt.value, opt.label])
+        );
+        const subtypeLabelMap = Object.fromEntries(
+          (subtypeOptions || []).map((opt) => [opt.value, opt.label])
+        );
+
+        let selectedStyles = new Set(
+          (styleOptions || [])
+            .filter((opt) => opt.checked)
+            .map((opt) => String(opt.value))
+        );
+        let selectedTypes = new Set(
+          (typeOptions || [])
+            .filter((opt) => opt.checked)
+            .map((opt) => String(opt.value))
+        );
+        let selectedSubtypes = new Set(
+          (subtypeOptions || [])
+            .filter((opt) => opt.checked)
+            .map((opt) => String(opt.value))
+        );
+
+        const allowedTypes = () => {
+          if (!selectedStyles.size) return new Set();
+          const allowed = new Set();
+          selectedStyles.forEach((style) => {
+            (typeMap[style] || []).forEach(([code]) => allowed.add(String(code)));
+          });
+          return allowed;
+        };
+
+        const allowedSubtypes = () => {
+          if (!selectedTypes.size) return new Set();
+          const allowed = new Set();
+          selectedTypes.forEach((type) => {
+            (subtypeMap[type] || []).forEach(([code]) => allowed.add(String(code)));
+          });
+          return allowed;
+        };
+
+        const ensureHierarchyIntegrity = () => {
+          const allowedTypeCodes = allowedTypes();
+          selectedTypes = new Set(
+            Array.from(selectedTypes).filter((code) => allowedTypeCodes.has(code))
+          );
+
+          const allowedSubtypeCodes = allowedSubtypes();
+          selectedSubtypes = new Set(
+            Array.from(selectedSubtypes).filter((code) => allowedSubtypeCodes.has(code))
+          );
+        };
+
+        const syncHiddenInputs = () => {
+          if (!hiddenInputs) return;
+          hiddenInputs.innerHTML = '';
+
+          const createInputs = (fieldName, values) => {
+            values.forEach((val) => {
+              const input = document.createElement('input');
+              input.type = 'hidden';
+              input.name = fieldName;
+              input.value = val;
+              hiddenInputs.appendChild(input);
+            });
+          };
+
+          createInputs(styleFieldName, Array.from(selectedStyles));
+          createInputs(typeFieldName, Array.from(selectedTypes));
+          createInputs(subtypeFieldName, Array.from(selectedSubtypes));
+        };
+
+        const renderChips = () => {
+          if (!selectedChips) return;
+          selectedChips.innerHTML = '';
+
+          const addChip = (value, label, onRemove) => {
+            const chip = document.createElement('span');
+            chip.className = 'chip chip--selected';
+            chip.dataset.selectedValue = value;
+
+            const labelSpan = document.createElement('span');
+            labelSpan.className = 'chip__label';
+            labelSpan.textContent = label;
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'chip__remove';
+            removeBtn.setAttribute('aria-label', `Remove ${label}`);
+            removeBtn.textContent = '×';
+            removeBtn.addEventListener('click', onRemove);
+
+            chip.appendChild(labelSpan);
+            chip.appendChild(removeBtn);
+            selectedChips.appendChild(chip);
+          };
+
+          selectedStyles.forEach((code) => {
+            const label = styleLabelMap[code] || code;
+            addChip(code, label, () => {
+              selectedStyles.delete(code);
+              ensureHierarchyIntegrity();
+              renderAll();
+            });
+          });
+
+          selectedTypes.forEach((code) => {
+            const label = typeLabelMap[code] || code;
+            addChip(code, label, () => {
+              selectedTypes.delete(code);
+              ensureHierarchyIntegrity();
+              renderAll();
+            });
+          });
+
+          selectedSubtypes.forEach((code) => {
+            const label = subtypeLabelMap[code] || code;
+            addChip(code, label, () => {
+              selectedSubtypes.delete(code);
+              ensureHierarchyIntegrity();
+              renderAll();
+            });
+          });
+
+          if (
+            !selectedStyles.size &&
+            !selectedTypes.size &&
+            !selectedSubtypes.size
+          ) {
+            const placeholder = document.createElement('span');
+            placeholder.className = 'chip__placeholder';
+            placeholder.setAttribute('data-placeholder', '');
+            placeholder.textContent = 'None selected';
+            selectedChips.appendChild(placeholder);
+          }
+        };
+
+        const renderButtons = (container, options, selectedSet, allowedSet, onSelect) => {
+          if (!container) return;
+          container.innerHTML = '';
+          options
+            .filter((opt) => !selectedSet.has(String(opt.value)))
+            .filter((opt) => !allowedSet || allowedSet.has(String(opt.value)))
+            .forEach((opt) => {
+              const btn = document.createElement('button');
+              btn.type = 'button';
+              btn.className = 'filter-option';
+              btn.dataset.optionValue = opt.value;
+              btn.textContent = opt.label;
+              btn.addEventListener('click', () => onSelect(String(opt.value)));
+              container.appendChild(btn);
+            });
+        };
+
+        const renderStyleOptions = () => {
+          renderButtons(
+            styleOptionsContainer,
+            styleOptions || [],
+            selectedStyles,
+            null,
+            (value) => {
+              selectedStyles.add(value);
+              renderAll();
+            }
+          );
+        };
+
+        const renderTypeOptions = () => {
+          const allowedTypeCodes = allowedTypes();
+          if (typeSection) {
+            typeSection.hidden = !allowedTypeCodes.size;
+          }
+          renderButtons(
+            typeOptionsContainer,
+            typeOptions || [],
+            selectedTypes,
+            allowedTypeCodes,
+            (value) => {
+              selectedTypes.add(value);
+              renderAll();
+            }
+          );
+        };
+
+        const renderSubtypeOptions = () => {
+          const allowedSubtypeCodes = allowedSubtypes();
+          if (subtypeSection) {
+            subtypeSection.hidden = !allowedSubtypeCodes.size;
+          }
+          renderButtons(
+            subtypeOptionsContainer,
+            subtypeOptions || [],
+            selectedSubtypes,
+            allowedSubtypeCodes,
+            (value) => {
+              selectedSubtypes.add(value);
+              renderAll();
+            }
+          );
+        };
+
+        const getSelection = () => {
+          return [
+            ...Array.from(selectedStyles).sort().map((value) => `style:${value}`),
+            ...Array.from(selectedTypes).sort().map((value) => `type:${value}`),
+            ...Array.from(selectedSubtypes)
+              .sort()
+              .map((value) => `subtype:${value}`),
+          ];
+        };
+
+        const renderAll = () => {
+          ensureHierarchyIntegrity();
+          renderChips();
+          renderStyleOptions();
+          renderTypeOptions();
+          renderSubtypeOptions();
+          syncHiddenInputs();
+          notifyChange();
+        };
+
+        const setExpanded = (expanded) => {
+          if (!optionsPanel) return;
+          optionsPanel.hidden = !expanded;
+          card.classList.toggle('filter-card--expanded', expanded);
+          toggleButtons.forEach((btn) => btn.setAttribute('aria-expanded', expanded));
+          if (symbol) {
+            symbol.textContent = expanded ? '−' : '+';
+          }
+        };
+
+        ensureHierarchyIntegrity();
+        const initialSelection = getSelection();
+        renderAll();
+        setExpanded(false);
+
+        return {
+          setExpanded,
+          isExpanded: () => optionsPanel && !optionsPanel.hidden,
+          toggleButtons,
+          getSelection,
+          initialSelection,
+        };
       };
 
       const initFilterCard = (filterCard) => {
@@ -545,7 +912,16 @@
         };
       };
 
+      const categoryCard = document.querySelector('[data-category-filter-card]');
+      if (categoryCard) {
+        const categoryController = initCategoryFilterCard(categoryCard);
+        if (categoryController) {
+          filterControllers.push(categoryController);
+        }
+      }
+
       document.querySelectorAll('.filter-card').forEach((card) => {
+        if (card.hasAttribute('data-category-filter-card')) return;
         const controller = initFilterCard(card);
         filterControllers.push(controller);
       });
@@ -584,6 +960,16 @@
       const selectedStyles = JSON.parse('{{ style_filters_json|default:"[]"|escapejs }}' || '[]');
       const categoryBreakdownMode = '{{ category_breakdown_mode|default:"style" }}';
       const salesCategoryMode = '{{ sales_category_mode|default:"style" }}';
+      const inventoryValueLabels = {{ inventory_value_category_labels|default:'[]'|safe }};
+      const inventoryValueValues = {{ inventory_value_category_values|default:'[]'|safe }};
+      const inventoryValueCodes = {{ inventory_value_category_codes|default:'[]'|safe }};
+      const inventoryValueMode = '{{ inventory_value_category_mode|default:"style" }}';
+      const inventoryValueStyle = '{{ inventory_value_category_style|default:"" }}';
+      const salesValueLabels = {{ sales_value_category_labels|default:'[]'|safe }};
+      const salesValueValues = {{ sales_value_category_values|default:'[]'|safe }};
+      const salesValueCodes = {{ sales_value_category_codes|default:'[]'|safe }};
+      const salesValueMode = '{{ sales_value_category_mode|default:"style" }}';
+      const salesValueStyle = '{{ sales_value_category_style|default:"" }}';
 
       const STYLE_CATEGORY_COLORS = {
         gi: '#42a5f5',
@@ -605,6 +991,16 @@
         '#26a69a',
       ];
 
+      const formatCurrency = (value) =>
+        `¥${Number(value || 0).toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`;
+
+      const selectedStyleSet = Array.isArray(selectedStyles)
+        ? new Set(selectedStyles)
+        : new Set();
+
       const categoryChartElement = document.getElementById('categoryBreakdownChart');
       if (
         categoryChartElement &&
@@ -613,9 +1009,6 @@
         categoryValues &&
         categoryValues.length
       ) {
-        const selectedStyleSet = Array.isArray(selectedStyles)
-          ? new Set(selectedStyles)
-          : new Set();
         const hasSelection =
           categoryBreakdownMode === 'style' && selectedStyleSet.size > 0;
         const totalCategoryUnits = categoryValues.reduce(
@@ -682,6 +1075,82 @@
         });
       }
 
+      const inventoryValueChartElement = document.getElementById('inventoryValueChart');
+      if (
+        inventoryValueChartElement &&
+        inventoryValueLabels &&
+        inventoryValueLabels.length &&
+        inventoryValueValues &&
+        inventoryValueValues.length
+      ) {
+        const hasValueSelection =
+          inventoryValueMode === 'style' && selectedStyleSet.size > 0;
+        const totalInventoryValue = inventoryValueValues.reduce(
+          (sum, value) => sum + Number(value || 0),
+          0
+        );
+
+        const inventoryBackgroundColors = (inventoryValueCodes || []).map(
+          (code, index) => {
+            if (inventoryValueMode === 'style') {
+              const baseColor = STYLE_CATEGORY_COLORS[code] || '#26a69a';
+              if (!hasValueSelection) return baseColor;
+              return selectedStyleSet.has(code)
+                ? baseColor
+                : 'rgba(189, 189, 189, 0.5)';
+            }
+
+            return TYPE_COLORS[index % TYPE_COLORS.length];
+          }
+        );
+
+        const inventoryBorderColors = (inventoryValueCodes || []).map(
+          (code, index) => {
+            if (inventoryValueMode === 'style') {
+              const baseColor = STYLE_CATEGORY_COLORS[code] || '#26a69a';
+              if (!hasValueSelection) return baseColor;
+              return selectedStyleSet.has(code)
+                ? baseColor
+                : 'rgba(176, 190, 197, 0.8)';
+            }
+
+            return TYPE_COLORS[index % TYPE_COLORS.length];
+          }
+        );
+
+        new Chart(inventoryValueChartElement.getContext('2d'), {
+          type: 'pie',
+          data: {
+            labels: inventoryValueLabels,
+            datasets: [
+              {
+                data: inventoryValueValues,
+                backgroundColor: inventoryBackgroundColors,
+                borderColor: inventoryBorderColors,
+                borderWidth: 1.5,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: (context) => {
+                    const value = context.parsed;
+                    const percentage = totalInventoryValue
+                      ? ((value / totalInventoryValue) * 100).toFixed(1)
+                      : 0;
+                    return `${context.label}: ${formatCurrency(value)} (${percentage}%)`;
+                  },
+                },
+              },
+            },
+          },
+        });
+      }
+
       const salesCategoryChartElement = document.getElementById('salesCategoryChart');
       if (
         salesCategoryChartElement &&
@@ -695,9 +1164,6 @@
           0
         );
         const salesMode = salesCategoryMode === 'type' ? 'type' : 'style';
-        const selectedStyleSet = Array.isArray(selectedStyles)
-          ? new Set(selectedStyles)
-          : new Set();
         const hasSalesSelection = salesMode === 'style' && selectedStyleSet.size > 0;
 
         const salesBackgroundColors = (salesCategoryCodes || []).map((code, index) => {
@@ -751,6 +1217,83 @@
                       ? ((value / totalSalesUnits) * 100).toFixed(1)
                       : 0;
                     return `${context.label}: ${value} units (${percentage}%)`;
+                  },
+                },
+              },
+            },
+          },
+        });
+      }
+
+      const salesValueChartElement = document.getElementById('salesValueChart');
+      if (
+        salesValueChartElement &&
+        salesValueLabels &&
+        salesValueLabels.length &&
+        salesValueValues &&
+        salesValueValues.length
+      ) {
+        const totalSalesValue = salesValueValues.reduce(
+          (sum, value) => sum + Number(value || 0),
+          0
+        );
+        const salesValueModeNormalized = salesValueMode === 'type' ? 'type' : 'style';
+        const hasSalesValueSelection =
+          salesValueModeNormalized === 'style' && selectedStyleSet.size > 0;
+
+        const salesValueBackgroundColors = (salesValueCodes || []).map(
+          (code, index) => {
+            if (salesValueModeNormalized === 'style') {
+              const baseColor = STYLE_CATEGORY_COLORS[code] || '#26a69a';
+              if (!hasSalesValueSelection) return baseColor;
+              return selectedStyleSet.has(code)
+                ? baseColor
+                : 'rgba(189, 189, 189, 0.5)';
+            }
+
+            return TYPE_COLORS[index % TYPE_COLORS.length];
+          }
+        );
+
+        const salesValueBorderColors = (salesValueCodes || []).map(
+          (code, index) => {
+            if (salesValueModeNormalized === 'style') {
+              const baseColor = STYLE_CATEGORY_COLORS[code] || '#26a69a';
+              if (!hasSalesValueSelection) return baseColor;
+              return selectedStyleSet.has(code)
+                ? baseColor
+                : 'rgba(176, 190, 197, 0.8)';
+            }
+
+            return TYPE_COLORS[index % TYPE_COLORS.length];
+          }
+        );
+
+        new Chart(salesValueChartElement.getContext('2d'), {
+          type: 'pie',
+          data: {
+            labels: salesValueLabels,
+            datasets: [
+              {
+                data: salesValueValues,
+                backgroundColor: salesValueBackgroundColors,
+                borderColor: salesValueBorderColors,
+                borderWidth: 1.5,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: (context) => {
+                    const value = context.parsed;
+                    const percentage = totalSalesValue
+                      ? ((value / totalSalesValue) * 100).toFixed(1)
+                      : 0;
+                    return `${context.label}: ${formatCurrency(value)} (${percentage}%)`;
                   },
                 },
               },

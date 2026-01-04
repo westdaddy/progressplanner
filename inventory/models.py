@@ -42,6 +42,23 @@ PRODUCT_TYPE_CHOICES_BY_STYLE = {
     ],
 }
 
+PRODUCT_SUBTYPE_CHOICES_BY_TYPE = {
+    "tr": [
+        ("tw", "Twill"),
+        ("rs", "Ripstop"),
+    ],
+    "rg": [
+        ("ss", "Short Sleeve"),
+        ("ls", "Long Sleeve"),
+        ("rt", "Rolling Tee"),
+    ],
+    "dk": [
+        ("bs", "Board Shorts"),
+        ("dl", "Double Layer"),
+        ("vt", "Vale Tudo"),
+    ],
+}
+
 
 def _flatten_type_choices():
     seen = set()
@@ -67,6 +84,30 @@ PRODUCT_TYPE_CHOICES = _flatten_type_choices()
 PRODUCT_TYPE_TO_STYLES = _build_type_to_styles_map()
 
 
+def _flatten_subtype_choices():
+    seen = set()
+    choices = []
+    for type_code, subtype_choices in PRODUCT_SUBTYPE_CHOICES_BY_TYPE.items():
+        for code, label in subtype_choices:
+            if code in seen:
+                continue
+            seen.add(code)
+            choices.append((code, label))
+    return choices
+
+
+def _build_subtype_to_types_map():
+    mapping: dict[str, set[str]] = {}
+    for type_code, subtype_choices in PRODUCT_SUBTYPE_CHOICES_BY_TYPE.items():
+        for subtype_code, _label in subtype_choices:
+            mapping.setdefault(subtype_code, set()).add(type_code)
+    return mapping
+
+
+PRODUCT_SUBTYPE_CHOICES = _flatten_subtype_choices()
+PRODUCT_SUBTYPE_TO_TYPES = _build_subtype_to_types_map()
+
+
 def get_type_choices_for_styles(styles: Optional[Iterable[str]]):
     """Return type choices limited to the provided style codes."""
 
@@ -77,6 +118,23 @@ def get_type_choices_for_styles(styles: Optional[Iterable[str]]):
     seen = set()
     for style_code in styles:
         for code, label in PRODUCT_TYPE_CHOICES_BY_STYLE.get(style_code, []):
+            if code in seen:
+                continue
+            seen.add(code)
+            selected.append((code, label))
+    return selected
+
+
+def get_subtype_choices_for_types(types: Optional[Iterable[str]]):
+    """Return subtype choices limited to the provided type codes."""
+
+    if not types:
+        return PRODUCT_SUBTYPE_CHOICES
+
+    selected = []
+    seen = set()
+    for type_code in types:
+        for code, label in PRODUCT_SUBTYPE_CHOICES_BY_TYPE.get(type_code, []):
             if code in seen:
                 continue
             seen.add(code)
@@ -140,6 +198,13 @@ class Product(models.Model):
         choices=PRODUCT_TYPE_CHOICES,
         blank=True,
         null=True,
+    )
+    subtype = models.CharField(
+        max_length=20,
+        choices=PRODUCT_SUBTYPE_CHOICES,
+        blank=True,
+        null=True,
+        help_text="More detailed subcategory (e.g. Short Sleeve Rashguard)",
     )
     style = models.CharField(
         max_length=20,

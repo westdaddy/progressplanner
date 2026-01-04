@@ -53,20 +53,25 @@ from django.views.decorators.http import require_GET, require_POST, require_http
 from PIL import Image, ImageOps
 
 from .models import (
-    Product,
-    ProductVariant,
+    Group,
     InventorySnapshot,
-    Sale,
     Order,
     OrderItem,
-    Group,
-    Series,
-    Referrer,
-    PRODUCT_TYPE_CHOICES,
-    PRODUCT_TYPE_TO_STYLES,
-    PRODUCT_STYLE_CHOICES,
     PRODUCT_AGE_CHOICES,
     PRODUCT_GENDER_CHOICES,
+    PRODUCT_STYLE_CHOICES,
+    PRODUCT_SUBTYPE_CHOICES,
+    PRODUCT_SUBTYPE_CHOICES_BY_TYPE,
+    PRODUCT_SUBTYPE_TO_TYPES,
+    PRODUCT_TYPE_CHOICES,
+    PRODUCT_TYPE_CHOICES_BY_STYLE,
+    PRODUCT_TYPE_TO_STYLES,
+    Product,
+    ProductVariant,
+    Referrer,
+    Sale,
+    Series,
+    get_subtype_choices_for_types,
     get_type_choices_for_styles,
 )
 from .utils import (
@@ -633,6 +638,24 @@ def _build_product_list_context(request, preset_filters=None):
         raw_style_filters = [raw_style_filters]
     style_filters = [str(val) for val in raw_style_filters if val]
 
+    raw_subtype_filters = _get_filter("subtype_filter", None)
+    if raw_subtype_filters is None:
+        raw_subtype_filters = request.GET.getlist("subtype_filter")
+        if not raw_subtype_filters:
+            first_subtype = request.GET.get("subtype_filter")
+            raw_subtype_filters = [first_subtype] if first_subtype else []
+    elif not isinstance(raw_subtype_filters, (list, tuple, set)):
+        raw_subtype_filters = [raw_subtype_filters]
+    subtype_filters = [str(val) for val in raw_subtype_filters if val]
+
+    if subtype_filters and not type_filters:
+        derived_types = {
+            type_code
+            for subtype_code in subtype_filters
+            for type_code in PRODUCT_SUBTYPE_TO_TYPES.get(subtype_code, set())
+        }
+        type_filters = list(derived_types)
+
     if type_filters and not style_filters:
         derived_styles = {
             style
@@ -654,6 +677,12 @@ def _build_product_list_context(request, preset_filters=None):
     available_type_choices = get_type_choices_for_styles(style_filters or None)
     allowed_type_codes = {code for code, _ in available_type_choices}
     type_filters = [t for t in type_filters if t in allowed_type_codes]
+
+    available_subtype_choices = get_subtype_choices_for_types(
+        type_filters or allowed_type_codes or None
+    )
+    allowed_subtype_codes = {code for code, _ in available_subtype_choices}
+    subtype_filters = [s for s in subtype_filters if s in allowed_subtype_codes]
 
     group_filters = preset_filters.get("group_filters")
     if group_filters is None:
@@ -698,6 +727,9 @@ def _build_product_list_context(request, preset_filters=None):
 
     if type_filters:
         products_qs = products_qs.filter(type__in=type_filters)
+
+    if subtype_filters:
+        products_qs = products_qs.filter(subtype__in=subtype_filters)
 
     if style_filters:
         products_qs = products_qs.filter(style__in=style_filters)
@@ -944,6 +976,8 @@ def _build_product_list_context(request, preset_filters=None):
         "show_retired": show_retired,
         "type_filter": type_filters[0] if type_filters else None,
         "type_filters": type_filters,
+        "subtype_filter": subtype_filters[0] if subtype_filters else None,
+        "subtype_filters": subtype_filters,
         "style_filter": style_filters[0] if style_filters else None,
         "style_filters": style_filters,
         "age_filter": age_filters[0] if age_filters else None,
@@ -952,6 +986,7 @@ def _build_product_list_context(request, preset_filters=None):
         "series_filters": series_filters,
         "zero_inventory": zero_inventory,
         "type_choices": available_type_choices,
+        "subtype_choices": available_subtype_choices,
         "style_choices": PRODUCT_STYLE_CHOICES,
         "age_choices": PRODUCT_AGE_CHOICES,
         "group_choices": Group.objects.all(),
@@ -1048,38 +1083,42 @@ def _render_filtered_products(
         }
 
     type_selected = set(context.get("type_filters", []))
+    subtype_selected = set(context.get("subtype_filters", []))
     style_selected = set(context.get("style_filters", []))
     age_selected = set(context.get("age_filters", []))
     group_selected = set(context.get("group_filters", []))
     series_selected = set(context.get("series_filters", []))
 
+    category_filter_control = {
+        "styles": [
+            {
+                "value": value,
+                "label": label,
+                "checked": str(value) in style_selected,
+            }
+            for value, label in PRODUCT_STYLE_CHOICES
+        ],
+        "types": [
+            {
+                "value": value,
+                "label": label,
+                "checked": str(value) in type_selected,
+            }
+            for value, label in context.get("type_choices", PRODUCT_TYPE_CHOICES)
+        ],
+        "subtypes": [
+            {
+                "value": value,
+                "label": label,
+                "checked": str(value) in subtype_selected,
+            }
+            for value, label in context.get("subtype_choices", PRODUCT_SUBTYPE_CHOICES)
+        ],
+        "type_map": PRODUCT_TYPE_CHOICES_BY_STYLE,
+        "subtype_map": PRODUCT_SUBTYPE_CHOICES_BY_TYPE,
+    }
+
     control_candidates = [
-        build_control(
-            "style",
-            "style_filter",
-            [
-                {
-                    "value": value,
-                    "label": label,
-                    "checked": str(value) in style_selected,
-                }
-                for value, label in PRODUCT_STYLE_CHOICES
-            ],
-            display_label="Product Category",
-        ),
-        build_control(
-            "type",
-            "type_filter",
-            [
-                {
-                    "value": value,
-                    "label": label,
-                    "checked": str(value) in type_selected,
-                }
-                for value, label in context.get("type_choices", PRODUCT_TYPE_CHOICES)
-            ],
-            display_label="Product Subcategory",
-        ),
         build_control(
             "age",
             "age_filter",
@@ -1128,7 +1167,17 @@ def _render_filtered_products(
 
     filter_controls.extend(control_candidates)
 
-    selected_labels_flat = [
+    category_selected_labels = [
+        option["label"]
+        for option in (
+            category_filter_control["styles"]
+            + category_filter_control["types"]
+            + category_filter_control["subtypes"]
+        )
+        if option.get("checked")
+    ]
+
+    selected_labels_flat = category_selected_labels + [
         label
         for control in filter_controls
         for label in control.get("selected_labels", [])
@@ -1330,48 +1379,172 @@ def _render_filtered_products(
     last_year_sales_total = 0
     sales_style_totals: dict[str, int] = {}
     sales_type_totals_by_style: dict[str, dict[str, int]] = {}
+    sales_qs = []
+    last_year_start = today - relativedelta(years=1)
 
     if variant_ids:
         sales_qs = Sale.objects.filter(
             variant_id__in=variant_ids,
             date__gte=min(rolling_start_date, earliest_quarter_start),
             date__lt=max(latest_quarter_end, today),
-        ).values("date", "sold_quantity", "return_quantity", "variant_id")
+        ).values(
+            "date", "sold_quantity", "return_quantity", "variant_id", "sold_value", "return_value"
+        )
 
-        last_year_start = today - relativedelta(years=1)
+    # Estimated inventory value (RMB) using historical average sale prices
+    price_stats = (
+        Sale.objects.filter(variant_id__in=variant_ids)
+        .values("variant")
+        .annotate(total_revenue=Sum("sold_value"), total_qty=Sum("sold_quantity"))
+    )
+    avg_price_map = {
+        s["variant"]: s["total_revenue"] / s["total_qty"]
+        for s in price_stats
+        if s["total_qty"]
+    }
 
-        for sale in sales_qs:
-            sale_date = sale["date"]
-            net_sold = sale["sold_quantity"] - (sale["return_quantity"] or 0)
-            sale_quarter_key = (sale_date.year, (sale_date.month - 1) // 3 + 1)
+    category_price_stats = (
+        Sale.objects.select_related("variant__product")
+        .filter(variant_id__in=variant_ids)
+        .annotate(cat=F("variant__product__type"))
+        .values("cat")
+        .annotate(total_revenue=Sum("sold_value"), total_qty=Sum("sold_quantity"))
+    )
+    category_avg_price = {
+        _simplify_type(s["cat"]): s["total_revenue"] / s["total_qty"]
+        for s in category_price_stats
+        if s["total_qty"]
+    }
 
-            if sale_date >= last_year_start:
-                last_year_sales_total += net_sold
-                style_key = variant_style_map.get(sale["variant_id"], "unspecified")
-                sales_style_totals[style_key] = (
-                    sales_style_totals.get(style_key, 0) + net_sold
+    def _estimated_unit_price(v):
+        unit_avg = avg_price_map.get(v.pk)
+        if unit_avg is None:
+            unit_avg = category_avg_price.get(
+                _simplify_type(getattr(v.product, "type", None)), Decimal("0")
+            )
+        return Decimal(unit_avg or 0)
+
+    inventory_value_total = Decimal("0")
+    inventory_value_style_totals: dict[str, Decimal] = {}
+    inventory_value_type_totals_by_style: dict[str, dict[str, Decimal]] = {}
+
+    for product in products:
+        for variant in getattr(product, "variants_with_inventory", []):
+            inventory_units = Decimal(getattr(variant, "latest_inventory", 0) or 0)
+            if inventory_units <= 0:
+                continue
+
+            unit_price = _estimated_unit_price(variant)
+            estimated_value = inventory_units * unit_price
+            inventory_value_total += estimated_value
+
+            style_key = product.style or "unspecified"
+            inventory_value_style_totals[style_key] = (
+                inventory_value_style_totals.get(style_key, Decimal("0"))
+                + estimated_value
+            )
+
+            if selected_style_for_breakdown and style_key == selected_style_for_breakdown:
+                type_key = product.type or "unspecified"
+                style_totals = inventory_value_type_totals_by_style.setdefault(
+                    style_key, {}
+                )
+                style_totals[type_key] = style_totals.get(type_key, Decimal("0")) + estimated_value
+
+    ordered_inventory_value_styles = sorted(
+        (inventory_value_style_totals or {}).keys(),
+        key=lambda code: style_order.get(code, len(style_order)),
+    )
+    inventory_value_category_labels = [
+        style_label_map.get(code, "Unspecified")
+        for code in ordered_inventory_value_styles
+    ]
+    inventory_value_category_values = [
+        float(inventory_value_style_totals.get(code, Decimal("0")))
+        for code in ordered_inventory_value_styles
+    ]
+    inventory_value_category_codes = ordered_inventory_value_styles
+    inventory_value_category_mode = "style"
+    inventory_value_category_style = None
+
+    if selected_style_for_breakdown:
+        inventory_value_type_totals = inventory_value_type_totals_by_style.get(
+            selected_style_for_breakdown
+        )
+        if inventory_value_type_totals:
+            type_order = {
+                code: idx for idx, (code, _) in enumerate(PRODUCT_TYPE_CHOICES)
+            }
+            ordered_inventory_value_types = sorted(
+                inventory_value_type_totals.keys(),
+                key=lambda code: type_order.get(code, len(type_order)),
+            )
+            type_label_map_for_style = dict(
+                get_type_choices_for_styles([selected_style_for_breakdown])
+            )
+            inventory_value_category_labels = [
+                type_label_map_for_style.get(
+                    code, type_label_map.get(code, "Unspecified")
+                )
+                for code in ordered_inventory_value_types
+            ]
+            inventory_value_category_values = [
+                float(inventory_value_type_totals.get(code, Decimal("0")))
+                for code in ordered_inventory_value_types
+            ]
+            inventory_value_category_codes = ordered_inventory_value_types
+            inventory_value_category_mode = "type"
+            inventory_value_category_style = selected_style_for_breakdown
+
+    # Sales value (RMB) for the last 12 months
+    sales_value_style_totals: dict[str, Decimal] = {}
+    sales_value_type_totals_by_style: dict[str, dict[str, Decimal]] = {}
+    last_year_sales_value_total = Decimal("0")
+
+    for sale in sales_qs:
+        sale_date = sale["date"]
+        net_sold = sale["sold_quantity"] - (sale["return_quantity"] or 0)
+        net_value = Decimal(sale["sold_value"] or 0) - Decimal(sale["return_value"] or 0)
+        sale_quarter_key = (sale_date.year, (sale_date.month - 1) // 3 + 1)
+
+        if sale_date >= last_year_start:
+            last_year_sales_total += net_sold
+            last_year_sales_value_total += net_value
+            style_key = variant_style_map.get(sale["variant_id"], "unspecified")
+            sales_style_totals[style_key] = (
+                sales_style_totals.get(style_key, 0) + net_sold
+            )
+            sales_value_style_totals[style_key] = (
+                sales_value_style_totals.get(style_key, Decimal("0")) + net_value
+            )
+
+            if selected_style_for_breakdown and (
+                style_key == selected_style_for_breakdown
+            ):
+                type_key = variant_type_map.get(
+                    sale["variant_id"], "unspecified"
+                )
+                style_type_totals = sales_type_totals_by_style.setdefault(
+                    style_key, {}
+                )
+                style_type_totals[type_key] = (
+                    style_type_totals.get(type_key, 0) + net_sold
                 )
 
-                if selected_style_for_breakdown and (
-                    style_key == selected_style_for_breakdown
-                ):
-                    type_key = variant_type_map.get(
-                        sale["variant_id"], "unspecified"
-                    )
-                    style_type_totals = sales_type_totals_by_style.setdefault(
-                        style_key, {}
-                    )
-                    style_type_totals[type_key] = (
-                        style_type_totals.get(type_key, 0) + net_sold
-                    )
+                value_totals = sales_value_type_totals_by_style.setdefault(
+                    style_key, {}
+                )
+                value_totals[type_key] = (
+                    value_totals.get(type_key, Decimal("0")) + net_value
+                )
 
-            if sale_quarter_key in quarter_totals:
-                quarter_totals[sale_quarter_key] += net_sold
+        if sale_quarter_key in quarter_totals:
+            quarter_totals[sale_quarter_key] += net_sold
 
-            for period in yearly_periods:
-                if period["start"] <= sale_date < period["end"]:
-                    period["total"] += net_sold
-                    break
+        for period in yearly_periods:
+            if period["start"] <= sale_date < period["end"]:
+                period["total"] += net_sold
+                break
 
     quarterly_values = list(quarter_totals.values())
     yearly_sales = [
@@ -1418,6 +1591,50 @@ def _render_filtered_products(
             sales_category_mode = "type"
             sales_category_style = selected_style_for_breakdown
 
+    ordered_sales_value_styles = sorted(
+        (sales_value_style_totals or {}).keys(),
+        key=lambda code: style_order.get(code, len(style_order)),
+    )
+    sales_value_category_labels = [
+        style_label_map.get(code, "Unspecified") for code in ordered_sales_value_styles
+    ]
+    sales_value_category_values = [
+        float(sales_value_style_totals.get(code, Decimal("0")))
+        for code in ordered_sales_value_styles
+    ]
+    sales_value_category_mode = "style"
+    sales_value_category_style = None
+    sales_value_category_codes = ordered_sales_value_styles
+
+    if selected_style_for_breakdown:
+        sales_value_type_totals = sales_value_type_totals_by_style.get(
+            selected_style_for_breakdown
+        )
+        if sales_value_type_totals:
+            type_order = {
+                code: idx for idx, (code, _) in enumerate(PRODUCT_TYPE_CHOICES)
+            }
+            ordered_sales_value_types = sorted(
+                sales_value_type_totals.keys(),
+                key=lambda code: type_order.get(code, len(type_order)),
+            )
+            type_label_map_for_style = dict(
+                get_type_choices_for_styles([selected_style_for_breakdown])
+            )
+            sales_value_category_labels = [
+                type_label_map_for_style.get(
+                    code, type_label_map.get(code, "Unspecified")
+                )
+                for code in ordered_sales_value_types
+            ]
+            sales_value_category_values = [
+                float(sales_value_type_totals.get(code, Decimal("0")))
+                for code in ordered_sales_value_types
+            ]
+            sales_value_category_mode = "type"
+            sales_value_category_style = selected_style_for_breakdown
+            sales_value_category_codes = ordered_sales_value_types
+
     context.update(
         {
             "filter_heading": heading,
@@ -1432,6 +1649,26 @@ def _render_filtered_products(
             "sales_category_codes": json.dumps(ordered_sales_styles),
             "sales_category_mode": sales_category_mode,
             "sales_category_style": sales_category_style,
+            "inventory_value_total": inventory_value_total,
+            "inventory_value_category_labels": json.dumps(
+                inventory_value_category_labels
+            ),
+            "inventory_value_category_values": json.dumps(
+                inventory_value_category_values
+            ),
+            "inventory_value_category_codes": json.dumps(
+                inventory_value_category_codes
+            ),
+            "inventory_value_category_mode": inventory_value_category_mode,
+            "inventory_value_category_style": inventory_value_category_style,
+            "sales_last_year_value_total": float(last_year_sales_value_total)
+            if variant_ids
+            else 0,
+            "sales_value_category_labels": json.dumps(sales_value_category_labels),
+            "sales_value_category_values": json.dumps(sales_value_category_values),
+            "sales_value_category_codes": json.dumps(sales_value_category_codes),
+            "sales_value_category_mode": sales_value_category_mode,
+            "sales_value_category_style": sales_value_category_style,
             "has_quarterly_data": bool(variant_ids),
             "filter_controls": filter_controls,
             "showing_summary": " | ".join(selected_labels_flat)
@@ -1451,6 +1688,7 @@ def _render_filtered_products(
             "category_breakdown_title": category_breakdown_title,
             "category_breakdown_description": category_breakdown_description,
             "style_filters_json": json.dumps(style_filters),
+            "category_filter": category_filter_control,
         }
     )
     return render(request, "inventory/product_filtered_list.html", context)
