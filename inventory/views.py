@@ -63,8 +63,10 @@ from .models import (
     Series,
     Referrer,
     PRODUCT_TYPE_CHOICES,
+    PRODUCT_TYPE_CHOICES_BY_STYLE,
     PRODUCT_TYPE_TO_STYLES,
     PRODUCT_SUBTYPE_CHOICES,
+d    PRODUCT_SUBTYPE_CHOICES_BY_TYPE,
     PRODUCT_SUBTYPE_TO_TYPES,
     PRODUCT_STYLE_CHOICES,
     PRODUCT_AGE_CHOICES,
@@ -1087,46 +1089,36 @@ def _render_filtered_products(
     group_selected = set(context.get("group_filters", []))
     series_selected = set(context.get("series_filters", []))
 
+    category_filter_control = {
+        "styles": [
+            {
+                "value": value,
+                "label": label,
+                "checked": str(value) in style_selected,
+            }
+            for value, label in PRODUCT_STYLE_CHOICES
+        ],
+        "types": [
+            {
+                "value": value,
+                "label": label,
+                "checked": str(value) in type_selected,
+            }
+            for value, label in context.get("type_choices", PRODUCT_TYPE_CHOICES)
+        ],
+        "subtypes": [
+            {
+                "value": value,
+                "label": label,
+                "checked": str(value) in subtype_selected,
+            }
+            for value, label in context.get("subtype_choices", PRODUCT_SUBTYPE_CHOICES)
+        ],
+        "type_map": PRODUCT_TYPE_CHOICES_BY_STYLE,
+        "subtype_map": PRODUCT_SUBTYPE_CHOICES_BY_TYPE,
+    }
+
     control_candidates = [
-        build_control(
-            "style",
-            "style_filter",
-            [
-                {
-                    "value": value,
-                    "label": label,
-                    "checked": str(value) in style_selected,
-                }
-                for value, label in PRODUCT_STYLE_CHOICES
-            ],
-            display_label="Product Category",
-        ),
-        build_control(
-            "type",
-            "type_filter",
-            [
-                {
-                    "value": value,
-                    "label": label,
-                    "checked": str(value) in type_selected,
-                }
-                for value, label in context.get("type_choices", PRODUCT_TYPE_CHOICES)
-            ],
-            display_label="Product Subcategory",
-        ),
-        build_control(
-            "subtype",
-            "subtype_filter",
-            [
-                {
-                    "value": value,
-                    "label": label,
-                    "checked": str(value) in subtype_selected,
-                }
-                for value, label in context.get("subtype_choices", PRODUCT_SUBTYPE_CHOICES)
-            ],
-            display_label="Product Subtype",
-        ),
         build_control(
             "age",
             "age_filter",
@@ -1175,7 +1167,17 @@ def _render_filtered_products(
 
     filter_controls.extend(control_candidates)
 
-    selected_labels_flat = [
+    category_selected_labels = [
+        option["label"]
+        for option in (
+            category_filter_control["styles"]
+            + category_filter_control["types"]
+            + category_filter_control["subtypes"]
+        )
+        if option.get("checked")
+    ]
+
+    selected_labels_flat = category_selected_labels + [
         label
         for control in filter_controls
         for label in control.get("selected_labels", [])
@@ -1686,6 +1688,7 @@ def _render_filtered_products(
             "category_breakdown_title": category_breakdown_title,
             "category_breakdown_description": category_breakdown_description,
             "style_filters_json": json.dumps(style_filters),
+            "category_filter": category_filter_control,
         }
     )
     return render(request, "inventory/product_filtered_list.html", context)
