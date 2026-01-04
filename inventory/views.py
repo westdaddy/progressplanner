@@ -85,6 +85,7 @@ from .utils import (
     calculate_estimated_inventory_sales_value,
     calculate_on_paper_inventory_value,
     compute_inventory_health_scores,
+    compute_product_confidence,
     get_product_health_metrics,
     calculate_dynamic_product_score,
     compute_product_health,
@@ -759,6 +760,9 @@ def _build_product_list_context(request, preset_filters=None):
 
     sitewide_retail_total = Decimal("0.00")
     sitewide_actual_total = Decimal("0.00")
+    sitewide_profit_total = Decimal("0.00")
+    sitewide_sold_units = 0
+    sitewide_return_units = 0
 
     for product in products:
         # sort variants by size
@@ -771,6 +775,7 @@ def _build_product_list_context(request, preset_filters=None):
 
         # sales aggregates
         total_sales = 0
+        total_returns = 0
         total_sales_value = Decimal("0.00")
         sales_12 = 0
         sales_30 = 0
@@ -780,6 +785,9 @@ def _build_product_list_context(request, preset_filters=None):
             total_sales += v.sales.aggregate(total=Coalesce(Sum("sold_quantity"), 0))[
                 "total"
             ]
+            total_returns += v.sales.aggregate(
+                total=Coalesce(Sum("return_quantity"), 0)
+            )["total"]
             total_sales_value += v.sales.aggregate(
                 total=Coalesce(Sum("sold_value"), Decimal("0.00"))
             )["total"]
@@ -794,6 +802,7 @@ def _build_product_list_context(request, preset_filters=None):
             )["total"]
 
         product.total_sales = total_sales
+        product.total_returns = total_returns
         product.total_sales_value = total_sales_value
         product.sales_last_12_months = sales_12
         product.sales_last_30_days = sales_30
@@ -870,6 +879,11 @@ def _build_product_list_context(request, preset_filters=None):
             and product.average_sale_price != 0
             else None
         )
+
+        if product.profit_amount is not None:
+            sitewide_profit_total += product.profit_amount * Decimal(total_sales)
+        sitewide_sold_units += total_sales
+        sitewide_return_units += total_returns
 
         first_sale = (
             Sale.objects.filter(variant__product=product)
@@ -951,6 +965,18 @@ def _build_product_list_context(request, preset_filters=None):
         else None
     )
 
+    sitewide_average_margin = (
+        (sitewide_profit_total / sitewide_actual_total) * Decimal("100")
+        if sitewide_actual_total
+        else None
+    )
+
+    sitewide_average_return_rate = (
+        (Decimal(sitewide_return_units) / Decimal(sitewide_sold_units))
+        if sitewide_sold_units
+        else None
+    )
+
     discount_tolerance = Decimal("3")
 
     for product in products:
@@ -966,6 +992,44 @@ def _build_product_list_context(request, preset_filters=None):
             product.discount_status = "similar"
         elif diff > discount_tolerance:
             product.discount_status = "worse"
+
+    baselines = {
+        "avg_discount_pct": sitewide_average_discount,
+        "avg_margin_pct": sitewide_average_margin,
+        "avg_return_rate": sitewide_average_return_rate,
+    }
+
+    for product in products:
+        # Months to sell out based on the recent sales speed
+        sales_speed = product.sales_speed_6_months or Decimal("0")
+        months_to_sell_out = (
+            Decimal(product.total_inventory) / sales_speed if sales_speed else None
+        )
+
+        return_rate = (
+            Decimal(product.total_returns) / Decimal(product.total_sales)
+            if product.total_sales
+            else None
+        )
+
+        is_core = bool(product.restock_time and product.restock_time > 0)
+
+        confidence = compute_product_confidence(
+            months_to_sell_out=months_to_sell_out,
+            return_rate=return_rate,
+            discount_pct=product.average_discount_percentage,
+            margin_pct=product.profit_percentage,
+            baselines=baselines,
+            is_core=is_core,
+            restock_lead_months=product.restock_time,
+            sales_volume=product.total_sales,
+            inventory_units=product.total_inventory,
+        )
+
+        product.confidence_level = confidence["level"]
+        product.confidence_score = confidence["score"]
+        product.confidence_components = confidence["components"]
+        product.confidence_advisories = confidence["advisories"]
 
     # ───  Apply zero‐inventory filter if requested ──────────────────────────────
     if zero_inventory:
