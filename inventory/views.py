@@ -622,6 +622,7 @@ def _compute_product_metrics(
     sales_12 = 0
     sales_30 = 0
     sales_6 = 0
+    gift_units = 0
     variant_months_to_sell_out: dict[str, Optional[Decimal]] = {}
 
     for v in product.variants_with_inventory:
@@ -629,6 +630,9 @@ def _compute_product_metrics(
         total_returns += v.sales.aggregate(total=Coalesce(Sum("return_quantity"), 0))["total"]
         total_sales_value += v.sales.aggregate(
             total=Coalesce(Sum("sold_value"), Decimal("0.00"))
+        )["total"]
+        gift_units += v.sales.filter(sold_value__lte=0).aggregate(
+            total=Coalesce(Sum("sold_quantity"), 0)
         )["total"]
         sales_12 += v.sales.filter(date__gte=last_12_months).aggregate(
             total=Coalesce(Sum("sold_quantity"), 0)
@@ -791,6 +795,7 @@ def _compute_product_metrics(
         "last_order_qty": last_order_qty,
         "sold_since_last_order": sold_since_last_order,
         "variant_months_to_sell_out": variant_months_to_sell_out,
+        "gift_units": gift_units,
     }
 
 
@@ -979,6 +984,8 @@ def _build_product_list_context(request, preset_filters=None):
     sitewide_profit_total = Decimal("0.00")
     sitewide_sold_units = 0
     sitewide_return_units = 0
+    sitewide_sales_speed_total = Decimal("0.00")
+    sitewide_sales_speed_count = 0
 
     # Pre-compute metrics for the baseline set to keep baselines stable and
     # reuse the work for any filtered subset.
@@ -998,6 +1005,9 @@ def _build_product_list_context(request, preset_filters=None):
         sitewide_profit_total += metrics["profit_total_contrib"]
         sitewide_sold_units += metrics["sold_units_contrib"]
         sitewide_return_units += metrics["return_units_contrib"]
+        if metrics.get("sales_speed_6_months"):
+            sitewide_sales_speed_total += Decimal(metrics["sales_speed_6_months"])
+            sitewide_sales_speed_count += 1
 
     for product in products:
         metrics = baseline_metrics_map.get(product.id)
@@ -1035,6 +1045,12 @@ def _build_product_list_context(request, preset_filters=None):
         product.sold_since_last_order = metrics["sold_since_last_order"]
         product.variant_months_to_sell_out = metrics["variant_months_to_sell_out"]
         product.profit = product.total_sales_value - product.last_order_cost
+        product.gift_units = metrics.get("gift_units", 0)
+        product.gift_rate = (
+            Decimal(product.gift_units) / Decimal(product.total_sales)
+            if product.total_sales
+            else None
+        )
 
     sitewide_average_discount = (
         ((sitewide_retail_total - sitewide_actual_total) / sitewide_retail_total)
@@ -1052,6 +1068,12 @@ def _build_product_list_context(request, preset_filters=None):
     sitewide_average_return_rate = (
         (Decimal(sitewide_return_units) / Decimal(sitewide_sold_units))
         if sitewide_sold_units
+        else None
+    )
+
+    sitewide_average_sales_speed = (
+        sitewide_sales_speed_total / sitewide_sales_speed_count
+        if sitewide_sales_speed_count
         else None
     )
 
@@ -1075,6 +1097,7 @@ def _build_product_list_context(request, preset_filters=None):
         "avg_discount_pct": sitewide_average_discount,
         "avg_margin_pct": sitewide_average_margin,
         "avg_return_rate": sitewide_average_return_rate,
+        "avg_sales_speed": sitewide_average_sales_speed,
     }
 
     for product in products:
@@ -1094,6 +1117,7 @@ def _build_product_list_context(request, preset_filters=None):
 
         confidence = compute_product_confidence(
             months_to_sell_out=months_to_sell_out,
+            sales_speed=product.sales_speed_6_months,
             return_rate=return_rate,
             discount_pct=product.average_discount_percentage,
             margin_pct=product.profit_percentage,
@@ -1102,6 +1126,7 @@ def _build_product_list_context(request, preset_filters=None):
             restock_lead_months=product.restock_time,
             sales_volume=product.total_sales,
             inventory_units=product.total_inventory,
+            gift_rate=product.gift_rate,
         )
 
         advisories = list(confidence["advisories"])

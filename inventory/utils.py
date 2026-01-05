@@ -5,7 +5,7 @@ import json
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import List, Optional, Sequence, Dict, Any, Iterable
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 from dateutil.relativedelta import relativedelta
 from django.db.models import (
@@ -55,6 +55,7 @@ def _banded_score(value: Optional[Decimal], bands: list[Decimal]) -> int:
 def compute_product_confidence(
     *,
     months_to_sell_out: Optional[Decimal],
+    sales_speed: Optional[Decimal],
     return_rate: Optional[Decimal],
     discount_pct: Optional[Decimal],
     margin_pct: Optional[Decimal],
@@ -63,31 +64,47 @@ def compute_product_confidence(
     restock_lead_months: Optional[int],
     sales_volume: int,
     inventory_units: int,
+    gift_rate: Optional[Decimal],
 ) -> dict[str, Any]:
     """Compute Low/Medium/High confidence plus advisories for a product.
 
-    The scorer combines sell-through horizon, returns rate, discounting, and
-    gross margin. Each factor is converted to a 0–2 sub-score, then weighted
-    differently for core vs seasonal products. Missing data yields a neutral
-    sub-score (1) to avoid over-penalising sparse items.
+    The scorer combines sell-through horizon (stock coverage), sales speed vs
+    store average, returns rate, discounting, and gross margin. Each factor is
+    converted to a 0–2 sub-score, then weighted differently for core vs
+    seasonal products. Missing data yields a neutral sub-score (1) to avoid
+    over-penalising sparse items.
     """
 
     avg_return = baselines.get("avg_return_rate")
     avg_discount = baselines.get("avg_discount_pct")
     avg_margin = baselines.get("avg_margin_pct")
+    avg_sales_speed = baselines.get("avg_sales_speed")
 
     # Sell-through: faster is better. Core products are allowed deeper stock
     # coverage so they can avoid stock-outs, while seasonal/one-off items need
     # quicker sell-through. Core items with up to ~12 months of coverage should
     # still be rewarded so they can confidently maintain supply.
     if is_core:
-        sell_score = _banded_score(
+        coverage_score = _banded_score(
             months_to_sell_out, [Decimal("12"), Decimal("18")]
         )
     else:
-        sell_score = _banded_score(
+        coverage_score = _banded_score(
             months_to_sell_out, [Decimal("5"), Decimal("9")]
         )
+
+    # Sales speed vs store average: higher than average is better.
+    if sales_speed is None or avg_sales_speed in (None, Decimal("0")):
+        sales_speed_score = 1
+    else:
+        fast = avg_sales_speed * Decimal("1.2")
+        ok = avg_sales_speed * Decimal("0.8")
+        if sales_speed >= fast:
+            sales_speed_score = 2
+        elif sales_speed >= ok:
+            sales_speed_score = 1
+        else:
+            sales_speed_score = 0
 
     # Returns: lower than average is good
     if return_rate is None or avg_return in (None, Decimal("0")):
@@ -120,6 +137,7 @@ def compute_product_confidence(
             margin_score = 0
 
     severe_signals: list[str] = []
+    margin_advisory: Optional[str] = None
 
     if months_to_sell_out is not None and months_to_sell_out >= Decimal("15"):
         severe_signals.append("Projected to take well over a year to sell through.")
@@ -135,27 +153,39 @@ def compute_product_confidence(
             severe_signals.append("Discounting is dramatically above the store average.")
 
     if margin_pct is not None and avg_margin is not None:
+        margin_context = (
+            " (margin may be impacted by gifted units)"
+            if gift_rate is not None and gift_rate >= Decimal("0.1")
+            else ""
+        )
         if margin_pct <= avg_margin - Decimal("15"):
-            severe_signals.append("Gross margin is substantially below the store average.")
+            severe_signals.append(
+                f"Gross margin is substantially below the store average{margin_context}."
+            )
+        elif margin_pct < avg_margin - Decimal("5"):
+            margin_advisory = f"Low gross margin versus store average{margin_context}."
 
     weights = (
         {
-            "sell": Decimal("0.35"),
-            "returns": Decimal("0.25"),
+            "coverage": Decimal("0.25"),
+            "sales_speed": Decimal("0.2"),
+            "returns": Decimal("0.2"),
             "discount": Decimal("0.15"),
-            "margin": Decimal("0.25"),
+            "margin": Decimal("0.2"),
         }
         if is_core
         else {
-            "sell": Decimal("0.4"),
+            "coverage": Decimal("0.3"),
+            "sales_speed": Decimal("0.25"),
             "returns": Decimal("0.15"),
-            "discount": Decimal("0.25"),
-            "margin": Decimal("0.2"),
+            "discount": Decimal("0.2"),
+            "margin": Decimal("0.1"),
         }
     )
 
     weighted_sum = (
-        sell_score * weights["sell"]
+        coverage_score * weights["coverage"]
+        + sales_speed_score * weights["sales_speed"]
         + return_score * weights["returns"]
         + discount_score * weights["discount"]
         + margin_score * weights["margin"]
@@ -163,7 +193,7 @@ def compute_product_confidence(
 
     performance_bonus = Decimal("0")
 
-    if sell_score == 2 and discount_score == 2:
+    if coverage_score == 2 and discount_score == 2:
         performance_bonus += Decimal("0.1")
 
     if margin_score == 2:
@@ -197,8 +227,25 @@ def compute_product_confidence(
             advisories.append(
                 "Restock warning: projected sell-out before restock buffer."
             )
-        if not is_core and months_to_sell_out > Decimal("9"):
-            advisories.append("Slow sell-through—consider promotion or markdown.")
+
+        overstock_threshold = Decimal("12") if is_core else Decimal("9")
+        if months_to_sell_out > overstock_threshold:
+            months_display = months_to_sell_out.quantize(
+                Decimal("0.1"), rounding=ROUND_HALF_UP
+            )
+            if (
+                sales_speed is not None
+                and avg_sales_speed not in (None, Decimal("0"))
+                and sales_speed >= avg_sales_speed
+            ):
+                advisories.append(
+                    f"Stock coverage is high at ~{months_display} months—inventory is ahead of demand; consider slowing reorders or targeted promotion."
+                )
+            else:
+                advisories.append(
+                    f"Slow sell-through—projected to take ~{months_display} months to clear; consider promotion or markdown."
+                )
+
         if months_to_sell_out < Decimal("3") and inventory_units < 5:
             advisories.append("Fast seller with low stock—prioritise replenishment.")
 
@@ -211,18 +258,15 @@ def compute_product_confidence(
     ):
         advisories.append("Heavy discounting relative to store average.")
 
-    if (
-        margin_pct is not None
-        and avg_margin is not None
-        and margin_pct < avg_margin - Decimal("5")
-    ):
-        advisories.append("Low gross margin versus store average.")
+    if margin_advisory:
+        advisories.append(margin_advisory)
 
     if sales_volume < 5:
         advisories.append("Low sales volume—confidence is provisional.")
 
     components = {
-        "sell_through": sell_score,
+        "sell_through": coverage_score,
+        "sales_speed": sales_speed_score,
         "returns": return_score,
         "discount": discount_score,
         "margin": margin_score,
