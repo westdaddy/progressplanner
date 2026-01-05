@@ -205,13 +205,6 @@ def compute_product_confidence(
     advisories.extend(severe_signals)
 
     if (
-        return_rate is not None
-        and avg_return not in (None, Decimal("0"))
-        and return_rate > avg_return * Decimal("1.2")
-    ):
-        advisories.append("High return rate versus store average.")
-
-    if (
         discount_pct is not None
         and avg_discount is not None
         and discount_pct > avg_discount + Decimal("3")
