@@ -1113,6 +1113,9 @@ def _build_product_list_context(request, preset_filters=None):
                 key_sizes = rules["sizes"]
                 min_order_qty = rules["min_order"]
                 months_by_size = product.variant_months_to_sell_out or {}
+                out_of_stock_sizes: list[str] = []
+                projected_runouts: list[tuple[str, Decimal]] = []
+
                 for size_code in key_sizes:
                     variant = next(
                         (v for v in product.variants_with_inventory if v.size == size_code),
@@ -1125,14 +1128,21 @@ def _build_product_list_context(request, preset_filters=None):
                     months_left = months_by_size.get(size_code)
 
                     if on_hand <= 0:
-                        advisories.append(
-                            f"Core key size {size_code} is out of stock—restock ASAP (minimum order {min_order_qty})."
-                        )
+                        out_of_stock_sizes.append(size_code)
                     elif months_left is not None and months_left <= Decimal("3"):
-                        months_display = months_left.quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
-                        advisories.append(
-                            f"Core key size {size_code} projected to run out in ~{months_display} months—plan reorder (minimum order {min_order_qty})."
-                        )
+                        projected_runouts.append((size_code, months_left))
+
+                if out_of_stock_sizes:
+                    size_list = "/".join(out_of_stock_sizes)
+                    advisories.append(
+                        f"Core key sizes {size_list} are out of stock—restock ASAP (minimum order {min_order_qty})."
+                    )
+
+                for size_code, months_left in projected_runouts:
+                    months_display = months_left.quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
+                    advisories.append(
+                        f"Core key size {size_code} projected to run out in ~{months_display} months—plan reorder (minimum order {min_order_qty})."
+                    )
 
         product.confidence_level = confidence["level"]
         product.confidence_score = confidence["score"]
