@@ -39,6 +39,203 @@ from .models import (
 )
 
 
+def _banded_score(value: Optional[Decimal], bands: list[Decimal]) -> int:
+    """Return 2/1/0 based on where ``value`` sits against ascending bands."""
+
+    if value is None:
+        return 1
+
+    if value <= bands[0]:
+        return 2
+    if value <= bands[1]:
+        return 1
+    return 0
+
+
+def compute_product_confidence(
+    *,
+    months_to_sell_out: Optional[Decimal],
+    return_rate: Optional[Decimal],
+    discount_pct: Optional[Decimal],
+    margin_pct: Optional[Decimal],
+    baselines: dict[str, Optional[Decimal]],
+    is_core: bool,
+    restock_lead_months: Optional[int],
+    sales_volume: int,
+    inventory_units: int,
+) -> dict[str, Any]:
+    """Compute Low/Medium/High confidence plus advisories for a product.
+
+    The scorer combines sell-through horizon, returns rate, discounting, and
+    gross margin. Each factor is converted to a 0–2 sub-score, then weighted
+    differently for core vs seasonal products. Missing data yields a neutral
+    sub-score (1) to avoid over-penalising sparse items.
+    """
+
+    avg_return = baselines.get("avg_return_rate")
+    avg_discount = baselines.get("avg_discount_pct")
+    avg_margin = baselines.get("avg_margin_pct")
+
+    # Sell-through: faster is better. Core products are allowed deeper stock
+    # coverage so they can avoid stock-outs, while seasonal/one-off items need
+    # quicker sell-through. Core items with up to ~12 months of coverage should
+    # still be rewarded so they can confidently maintain supply.
+    if is_core:
+        sell_score = _banded_score(
+            months_to_sell_out, [Decimal("12"), Decimal("18")]
+        )
+    else:
+        sell_score = _banded_score(
+            months_to_sell_out, [Decimal("5"), Decimal("9")]
+        )
+
+    # Returns: lower than average is good
+    if return_rate is None or avg_return in (None, Decimal("0")):
+        return_score = 1
+    else:
+        threshold_low = avg_return * Decimal("0.9")
+        threshold_high = avg_return * Decimal("1.1")
+        return_score = _banded_score(return_rate, [threshold_low, threshold_high])
+
+    # Discounting: lower than shop average is good. Treat "at or below average"
+    # as the strongest signal so consistently full-price items are rewarded.
+    if discount_pct is None or avg_discount is None:
+        discount_score = 1
+    else:
+        at_or_better = avg_discount
+        modestly_higher = avg_discount + Decimal("5")
+        discount_score = _banded_score(discount_pct, [at_or_better, modestly_higher])
+
+    # Margin: higher than average is good
+    if margin_pct is None or avg_margin is None:
+        margin_score = 1
+    else:
+        strong = avg_margin + Decimal("5")
+        ok = avg_margin - Decimal("5")
+        if margin_pct >= strong:
+            margin_score = 2
+        elif margin_pct >= ok:
+            margin_score = 1
+        else:
+            margin_score = 0
+
+    severe_signals: list[str] = []
+
+    if months_to_sell_out is not None and months_to_sell_out >= Decimal("15"):
+        severe_signals.append("Projected to take well over a year to sell through.")
+
+    if return_rate is not None and avg_return not in (None, Decimal("0")):
+        if return_rate >= avg_return * Decimal("1.5"):
+            severe_signals.append("Return rate is far above the store average.")
+
+    if discount_pct is not None:
+        if discount_pct >= Decimal("50"):
+            severe_signals.append("Clearance-level discounting is required to sell this item.")
+        elif avg_discount is not None and discount_pct >= avg_discount + Decimal("25"):
+            severe_signals.append("Discounting is dramatically above the store average.")
+
+    if margin_pct is not None and avg_margin is not None:
+        if margin_pct <= avg_margin - Decimal("15"):
+            severe_signals.append("Gross margin is substantially below the store average.")
+
+    weights = (
+        {
+            "sell": Decimal("0.35"),
+            "returns": Decimal("0.25"),
+            "discount": Decimal("0.15"),
+            "margin": Decimal("0.25"),
+        }
+        if is_core
+        else {
+            "sell": Decimal("0.4"),
+            "returns": Decimal("0.15"),
+            "discount": Decimal("0.25"),
+            "margin": Decimal("0.2"),
+        }
+    )
+
+    weighted_sum = (
+        sell_score * weights["sell"]
+        + return_score * weights["returns"]
+        + discount_score * weights["discount"]
+        + margin_score * weights["margin"]
+    )
+
+    performance_bonus = Decimal("0")
+
+    if sell_score == 2 and discount_score == 2:
+        performance_bonus += Decimal("0.1")
+
+    if margin_score == 2:
+        performance_bonus += Decimal("0.05")
+
+    if sales_volume >= 50:
+        performance_bonus += Decimal("0.05")
+
+    weighted_sum = min(weighted_sum + performance_bonus, Decimal("2"))
+    score_pct = (weighted_sum / 2) * 100
+
+    if score_pct >= 67:
+        level = "High"
+    elif score_pct >= 40:
+        level = "Medium"
+    else:
+        level = "Low"
+
+    if severe_signals:
+        level = "Low"
+        score_pct = min(score_pct, 30)
+
+    advisories: list[str] = []
+
+    if months_to_sell_out is None:
+        advisories.append("Not enough sales data to project sell-through.")
+
+    if months_to_sell_out is not None:
+        buffer_months = Decimal(str((restock_lead_months or 0) + 1))
+        if is_core and months_to_sell_out <= buffer_months:
+            advisories.append(
+                "Restock warning: projected sell-out before restock buffer."
+            )
+        if not is_core and months_to_sell_out > Decimal("9"):
+            advisories.append("Slow sell-through—consider promotion or markdown.")
+        if months_to_sell_out < Decimal("3") and inventory_units < 5:
+            advisories.append("Fast seller with low stock—prioritise replenishment.")
+
+    advisories.extend(severe_signals)
+
+    if (
+        discount_pct is not None
+        and avg_discount is not None
+        and discount_pct > avg_discount + Decimal("3")
+    ):
+        advisories.append("Heavy discounting relative to store average.")
+
+    if (
+        margin_pct is not None
+        and avg_margin is not None
+        and margin_pct < avg_margin - Decimal("5")
+    ):
+        advisories.append("Low gross margin versus store average.")
+
+    if sales_volume < 5:
+        advisories.append("Low sales volume—confidence is provisional.")
+
+    components = {
+        "sell_through": sell_score,
+        "returns": return_score,
+        "discount": discount_score,
+        "margin": margin_score,
+    }
+
+    return {
+        "level": level,
+        "score": round(score_pct, 1),
+        "components": components,
+        "advisories": advisories,
+    }
+
+
 # Create a mapping from size code to its order index.
 SIZE_ORDER = {
     code: index for index, (code, label) in enumerate(ProductVariant.SIZE_CHOICES)
