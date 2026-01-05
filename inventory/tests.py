@@ -37,7 +37,11 @@ from .utils import (
     calculate_variant_sales_speed,
     get_category_speed_stats,
 )
-from .views import PRODUCT_CANVAS_MAX_DIMENSION, DEFAULT_PRODUCT_IMAGE
+from .views import (
+    PRODUCT_CANVAS_MAX_DIMENSION,
+    DEFAULT_PRODUCT_IMAGE,
+    _build_product_list_context,
+)
 
 
 class LowStockProductsTests(TestCase):
@@ -239,6 +243,44 @@ class LowStockProductsTests(TestCase):
 
         self.assertEqual(alert_map[self.product1]["alert_type"], "normal")
         self.assertEqual(alert_map[product]["alert_type"], "urgent")
+
+
+class ProductConfidenceAdvisoryTests(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+
+    def test_core_key_sizes_out_of_stock_are_consolidated(self):
+        product = Product.objects.create(
+            product_id="P-KEYS",
+            product_name="Core Nogi",
+            style="ng",
+            restock_time=2,
+        )
+
+        for size in ["S", "M", "L"]:
+            variant = ProductVariant.objects.create(
+                product=product,
+                variant_code=f"VAR-{size}",
+                primary_color="#000000",
+                size=size,
+            )
+            InventorySnapshot.objects.create(
+                product_variant=variant, date=date.today(), inventory_count=0
+            )
+
+        request = self.factory.get("/inventory/products/")
+        context = _build_product_list_context(request)
+
+        product_entry = next(
+            p for p in context["products"] if getattr(p, "product_id", None) == "P-KEYS"
+        )
+        advisories = getattr(product_entry, "confidence_advisories", [])
+        out_of_stock_advisories = [
+            note for note in advisories if "out of stock" in note.lower()
+        ]
+
+        self.assertEqual(len(out_of_stock_advisories), 1)
+        self.assertIn("S/M/L", out_of_stock_advisories[0])
 
 
 class LastOrderQtyTests(TestCase):
