@@ -1144,6 +1144,31 @@ def _build_product_list_context(request, preset_filters=None):
                         f"Core key size {size_code} projected to run out in ~{months_display} months—plan reorder (minimum order {min_order_qty})."
                     )
 
+        # Consolidate product-level stock-out advisories so they surface even
+        # when the confidence score is high. If any sizes are completely out of
+        # stock, replace the generic low-stock note with a single combined
+        # message.
+        out_of_stock_sizes = [
+            v.size
+            for v in getattr(product, "variants_with_inventory", [])
+            if (getattr(v, "latest_inventory", 0) or 0) <= 0
+        ]
+
+        has_key_size_advisory = any(
+            note.startswith("Core key sizes") for note in advisories
+        )
+
+        if out_of_stock_sizes and not has_key_size_advisory:
+            advisories = [
+                note
+                for note in advisories
+                if note != "Fast seller with low stock—prioritise replenishment."
+            ]
+            size_list = "/".join(out_of_stock_sizes)
+            advisories.append(
+                f"Sizes {size_list} are out of stock—restock ASAP."
+            )
+
         product.confidence_level = confidence["level"]
         product.confidence_score = confidence["score"]
         product.confidence_components = confidence["components"]
