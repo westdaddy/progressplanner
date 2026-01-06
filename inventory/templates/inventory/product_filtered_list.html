@@ -308,6 +308,36 @@
 
   <!-- STATISTICS SECTION -->
   <div class="row">
+
+    <div class="col s12 m4">
+      <h4 class="center-align">Past Sales</h4>
+      <p class="grey-text center-align">Is this number higher or lower than the previous 12 months sales? </p>
+      <div class="card-panel">
+        <h4 class="teal-text text-darken-2" style="margin-top: 0;">{{ sales_last_year_total }}</h4>
+        <p class="grey-text text-darken-1" style="margin-bottom: 0;">Items sold in the last 12 months</p>
+        <div class="filter-divider"></div>
+        {% if sales_category_values %}
+          <canvas id="salesCategoryChart"></canvas>
+          <p class="grey-text text-darken-1" style="margin-bottom: 0;">Sales split by product category</p>
+        {% else %}
+          <p class="grey-text text-darken-1" style="margin: 0;">No sales data available.</p>
+        {% endif %}
+      </div>
+
+      <div class="card-panel">
+        <h4 class="teal-text text-darken-2" style="margin-top: 0;">¥{{ sales_last_year_value_total|floatformat:"0g" }}</h4>
+        <p class="grey-text text-darken-1" style="margin-bottom: 0;">Sales value in the last 12 months (RMB)</p>
+        <div class="filter-divider"></div>
+        {% if sales_value_category_values %}
+          <canvas id="salesValueChart"></canvas>
+          <p class="grey-text text-darken-1" style="margin-bottom: 0;">Sales value split by product category</p>
+        {% else %}
+          <p class="grey-text text-darken-1" style="margin: 0;">No sales value data available.</p>
+        {% endif %}
+      </div>
+    </div>
+
+
     <div class="col s12 m4">
         <h4 class="center-align">Current Stock</h4>
         <p class="grey-text center-align">Compare the current stock levels and breakdown with previous years' sales.</p>
@@ -337,34 +367,7 @@
 
     </div>
 
-    <div class="col s12 m4">
-      <h4 class="center-align">Past Sales</h4>
-      <p class="grey-text center-align">Is this number higher or lower than the previous 12 months sales? </p>
-      <div class="card-panel">
-        <h4 class="teal-text text-darken-2" style="margin-top: 0;">{{ sales_last_year_total }}</h4>
-        <p class="grey-text text-darken-1" style="margin-bottom: 0;">Items sold in the last 12 months</p>
-        <div class="filter-divider"></div>
-        {% if sales_category_values %}
-          <canvas id="salesCategoryChart"></canvas>
-          <p class="grey-text text-darken-1" style="margin-bottom: 0;">Sales split by product category</p>
-        {% else %}
-          <p class="grey-text text-darken-1" style="margin: 0;">No sales data available.</p>
-        {% endif %}
-      </div>
 
-      <div class="card-panel">
-        <h4 class="teal-text text-darken-2" style="margin-top: 0;">¥{{ sales_last_year_value_total|floatformat:"0g" }}</h4>
-        <p class="grey-text text-darken-1" style="margin-bottom: 0;">Sales value in the last 12 months (RMB)</p>
-        <div class="filter-divider"></div>
-        {% if sales_value_category_values %}
-          <canvas id="salesValueChart"></canvas>
-          <p class="grey-text text-darken-1" style="margin-bottom: 0;">Sales value split by product category</p>
-        {% else %}
-          <p class="grey-text text-darken-1" style="margin: 0;">No sales value data available.</p>
-        {% endif %}
-      </div>
-
-    </div>
 
     <div class="col s12 m4">
       <div class="card-panel">
