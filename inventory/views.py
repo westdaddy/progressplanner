@@ -1839,6 +1839,58 @@ def _render_filtered_products(
     sales_value_category_style = None
     sales_value_category_codes = ordered_sales_value_styles
 
+    stock_balance_note: Optional[str] = None
+    stock_balance_categories: list[dict[str, Any]] = []
+
+    def _format_percent(delta: float) -> str:
+        return f"{delta:+.1f}"
+
+    if not selected_labels_flat:
+        if last_year_sales_total > 0:
+            overall_delta = (
+                (filtered_inventory_total - last_year_sales_total)
+                / last_year_sales_total
+                * 100
+            )
+            overall_status = "overstocked" if overall_delta > 0 else "understocked"
+            stock_balance_note = (
+                f"Overall inventory is {overall_status} by "
+                f"{abs(overall_delta):.1f}% relative to last year's sales."
+            )
+        elif filtered_inventory_total > 0:
+            stock_balance_note = "No sales data available to assess stock levels."
+
+        for style_code, style_label in PRODUCT_STYLE_CHOICES:
+            inventory_qty = style_totals.get(style_code, 0)
+            sales_qty = sales_style_totals.get(style_code, 0)
+
+            if sales_qty > 0:
+                delta_percent = (inventory_qty - sales_qty) / sales_qty * 100
+                status = "overstocked" if delta_percent > 0 else "understocked"
+                stock_balance_categories.append(
+                    {
+                        "label": style_label,
+                        "percent": _format_percent(delta_percent),
+                        "message": f"{style_label} {status} by {abs(delta_percent):.1f}% versus last year's sales.",
+                    }
+                )
+            elif inventory_qty > 0:
+                stock_balance_categories.append(
+                    {
+                        "label": style_label,
+                        "percent": None,
+                        "message": f"{style_label} has stock on hand but no comparable sales data.",
+                    }
+                )
+            else:
+                stock_balance_categories.append(
+                    {
+                        "label": style_label,
+                        "percent": None,
+                        "message": f"{style_label} has no stock or sales recorded.",
+                    }
+                )
+
     if selected_style_for_breakdown:
         sales_value_type_totals = sales_value_type_totals_by_style.get(
             selected_style_for_breakdown
@@ -1902,6 +1954,8 @@ def _render_filtered_products(
             "sales_value_category_codes": json.dumps(sales_value_category_codes),
             "sales_value_category_mode": sales_value_category_mode,
             "sales_value_category_style": sales_value_category_style,
+            "stock_balance_note": stock_balance_note,
+            "stock_balance_categories": stock_balance_categories,
             "has_quarterly_data": bool(variant_ids),
             "filter_controls": filter_controls,
             "showing_summary": " | ".join(selected_labels_flat)

@@ -369,7 +369,33 @@
 
     <div class="col s12 m4">
       <h4 class="center-align">Notes</h4>
-      <p class="grey-text center-align">Empty column for extra information</p>
+      <div class="card-panel">
+        <h6 class="grey-text text-darken-1" style="margin-top: 0;">Stock position</h6>
+        {% if stock_balance_note %}
+          <p class="teal-text text-darken-2" style="margin-bottom: 0;">{{ stock_balance_note }}</p>
+        {% else %}
+          <p class="grey-text text-darken-1" style="margin-bottom: 0;">Stock balance notes appear when viewing all products.</p>
+        {% endif %}
+      </div>
+
+      {% if stock_balance_categories %}
+        <div class="card-panel">
+          <h6 class="grey-text text-darken-1" style="margin-top: 0;">By category</h6>
+          <ul class="collection" style="margin: 0;">
+            {% for entry in stock_balance_categories %}
+              <li class="collection-item" style="border-left: 3px solid #26a69a;">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                  <strong>{{ entry.label }}</strong>
+                  {% if entry.percent %}
+                    <span class="teal-text text-darken-2">{{ entry.percent }}%</span>
+                  {% endif %}
+                </div>
+                <p class="grey-text text-darken-1" style="margin: 4px 0 0;">{{ entry.message }}</p>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
     </div>
 
     <div class="col s12 m12">
