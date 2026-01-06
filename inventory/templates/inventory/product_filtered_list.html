@@ -414,12 +414,7 @@
             {% for entry in stock_balance_groups %}
               <li class="collection-item" style="border-left: 3px solid #26a69a;">
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                    <strong>{{ entry.label }}</strong>
-                    {% if entry.count is not None %}
-                      <span class="grey-text text-darken-1" style="font-weight: 600;">{{ entry.count }} items</span>
-                    {% endif %}
-                  </div>
+                  <strong>{{ entry.label }}</strong>
                   {% if entry.percent %}
                     <span class="teal-text text-darken-2">{{ entry.percent }}%</span>
                   {% endif %}
