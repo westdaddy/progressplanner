@@ -42,6 +42,7 @@ from django.db.models import (
     When,
     DateField,
     Min,
+    Max,
 )
 from django.db.models.functions import Coalesce
 from django.http import Http404, HttpResponse, JsonResponse
@@ -1862,6 +1863,7 @@ def _render_filtered_products(
     stock_balance_note: Optional[str] = None
     stock_balance_categories: list[dict[str, Any]] = []
     stock_balance_groups: list[dict[str, Any]] = []
+    stock_age_breakdown: list[dict[str, Any]] = []
 
     def _format_percent(delta: float) -> str:
         return f"{delta:+.1f}"
@@ -2062,6 +2064,85 @@ def _render_filtered_products(
                     }
                 )
 
+    if variant_ids and filtered_inventory_total > 0:
+        today = date.today()
+        arrivals = (
+            OrderItem.objects.filter(
+                product_variant_id__in=variant_ids,
+                date_arrived__isnull=False,
+                date_arrived__lte=today,
+            )
+            .values("product_variant")
+            .annotate(last_date=Max("date_arrived"))
+        )
+        arrival_map = {row["product_variant"]: row["last_date"] for row in arrivals}
+
+        bucket_totals: dict[str, int] = {
+            "under_3": 0,
+            "three_to_six": 0,
+            "six_to_twelve": 0,
+            "over_12": 0,
+        }
+        unknown_inventory = 0
+
+        three_months_ago = today - relativedelta(months=3)
+        six_months_ago = today - relativedelta(months=6)
+        twelve_months_ago = today - relativedelta(months=12)
+
+        for product in products:
+            for variant in getattr(product, "variants_with_inventory", []):
+                inventory_count = getattr(variant, "latest_inventory", 0) or 0
+                if inventory_count <= 0:
+                    continue
+
+                arrival_date = arrival_map.get(variant.pk)
+                if arrival_date is None:
+                    bucket_key = "over_12"
+                    unknown_inventory += inventory_count
+                elif arrival_date >= three_months_ago:
+                    bucket_key = "under_3"
+                elif arrival_date >= six_months_ago:
+                    bucket_key = "three_to_six"
+                elif arrival_date >= twelve_months_ago:
+                    bucket_key = "six_to_twelve"
+                else:
+                    bucket_key = "over_12"
+
+                bucket_totals[bucket_key] += inventory_count
+
+        bucket_messages = {
+            "under_3": "Arrived within the last 3 months.",
+            "three_to_six": "Arrived between 3 and 6 months ago.",
+            "six_to_twelve": "Arrived between 6 and 12 months ago.",
+            "over_12": "Arrived over 12 months ago.",
+        }
+
+        bucket_labels = [
+            ("under_3", "Under 3 months"),
+            ("three_to_six", "3-6 months"),
+            ("six_to_twelve", "6-12 months"),
+            ("over_12", "Over 12 months"),
+        ]
+
+        for key, label in bucket_labels:
+            qty = bucket_totals.get(key, 0)
+            if qty <= 0:
+                continue
+
+            percent_val = qty / filtered_inventory_total * 100
+            message = f"{qty} units ({percent_val:.1f}% of current stock). {bucket_messages[key]}"
+
+            if key == "over_12" and unknown_inventory > 0:
+                message += f" Includes {unknown_inventory} units without recorded arrival dates."
+
+            stock_age_breakdown.append(
+                {
+                    "label": label,
+                    "percent": f"{percent_val:.1f}",
+                    "message": message,
+                }
+            )
+
     if selected_style_for_breakdown:
         sales_value_type_totals = sales_value_type_totals_by_style.get(
             selected_style_for_breakdown
@@ -2128,6 +2209,7 @@ def _render_filtered_products(
             "stock_balance_note": stock_balance_note,
             "stock_balance_categories": stock_balance_categories,
             "stock_balance_groups": stock_balance_groups,
+            "stock_age_breakdown": stock_age_breakdown,
             "has_quarterly_data": bool(variant_ids),
             "filter_controls": filter_controls,
             "showing_summary": " | ".join(selected_labels_flat)
