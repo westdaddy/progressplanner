@@ -1030,6 +1030,18 @@
           0
         );
 
+        const categoryDisplayLabels =
+          categoryBreakdownMode === 'type'
+            ? categoryLabels.map((label, index) => {
+                const value =
+                  Array.isArray(categoryValues) &&
+                  typeof categoryValues[index] !== 'undefined'
+                    ? categoryValues[index]
+                    : 0;
+                return `${label} (${value})`;
+              })
+            : categoryLabels;
+
         const backgroundColors = categoryCodes.map((code, index) => {
           if (categoryBreakdownMode === 'style') {
             const baseColor = STYLE_CATEGORY_COLORS[code] || '#26a69a';
@@ -1059,7 +1071,7 @@
         new Chart(categoryChartElement.getContext('2d'), {
           type: 'pie',
           data: {
-            labels: categoryLabels,
+            labels: categoryDisplayLabels,
             datasets: [
               {
                 data: categoryValues,
@@ -1180,6 +1192,18 @@
         const salesMode = salesCategoryMode === 'type' ? 'type' : 'style';
         const hasSalesSelection = salesMode === 'style' && selectedStyleSet.size > 0;
 
+        const salesCategoryDisplayLabels =
+          salesMode === 'type'
+            ? salesCategoryLabels.map((label, index) => {
+                const value =
+                  Array.isArray(salesCategoryValues) &&
+                  typeof salesCategoryValues[index] !== 'undefined'
+                    ? salesCategoryValues[index]
+                    : 0;
+                return `${label} (${value})`;
+              })
+            : salesCategoryLabels;
+
         const salesBackgroundColors = (salesCategoryCodes || []).map((code, index) => {
           if (salesMode === 'style') {
             const baseColor = STYLE_CATEGORY_COLORS[code] || '#26a69a';
@@ -1209,7 +1233,7 @@
         new Chart(salesCategoryChartElement.getContext('2d'), {
           type: 'pie',
           data: {
-            labels: salesCategoryLabels,
+            labels: salesCategoryDisplayLabels,
             datasets: [
               {
                 data: salesCategoryValues,
