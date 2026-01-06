@@ -1440,6 +1440,11 @@ def _render_filtered_products(
     )
 
     group_choices = list(context.get("group_choices") or Group.objects.all())
+    filtered_groups = [
+        group
+        for group in group_choices
+        if not group_selected or str(group.id) in group_selected
+    ]
 
     size_totals: dict[str, int] = {}
     size_label_map = dict(ProductVariant.SIZE_CHOICES)
@@ -1981,7 +1986,7 @@ def _render_filtered_products(
                     }
                 )
 
-        for group in group_choices:
+        for group in filtered_groups:
             inventory_qty = group_totals.get(group.id, 0)
             sales_qty = sales_group_totals.get(group.id, 0)
 
@@ -1991,7 +1996,6 @@ def _render_filtered_products(
                 stock_balance_groups.append(
                     {
                         "label": group.name,
-                        "count": inventory_qty,
                         "percent": _format_percent(delta_percent),
                         "message": (
                             f"{status.title()} by {_format_percent(delta_percent)}% versus "
@@ -2003,7 +2007,6 @@ def _render_filtered_products(
                 stock_balance_groups.append(
                     {
                         "label": group.name,
-                        "count": inventory_qty,
                         "percent": None,
                         "message": "Stock on hand but no comparable sales data.",
                     }
@@ -2012,7 +2015,6 @@ def _render_filtered_products(
                 stock_balance_groups.append(
                     {
                         "label": group.name,
-                        "count": inventory_qty,
                         "percent": None,
                         "message": f"{group.name} has no stock or sales recorded.",
                     }
@@ -2101,7 +2103,7 @@ def _render_filtered_products(
                     }
                 )
 
-        for group in group_choices:
+        for group in filtered_groups:
             inventory_qty = group_totals.get(group.id, 0)
             sales_qty = sales_group_totals.get(group.id, 0)
 
@@ -2111,7 +2113,6 @@ def _render_filtered_products(
                 stock_balance_groups.append(
                     {
                         "label": group.name,
-                        "count": inventory_qty,
                         "percent": _format_percent(delta_percent),
                         "message": (
                             f"{status.title()} by {_format_percent(delta_percent)}% within {style_label} versus "
@@ -2123,7 +2124,6 @@ def _render_filtered_products(
                 stock_balance_groups.append(
                     {
                         "label": group.name,
-                        "count": inventory_qty,
                         "percent": None,
                         "message": (
                             "Stock on hand in "
@@ -2135,7 +2135,6 @@ def _render_filtered_products(
                 stock_balance_groups.append(
                     {
                         "label": group.name,
-                        "count": inventory_qty,
                         "percent": None,
                         "message": f"{group.name} has no stock or sales recorded in {style_label}.",
                     }
