@@ -1437,12 +1437,15 @@ def _render_filtered_products(
         getattr(product, "total_inventory", 0) for product in products
     )
 
+    group_choices = list(context.get("group_choices") or Group.objects.all())
+
     size_totals: dict[str, int] = {}
     size_label_map = dict(ProductVariant.SIZE_CHOICES)
     age_totals: dict[str, int] = {}
     style_totals: dict[str, int] = {}
     gender_totals: dict[str, int] = {}
     type_totals_by_style: dict[str, dict[str, int]] = {}
+    group_totals: dict[int, int] = {}
     age_label_map = dict(PRODUCT_AGE_CHOICES)
     style_label_map = dict(PRODUCT_STYLE_CHOICES)
     type_label_map = dict(PRODUCT_TYPE_CHOICES)
@@ -1465,6 +1468,8 @@ def _render_filtered_products(
             if (getattr(variant, "latest_inventory", 0) or 0) > 0
         )
 
+        product_group_ids = list(product.groups.values_list("id", flat=True))
+
         if product_inventory_total > 0:
             age_totals[product_age] = (
                 age_totals.get(product_age, 0) + product_inventory_total
@@ -1481,6 +1486,11 @@ def _render_filtered_products(
                 )
                 style_type_totals[product.type] = (
                     style_type_totals.get(product.type, 0) + product_inventory_total
+                )
+
+            for group_id in product_group_ids:
+                group_totals[group_id] = (
+                    group_totals.get(group_id, 0) + product_inventory_total
                 )
 
         for variant in getattr(product, "variants_with_inventory", []):
@@ -1536,11 +1546,15 @@ def _render_filtered_products(
 
     variant_style_map = {}
     variant_type_map = {}
+    variant_groups_map: dict[int, list[int]] = {}
 
     for product in products:
+        product_group_ids = list(product.groups.values_list("id", flat=True))
         for variant in getattr(product, "variants_with_inventory", []):
             variant_style_map[variant.pk] = product.style or "unspecified"
             variant_type_map[variant.pk] = product.type or "unspecified"
+            if product_group_ids:
+                variant_groups_map[variant.pk] = product_group_ids
 
     if selected_style_for_breakdown:
         type_totals = type_totals_by_style.get(selected_style_for_breakdown, {})
@@ -1612,6 +1626,7 @@ def _render_filtered_products(
     last_year_sales_total = 0
     sales_style_totals: dict[str, int] = {}
     sales_type_totals_by_style: dict[str, dict[str, int]] = {}
+    sales_group_totals: dict[int, int] = {}
     sales_qs = []
     last_year_start = today - relativedelta(years=1)
 
@@ -1751,6 +1766,11 @@ def _render_filtered_products(
                 sales_value_style_totals.get(style_key, Decimal("0")) + net_value
             )
 
+            for group_id in variant_groups_map.get(sale["variant_id"], []):
+                sales_group_totals[group_id] = (
+                    sales_group_totals.get(group_id, 0) + net_sold
+                )
+
             if selected_style_for_breakdown and (
                 style_key == selected_style_for_breakdown
             ):
@@ -1841,6 +1861,7 @@ def _render_filtered_products(
 
     stock_balance_note: Optional[str] = None
     stock_balance_categories: list[dict[str, Any]] = []
+    stock_balance_groups: list[dict[str, Any]] = []
 
     def _format_percent(delta: float) -> str:
         return f"{delta:+.1f}"
@@ -1888,6 +1909,37 @@ def _render_filtered_products(
                         "label": style_label,
                         "percent": None,
                         "message": f"{style_label} has no stock or sales recorded.",
+                    }
+                )
+
+        for group in group_choices:
+            inventory_qty = group_totals.get(group.id, 0)
+            sales_qty = sales_group_totals.get(group.id, 0)
+
+            if sales_qty > 0:
+                delta_percent = (inventory_qty - sales_qty) / sales_qty * 100
+                status = "overstocked" if delta_percent > 0 else "understocked"
+                stock_balance_groups.append(
+                    {
+                        "label": group.name,
+                        "percent": _format_percent(delta_percent),
+                        "message": f"{group.name} {status} by {abs(delta_percent):.1f}% versus last year's sales.",
+                    }
+                )
+            elif inventory_qty > 0:
+                stock_balance_groups.append(
+                    {
+                        "label": group.name,
+                        "percent": None,
+                        "message": f"{group.name} has stock on hand but no comparable sales data.",
+                    }
+                )
+            else:
+                stock_balance_groups.append(
+                    {
+                        "label": group.name,
+                        "percent": None,
+                        "message": f"{group.name} has no stock or sales recorded.",
                     }
                 )
     elif selected_style_for_breakdown:
@@ -1966,6 +2018,37 @@ def _render_filtered_products(
                     }
                 )
 
+        for group in group_choices:
+            inventory_qty = group_totals.get(group.id, 0)
+            sales_qty = sales_group_totals.get(group.id, 0)
+
+            if sales_qty > 0:
+                delta_percent = (inventory_qty - sales_qty) / sales_qty * 100
+                status = "overstocked" if delta_percent > 0 else "understocked"
+                stock_balance_groups.append(
+                    {
+                        "label": group.name,
+                        "percent": _format_percent(delta_percent),
+                        "message": f"{group.name} {status} by {abs(delta_percent):.1f}% within {style_label} versus last year's sales.",
+                    }
+                )
+            elif inventory_qty > 0:
+                stock_balance_groups.append(
+                    {
+                        "label": group.name,
+                        "percent": None,
+                        "message": f"{group.name} has stock on hand but no comparable sales data in {style_label}.",
+                    }
+                )
+            else:
+                stock_balance_groups.append(
+                    {
+                        "label": group.name,
+                        "percent": None,
+                        "message": f"{group.name} has no stock or sales recorded in {style_label}.",
+                    }
+                )
+
     if selected_style_for_breakdown:
         sales_value_type_totals = sales_value_type_totals_by_style.get(
             selected_style_for_breakdown
@@ -2031,6 +2114,7 @@ def _render_filtered_products(
             "sales_value_category_style": sales_value_category_style,
             "stock_balance_note": stock_balance_note,
             "stock_balance_categories": stock_balance_categories,
+            "stock_balance_groups": stock_balance_groups,
             "has_quarterly_data": bool(variant_ids),
             "filter_controls": filter_controls,
             "showing_summary": " | ".join(selected_labels_flat)
