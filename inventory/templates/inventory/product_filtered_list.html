@@ -385,7 +385,11 @@
             {% for entry in stock_balance_categories %}
               <li class="collection-item" style="border-left: 3px solid #26a69a;">
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                  <strong>{{ entry.label }}</strong>
+                  {% if entry.url %}
+                    <strong><a href="{{ entry.url }}" class="teal-text text-darken-2" style="text-decoration: none;">{{ entry.label }}</a></strong>
+                  {% else %}
+                    <strong>{{ entry.label }}</strong>
+                  {% endif %}
                   {% if entry.percent %}
                     <span class="teal-text text-darken-2">{{ entry.percent }}%</span>
                   {% endif %}

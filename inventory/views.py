@@ -1885,6 +1885,8 @@ def _render_filtered_products(
             inventory_qty = style_totals.get(style_code, 0)
             sales_qty = sales_style_totals.get(style_code, 0)
 
+            link = f"{reverse('product_style_list', args=[style_code])}"
+
             if sales_qty > 0:
                 delta_percent = (inventory_qty - sales_qty) / sales_qty * 100
                 status = "overstocked" if delta_percent > 0 else "understocked"
@@ -1893,6 +1895,7 @@ def _render_filtered_products(
                         "label": style_label,
                         "percent": _format_percent(delta_percent),
                         "message": f"{style_label} {status} by {abs(delta_percent):.1f}% versus last year's sales.",
+                        "url": link,
                     }
                 )
             elif inventory_qty > 0:
@@ -1901,6 +1904,7 @@ def _render_filtered_products(
                         "label": style_label,
                         "percent": None,
                         "message": f"{style_label} has stock on hand but no comparable sales data.",
+                        "url": link,
                     }
                 )
             else:
@@ -1909,6 +1913,7 @@ def _render_filtered_products(
                         "label": style_label,
                         "percent": None,
                         "message": f"{style_label} has no stock or sales recorded.",
+                        "url": link,
                     }
                 )
 
@@ -1991,6 +1996,11 @@ def _render_filtered_products(
             inventory_qty = type_inventory_totals.get(type_code, 0)
             sales_qty = type_sales_totals.get(type_code, 0)
 
+            type_query = urlencode(
+                {"style_filter": selected_style_for_breakdown, "type_filter": type_code}
+            )
+            link = f"{reverse('product_filtered')}?{type_query}"
+
             if sales_qty > 0:
                 delta_percent = (inventory_qty - sales_qty) / sales_qty * 100
                 status = "overstocked" if delta_percent > 0 else "understocked"
@@ -1999,6 +2009,7 @@ def _render_filtered_products(
                         "label": type_label,
                         "percent": _format_percent(delta_percent),
                         "message": f"{type_label} {status} by {abs(delta_percent):.1f}% within {style_label} versus last year's sales.",
+                        "url": link,
                     }
                 )
             elif inventory_qty > 0:
@@ -2007,6 +2018,7 @@ def _render_filtered_products(
                         "label": type_label,
                         "percent": None,
                         "message": f"{type_label} has stock on hand but no comparable sales data in {style_label}.",
+                        "url": link,
                     }
                 )
             else:
@@ -2015,6 +2027,7 @@ def _render_filtered_products(
                         "label": type_label,
                         "percent": None,
                         "message": f"{type_label} has no stock or sales recorded in {style_label}.",
+                        "url": link,
                     }
                 )
 
