@@ -1929,22 +1929,28 @@ def _render_filtered_products(
                 stock_balance_groups.append(
                     {
                         "label": group.name,
+                        "count": inventory_qty,
                         "percent": _format_percent(delta_percent),
-                        "message": f"{group.name} {status} by {abs(delta_percent):.1f}% versus last year's sales.",
+                        "message": (
+                            f"{status.title()} by {_format_percent(delta_percent)}% versus "
+                            "last year's sales."
+                        ),
                     }
                 )
             elif inventory_qty > 0:
                 stock_balance_groups.append(
                     {
                         "label": group.name,
+                        "count": inventory_qty,
                         "percent": None,
-                        "message": f"{group.name} has stock on hand but no comparable sales data.",
+                        "message": "Stock on hand but no comparable sales data.",
                     }
                 )
             else:
                 stock_balance_groups.append(
                     {
                         "label": group.name,
+                        "count": inventory_qty,
                         "percent": None,
                         "message": f"{group.name} has no stock or sales recorded.",
                     }
@@ -2043,22 +2049,31 @@ def _render_filtered_products(
                 stock_balance_groups.append(
                     {
                         "label": group.name,
+                        "count": inventory_qty,
                         "percent": _format_percent(delta_percent),
-                        "message": f"{group.name} {status} by {abs(delta_percent):.1f}% within {style_label} versus last year's sales.",
+                        "message": (
+                            f"{status.title()} by {_format_percent(delta_percent)}% within {style_label} versus "
+                            "last year's sales."
+                        ),
                     }
                 )
             elif inventory_qty > 0:
                 stock_balance_groups.append(
                     {
                         "label": group.name,
+                        "count": inventory_qty,
                         "percent": None,
-                        "message": f"{group.name} has stock on hand but no comparable sales data in {style_label}.",
+                        "message": (
+                            "Stock on hand in "
+                            f"{style_label} but no comparable sales data."
+                        ),
                     }
                 )
             else:
                 stock_balance_groups.append(
                     {
                         "label": group.name,
+                        "count": inventory_qty,
                         "percent": None,
                         "message": f"{group.name} has no stock or sales recorded in {style_label}.",
                     }
