@@ -1892,8 +1892,19 @@ def _render_filtered_products(
                 )
     elif selected_style_for_breakdown:
         style_label = style_label_map.get(selected_style_for_breakdown, "Selected category")
-        style_inventory_qty = style_totals.get(selected_style_for_breakdown, 0)
-        style_sales_qty = sales_style_totals.get(selected_style_for_breakdown, 0)
+        type_inventory_totals = type_totals_by_style.get(
+            selected_style_for_breakdown, {}
+        )
+        type_sales_totals = sales_type_totals_by_style.get(
+            selected_style_for_breakdown, {}
+        )
+
+        style_inventory_qty = sum(type_inventory_totals.values()) or style_totals.get(
+            selected_style_for_breakdown, 0
+        )
+        style_sales_qty = sum(type_sales_totals.values()) or sales_style_totals.get(
+            selected_style_for_breakdown, 0
+        )
 
         if style_sales_qty > 0:
             style_delta = (
@@ -1913,12 +1924,6 @@ def _render_filtered_products(
 
         type_label_map_for_style = dict(
             get_type_choices_for_styles([selected_style_for_breakdown])
-        )
-        type_inventory_totals = type_totals_by_style.get(
-            selected_style_for_breakdown, {}
-        )
-        type_sales_totals = sales_type_totals_by_style.get(
-            selected_style_for_breakdown, {}
         )
 
         type_order = {code: idx for idx, (code, _) in enumerate(PRODUCT_TYPE_CHOICES)}
