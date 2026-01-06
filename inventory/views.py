@@ -1440,6 +1440,7 @@ def _render_filtered_products(
     )
 
     group_choices = list(context.get("group_choices") or Group.objects.all())
+    group_label_map = {group.id: group.name or "Unspecified" for group in group_choices}
     filtered_groups = [
         group
         for group in group_choices
@@ -1458,13 +1459,14 @@ def _render_filtered_products(
     type_label_map = dict(PRODUCT_TYPE_CHOICES)
     gender_label_map = dict(PRODUCT_GENDER_CHOICES)
     group_inventory_totals: dict[str, int] = {}
-    variant_group_map: dict[int, list[str]] = {}
+    variant_group_map: dict[int, list[int]] = {}
 
     for product in products:
         product_groups = list(product.groups.all()) if hasattr(product, "groups") else []
         product_group_names = (
             [group.name or "Unspecified" for group in product_groups] or ["Unspecified"]
         )
+        product_group_ids = [group.id for group in product_groups]
 
         for variant in getattr(product, "variants_with_inventory", []):
             if not variant.size:
@@ -1475,7 +1477,7 @@ def _render_filtered_products(
             size_totals[variant.size] = size_totals.get(variant.size, 0) + inventory_count
 
         for variant in getattr(product, "variants_with_inventory", []):
-            variant_group_map[variant.pk] = product_group_names or ["Unspecified"]
+            variant_group_map[variant.pk] = product_group_ids
 
         product_age = product.age or "unspecified"
         product_style = product.style or "unspecified"
@@ -1484,8 +1486,6 @@ def _render_filtered_products(
             for variant in getattr(product, "variants_with_inventory", [])
             if (getattr(variant, "latest_inventory", 0) or 0) > 0
         )
-
-        product_group_ids = list(product.groups.values_list("id", flat=True))
 
         if product_inventory_total > 0:
             age_totals[product_age] = (
@@ -1672,7 +1672,7 @@ def _render_filtered_products(
     last_year_sales_total = 0
     sales_style_totals: dict[str, int] = {}
     sales_type_totals_by_style: dict[str, dict[str, int]] = {}
-    sales_group_totals: dict[str, int] = {}
+    sales_group_totals: dict[int, int] = {}
     sales_qs = []
     last_year_start = today - relativedelta(years=1)
 
@@ -1812,9 +1812,9 @@ def _render_filtered_products(
                 sales_value_style_totals.get(style_key, Decimal("0")) + net_value
             )
 
-            for group_name in variant_group_map.get(sale["variant_id"], []):
-                sales_group_totals[group_name] = (
-                    sales_group_totals.get(group_name, 0) + net_sold
+            for group_id in variant_group_map.get(sale["variant_id"], []):
+                sales_group_totals[group_id] = (
+                    sales_group_totals.get(group_id, 0) + net_sold
                 )
 
             if selected_style_for_breakdown and (
@@ -1900,12 +1900,18 @@ def _render_filtered_products(
         selected_type_label = type_label_map.get(
             selected_type_code, "Selected subcategory"
         )
-        ordered_group_sales = sorted(sales_group_totals.keys(), key=str.lower)
-        sales_category_labels = ordered_group_sales
-        sales_category_values = [
-            sales_group_totals.get(name, 0) for name in ordered_group_sales
+        ordered_group_ids = sorted(
+            sales_group_totals.keys(),
+            key=lambda gid: group_label_map.get(gid, "Unspecified").lower(),
+        )
+        sales_category_labels = [
+            group_label_map.get(group_id, "Unspecified")
+            for group_id in ordered_group_ids
         ]
-        ordered_sales_styles = ordered_group_sales
+        sales_category_values = [
+            sales_group_totals.get(group_id, 0) for group_id in ordered_group_ids
+        ]
+        ordered_sales_styles = ordered_group_ids
         sales_category_mode = "group"
         sales_category_style = selected_style_for_breakdown
         sales_category_description = (
