@@ -42,6 +42,7 @@ from django.db.models import (
     When,
     DateField,
     Min,
+    Max,
 )
 from django.db.models.functions import Coalesce
 from django.http import Http404, HttpResponse, JsonResponse
@@ -1437,12 +1438,15 @@ def _render_filtered_products(
         getattr(product, "total_inventory", 0) for product in products
     )
 
+    group_choices = list(context.get("group_choices") or Group.objects.all())
+
     size_totals: dict[str, int] = {}
     size_label_map = dict(ProductVariant.SIZE_CHOICES)
     age_totals: dict[str, int] = {}
     style_totals: dict[str, int] = {}
     gender_totals: dict[str, int] = {}
     type_totals_by_style: dict[str, dict[str, int]] = {}
+    group_totals: dict[int, int] = {}
     age_label_map = dict(PRODUCT_AGE_CHOICES)
     style_label_map = dict(PRODUCT_STYLE_CHOICES)
     type_label_map = dict(PRODUCT_TYPE_CHOICES)
@@ -1465,6 +1469,8 @@ def _render_filtered_products(
             if (getattr(variant, "latest_inventory", 0) or 0) > 0
         )
 
+        product_group_ids = list(product.groups.values_list("id", flat=True))
+
         if product_inventory_total > 0:
             age_totals[product_age] = (
                 age_totals.get(product_age, 0) + product_inventory_total
@@ -1481,6 +1487,11 @@ def _render_filtered_products(
                 )
                 style_type_totals[product.type] = (
                     style_type_totals.get(product.type, 0) + product_inventory_total
+                )
+
+            for group_id in product_group_ids:
+                group_totals[group_id] = (
+                    group_totals.get(group_id, 0) + product_inventory_total
                 )
 
         for variant in getattr(product, "variants_with_inventory", []):
@@ -1536,11 +1547,15 @@ def _render_filtered_products(
 
     variant_style_map = {}
     variant_type_map = {}
+    variant_groups_map: dict[int, list[int]] = {}
 
     for product in products:
+        product_group_ids = list(product.groups.values_list("id", flat=True))
         for variant in getattr(product, "variants_with_inventory", []):
             variant_style_map[variant.pk] = product.style or "unspecified"
             variant_type_map[variant.pk] = product.type or "unspecified"
+            if product_group_ids:
+                variant_groups_map[variant.pk] = product_group_ids
 
     if selected_style_for_breakdown:
         type_totals = type_totals_by_style.get(selected_style_for_breakdown, {})
@@ -1612,6 +1627,7 @@ def _render_filtered_products(
     last_year_sales_total = 0
     sales_style_totals: dict[str, int] = {}
     sales_type_totals_by_style: dict[str, dict[str, int]] = {}
+    sales_group_totals: dict[int, int] = {}
     sales_qs = []
     last_year_start = today - relativedelta(years=1)
 
@@ -1751,6 +1767,11 @@ def _render_filtered_products(
                 sales_value_style_totals.get(style_key, Decimal("0")) + net_value
             )
 
+            for group_id in variant_groups_map.get(sale["variant_id"], []):
+                sales_group_totals[group_id] = (
+                    sales_group_totals.get(group_id, 0) + net_sold
+                )
+
             if selected_style_for_breakdown and (
                 style_key == selected_style_for_breakdown
             ):
@@ -1839,6 +1860,304 @@ def _render_filtered_products(
     sales_value_category_style = None
     sales_value_category_codes = ordered_sales_value_styles
 
+    stock_balance_note: Optional[str] = None
+    stock_balance_categories: list[dict[str, Any]] = []
+    stock_balance_groups: list[dict[str, Any]] = []
+    stock_age_breakdown: list[dict[str, Any]] = []
+
+    def _format_percent(delta: float) -> str:
+        return f"{delta:+.1f}"
+
+    if not selected_labels_flat:
+        if last_year_sales_total > 0:
+            overall_delta = (
+                (filtered_inventory_total - last_year_sales_total)
+                / last_year_sales_total
+                * 100
+            )
+            overall_status = "overstocked" if overall_delta > 0 else "understocked"
+            stock_balance_note = (
+                f"Overall inventory is {overall_status} by "
+                f"{abs(overall_delta):.1f}% relative to last year's sales."
+            )
+        elif filtered_inventory_total > 0:
+            stock_balance_note = "No sales data available to assess stock levels."
+
+        for style_code, style_label in PRODUCT_STYLE_CHOICES:
+            inventory_qty = style_totals.get(style_code, 0)
+            sales_qty = sales_style_totals.get(style_code, 0)
+
+            link = f"{reverse('product_style_list', args=[style_code])}"
+
+            if sales_qty > 0:
+                delta_percent = (inventory_qty - sales_qty) / sales_qty * 100
+                status = "overstocked" if delta_percent > 0 else "understocked"
+                stock_balance_categories.append(
+                    {
+                        "label": style_label,
+                        "percent": _format_percent(delta_percent),
+                        "message": f"{style_label} {status} by {abs(delta_percent):.1f}% versus last year's sales.",
+                        "url": link,
+                    }
+                )
+            elif inventory_qty > 0:
+                stock_balance_categories.append(
+                    {
+                        "label": style_label,
+                        "percent": None,
+                        "message": f"{style_label} has stock on hand but no comparable sales data.",
+                        "url": link,
+                    }
+                )
+            else:
+                stock_balance_categories.append(
+                    {
+                        "label": style_label,
+                        "percent": None,
+                        "message": f"{style_label} has no stock or sales recorded.",
+                        "url": link,
+                    }
+                )
+
+        for group in group_choices:
+            inventory_qty = group_totals.get(group.id, 0)
+            sales_qty = sales_group_totals.get(group.id, 0)
+
+            if sales_qty > 0:
+                delta_percent = (inventory_qty - sales_qty) / sales_qty * 100
+                status = "overstocked" if delta_percent > 0 else "understocked"
+                stock_balance_groups.append(
+                    {
+                        "label": group.name,
+                        "count": inventory_qty,
+                        "percent": _format_percent(delta_percent),
+                        "message": (
+                            f"{status.title()} by {_format_percent(delta_percent)}% versus "
+                            "last year's sales."
+                        ),
+                    }
+                )
+            elif inventory_qty > 0:
+                stock_balance_groups.append(
+                    {
+                        "label": group.name,
+                        "count": inventory_qty,
+                        "percent": None,
+                        "message": "Stock on hand but no comparable sales data.",
+                    }
+                )
+            else:
+                stock_balance_groups.append(
+                    {
+                        "label": group.name,
+                        "count": inventory_qty,
+                        "percent": None,
+                        "message": f"{group.name} has no stock or sales recorded.",
+                    }
+                )
+    elif selected_style_for_breakdown:
+        style_label = style_label_map.get(selected_style_for_breakdown, "Selected category")
+        type_inventory_totals = type_totals_by_style.get(
+            selected_style_for_breakdown, {}
+        )
+        type_sales_totals = sales_type_totals_by_style.get(
+            selected_style_for_breakdown, {}
+        )
+
+        style_inventory_qty = sum(type_inventory_totals.values()) or style_totals.get(
+            selected_style_for_breakdown, 0
+        )
+        style_sales_qty = sum(type_sales_totals.values()) or sales_style_totals.get(
+            selected_style_for_breakdown, 0
+        )
+
+        if style_sales_qty > 0:
+            style_delta = (
+                (style_inventory_qty - style_sales_qty) / style_sales_qty * 100
+            )
+            style_status = "overstocked" if style_delta > 0 else "understocked"
+            stock_balance_note = (
+                f"{style_label} inventory is {style_status} by "
+                f"{abs(style_delta):.1f}% relative to last year's sales."
+            )
+        elif style_inventory_qty > 0:
+            stock_balance_note = (
+                f"No sales data available to assess {style_label} stock levels."
+            )
+        else:
+            stock_balance_note = f"{style_label} has no stock or sales recorded."
+
+        type_label_map_for_style = dict(
+            get_type_choices_for_styles([selected_style_for_breakdown])
+        )
+
+        type_order = {code: idx for idx, (code, _) in enumerate(PRODUCT_TYPE_CHOICES)}
+        ordered_types = sorted(
+            set(type_inventory_totals.keys()) | set(type_sales_totals.keys()),
+            key=lambda code: type_order.get(code, len(type_order)),
+        )
+
+        for type_code in ordered_types:
+            type_label = type_label_map_for_style.get(
+                type_code, type_label_map.get(type_code, "Unspecified")
+            )
+            inventory_qty = type_inventory_totals.get(type_code, 0)
+            sales_qty = type_sales_totals.get(type_code, 0)
+
+            type_query = urlencode(
+                {"style_filter": selected_style_for_breakdown, "type_filter": type_code}
+            )
+            link = f"{reverse('product_filtered')}?{type_query}"
+
+            if sales_qty > 0:
+                delta_percent = (inventory_qty - sales_qty) / sales_qty * 100
+                status = "overstocked" if delta_percent > 0 else "understocked"
+                stock_balance_categories.append(
+                    {
+                        "label": type_label,
+                        "percent": _format_percent(delta_percent),
+                        "message": f"{type_label} {status} by {abs(delta_percent):.1f}% within {style_label} versus last year's sales.",
+                        "url": link,
+                    }
+                )
+            elif inventory_qty > 0:
+                stock_balance_categories.append(
+                    {
+                        "label": type_label,
+                        "percent": None,
+                        "message": f"{type_label} has stock on hand but no comparable sales data in {style_label}.",
+                        "url": link,
+                    }
+                )
+            else:
+                stock_balance_categories.append(
+                    {
+                        "label": type_label,
+                        "percent": None,
+                        "message": f"{type_label} has no stock or sales recorded in {style_label}.",
+                        "url": link,
+                    }
+                )
+
+        for group in group_choices:
+            inventory_qty = group_totals.get(group.id, 0)
+            sales_qty = sales_group_totals.get(group.id, 0)
+
+            if sales_qty > 0:
+                delta_percent = (inventory_qty - sales_qty) / sales_qty * 100
+                status = "overstocked" if delta_percent > 0 else "understocked"
+                stock_balance_groups.append(
+                    {
+                        "label": group.name,
+                        "count": inventory_qty,
+                        "percent": _format_percent(delta_percent),
+                        "message": (
+                            f"{status.title()} by {_format_percent(delta_percent)}% within {style_label} versus "
+                            "last year's sales."
+                        ),
+                    }
+                )
+            elif inventory_qty > 0:
+                stock_balance_groups.append(
+                    {
+                        "label": group.name,
+                        "count": inventory_qty,
+                        "percent": None,
+                        "message": (
+                            "Stock on hand in "
+                            f"{style_label} but no comparable sales data."
+                        ),
+                    }
+                )
+            else:
+                stock_balance_groups.append(
+                    {
+                        "label": group.name,
+                        "count": inventory_qty,
+                        "percent": None,
+                        "message": f"{group.name} has no stock or sales recorded in {style_label}.",
+                    }
+                )
+
+    if variant_ids and filtered_inventory_total > 0:
+        today = date.today()
+        arrivals = (
+            OrderItem.objects.filter(
+                product_variant_id__in=variant_ids,
+                date_arrived__isnull=False,
+                date_arrived__lte=today,
+            )
+            .values("product_variant")
+            .annotate(last_date=Max("date_arrived"))
+        )
+        arrival_map = {row["product_variant"]: row["last_date"] for row in arrivals}
+
+        bucket_totals: dict[str, int] = {
+            "under_3": 0,
+            "three_to_six": 0,
+            "six_to_twelve": 0,
+            "over_12": 0,
+        }
+        unknown_inventory = 0
+
+        three_months_ago = today - relativedelta(months=3)
+        six_months_ago = today - relativedelta(months=6)
+        twelve_months_ago = today - relativedelta(months=12)
+
+        for product in products:
+            for variant in getattr(product, "variants_with_inventory", []):
+                inventory_count = getattr(variant, "latest_inventory", 0) or 0
+                if inventory_count <= 0:
+                    continue
+
+                arrival_date = arrival_map.get(variant.pk)
+                if arrival_date is None:
+                    bucket_key = "over_12"
+                    unknown_inventory += inventory_count
+                elif arrival_date >= three_months_ago:
+                    bucket_key = "under_3"
+                elif arrival_date >= six_months_ago:
+                    bucket_key = "three_to_six"
+                elif arrival_date >= twelve_months_ago:
+                    bucket_key = "six_to_twelve"
+                else:
+                    bucket_key = "over_12"
+
+                bucket_totals[bucket_key] += inventory_count
+
+        bucket_messages = {
+            "under_3": "Arrived within the last 3 months.",
+            "three_to_six": "Arrived between 3 and 6 months ago.",
+            "six_to_twelve": "Arrived between 6 and 12 months ago.",
+            "over_12": "Arrived over 12 months ago.",
+        }
+
+        bucket_labels = [
+            ("under_3", "Under 3 months"),
+            ("three_to_six", "3-6 months"),
+            ("six_to_twelve", "6-12 months"),
+            ("over_12", "Over 12 months"),
+        ]
+
+        for key, label in bucket_labels:
+            qty = bucket_totals.get(key, 0)
+            if qty <= 0:
+                continue
+
+            percent_val = qty / filtered_inventory_total * 100
+            message = f"{qty} units ({percent_val:.1f}% of current stock). {bucket_messages[key]}"
+
+            if key == "over_12" and unknown_inventory > 0:
+                message += f" Includes {unknown_inventory} units without recorded arrival dates."
+
+            stock_age_breakdown.append(
+                {
+                    "label": label,
+                    "percent": f"{percent_val:.1f}",
+                    "message": message,
+                }
+            )
+
     if selected_style_for_breakdown:
         sales_value_type_totals = sales_value_type_totals_by_style.get(
             selected_style_for_breakdown
@@ -1902,6 +2221,10 @@ def _render_filtered_products(
             "sales_value_category_codes": json.dumps(sales_value_category_codes),
             "sales_value_category_mode": sales_value_category_mode,
             "sales_value_category_style": sales_value_category_style,
+            "stock_balance_note": stock_balance_note,
+            "stock_balance_categories": stock_balance_categories,
+            "stock_balance_groups": stock_balance_groups,
+            "stock_age_breakdown": stock_age_breakdown,
             "has_quarterly_data": bool(variant_ids),
             "filter_controls": filter_controls,
             "showing_summary": " | ".join(selected_labels_flat)
