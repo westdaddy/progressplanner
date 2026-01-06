@@ -318,7 +318,7 @@
         <div class="filter-divider"></div>
         {% if sales_category_values %}
           <canvas id="salesCategoryChart"></canvas>
-          <p class="grey-text text-darken-1" style="margin-bottom: 0;">Sales split by product category</p>
+          <p class="grey-text text-darken-1" style="margin-bottom: 0;">{{ sales_category_description|default:"Sales split by product category" }}</p>
         {% else %}
           <p class="grey-text text-darken-1" style="margin: 0;">No sales data available.</p>
         {% endif %}
@@ -1103,17 +1103,7 @@
           0
         );
 
-        const categoryDisplayLabels =
-          categoryBreakdownMode === 'type'
-            ? categoryLabels.map((label, index) => {
-                const value =
-                  Array.isArray(categoryValues) &&
-                  typeof categoryValues[index] !== 'undefined'
-                    ? categoryValues[index]
-                    : 0;
-                return `${label} (${value})`;
-              })
-            : categoryLabels;
+        const categoryDisplayLabels = categoryLabels;
 
         const backgroundColors = categoryCodes.map((code, index) => {
           if (categoryBreakdownMode === 'style') {
@@ -1262,20 +1252,15 @@
           (sum, value) => sum + value,
           0
         );
-        const salesMode = salesCategoryMode === 'type' ? 'type' : 'style';
+        const salesMode =
+          salesCategoryMode === 'type'
+            ? 'type'
+            : salesCategoryMode === 'group'
+              ? 'group'
+              : 'style';
         const hasSalesSelection = salesMode === 'style' && selectedStyleSet.size > 0;
 
-        const salesCategoryDisplayLabels =
-          salesMode === 'type'
-            ? salesCategoryLabels.map((label, index) => {
-                const value =
-                  Array.isArray(salesCategoryValues) &&
-                  typeof salesCategoryValues[index] !== 'undefined'
-                    ? salesCategoryValues[index]
-                    : 0;
-                return `${label} (${value})`;
-              })
-            : salesCategoryLabels;
+        const salesCategoryDisplayLabels = salesCategoryLabels;
 
         const salesBackgroundColors = (salesCategoryCodes || []).map((code, index) => {
           if (salesMode === 'style') {
