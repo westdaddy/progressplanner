@@ -309,6 +309,7 @@
   <!-- STATISTICS SECTION -->
   <div class="row">
 
+    <!-- SALES SECTION -->
     <div class="col s12 m4">
       <h4 class="center-align">Past Sales</h4>
       <p class="grey-text center-align">Is this number higher or lower than the previous 12 months sales? </p>
@@ -337,7 +338,7 @@
       </div>
     </div>
 
-
+    <!-- STOCK SECTION -->
     <div class="col s12 m4">
         <h4 class="center-align">Current Stock</h4>
         <p class="grey-text center-align">Compare the current stock levels and breakdown with previous years' sales.</p>
@@ -367,8 +368,11 @@
 
     </div>
 
+    <!-- NOTES COLUMN -->
     <div class="col s12 m4">
       <h4 class="center-align">Notes</h4>
+
+      <!-- TOTAL STOCK POSITION -->
       <div class="card-panel">
         <h6 class="grey-text text-darken-1" style="margin-top: 0;">Stock position</h6>
         {% if stock_balance_note %}
@@ -378,6 +382,7 @@
         {% endif %}
       </div>
 
+      <!-- STOCK POSITION BY PRODUCT CATEGORY -->
       {% if stock_balance_categories %}
         <div class="card-panel">
           <h6 class="grey-text text-darken-1" style="margin-top: 0;">By category</h6>
@@ -401,6 +406,7 @@
         </div>
       {% endif %}
 
+      <!-- STOCK POSITION BY GROUP CORE MID-RANGE PREMIUM -->
       {% if stock_balance_groups %}
         <div class="card-panel">
           <h6 class="grey-text text-darken-1" style="margin-top: 0;">By group</h6>
@@ -425,6 +431,7 @@
         </div>
       {% endif %}
 
+      <!-- STOCK POSITION BY STOCK AGE -->
       {% if stock_age_breakdown %}
         <div class="card-panel">
           <h6 class="grey-text text-darken-1" style="margin-top: 0;">Time on market</h6>
