@@ -1839,6 +1839,128 @@ def _render_filtered_products(
     sales_value_category_style = None
     sales_value_category_codes = ordered_sales_value_styles
 
+    stock_balance_note: Optional[str] = None
+    stock_balance_categories: list[dict[str, Any]] = []
+
+    def _format_percent(delta: float) -> str:
+        return f"{delta:+.1f}"
+
+    if not selected_labels_flat:
+        if last_year_sales_total > 0:
+            overall_delta = (
+                (filtered_inventory_total - last_year_sales_total)
+                / last_year_sales_total
+                * 100
+            )
+            overall_status = "overstocked" if overall_delta > 0 else "understocked"
+            stock_balance_note = (
+                f"Overall inventory is {overall_status} by "
+                f"{abs(overall_delta):.1f}% relative to last year's sales."
+            )
+        elif filtered_inventory_total > 0:
+            stock_balance_note = "No sales data available to assess stock levels."
+
+        for style_code, style_label in PRODUCT_STYLE_CHOICES:
+            inventory_qty = style_totals.get(style_code, 0)
+            sales_qty = sales_style_totals.get(style_code, 0)
+
+            if sales_qty > 0:
+                delta_percent = (inventory_qty - sales_qty) / sales_qty * 100
+                status = "overstocked" if delta_percent > 0 else "understocked"
+                stock_balance_categories.append(
+                    {
+                        "label": style_label,
+                        "percent": _format_percent(delta_percent),
+                        "message": f"{style_label} {status} by {abs(delta_percent):.1f}% versus last year's sales.",
+                    }
+                )
+            elif inventory_qty > 0:
+                stock_balance_categories.append(
+                    {
+                        "label": style_label,
+                        "percent": None,
+                        "message": f"{style_label} has stock on hand but no comparable sales data.",
+                    }
+                )
+            else:
+                stock_balance_categories.append(
+                    {
+                        "label": style_label,
+                        "percent": None,
+                        "message": f"{style_label} has no stock or sales recorded.",
+                    }
+                )
+    elif selected_style_for_breakdown:
+        style_label = style_label_map.get(selected_style_for_breakdown, "Selected category")
+        style_inventory_qty = style_totals.get(selected_style_for_breakdown, 0)
+        style_sales_qty = sales_style_totals.get(selected_style_for_breakdown, 0)
+
+        if style_sales_qty > 0:
+            style_delta = (
+                (style_inventory_qty - style_sales_qty) / style_sales_qty * 100
+            )
+            style_status = "overstocked" if style_delta > 0 else "understocked"
+            stock_balance_note = (
+                f"{style_label} inventory is {style_status} by "
+                f"{abs(style_delta):.1f}% relative to last year's sales."
+            )
+        elif style_inventory_qty > 0:
+            stock_balance_note = (
+                f"No sales data available to assess {style_label} stock levels."
+            )
+        else:
+            stock_balance_note = f"{style_label} has no stock or sales recorded."
+
+        type_label_map_for_style = dict(
+            get_type_choices_for_styles([selected_style_for_breakdown])
+        )
+        type_inventory_totals = type_totals_by_style.get(
+            selected_style_for_breakdown, {}
+        )
+        type_sales_totals = sales_type_totals_by_style.get(
+            selected_style_for_breakdown, {}
+        )
+
+        type_order = {code: idx for idx, (code, _) in enumerate(PRODUCT_TYPE_CHOICES)}
+        ordered_types = sorted(
+            set(type_inventory_totals.keys()) | set(type_sales_totals.keys()),
+            key=lambda code: type_order.get(code, len(type_order)),
+        )
+
+        for type_code in ordered_types:
+            type_label = type_label_map_for_style.get(
+                type_code, type_label_map.get(type_code, "Unspecified")
+            )
+            inventory_qty = type_inventory_totals.get(type_code, 0)
+            sales_qty = type_sales_totals.get(type_code, 0)
+
+            if sales_qty > 0:
+                delta_percent = (inventory_qty - sales_qty) / sales_qty * 100
+                status = "overstocked" if delta_percent > 0 else "understocked"
+                stock_balance_categories.append(
+                    {
+                        "label": type_label,
+                        "percent": _format_percent(delta_percent),
+                        "message": f"{type_label} {status} by {abs(delta_percent):.1f}% within {style_label} versus last year's sales.",
+                    }
+                )
+            elif inventory_qty > 0:
+                stock_balance_categories.append(
+                    {
+                        "label": type_label,
+                        "percent": None,
+                        "message": f"{type_label} has stock on hand but no comparable sales data in {style_label}.",
+                    }
+                )
+            else:
+                stock_balance_categories.append(
+                    {
+                        "label": type_label,
+                        "percent": None,
+                        "message": f"{type_label} has no stock or sales recorded in {style_label}.",
+                    }
+                )
+
     if selected_style_for_breakdown:
         sales_value_type_totals = sales_value_type_totals_by_style.get(
             selected_style_for_breakdown
@@ -1902,6 +2024,8 @@ def _render_filtered_products(
             "sales_value_category_codes": json.dumps(sales_value_category_codes),
             "sales_value_category_mode": sales_value_category_mode,
             "sales_value_category_style": sales_value_category_style,
+            "stock_balance_note": stock_balance_note,
+            "stock_balance_categories": stock_balance_categories,
             "has_quarterly_data": bool(variant_ids),
             "filter_controls": filter_controls,
             "showing_summary": " | ".join(selected_labels_flat)
