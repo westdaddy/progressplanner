@@ -318,7 +318,7 @@
         <div class="filter-divider"></div>
         {% if sales_category_values %}
           <canvas id="salesCategoryChart"></canvas>
-          <p class="grey-text text-darken-1" style="margin-bottom: 0;">Sales split by product category</p>
+          <p class="grey-text text-darken-1" style="margin-bottom: 0;">{{ sales_category_description|default:"Sales split by product category" }}</p>
         {% else %}
           <p class="grey-text text-darken-1" style="margin: 0;">No sales data available.</p>
         {% endif %}
@@ -369,7 +369,26 @@
 
     <div class="col s12 m4">
       <h4 class="center-align">Notes</h4>
-      <p class="grey-text center-align">Empty column for extra information</p>
+      <div class="card-panel">
+        <h6 class="grey-text text-darken-1" style="margin-top: 0;">By group</h6>
+        {% if group_balance_notes %}
+          <ul class="collection" style="margin-bottom: 0;">
+            {% for entry in group_balance_notes %}
+              <li class="collection-item" style="border-left: 3px solid #26a69a;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                  <strong>{{ entry.label }}</strong>
+                  {% if entry.balance_pct is not None %}
+                    <span class="teal-text text-darken-2">{{ entry.balance_pct|floatformat:0 }}%</span>
+                  {% endif %}
+                </div>
+                <p class="grey-text text-darken-1" style="margin: 6px 0 0;">{{ entry.message }}</p>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="grey-text text-darken-1" style="margin: 0;">No group data available.</p>
+        {% endif %}
+      </div>
     </div>
 
     <div class="col s12 m12">
@@ -1030,6 +1049,8 @@
           0
         );
 
+        const categoryDisplayLabels = categoryLabels;
+
         const backgroundColors = categoryCodes.map((code, index) => {
           if (categoryBreakdownMode === 'style') {
             const baseColor = STYLE_CATEGORY_COLORS[code] || '#26a69a';
@@ -1059,7 +1080,7 @@
         new Chart(categoryChartElement.getContext('2d'), {
           type: 'pie',
           data: {
-            labels: categoryLabels,
+            labels: categoryDisplayLabels,
             datasets: [
               {
                 data: categoryValues,
@@ -1177,8 +1198,15 @@
           (sum, value) => sum + value,
           0
         );
-        const salesMode = salesCategoryMode === 'type' ? 'type' : 'style';
+        const salesMode =
+          salesCategoryMode === 'type'
+            ? 'type'
+            : salesCategoryMode === 'group'
+              ? 'group'
+              : 'style';
         const hasSalesSelection = salesMode === 'style' && selectedStyleSet.size > 0;
+
+        const salesCategoryDisplayLabels = salesCategoryLabels;
 
         const salesBackgroundColors = (salesCategoryCodes || []).map((code, index) => {
           if (salesMode === 'style') {
@@ -1209,7 +1237,7 @@
         new Chart(salesCategoryChartElement.getContext('2d'), {
           type: 'pie',
           data: {
-            labels: salesCategoryLabels,
+            labels: salesCategoryDisplayLabels,
             datasets: [
               {
                 data: salesCategoryValues,
