@@ -1294,6 +1294,7 @@ def _render_filtered_products(
     preset_filters = preset_filters or {}
     context = _build_product_list_context(request, preset_filters=preset_filters)
     style_filters = context.get("style_filters", [])
+    type_filters = context.get("type_filters", [])
 
     filter_controls: list[dict[str, Any]] = []
 
