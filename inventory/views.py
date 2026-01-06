@@ -1667,7 +1667,7 @@ def _render_filtered_products(
     last_year_sales_total = 0
     sales_style_totals: dict[str, int] = {}
     sales_type_totals_by_style: dict[str, dict[str, int]] = {}
-    group_sales_totals: dict[str, int] = {}
+    sales_group_totals: dict[str, int] = {}
     sales_qs = []
     last_year_start = today - relativedelta(years=1)
 
@@ -1808,8 +1808,8 @@ def _render_filtered_products(
             )
 
             for group_name in variant_group_map.get(sale["variant_id"], []):
-                group_sales_totals[group_name] = (
-                    group_sales_totals.get(group_name, 0) + net_sold
+                sales_group_totals[group_name] = (
+                    sales_group_totals.get(group_name, 0) + net_sold
                 )
 
             if selected_style_for_breakdown and (
@@ -1890,15 +1890,15 @@ def _render_filtered_products(
                     f"Sales split by subcategory within {selected_style_label}"
                 )
 
-    if is_subcategory_view and group_sales_totals:
+    if is_subcategory_view and sales_group_totals:
         selected_type_code = type_filters[0]
         selected_type_label = type_label_map.get(
             selected_type_code, "Selected subcategory"
         )
-        ordered_group_sales = sorted(group_sales_totals.keys(), key=str.lower)
+        ordered_group_sales = sorted(sales_group_totals.keys(), key=str.lower)
         sales_category_labels = ordered_group_sales
         sales_category_values = [
-            group_sales_totals.get(name, 0) for name in ordered_group_sales
+            sales_group_totals.get(name, 0) for name in ordered_group_sales
         ]
         ordered_sales_styles = ordered_group_sales
         sales_category_mode = "group"
