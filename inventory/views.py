@@ -819,6 +819,15 @@ def _build_product_list_context(request, preset_filters=None):
                 return sorted(styles)[0]
         return None
 
+    def _is_one_and_done(product):
+        normalized_targets = {"oneanddone"}
+        for group in product.groups.all():
+            normalized = group.name.lower().replace("&", "and")
+            normalized = normalized.replace("-", "").replace(" ", "")
+            if normalized in normalized_targets:
+                return True
+        return False
+
     def _get_filter(name, default=None):
         request_values = request.GET.getlist(name)
         if request_values:
@@ -1114,7 +1123,8 @@ def _build_product_list_context(request, preset_filters=None):
             else None
         )
 
-        is_core = bool(product.restock_time and product.restock_time > 0)
+        is_one_and_done = _is_one_and_done(product)
+        is_core = bool(product.restock_time and product.restock_time > 0 and not is_one_and_done)
 
         confidence = compute_product_confidence(
             months_to_sell_out=months_to_sell_out,
@@ -1194,6 +1204,29 @@ def _build_product_list_context(request, preset_filters=None):
             advisories.append(
                 f"Sizes {size_list} are out of stock—restock ASAP."
             )
+
+        if is_one_and_done:
+            advisories = [
+                note
+                for note in advisories
+                if not any(term in note.lower() for term in ("restock", "replenish", "reorder"))
+            ]
+            sold_out_count = sum(
+                1
+                for v in getattr(product, "variants_with_inventory", [])
+                if (getattr(v, "latest_inventory", 0) or 0) <= 0
+            )
+            original_units = (product.total_inventory or 0) + (product.total_sales or 0)
+            low_stock_by_ratio = (
+                original_units > 0
+                and Decimal(product.total_inventory) / Decimal(original_units)
+                <= Decimal("0.4")
+            )
+            low_stock_triggered = low_stock_by_ratio or sold_out_count >= 3
+            if low_stock_triggered and not any(
+                "low stock" in note.lower() for note in advisories
+            ):
+                advisories.append("Low stock")
 
         product.confidence_level = confidence["level"]
         product.confidence_score = confidence["score"]
