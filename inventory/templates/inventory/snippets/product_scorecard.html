@@ -79,7 +79,7 @@
               </div>
             </div>
 
-            <div class="col s12 m6 l2">
+            <div class="col s12 m6 l3">
 
               <div class="card-panel scorecard-box">
                 <div class="discount-highlight">
@@ -114,41 +114,36 @@
                     </small>
                   </div>
                 </div>
-                <div class="metric">
-                  <small class="grey-text">Retail Price</small>
-                  <p class="metric-value">¥{{ product.retail_price|floatformat:2|default_if_none:"-" }}</p>
-                </div>
-                <div class="metric">
-                  <small class="grey-text">Avg Actual Sold Price</small>
-                  <p class="metric-value">¥{{ product.average_sale_price|floatformat:2|default_if_none:"-" }}</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="col s12 m6 l2">
-              <div class="card-panel scorecard-box">
-                <div class="profit-highlight">
-                  <span class="profit-icon red lighten-1">
+                <div class="discount-highlight">
+                  <span class="discount-icon red lighten-1">
                     <i class="material-icons white-text">priority_high</i>
                   </span>
                   <div>
-                    <small class="grey-text text-darken-1">Gross Margin</small>
-                    <p class="profit-value">
+                    <p class="discount-value">
                       {% if product.profit_percentage is not None %}
                         {{ product.profit_percentage|floatformat:1 }}%
                       {% else %}
                         -
                       {% endif %}
                     </p>
+                    <small class="grey-text text-darken-1">
+                      Gross Margin
+                    </small>
                   </div>
                 </div>
                 <div class="metric">
-                  <small class="grey-text">Avg Profit / Sale</small>
-                  <p class="metric-value">¥{{ product.profit_amount|floatformat:2|default_if_none:"-" }}</p>
+                  <small class="grey-text">Retail Price / Actual Average Sold Price</small>
+                  <p class="metric-value">
+                    ¥{{ product.retail_price|floatformat:0|default_if_none:"-" }} /
+                    ¥{{ product.average_sale_price|floatformat:0|default_if_none:"-" }}
+                  </p>
                 </div>
                 <div class="metric">
-                  <small class="grey-text">Avg Cost / Item</small>
-                  <p class="metric-value">¥{{ product.average_cost_price|floatformat:2|default_if_none:"-" }}</p>
+                  <small class="grey-text">Avg Cost Per Item / Profit Per Item</small>
+                  <p class="metric-value">
+                    ¥{{ product.average_cost_price|floatformat:0|default_if_none:"-" }} /
+                    ¥{{ product.profit_amount|floatformat:0|default_if_none:"-" }}
+                  </p>
                 </div>
               </div>
             </div>
