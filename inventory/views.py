@@ -3089,18 +3089,6 @@ def order_list(request):
         getattr(product, "total_inventory", 0) for product in filtered_products
     )
     if filtered_products:
-        variants_for_speed = ProductVariant.objects.filter(
-            product__in=filtered_products
-        ).prefetch_related("sales", "snapshots")
-        unified_speed = calculate_sales_speed_for_variants(
-            variants_for_speed, weeks=52, today=date.today(), weight="sales"
-        )
-        filtered_sell_through_rate = Decimal(str(unified_speed)).quantize(
-            Decimal("1"), rounding=ROUND_HALF_UP
-        )
-    else:
-        filtered_sell_through_rate = Decimal("0")
-    if filtered_products:
         filtered_on_order = (
             OrderItem.objects.filter(
                 product_variant__product__in=filtered_products,
@@ -3147,6 +3135,13 @@ def order_list(request):
         for product in filtered_products:
             for variant in getattr(product, "variants_with_inventory", []):
                 variant.size_sales_share = size_sales_share.get(variant.size, 0)
+
+    if filtered_sales_last_year:
+        filtered_sell_through_rate = (Decimal(filtered_sales_last_year) / Decimal("12")).quantize(
+            Decimal("1"), rounding=ROUND_HALF_UP
+        )
+    else:
+        filtered_sell_through_rate = Decimal("0")
 
     stock_delta = filtered_stock_current - filtered_sales_last_year
     if stock_delta > 0:
