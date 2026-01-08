@@ -29,6 +29,7 @@ import logging
 logger = logging.getLogger(__name__)
 from django.utils.safestring import mark_safe
 from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
+import re
 
 
 class AssignReferrerForm(forms.Form):
@@ -117,11 +118,26 @@ class ProductAdminForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if not self.instance.pk and not self.is_bound:
+            self.initial.setdefault("product_id", self._suggest_next_product_id())
         if self.instance.pk:
             existing = list(
                 self.instance.variants.values_list("size", flat=True)
             )
             self.fields["variant_sizes"].initial = existing
+
+    @staticmethod
+    def _suggest_next_product_id():
+        prefix = "PG"
+        pattern = re.compile(r"^PG(\d{3})$")
+        max_value = 0
+        for product_id in Product.objects.filter(
+            product_id__startswith=prefix
+        ).values_list("product_id", flat=True):
+            match = pattern.match(product_id)
+            if match:
+                max_value = max(max_value, int(match.group(1)))
+        return f"{prefix}{str(max_value + 1).zfill(3)}"
 
     def save(self, commit=True):
         product = super().save(commit=commit)
