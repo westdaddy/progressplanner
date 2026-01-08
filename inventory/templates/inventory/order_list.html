@@ -8,6 +8,117 @@
 <div class="section">
   <h3>Suggested Order Planner</h3>
 
+  <div id="controls" class="row grey lighten-3">
+    <form id="orderFilterForm" method="get">
+      {% if search_query %}
+        <input type="hidden" name="product_search" value="{{ search_query }}">
+      {% endif %}
+      {% if selected_product %}
+        <input type="hidden" name="product" value="{{ selected_product.id }}">
+      {% endif %}
+
+      <div class="col s2">
+        <div class="input-field">
+          <select name="type_filter" onchange="this.form.submit()">
+            <option value="" {% if not type_filter %}selected{% endif %}>All subcategories</option>
+            {% for value, label in type_choices %}
+              <option value="{{ value }}" {% if type_filter == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <label class="hide">Product Subcategory</label>
+        </div>
+
+        <div class="input-field">
+          <select name="style_filter" onchange="this.form.submit()">
+            <option value="" {% if not style_filter %}selected{% endif %}>All product categories</option>
+            {% for value, label in style_choices %}
+              <option value="{{ value }}" {% if style_filter == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <label class="hide">Product Category</label>
+        </div>
+
+        <div class="input-field">
+          <select name="age_filter" onchange="this.form.submit()">
+            <option value="" {% if not age_filter %}selected{% endif %}>All ages</option>
+            {% for value, label in age_choices %}
+              <option value="{{ value }}" {% if age_filter == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <label class="hide">Age</label>
+        </div>
+      </div>
+
+      <div class="col s9">
+        <div class="checkbox-set">
+          <span>Group:</span>
+          {% for group in group_choices %}
+            <label class="checkbox-field">
+              <input
+                type="checkbox"
+                name="group_filter"
+                value="{{ group.id }}"
+                class="filled-in"
+                {% if group.id|stringformat:'s' in group_filters %}checked{% endif %}
+                onchange="this.form.submit()"
+              />
+              <span>{{ group.name }}</span>
+            </label>
+          {% endfor %}
+        </div>
+
+        <div class="checkbox-set">
+          <span>Series:</span>
+          {% for ser in series_choices %}
+            <label class="checkbox-field">
+              <input
+                type="checkbox"
+                name="series_filter"
+                value="{{ ser.id }}"
+                class="filled-in"
+                {% if ser.id|stringformat:'s' in series_filters %}checked{% endif %}
+                onchange="this.form.submit()"
+              />
+              <span>{{ ser.name }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="row">
+    <div class="col s12 m4">
+      <div class="card-panel center-align">
+        <h6 class="grey-text text-darken-1">Last 12 months sold (matching filters)</h6>
+        <div class="flow-text">{{ filtered_sales_last_year }}</div>
+      </div>
+    </div>
+    <div class="col s12 m4">
+      <div class="card-panel center-align">
+        <h6 class="grey-text text-darken-1">Current stock (matching filters)</h6>
+        <div class="flow-text">{{ filtered_stock_current }}</div>
+      </div>
+    </div>
+    <div class="col s12 m4">
+      <div class="card-panel center-align">
+        <h6 class="grey-text text-darken-1">Stock position</h6>
+        <div class="flow-text">
+          {% if stock_status_label == "on target" %}
+            On target
+          {% else %}
+            {{ stock_status_label|capfirst }}
+            by
+            {% if stock_status_percent is not None %}{{ stock_status_percent }}%{% else %}—{% endif %}
+            /
+            {{ stock_status_items }}
+            items
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="row">
     <form class="col s12" method="get">
       <div class="input-field col s12 m8">
@@ -33,6 +144,23 @@
           <h5>Suggested Order Analysis</h5>
           <p class="grey-text">Suggested order sizes, confidence, and reorder timing will appear here.</p>
           <ul class="collection">
+            <li class="collection-item">
+              <strong>Total current stock:</strong> {{ total_current_stock }}
+            </li>
+            <li class="collection-item">
+              <details>
+                <summary><strong>Variant stock levels</strong></summary>
+                <ul class="collection">
+                  {% for variant in variant_stock_rows %}
+                    <li class="collection-item">
+                      {{ variant.variant_code }}{% if variant.variant_size %} ({{ variant.variant_size }}){% endif %}: {{ variant.stock }}
+                    </li>
+                  {% empty %}
+                    <li class="collection-item grey-text">No variants available.</li>
+                  {% endfor %}
+                </ul>
+              </details>
+            </li>
             <li class="collection-item">Recommended order quantity: —</li>
             <li class="collection-item">Confidence score: —</li>
             <li class="collection-item">Notes: —</li>
@@ -95,6 +223,11 @@
     const resultsList = document.getElementById("search-results");
     let debounceId = null;
 
+    document.addEventListener('DOMContentLoaded', function() {
+      const elems = document.querySelectorAll('select');
+      M.FormSelect.init(elems);
+    });
+
     const renderResults = (items, query) => {
       resultsList.innerHTML = "";
       if (!query) {
@@ -111,7 +244,10 @@
           const item = document.createElement("li");
           item.className = "collection-item";
           const link = document.createElement("a");
-          link.href = "{% url 'order_list' %}?product=" + product.id + "&product_search=" + encodeURIComponent(query);
+          const params = new URLSearchParams(window.location.search);
+          params.set("product", product.id);
+          params.set("product_search", query);
+          link.href = "{% url 'order_list' %}?" + params.toString();
           link.textContent = product.name + " (" + product.code + ")";
           item.appendChild(link);
           resultsList.appendChild(item);
