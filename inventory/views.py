@@ -3093,7 +3093,7 @@ def order_list(request):
             product__in=filtered_products
         ).prefetch_related("sales", "snapshots")
         unified_speed = calculate_sales_speed_for_variants(
-            variants_for_speed, weeks=26, today=date.today(), weight="sales"
+            variants_for_speed, weeks=52, today=date.today(), weight="sales"
         )
         filtered_sell_through_rate = Decimal(str(unified_speed)).quantize(
             Decimal("1"), rounding=ROUND_HALF_UP
