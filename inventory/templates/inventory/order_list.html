@@ -28,11 +28,43 @@
     {% include 'inventory/snippets/product_card.html' with product=selected_product %}
 
     <div class="row">
+      <div class="col s12 m6">
+        <div class="card-panel center-align">
+          <h6 class="grey-text text-darken-1">Last 12 months sold (matching categories)</h6>
+          <div class="flow-text">{{ category_sales_last_year }}</div>
+        </div>
+      </div>
+      <div class="col s12 m6">
+        <div class="card-panel center-align">
+          <h6 class="grey-text text-darken-1">Current stock (matching categories)</h6>
+          <div class="flow-text">{{ category_stock_current }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
       <div class="col s12">
         <div class="card-panel">
           <h5>Suggested Order Analysis</h5>
           <p class="grey-text">Suggested order sizes, confidence, and reorder timing will appear here.</p>
           <ul class="collection">
+            <li class="collection-item">
+              <strong>Total current stock:</strong> {{ total_current_stock }}
+            </li>
+            <li class="collection-item">
+              <details>
+                <summary><strong>Variant stock levels</strong></summary>
+                <ul class="collection">
+                  {% for variant in variant_stock_rows %}
+                    <li class="collection-item">
+                      {{ variant.variant_code }}{% if variant.variant_size %} ({{ variant.variant_size }}){% endif %}: {{ variant.stock }}
+                    </li>
+                  {% empty %}
+                    <li class="collection-item grey-text">No variants available.</li>
+                  {% endfor %}
+                </ul>
+              </details>
+            </li>
             <li class="collection-item">Recommended order quantity: —</li>
             <li class="collection-item">Confidence score: —</li>
             <li class="collection-item">Notes: —</li>
