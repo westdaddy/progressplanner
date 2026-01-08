@@ -469,7 +469,10 @@ def calculate_variant_sales_speed_details(
         for ws in week_starts:
             sold = sales_by_week.get(ws, 0)
             inv = inventory_by_week.get(ws)
-            had_stock = True if inv is None else inv > 0
+            if inv is None:
+                had_stock = sold > 0
+            else:
+                had_stock = inv > 0
 
             if sold or had_stock:
                 periods += 1
