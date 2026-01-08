@@ -8,8 +8,422 @@
 <div class="section">
   <h3>Suggested Order Planner</h3>
 
+  <style>
+    .filter-bar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .filter-card {
+      padding: 12px 16px 10px;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      box-shadow: none;
+      flex: 0 0 15%;
+      max-width: 20%;
+      min-width: 245px;
+    }
+
+    .filter-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0px;
+      margin: 0px;
+    }
+
+    .filter-title {
+      margin: 15px 0 6px;
+    }
+
+    .filter-showing {
+      margin: 0;
+      color: #546e7a;
+      font-weight: 600;
+    }
+
+    @media (max-width: 992px) {
+      .filter-card {
+        flex: 1 1 100%;
+        max-width: 100%;
+      }
+    }
+
+    .filter-card__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .chip-set {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0;
+      min-height: 32px;
+    }
+
+    .chip-set .chip__placeholder {
+      background: #eceff1;
+      color: #607d8b;
+      padding: 6px 10px;
+      border-radius: 5px;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .chip--selected {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #e0f2f1;
+      border: 1px solid #b2dfdb;
+      border-radius: 0;
+    }
+
+    .chip__remove {
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 0 4px;
+      color: #00695c;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .filter-card__toggle-symbol {
+      display: inline-block;
+      font-size: 22px;
+      line-height: 0;
+      width: 24px;
+      text-align: right;
+      position:relative;
+      top:-6px;
+      right:-16px;
+    }
+
+
+    .filter-card__options {
+      border-top: 1px solid #eceff1;
+      margin-top: 12px;
+      padding-top: 12px;
+    }
+
+    .option-list {
+      display: block;
+      margin: 0 0 12px;
+    }
+
+    .filter-option {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 6px 0;
+      border: none;
+      background: transparent;
+      color: #039be5;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: underline;
+      transition: color 0.2s ease;
+    }
+
+    .filter-option:hover {
+      color: #0277bd;
+    }
+
+    .filter-divider {
+      border-bottom: 1px solid #e0e0e0;
+      margin: 12px 0 20px;
+      padding-bottom: 8px;
+    }
+
+    .filter-apply-button {
+      background: #f5f5f5;
+      color: #455a64;
+      border: 1px solid #dcdcdc;
+      border-radius: 10px;
+      box-shadow: none;
+      font-size: 12px;
+      line-height: 18px;
+      text-transform: none;
+      padding: 8px 8px;
+      opacity: 0.5;
+      transition: opacity 0.2s ease, color 0.2s ease;
+      cursor: default;
+    }
+
+    .filter-apply-button.is-dirty {
+      opacity: 1;
+      cursor: pointer;
+    }
+
+    .filter-card--tiered .tiered-section {
+      margin-bottom: 12px;
+    }
+
+    .filter-card--tiered .tiered-section[hidden] {
+      display: none;
+    }
+
+    .filter-card--tiered .tiered-section__title {
+      margin: 0 0 6px;
+      font-weight: 600;
+      color: #455a64;
+    }
+
+    .filter-card--tiered .filter-option {
+      display: inline-flex;
+      width: auto;
+      margin-right: 10px;
+    }
+
+    .product-order-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+    }
+
+    .product-order-modal.is-open {
+      display: block;
+    }
+
+    .product-order-modal__backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    .product-order-modal__content {
+      position: relative;
+      background: #fff;
+      width: min(900px, 90%);
+      margin: 5vh auto;
+      border-radius: 12px;
+      padding: 20px;
+      z-index: 1;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .product-order-modal__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .product-order-modal__body {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .product-order-modal__media img {
+      width: 180px;
+      height: 180px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+
+    .product-order-modal__table {
+      flex: 1;
+      min-width: 240px;
+    }
+  </style>
+  {% if filter_controls %}
+
+  <h3 class="filter-title">Products</h3>
+
+  <div class="filter-divider"></div>
+
+    <form method="get" class="filter-bar__form">
+      {% if search_query %}
+        <input type="hidden" name="product_search" value="{{ search_query }}">
+      {% endif %}
+      {% if selected_product %}
+        <input type="hidden" name="product" value="{{ selected_product.id }}">
+      {% endif %}
+      <div class="filter-section-header">
+        <div>
+          <p class="filter-showing">Showing: {{ showing_summary }}</p>
+        </div>
+        <button type="submit" class="btn filter-apply-button" disabled>
+          Apply
+        </button>
+      </div>
+
+      <div class="filter-bar">
+        {% if category_filter %}
+          <div
+            class="card-panel filter-card filter-card--tiered"
+            data-category-filter-card
+            data-style-field="style_filter"
+            data-type-field="type_filter"
+            data-subtype-field="subtype_filter"
+          >
+            <div class="filter-card__header">
+              <div style="flex: 1; min-width: 0;">
+                <p class="grey-text text-darken-1" style="margin: 0 0 6px;">Product Category</p>
+                <div class="chip-set" data-selected-chips>
+                  <span class="chip__placeholder" data-placeholder>None selected</span>
+                </div>
+              </div>
+              <button type="button" class="btn-flat filter-card__toggle" aria-expanded="false">
+                <span class="filter-card__toggle-symbol blue">+</span>
+              </button>
+            </div>
+
+            <div class="filter-card__options" hidden data-tiered-options>
+              <div class="tiered-section" data-style-section>
+                <p class="tiered-section__title">Product Category</p>
+                <div class="option-list" data-style-options></div>
+              </div>
+
+              <div class="tiered-section" data-type-section hidden>
+                <p class="tiered-section__title">Product Subcategory</p>
+                <div class="option-list" data-type-options></div>
+              </div>
+
+              <div class="tiered-section" data-subtype-section hidden>
+                <p class="tiered-section__title">Product Subtype</p>
+                <div class="option-list" data-subtype-options></div>
+              </div>
+            </div>
+
+            <div data-hidden-inputs></div>
+          </div>
+        {% endif %}
+
+        {% for control in filter_controls %}
+          {% with option_id="filter-options-"|add:forloop.counter %}
+            <div
+              class="card-panel filter-card"
+              data-field-name="{{ control.field_name }}"
+              data-category-label="{{ control.category_title }}"
+            >
+              <div class="filter-card__header">
+                <div style="flex: 1; min-width: 0;">
+                  <p class="grey-text text-darken-1" style="margin: 0 0 6px;" data-filter-heading>
+                    {{ control.header_text }}
+                  </p>
+                  <div class="chip-set" data-selected-chips>
+                    {% if control.selected_labels %}
+                      {% for option in control.options %}
+                        {% if option.checked %}
+                          <span class="chip chip--selected" data-selected-value="{{ option.value }}">
+                            <span class="chip__label">{{ option.label }}</span>
+                            <button type="button" class="chip__remove" aria-label="Remove {{ option.label }}">&times;</button>
+                          </span>
+                        {% endif %}
+                      {% endfor %}
+                    {% else %}
+                      <span class="chip__placeholder" data-placeholder>None selected</span>
+                    {% endif %}
+                  </div>
+                </div>
+                <button type="button" class="btn-flat filter-card__toggle" aria-expanded="false" aria-controls="{{ option_id }}">
+                  <span class="filter-card__toggle-symbol blue">+</span>
+                </button>
+              </div>
+
+              <div id="{{ option_id }}" class="filter-card__options" hidden>
+                <p class="grey-text text-darken-1" style="margin: 0 0 8px;">Add or remove {{ control.category_title }} options</p>
+                <div class="option-list" data-available-options>
+                  {% for option in control.options %}
+                    {% if not option.checked %}
+                      <button
+                        type="button"
+                        class="filter-option"
+                        data-option-value="{{ option.value }}"
+                        data-option-label="{{ option.label }}"
+                      >
+                        {{ option.label }}
+                      </button>
+                    {% endif %}
+                  {% empty %}
+                    <p class="grey-text text-darken-1" style="margin: 0;">No options available.</p>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <div data-hidden-inputs></div>
+            </div>
+          {% endwith %}
+        {% endfor %}
+      </div>
+      <div class="filter-divider"></div>
+    </form>
+  {% endif %}
+
+  {% if category_filter %}
+    {{ category_filter.styles|json_script:"category-style-options" }}
+    {{ category_filter.types|json_script:"category-type-options" }}
+    {{ category_filter.subtypes|json_script:"category-subtype-options" }}
+    {{ category_filter.type_map|json_script:"category-type-map" }}
+    {{ category_filter.subtype_map|json_script:"category-subtype-map" }}
+  {% endif %}
+
+  <div class="row">
+    <div class="col s12 m4">
+      <div class="card-panel center-align">
+        <h6 class="grey-text text-darken-1">Last 12 months sold (matching filters)</h6>
+        <div class="flow-text">{{ filtered_sales_last_year }}</div>
+      </div>
+    </div>
+    <div class="col s12 m4">
+      <div class="card-panel center-align">
+        <h6 class="grey-text text-darken-1">Current stock (matching filters)</h6>
+        <div class="flow-text">{{ filtered_stock_current }}</div>
+        <p class="grey-text text-darken-1" style="margin: 6px 0 0;">
+          On order: {{ filtered_on_order }}
+        </p>
+      </div>
+    </div>
+    <div class="col s12 m4">
+      <div class="card-panel center-align">
+        <h6 class="grey-text text-darken-1">Stock position</h6>
+        <div class="flow-text">
+          {% if stock_status_label == "on target" %}
+            On target
+          {% else %}
+            {{ stock_status_label|capfirst }}
+            by
+            {% if stock_status_percent is not None %}{{ stock_status_percent }}%{% else %}—{% endif %}
+            /
+            {{ stock_status_items }}
+            items
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="row">
     <form class="col s12" method="get">
+      {% for value in style_filters %}
+        <input type="hidden" name="style_filter" value="{{ value }}">
+      {% endfor %}
+      {% for value in type_filters %}
+        <input type="hidden" name="type_filter" value="{{ value }}">
+      {% endfor %}
+      {% for value in subtype_filters %}
+        <input type="hidden" name="subtype_filter" value="{{ value }}">
+      {% endfor %}
+      {% for value in age_filters %}
+        <input type="hidden" name="age_filter" value="{{ value }}">
+      {% endfor %}
+      {% for value in group_filters %}
+        <input type="hidden" name="group_filter" value="{{ value }}">
+      {% endfor %}
+      {% for value in series_filters %}
+        <input type="hidden" name="series_filter" value="{{ value }}">
+      {% endfor %}
       <div class="input-field col s12 m8">
         <input id="product-search" name="product_search" type="text" value="{{ search_query }}">
         <label for="product-search">Search by product code or name</label>
@@ -23,6 +437,18 @@
     </div>
   </div>
 
+  <div class="row">
+    <div class="col s12">
+      {% if products %}
+        {% for product in products %}
+          {% include 'inventory/snippets/product_card.html' with product=product %}
+        {% endfor %}
+      {% else %}
+        <p class="grey-text">No products match the current filters.</p>
+      {% endif %}
+    </div>
+  </div>
+
   {% if selected_product %}
   
     {% include 'inventory/snippets/product_card.html' with product=selected_product %}
@@ -33,6 +459,23 @@
           <h5>Suggested Order Analysis</h5>
           <p class="grey-text">Suggested order sizes, confidence, and reorder timing will appear here.</p>
           <ul class="collection">
+            <li class="collection-item">
+              <strong>Total current stock:</strong> {{ total_current_stock }}
+            </li>
+            <li class="collection-item">
+              <details>
+                <summary><strong>Variant stock levels</strong></summary>
+                <ul class="collection">
+                  {% for variant in variant_stock_rows %}
+                    <li class="collection-item">
+                      {{ variant.variant_code }}{% if variant.variant_size %} ({{ variant.variant_size }}){% endif %}: {{ variant.stock }}
+                    </li>
+                  {% empty %}
+                    <li class="collection-item grey-text">No variants available.</li>
+                  {% endfor %}
+                </ul>
+              </details>
+            </li>
             <li class="collection-item">Recommended order quantity: —</li>
             <li class="collection-item">Confidence score: —</li>
             <li class="collection-item">Notes: —</li>
@@ -90,6 +533,566 @@
 
 <script>
   (function() {
+    const filterControllers = [];
+    const applyButton = document.querySelector('.filter-apply-button');
+
+    const selectionsDiffer = (a, b) => {
+      if (a.length !== b.length) return true;
+      return a.some((value, index) => value !== b[index]);
+    };
+
+    const rebuildApplyState = () => {
+      if (!applyButton) return;
+
+      const isDirty = filterControllers.some((controller) => {
+        const current = controller.getSelection();
+        const initial = controller.initialSelection || [];
+        return selectionsDiffer(current, initial);
+      });
+
+      applyButton.disabled = !isDirty;
+      applyButton.classList.toggle('is-dirty', isDirty);
+    };
+
+    const parseJsonScript = (id, fallback = []) => {
+      const el = document.getElementById(id);
+      if (!el) return fallback;
+      try {
+        return JSON.parse(el.textContent);
+      } catch (e) {
+        return fallback;
+      }
+    };
+
+    const initCategoryFilterCard = (card) => {
+      if (!card) return null;
+
+      const selectedChips = card.querySelector('[data-selected-chips]');
+      const optionsPanel = card.querySelector('[data-tiered-options]');
+      const toggleButtons = card.querySelectorAll('.filter-card__toggle');
+      const symbol = card.querySelector('.filter-card__toggle-symbol');
+      const hiddenInputs = card.querySelector('[data-hidden-inputs]');
+      const styleOptionsContainer = card.querySelector('[data-style-options]');
+      const typeOptionsContainer = card.querySelector('[data-type-options]');
+      const subtypeOptionsContainer = card.querySelector('[data-subtype-options]');
+      const typeSection = card.querySelector('[data-type-section]');
+      const subtypeSection = card.querySelector('[data-subtype-section]');
+
+      const styleFieldName = card.dataset.styleField;
+      const typeFieldName = card.dataset.typeField;
+      const subtypeFieldName = card.dataset.subtypeField;
+
+      const styleOptions = parseJsonScript('category-style-options', []);
+      const typeOptions = parseJsonScript('category-type-options', []);
+      const subtypeOptions = parseJsonScript('category-subtype-options', []);
+      const typeMap = parseJsonScript('category-type-map', {});
+      const subtypeMap = parseJsonScript('category-subtype-map', {});
+
+      const styleLabelMap = Object.fromEntries(
+        (styleOptions || []).map((opt) => [opt.value, opt.label])
+      );
+      const typeLabelMap = Object.fromEntries(
+        (typeOptions || []).map((opt) => [opt.value, opt.label])
+      );
+      const subtypeLabelMap = Object.fromEntries(
+        (subtypeOptions || []).map((opt) => [opt.value, opt.label])
+      );
+
+      const notifyChange = () => {
+        rebuildApplyState();
+      };
+
+      let selectedStyles = new Set(
+        (styleOptions || [])
+          .filter((opt) => opt.checked)
+          .map((opt) => String(opt.value))
+      );
+      let selectedTypes = new Set(
+        (typeOptions || [])
+          .filter((opt) => opt.checked)
+          .map((opt) => String(opt.value))
+      );
+      let selectedSubtypes = new Set(
+        (subtypeOptions || [])
+          .filter((opt) => opt.checked)
+          .map((opt) => String(opt.value))
+      );
+
+      const allowedTypes = () => {
+        if (!selectedStyles.size) return new Set();
+        const allowed = new Set();
+        selectedStyles.forEach((style) => {
+          (typeMap[style] || []).forEach(([code]) => allowed.add(String(code)));
+        });
+        return allowed;
+      };
+
+      const allowedSubtypes = () => {
+        if (!selectedTypes.size) return new Set();
+        const allowed = new Set();
+        selectedTypes.forEach((type) => {
+          (subtypeMap[type] || []).forEach(([code]) => allowed.add(String(code)));
+        });
+        return allowed;
+      };
+
+      const ensureHierarchyIntegrity = () => {
+        const allowedTypeCodes = allowedTypes();
+        selectedTypes = new Set(
+          Array.from(selectedTypes).filter((code) => allowedTypeCodes.has(code))
+        );
+
+        const allowedSubtypeCodes = allowedSubtypes();
+        selectedSubtypes = new Set(
+          Array.from(selectedSubtypes).filter((code) => allowedSubtypeCodes.has(code))
+        );
+      };
+
+      const syncHiddenInputs = () => {
+        if (!hiddenInputs) return;
+        hiddenInputs.innerHTML = '';
+
+        const createInputs = (fieldName, values) => {
+          values.forEach((val) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = fieldName;
+            input.value = val;
+            hiddenInputs.appendChild(input);
+          });
+        };
+
+        createInputs(styleFieldName, Array.from(selectedStyles));
+        createInputs(typeFieldName, Array.from(selectedTypes));
+        createInputs(subtypeFieldName, Array.from(selectedSubtypes));
+      };
+
+      const renderChips = () => {
+        if (!selectedChips) return;
+        selectedChips.innerHTML = '';
+
+        const addChip = (value, label, onRemove) => {
+          const chip = document.createElement('span');
+          chip.className = 'chip chip--selected';
+          chip.dataset.selectedValue = value;
+
+          const labelSpan = document.createElement('span');
+          labelSpan.className = 'chip__label';
+          labelSpan.textContent = label;
+
+          const removeBtn = document.createElement('button');
+          removeBtn.type = 'button';
+          removeBtn.className = 'chip__remove';
+          removeBtn.setAttribute('aria-label', `Remove ${label}`);
+          removeBtn.textContent = '×';
+          removeBtn.addEventListener('click', onRemove);
+
+          chip.appendChild(labelSpan);
+          chip.appendChild(removeBtn);
+          selectedChips.appendChild(chip);
+        };
+
+        selectedStyles.forEach((code) => {
+          const label = styleLabelMap[code] || code;
+          addChip(code, label, () => {
+            selectedStyles.delete(code);
+            ensureHierarchyIntegrity();
+            renderAll();
+          });
+        });
+
+        selectedTypes.forEach((code) => {
+          const label = typeLabelMap[code] || code;
+          addChip(code, label, () => {
+            selectedTypes.delete(code);
+            ensureHierarchyIntegrity();
+            renderAll();
+          });
+        });
+
+        selectedSubtypes.forEach((code) => {
+          const label = subtypeLabelMap[code] || code;
+          addChip(code, label, () => {
+            selectedSubtypes.delete(code);
+            ensureHierarchyIntegrity();
+            renderAll();
+          });
+        });
+
+        if (
+          !selectedStyles.size &&
+          !selectedTypes.size &&
+          !selectedSubtypes.size
+        ) {
+          const placeholder = document.createElement('span');
+          placeholder.className = 'chip__placeholder';
+          placeholder.setAttribute('data-placeholder', '');
+          placeholder.textContent = 'None selected';
+          selectedChips.appendChild(placeholder);
+        }
+      };
+
+      const renderButtons = (container, options, selectedSet, allowedSet, onSelect) => {
+        if (!container) return;
+        container.innerHTML = '';
+        options
+          .filter((opt) => !selectedSet.has(String(opt.value)))
+          .filter((opt) => !allowedSet || allowedSet.has(String(opt.value)))
+          .forEach((opt) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'filter-option';
+            btn.dataset.optionValue = opt.value;
+            btn.textContent = opt.label;
+            btn.addEventListener('click', () => onSelect(String(opt.value)));
+            container.appendChild(btn);
+          });
+      };
+
+      const renderStyleOptions = () => {
+        renderButtons(
+          styleOptionsContainer,
+          styleOptions || [],
+          selectedStyles,
+          null,
+          (value) => {
+            selectedStyles.add(value);
+            renderAll();
+          }
+        );
+      };
+
+      const renderTypeOptions = () => {
+        const allowedTypeCodes = allowedTypes();
+        if (typeSection) {
+          typeSection.hidden = !allowedTypeCodes.size;
+        }
+        renderButtons(
+          typeOptionsContainer,
+          typeOptions || [],
+          selectedTypes,
+          allowedTypeCodes,
+          (value) => {
+            selectedTypes.add(value);
+            renderAll();
+          }
+        );
+      };
+
+      const renderSubtypeOptions = () => {
+        const allowedSubtypeCodes = allowedSubtypes();
+        if (subtypeSection) {
+          subtypeSection.hidden = !allowedSubtypeCodes.size;
+        }
+        renderButtons(
+          subtypeOptionsContainer,
+          subtypeOptions || [],
+          selectedSubtypes,
+          allowedSubtypeCodes,
+          (value) => {
+            selectedSubtypes.add(value);
+            renderAll();
+          }
+        );
+      };
+
+      const getSelection = () => {
+        return [
+          ...Array.from(selectedStyles).sort().map((value) => `style:${value}`),
+          ...Array.from(selectedTypes).sort().map((value) => `type:${value}`),
+          ...Array.from(selectedSubtypes)
+            .sort()
+            .map((value) => `subtype:${value}`),
+        ];
+      };
+
+      const renderAll = () => {
+        ensureHierarchyIntegrity();
+        renderChips();
+        renderStyleOptions();
+        renderTypeOptions();
+        renderSubtypeOptions();
+        syncHiddenInputs();
+        notifyChange();
+      };
+
+      const setExpanded = (expanded) => {
+        if (!optionsPanel) return;
+        optionsPanel.hidden = !expanded;
+        card.classList.toggle('filter-card--expanded', expanded);
+        toggleButtons.forEach((btn) => btn.setAttribute('aria-expanded', expanded));
+        if (symbol) {
+          symbol.textContent = expanded ? '−' : '+';
+        }
+      };
+
+      ensureHierarchyIntegrity();
+      const initialSelection = getSelection();
+      renderAll();
+      setExpanded(false);
+
+      return {
+        setExpanded,
+        isExpanded: () => optionsPanel && !optionsPanel.hidden,
+        toggleButtons,
+        getSelection,
+        initialSelection,
+      };
+    };
+
+    const initFilterCard = (filterCard) => {
+      const optionPanel = filterCard.querySelector('.filter-card__options');
+      const toggleButtons = filterCard.querySelectorAll('.filter-card__toggle');
+      const symbol = filterCard.querySelector('.filter-card__toggle-symbol');
+      const selectedChips = filterCard.querySelector('[data-selected-chips]');
+      const availableOptions = filterCard.querySelector('[data-available-options]');
+      const hiddenInputs = filterCard.querySelector('[data-hidden-inputs]');
+      const heading = filterCard.querySelector('[data-filter-heading]');
+      const fieldName = filterCard.dataset.fieldName;
+      const categoryLabel = filterCard.dataset.categoryLabel || '';
+
+      const updateHeading = () => {
+        if (!heading) return;
+        heading.textContent = categoryLabel;
+      };
+
+      const syncHiddenInputs = () => {
+        if (!hiddenInputs || !selectedChips) return;
+        hiddenInputs.innerHTML = '';
+
+        selectedChips.querySelectorAll('[data-selected-value]').forEach((chip) => {
+          const value = chip.getAttribute('data-selected-value');
+          if (!value) return;
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = fieldName;
+          input.value = value;
+          hiddenInputs.appendChild(input);
+        });
+      };
+
+      const ensurePlaceholder = () => {
+        if (!selectedChips) return;
+
+        const hasSelection = !!selectedChips.querySelector('[data-selected-value]');
+        const placeholder = selectedChips.querySelector('[data-placeholder]');
+        if (!hasSelection && !placeholder) {
+          const span = document.createElement('span');
+          span.className = 'chip__placeholder';
+          span.setAttribute('data-placeholder', '');
+          span.textContent = 'None selected';
+          selectedChips.appendChild(span);
+        } else if (hasSelection && placeholder) {
+          placeholder.remove();
+        }
+      };
+
+      const notifyChange = () => {
+        rebuildApplyState();
+      };
+
+      const getSelection = () => {
+        const values = [];
+        if (selectedChips) {
+          selectedChips.querySelectorAll('[data-selected-value]').forEach((chip) => {
+            const value = chip.getAttribute('data-selected-value');
+            if (value) values.push(value);
+          });
+        }
+        return values.sort();
+      };
+
+      const removeOption = (chip) => {
+        const value = chip.getAttribute('data-selected-value');
+        const labelNode = chip.querySelector('.chip__label');
+        const label = labelNode ? labelNode.textContent.trim() : value;
+
+        if (availableOptions) {
+          const optionBtn = document.createElement('button');
+          optionBtn.type = 'button';
+          optionBtn.className = 'filter-option';
+          optionBtn.dataset.optionValue = value;
+          optionBtn.dataset.optionLabel = label;
+          optionBtn.textContent = label;
+          optionBtn.addEventListener('click', () => addOption(value, label, optionBtn));
+          availableOptions.appendChild(optionBtn);
+        }
+
+        chip.remove();
+        ensurePlaceholder();
+        syncHiddenInputs();
+        updateHeading();
+        notifyChange();
+      };
+
+      const addOption = (value, label, optionBtn) => {
+        const chip = document.createElement('span');
+        chip.className = 'chip chip--selected';
+        chip.setAttribute('data-selected-value', value);
+
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'chip__label';
+        labelSpan.textContent = label;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'chip__remove';
+        removeBtn.setAttribute('aria-label', `Remove ${label}`);
+        removeBtn.textContent = '×';
+        removeBtn.addEventListener('click', () => removeOption(chip));
+
+        chip.appendChild(labelSpan);
+        chip.appendChild(removeBtn);
+        selectedChips.appendChild(chip);
+
+        if (optionBtn) {
+          optionBtn.remove();
+        }
+
+        ensurePlaceholder();
+        syncHiddenInputs();
+        updateHeading();
+        notifyChange();
+      };
+
+      if (availableOptions) {
+        availableOptions.querySelectorAll('.filter-option').forEach((btn) => {
+          btn.addEventListener('click', () =>
+            addOption(btn.dataset.optionValue, btn.dataset.optionLabel, btn)
+          );
+        });
+      }
+
+      if (selectedChips) {
+        selectedChips.querySelectorAll('.chip__remove').forEach((btn) => {
+          btn.addEventListener('click', (event) => {
+            event.preventDefault();
+            const chip = btn.closest('[data-selected-value]');
+            if (chip) {
+              removeOption(chip);
+            }
+          });
+        });
+      }
+
+      ensurePlaceholder();
+      syncHiddenInputs();
+      updateHeading();
+
+      const initialSelection = getSelection();
+
+      const setExpanded = (expanded) => {
+        if (!optionPanel) return;
+        optionPanel.hidden = !expanded;
+        filterCard.classList.toggle('filter-card--expanded', expanded);
+        toggleButtons.forEach((btn) => btn.setAttribute('aria-expanded', expanded));
+        if (symbol) {
+          symbol.textContent = expanded ? '−' : '+';
+        }
+      };
+
+      setExpanded(false);
+
+      return {
+        setExpanded,
+        isExpanded: () => optionPanel && !optionPanel.hidden,
+        toggleButtons,
+        getSelection,
+        initialSelection,
+      };
+    };
+
+    const categoryCard = document.querySelector('[data-category-filter-card]');
+    if (categoryCard) {
+      const categoryController = initCategoryFilterCard(categoryCard);
+      if (categoryController) {
+        filterControllers.push(categoryController);
+      }
+    }
+
+    document.querySelectorAll('.filter-card').forEach((card) => {
+      if (card.hasAttribute('data-category-filter-card')) return;
+      const controller = initFilterCard(card);
+      filterControllers.push(controller);
+    });
+
+    rebuildApplyState();
+
+    const setAllExpanded = (expanded) => {
+      filterControllers.forEach((controller) => controller.setExpanded(expanded));
+    };
+
+    filterControllers.forEach((controller) => {
+      controller.toggleButtons.forEach((btn) => {
+        btn.addEventListener('click', (event) => {
+          event.preventDefault();
+          const allExpanded = filterControllers.every((c) => c.isExpanded());
+          const newState = !allExpanded;
+          setAllExpanded(newState);
+        });
+      });
+    });
+
+    const toggleModal = (modalId, open) => {
+      const modal = document.getElementById(modalId);
+      if (!modal) return;
+      modal.classList.toggle('is-open', open);
+      modal.setAttribute('aria-hidden', open ? 'false' : 'true');
+    };
+
+    document.querySelectorAll('[data-open-order-modal]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const modalId = btn.getAttribute('data-open-order-modal');
+        toggleModal(modalId, true);
+      });
+    });
+
+    document.querySelectorAll('[data-close-order-modal]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const modal = btn.closest('.product-order-modal');
+        if (!modal) return;
+        toggleModal(modal.id, false);
+      });
+    });
+
+    const updateOrderSplit = (modal) => {
+      const totalInput = modal.querySelector('[data-total-order-input]');
+      if (!totalInput) return;
+      const total = Math.max(parseInt(totalInput.value, 10) || 0, 0);
+      const rows = Array.from(modal.querySelectorAll('[data-order-qty-input]'));
+      if (!rows.length) return;
+
+      const rawSplits = rows.map((input) => {
+        const share = parseFloat(input.dataset.sizeShare || '0');
+        const rawValue = total * share;
+        const floorValue = Math.floor(rawValue);
+        return {
+          input,
+          rawValue,
+          floorValue,
+          fraction: rawValue - floorValue,
+        };
+      });
+
+      const baseTotal = rawSplits.reduce((sum, row) => sum + row.floorValue, 0);
+      let remainder = total - baseTotal;
+
+      rawSplits
+        .sort((a, b) => b.fraction - a.fraction)
+        .forEach((row) => {
+          const add = remainder > 0 ? 1 : 0;
+          const value = row.floorValue + add;
+          row.input.value = value > 0 ? value : '';
+          remainder = Math.max(remainder - add, 0);
+        });
+    };
+
+    document.querySelectorAll('.product-order-modal').forEach((modal) => {
+      const totalInput = modal.querySelector('[data-total-order-input]');
+      if (!totalInput) return;
+      totalInput.addEventListener('input', () => updateOrderSplit(modal));
+    });
+
     const input = document.getElementById("product-search");
     const resultsRow = document.getElementById("search-results-row");
     const resultsList = document.getElementById("search-results");
@@ -111,7 +1114,10 @@
           const item = document.createElement("li");
           item.className = "collection-item";
           const link = document.createElement("a");
-          link.href = "{% url 'order_list' %}?product=" + product.id + "&product_search=" + encodeURIComponent(query);
+          const params = new URLSearchParams(window.location.search);
+          params.set("product", product.id);
+          params.set("product_search", query);
+          link.href = "{% url 'order_list' %}?" + params.toString();
           link.textContent = product.name + " (" + product.code + ")";
           item.appendChild(link);
           resultsList.appendChild(item);
