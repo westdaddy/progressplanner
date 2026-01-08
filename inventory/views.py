@@ -988,6 +988,8 @@ def _build_product_list_context(request, preset_filters=None):
     SIZE_ORDER = {
         code: idx for idx, (code, _) in enumerate(ProductVariant.SIZE_CHOICES)
     }
+    CHILD_GI_SIZE_ORDER = ["M000", "M00", "M0", "M1", "M2", "M3", "M4"]
+    child_gi_rank = {code: idx for idx, code in enumerate(CHILD_GI_SIZE_ORDER)}
 
     sitewide_retail_total = Decimal("0.00")
     sitewide_actual_total = Decimal("0.00")
@@ -1061,6 +1063,13 @@ def _build_product_list_context(request, preset_filters=None):
             if product.total_sales
             else None
         )
+        if getattr(product, "variants_with_inventory", None):
+            product.variants_with_inventory.sort(
+                key=lambda variant: (
+                    child_gi_rank.get(variant.size, len(child_gi_rank)),
+                    SIZE_ORDER.get(variant.size, 9999),
+                )
+            )
         product.low_stock_sku_count = sum(
             1
             for variant in product.variants_with_inventory
