@@ -224,6 +224,13 @@
       flex-wrap: wrap;
     }
 
+    .product-order-form {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      width: 100%;
+    }
+
     .product-order-modal__media img {
       width: 180px;
       height: 180px;
@@ -1093,9 +1100,72 @@
       modal.setAttribute('aria-hidden', open ? 'false' : 'true');
     };
 
+    const hydrateOrderModal = (modal, mode) => {
+      if (!modal) return;
+      const form = modal.querySelector('[data-order-form]');
+      if (!form) return;
+      const pendingOrderIdInput = modal.querySelector('[data-pending-order-id]');
+      const pendingUnassignedInput = modal.querySelector('[data-pending-unassigned]');
+      const expectedInput = modal.querySelector('[data-expected-date-input]');
+      const costInput = modal.querySelector('[data-item-cost-input]');
+      const totalInput = modal.querySelector('[data-total-order-input]');
+      const qtyInputs = modal.querySelectorAll('[data-order-qty-input]');
+
+      if (mode === 'pending') {
+        form.action = form.dataset.updateAction;
+        if (pendingOrderIdInput) {
+          pendingOrderIdInput.value = modal.dataset.pendingOrderId || '';
+        }
+        if (pendingUnassignedInput) {
+          pendingUnassignedInput.value =
+            modal.dataset.pendingOrderUnassigned === 'true' ? '1' : '';
+        }
+        if (expectedInput) {
+          expectedInput.value = modal.dataset.pendingOrderExpected || '';
+        }
+        if (costInput) {
+          costInput.value = modal.dataset.pendingOrderCost || '';
+        }
+        if (totalInput) {
+          totalInput.value = modal.dataset.pendingOrderTotal || '';
+        }
+        qtyInputs.forEach((input) => {
+          const qty = parseInt(input.dataset.pendingQty || '0', 10);
+          input.value = qty > 0 ? qty : '';
+        });
+      } else {
+        form.action = form.dataset.createAction;
+        if (pendingOrderIdInput) {
+          pendingOrderIdInput.value = '';
+        }
+        if (pendingUnassignedInput) {
+          pendingUnassignedInput.value = '';
+        }
+        if (expectedInput) {
+          expectedInput.value = '';
+        }
+        if (costInput) {
+          costInput.value = '';
+        }
+        if (totalInput) {
+          totalInput.value = '';
+        }
+        qtyInputs.forEach((input) => {
+          input.value = '';
+        });
+      }
+
+      if (window.M && typeof M.updateTextFields === 'function') {
+        M.updateTextFields();
+      }
+    };
+
     document.querySelectorAll('[data-open-order-modal]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const modalId = btn.getAttribute('data-open-order-modal');
+        const mode = btn.dataset.orderMode || 'create';
+        const modal = document.getElementById(modalId);
+        hydrateOrderModal(modal, mode);
         toggleModal(modalId, true);
       });
     });

@@ -33,13 +33,26 @@
               {% if product.total_inventory|default:0 == 0 and product.last_order_qty|default:0 == 0 %}
                 <span><strong>New product</strong></span><br/>
                 <span class="grey-text">No stock or order history yet.</span><br/>
-                <button
-                  type="button"
-                  class="btn teal lighten-1"
-                  data-open-order-modal="order-modal-{{ product.id }}"
-                >
-                  Create order
-                </button>
+                <div style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px;">
+                  <button
+                    type="button"
+                    class="btn teal lighten-1"
+                    data-open-order-modal="order-modal-{{ product.id }}"
+                    data-order-mode="create"
+                  >
+                    Create order
+                  </button>
+                  {% if product.pending_order %}
+                    <button
+                      type="button"
+                      class="btn blue-grey lighten-1"
+                      data-open-order-modal="order-modal-{{ product.id }}"
+                      data-order-mode="pending"
+                    >
+                      View pending order
+                    </button>
+                  {% endif %}
+                </div>
               {% else %}
                 <span>
                   Current stock:
@@ -61,6 +74,18 @@
                   Out of stock SKUs:
                   <strong>{{ product.out_of_stock_sku_count|default:0 }}</strong>
                 </span>
+                {% if product.pending_order %}
+                  <div style="margin-top: 12px;">
+                    <button
+                      type="button"
+                      class="btn blue-grey lighten-1"
+                      data-open-order-modal="order-modal-{{ product.id }}"
+                      data-order-mode="pending"
+                    >
+                      View pending order
+                    </button>
+                  </div>
+                {% endif %}
               {% endif %}
               </div>
             </div>
@@ -71,7 +96,17 @@
     </li>
   </ul>
 
-  <div class="product-order-modal" id="order-modal-{{ product.id }}" aria-hidden="true">
+  <div
+    class="product-order-modal"
+    id="order-modal-{{ product.id }}"
+    aria-hidden="true"
+    data-product-id="{{ product.id }}"
+    data-pending-order-id="{{ product.pending_order.order_id|default:'' }}"
+    data-pending-order-expected="{{ product.pending_order.expected_date|date:'Y-m-d' }}"
+    data-pending-order-cost="{{ product.pending_order.item_cost_price|default:'' }}"
+    data-pending-order-total="{{ product.pending_order.total_quantity|default:'' }}"
+    data-pending-order-unassigned="{% if product.pending_order and product.pending_order.unassigned %}true{% endif %}"
+  >
     <div class="product-order-modal__backdrop" data-close-order-modal></div>
     <div class="product-order-modal__content">
       <div class="product-order-modal__header">
@@ -79,6 +114,18 @@
         <button type="button" class="btn-flat" data-close-order-modal>&times;</button>
       </div>
       <div class="product-order-modal__body">
+        <form
+          method="post"
+          class="product-order-form"
+          data-order-form
+          data-create-action="{% url 'order_item_create' %}"
+          data-update-action="{% url 'order_item_update' %}"
+          style="width: 100%;"
+        >
+          {% csrf_token %}
+          <input type="hidden" name="product_id" value="{{ product.id }}">
+          <input type="hidden" name="pending_order_id" value="" data-pending-order-id>
+          <input type="hidden" name="pending_order_unassigned" value="" data-pending-unassigned>
         <div class="product-order-modal__media">
           {% if product.product_photo %}
             <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}">
@@ -87,6 +134,28 @@
           {% endif %}
         </div>
         <div class="product-order-modal__table">
+          <div class="row" style="margin: 0 0 8px;">
+            <div class="input-field col s12 m6" style="margin-top: 0;">
+              <input
+                type="date"
+                name="date_expected"
+                data-expected-date-input
+                required
+              >
+              <label>Expected arrival date</label>
+            </div>
+            <div class="input-field col s12 m6" style="margin-top: 0;">
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                name="item_cost_price"
+                data-item-cost-input
+                required
+              >
+              <label>Item cost price (CNY)</label>
+            </div>
+          </div>
           <div class="input-field" style="margin-top: 0;">
             <input
               type="number"
@@ -115,9 +184,11 @@
                       type="number"
                       min="0"
                       placeholder="0"
+                      name="variant_{{ variant.id }}"
                       data-order-qty-input
                       data-size="{{ variant.size|default:'' }}"
                       data-size-share="{{ variant.size_sales_share|default:0 }}"
+                      data-pending-qty="{{ variant.pending_order_qty|default:0 }}"
                     >
                   </td>
                 </tr>
@@ -128,7 +199,11 @@
               {% endfor %}
             </tbody>
           </table>
+          <div style="margin-top: 16px; text-align: right;">
+            <button type="submit" class="btn teal lighten-1">Save order</button>
+          </div>
         </div>
+        </form>
       </div>
     </div>
   </div>
