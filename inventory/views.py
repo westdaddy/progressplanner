@@ -1061,6 +1061,16 @@ def _build_product_list_context(request, preset_filters=None):
             if product.total_sales
             else None
         )
+        product.low_stock_sku_count = sum(
+            1
+            for variant in product.variants_with_inventory
+            if 0 < (getattr(variant, "latest_inventory", 0) or 0) < 2
+        )
+        product.out_of_stock_sku_count = sum(
+            1
+            for variant in product.variants_with_inventory
+            if (getattr(variant, "latest_inventory", 0) or 0) <= 0
+        )
 
     sitewide_average_discount = (
         ((sitewide_retail_total - sitewide_actual_total) / sitewide_retail_total)
@@ -1116,6 +1126,15 @@ def _build_product_list_context(request, preset_filters=None):
         months_to_sell_out = (
             Decimal(product.total_inventory) / sales_speed if sales_speed else None
         )
+        if months_to_sell_out is not None and months_to_sell_out < 0:
+            months_to_sell_out = None
+        if months_to_sell_out is not None:
+            product.projected_sell_out_date = today + relativedelta(
+                months=int(math.ceil(float(months_to_sell_out)))
+            )
+        else:
+            product.projected_sell_out_date = None
+        product.months_to_sell_out = months_to_sell_out
 
         return_rate = (
             Decimal(product.total_returns) / Decimal(product.total_sales)
@@ -3031,6 +3050,14 @@ def order_list(request):
     if selected_product_id:
         selected_product = Product.objects.filter(id=selected_product_id).first()
         if selected_product:
+            selected_product = next(
+                (
+                    product
+                    for product in filtered_products
+                    if product.id == selected_product.id
+                ),
+                selected_product,
+            )
             latest_snapshot_sq = InventorySnapshot.objects.filter(
                 product_variant=OuterRef("pk")
             ).order_by("-date")
