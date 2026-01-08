@@ -3087,17 +3087,6 @@ def order_list(request):
     filtered_stock_current = sum(
         getattr(product, "total_inventory", 0) for product in filtered_products
     )
-    filtered_sell_through_rate = sum(
-        (
-            product.sales_speed_6_months
-            if product.sales_speed_6_months is not None
-            else Decimal("0")
-        )
-        for product in filtered_products
-    )
-    filtered_sell_through_rate = filtered_sell_through_rate.quantize(
-        Decimal("1"), rounding=ROUND_HALF_UP
-    )
     if filtered_products:
         filtered_on_order = (
             OrderItem.objects.filter(
@@ -3145,6 +3134,13 @@ def order_list(request):
         for product in filtered_products:
             for variant in getattr(product, "variants_with_inventory", []):
                 variant.size_sales_share = size_sales_share.get(variant.size, 0)
+
+    if filtered_sales_last_year:
+        filtered_sell_through_rate = (Decimal(filtered_sales_last_year) / Decimal("12")).quantize(
+            Decimal("1"), rounding=ROUND_HALF_UP
+        )
+    else:
+        filtered_sell_through_rate = Decimal("0")
 
     stock_delta = filtered_stock_current - filtered_sales_last_year
     if stock_delta > 0:
