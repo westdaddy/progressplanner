@@ -2857,8 +2857,35 @@ def order_list(request):
     search_query = request.GET.get("product_search", "").strip()
     selected_product_id = request.GET.get("product")
     selected_product = None
+    variant_stock_rows = []
+    total_current_stock = 0
     if selected_product_id:
         selected_product = Product.objects.filter(id=selected_product_id).first()
+        if selected_product:
+            latest_snapshot_sq = InventorySnapshot.objects.filter(
+                product_variant=OuterRef("pk")
+            ).order_by("-date")
+            variants = (
+                selected_product.variants.annotate(
+                    latest_inventory=Coalesce(
+                        Subquery(latest_snapshot_sq.values("inventory_count")[:1]),
+                        Value(0),
+                        output_field=IntegerField(),
+                    )
+                )
+                .order_by("variant_code")
+            )
+            variant_stock_rows = [
+                {
+                    "variant_code": variant.variant_code,
+                    "variant_size": variant.size,
+                    "stock": variant.latest_inventory,
+                }
+                for variant in variants
+            ]
+            total_current_stock = sum(
+                row["stock"] for row in variant_stock_rows if row["stock"] is not None
+            )
 
     # Fetch orders and prefetch related items for efficiency
     orders = (
@@ -2911,6 +2938,8 @@ def order_list(request):
         "calendar_data": calendar_data,
         "selected_product": selected_product,
         "search_query": search_query,
+        "variant_stock_rows": variant_stock_rows,
+        "total_current_stock": total_current_stock,
     }
     return render(request, "inventory/order_list.html", context)
 
