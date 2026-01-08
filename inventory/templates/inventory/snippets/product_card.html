@@ -87,69 +87,47 @@
           {% endif %}
         </div>
         <div class="product-order-modal__table">
-          <form method="post" action="{% url 'order_item_create' %}">
-            {% csrf_token %}
-            <div class="input-field" style="margin-top: 0;">
-              <input
-                type="number"
-                min="0"
-                class="total-order-input"
-                data-total-order-input
-                placeholder="0"
-              >
-              <label>Total order quantity</label>
-            </div>
-            <div class="input-field">
-              <input
-                type="number"
-                name="item_cost_price"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-                required
-              >
-              <label>Item cost (CNY)</label>
-            </div>
-            <div class="input-field">
-              <input type="date" name="date_expected" required>
-              <label class="active">Expected delivery date</label>
-            </div>
-            <table class="striped">
-              <thead>
+          <div class="input-field" style="margin-top: 0;">
+            <input
+              type="number"
+              min="0"
+              class="total-order-input"
+              data-total-order-input
+              placeholder="0"
+            >
+            <label>Total order quantity</label>
+          </div>
+          <table class="striped">
+            <thead>
+              <tr>
+                <th>Size</th>
+                <th>SKU</th>
+                <th>Order Qty</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for variant in product.variants_with_inventory %}
                 <tr>
-                  <th>Size</th>
-                  <th>SKU</th>
-                  <th>Order Qty</th>
+                  <td>{{ variant.size|default:"—" }}</td>
+                  <td>{{ variant.variant_code }}</td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      data-order-qty-input
+                      data-size="{{ variant.size|default:'' }}"
+                      data-size-share="{{ variant.size_sales_share|default:0 }}"
+                    >
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {% for variant in product.variants_with_inventory %}
-                  <tr>
-                    <td>{{ variant.size|default:"—" }}</td>
-                    <td>{{ variant.variant_code }}</td>
-                    <td>
-                      <input
-                        type="number"
-                        min="0"
-                        placeholder="0"
-                        data-order-qty-input
-                        data-size="{{ variant.size|default:'' }}"
-                        data-size-share="{{ variant.size_sales_share|default:0 }}"
-                        name="variant_{{ variant.id }}"
-                      >
-                    </td>
-                  </tr>
-                {% empty %}
-                  <tr>
-                    <td colspan="3" class="grey-text">No variants available.</td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-            <div style="margin-top: 16px;">
-              <button type="submit" class="btn teal">Confirm order</button>
-            </div>
-          </form>
+              {% empty %}
+                <tr>
+                  <td colspan="3" class="grey-text">No variants available.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

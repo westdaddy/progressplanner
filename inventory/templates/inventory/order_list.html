@@ -380,6 +380,9 @@
       <div class="card-panel center-align">
         <h6 class="grey-text text-darken-1">Current stock (matching filters)</h6>
         <div class="flow-text">{{ filtered_stock_current }}</div>
+        <p class="grey-text text-darken-1" style="margin: 6px 0 0;">
+          On order: {{ filtered_on_order }}
+        </p>
       </div>
     </div>
     <div class="col s12 m4">
@@ -1073,12 +1076,6 @@
       const total = Math.max(parseInt(totalInput.value, 10) || 0, 0);
       const rows = Array.from(modal.querySelectorAll('[data-order-qty-input]'));
       if (!rows.length) return;
-
-      const totalShare = rows.reduce(
-        (sum, input) => sum + parseFloat(input.dataset.sizeShare || '0'),
-        0
-      );
-      if (totalShare <= 0) return;
 
       const rawSplits = rows.map((input) => {
         const share = parseFloat(input.dataset.sizeShare || '0');

@@ -3023,6 +3023,16 @@ def order_list(request):
     filtered_stock_current = sum(
         getattr(product, "total_inventory", 0) for product in filtered_products
     )
+    if filtered_products:
+        filtered_on_order = (
+            OrderItem.objects.filter(
+                product_variant__product__in=filtered_products,
+                date_arrived__isnull=True,
+            ).aggregate(total=Coalesce(Sum("quantity"), 0))["total"]
+            or 0
+        )
+    else:
+        filtered_on_order = 0
     last_year_start = date.today() - relativedelta(years=1)
     if filtered_products:
         size_sales_rows = (
@@ -3177,6 +3187,7 @@ def order_list(request):
         "total_current_stock": total_current_stock,
         "filtered_sales_last_year": filtered_sales_last_year,
         "filtered_stock_current": filtered_stock_current,
+        "filtered_on_order": filtered_on_order,
         "stock_status_label": stock_status_label,
         "stock_status_percent": stock_status_percent,
         "stock_status_items": stock_status_items,
