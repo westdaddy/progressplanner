@@ -37,16 +37,18 @@
               <strong>Total current stock:</strong> {{ total_current_stock }}
             </li>
             <li class="collection-item">
-              <strong>Variant stock levels</strong>
-              <ul class="collection">
-                {% for variant in variant_stock_rows %}
-                  <li class="collection-item">
-                    {{ variant.variant_code }}{% if variant.variant_size %} ({{ variant.variant_size }}){% endif %}: {{ variant.stock }}
-                  </li>
-                {% empty %}
-                  <li class="collection-item grey-text">No variants available.</li>
-                {% endfor %}
-              </ul>
+              <details>
+                <summary><strong>Variant stock levels</strong></summary>
+                <ul class="collection">
+                  {% for variant in variant_stock_rows %}
+                    <li class="collection-item">
+                      {{ variant.variant_code }}{% if variant.variant_size %} ({{ variant.variant_size }}){% endif %}: {{ variant.stock }}
+                    </li>
+                  {% empty %}
+                    <li class="collection-item grey-text">No variants available.</li>
+                  {% endfor %}
+                </ul>
+              </details>
             </li>
             <li class="collection-item">Recommended order quantity: —</li>
             <li class="collection-item">Confidence score: —</li>
