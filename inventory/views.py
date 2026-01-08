@@ -92,6 +92,7 @@ from .utils import (
     compute_product_health,
     get_low_stock_products,
     calculate_variant_sales_speed,
+    calculate_sales_speed_for_variants,
     get_variant_speed_map,
     get_category_speed_stats,
 )
