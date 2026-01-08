@@ -7,6 +7,39 @@
 
 
 <div class="section">
+  <h3>Suggested Order Planner</h3>
+
+  <div class="row">
+    <form class="col s12" method="get">
+      <div class="input-field col s12 m8">
+        <input id="product-search" name="product_search" type="text" value="{{ search_query }}">
+        <label for="product-search">Search by product code or name</label>
+      </div>
+    </form>
+  </div>
+
+  <div class="row" id="search-results-row" style="display: none;">
+    <div class="col s12 m8">
+      <ul class="collection" id="search-results"></ul>
+    </div>
+  </div>
+
+  {% if selected_product %}
+    {% include 'inventory/snippets/product_card.html' with product=selected_product %}
+    <div class="row">
+      <div class="col s12">
+        <div class="card-panel">
+          <h5>Suggested Order Analysis</h5>
+          <p class="grey-text">Suggested order sizes, confidence, and reorder timing will appear here.</p>
+          <ul class="collection">
+            <li class="collection-item">Recommended order quantity: —</li>
+            <li class="collection-item">Confidence score: —</li>
+            <li class="collection-item">Notes: —</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  {% endif %}
 
   <h3>Stock Orders</h3>
 
@@ -53,4 +86,60 @@
         {% endfor %}
     </ul>
 </div>
+
+<script>
+  (function() {
+    const input = document.getElementById("product-search");
+    const resultsRow = document.getElementById("search-results-row");
+    const resultsList = document.getElementById("search-results");
+    let debounceId = null;
+
+    const renderResults = (items, query) => {
+      resultsList.innerHTML = "";
+      if (!query) {
+        resultsRow.style.display = "none";
+        return;
+      }
+      if (!items.length) {
+        const emptyItem = document.createElement("li");
+        emptyItem.className = "collection-item grey-text";
+        emptyItem.textContent = "No matching products found.";
+        resultsList.appendChild(emptyItem);
+      } else {
+        items.forEach((product) => {
+          const item = document.createElement("li");
+          item.className = "collection-item";
+          const link = document.createElement("a");
+          link.href = "{% url 'order_list' %}?product=" + product.id + "&product_search=" + encodeURIComponent(query);
+          link.textContent = product.name + " (" + product.code + ")";
+          item.appendChild(link);
+          resultsList.appendChild(item);
+        });
+      }
+      resultsRow.style.display = "block";
+    };
+
+    const fetchResults = async (query) => {
+      const response = await fetch("{% url 'order_product_search' %}?q=" + encodeURIComponent(query));
+      if (!response.ok) {
+        renderResults([], query);
+        return;
+      }
+      const payload = await response.json();
+      renderResults(payload.results || [], query);
+    };
+
+    input.addEventListener("input", () => {
+      const query = input.value.trim();
+      clearTimeout(debounceId);
+      if (!query) {
+        renderResults([], query);
+        return;
+      }
+      debounceId = setTimeout(() => {
+        fetchResults(query);
+      }, 250);
+    });
+  })();
+</script>
 {% endblock %}
