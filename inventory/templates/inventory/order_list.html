@@ -33,6 +33,21 @@
           <h5>Suggested Order Analysis</h5>
           <p class="grey-text">Suggested order sizes, confidence, and reorder timing will appear here.</p>
           <ul class="collection">
+            <li class="collection-item">
+              <strong>Total current stock:</strong> {{ total_current_stock }}
+            </li>
+            <li class="collection-item">
+              <strong>Variant stock levels</strong>
+              <ul class="collection">
+                {% for variant in variant_stock_rows %}
+                  <li class="collection-item">
+                    {{ variant.variant_code }}{% if variant.variant_size %} ({{ variant.variant_size }}){% endif %}: {{ variant.stock }}
+                  </li>
+                {% empty %}
+                  <li class="collection-item grey-text">No variants available.</li>
+                {% endfor %}
+              </ul>
+            </li>
             <li class="collection-item">Recommended order quantity: —</li>
             <li class="collection-item">Confidence score: —</li>
             <li class="collection-item">Notes: —</li>
