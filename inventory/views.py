@@ -2997,11 +2997,12 @@ def order_list(request):
     )
     last_year_start = date.today() - relativedelta(years=1)
     if filtered_products:
-        filtered_sales_last_year = (
-            Sale.objects.filter(date__gte=last_year_start)
-            .filter(variant__product__in=filtered_products)
-            .aggregate(total=Coalesce(Sum("sold_quantity"), 0))
-            .get("total", 0)
+        filtered_sales_qs = Sale.objects.filter(
+            date__gte=last_year_start, variant__product__in=filtered_products
+        ).values("sold_quantity", "return_quantity")
+        filtered_sales_last_year = sum(
+            sale["sold_quantity"] - (sale["return_quantity"] or 0)
+            for sale in filtered_sales_qs
         )
     else:
         filtered_sales_last_year = 0
