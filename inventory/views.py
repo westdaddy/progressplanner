@@ -2854,13 +2854,43 @@ def product_detail(request, product_id):
 
 
 def order_list(request):
+    filter_context = _build_product_list_context(request)
+    filtered_products = filter_context.get("products", [])
+    filtered_stock_current = sum(
+        getattr(product, "total_inventory", 0) for product in filtered_products
+    )
+    last_year_start = date.today() - relativedelta(years=1)
+    if filtered_products:
+        filtered_sales_last_year = (
+            Sale.objects.filter(date__gte=last_year_start)
+            .filter(variant__product__in=filtered_products)
+            .aggregate(total=Coalesce(Sum("sold_quantity"), 0))
+            .get("total", 0)
+        )
+    else:
+        filtered_sales_last_year = 0
+
+    stock_delta = filtered_stock_current - filtered_sales_last_year
+    if stock_delta > 0:
+        stock_status_label = "overstocked"
+    elif stock_delta < 0:
+        stock_status_label = "understocked"
+    else:
+        stock_status_label = "on target"
+
+    if filtered_sales_last_year:
+        stock_status_percent = round(
+            (abs(stock_delta) / filtered_sales_last_year) * 100, 1
+        )
+    else:
+        stock_status_percent = None
+    stock_status_items = abs(stock_delta)
+
     search_query = request.GET.get("product_search", "").strip()
     selected_product_id = request.GET.get("product")
     selected_product = None
     variant_stock_rows = []
     total_current_stock = 0
-    category_sales_last_year = 0
-    category_stock_current = 0
     if selected_product_id:
         selected_product = Product.objects.filter(id=selected_product_id).first()
         if selected_product:
@@ -2887,40 +2917,6 @@ def order_list(request):
             ]
             total_current_stock = sum(
                 row["stock"] for row in variant_stock_rows if row["stock"] is not None
-            )
-            gender_values = list(
-                selected_product.variants.exclude(gender__isnull=True)
-                .exclude(gender__exact="")
-                .values_list("gender", flat=True)
-                .distinct()
-            )
-            category_filters = Q(product__type=selected_product.type)
-            if selected_product.style:
-                category_filters &= Q(product__style=selected_product.style)
-            if selected_product.age:
-                category_filters &= Q(product__age=selected_product.age)
-            if gender_values:
-                category_filters &= Q(gender__in=gender_values)
-
-            last_year_start = date.today() - relativedelta(years=1)
-            category_sales_last_year = (
-                Sale.objects.filter(date__gte=last_year_start)
-                .filter(variant__in=ProductVariant.objects.filter(category_filters))
-                .aggregate(total=Coalesce(Sum("sold_quantity"), 0))
-                .get("total", 0)
-            )
-
-            category_stock_current = (
-                ProductVariant.objects.filter(category_filters)
-                .annotate(
-                    latest_inventory=Coalesce(
-                        Subquery(latest_snapshot_sq.values("inventory_count")[:1]),
-                        Value(0),
-                        output_field=IntegerField(),
-                    )
-                )
-                .aggregate(total=Coalesce(Sum("latest_inventory"), 0))
-                .get("total", 0)
             )
 
     # Fetch orders and prefetch related items for efficiency
@@ -2970,14 +2966,18 @@ def order_list(request):
         )
 
     context = {
+        **filter_context,
         "orders": orders,
         "calendar_data": calendar_data,
         "selected_product": selected_product,
         "search_query": search_query,
         "variant_stock_rows": variant_stock_rows,
         "total_current_stock": total_current_stock,
-        "category_sales_last_year": category_sales_last_year,
-        "category_stock_current": category_stock_current,
+        "filtered_sales_last_year": filtered_sales_last_year,
+        "filtered_stock_current": filtered_stock_current,
+        "stock_status_label": stock_status_label,
+        "stock_status_percent": stock_status_percent,
+        "stock_status_items": stock_status_items,
     }
     return render(request, "inventory/order_list.html", context)
 
