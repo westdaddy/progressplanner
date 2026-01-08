@@ -16,6 +16,7 @@ urlpatterns = [
     path('products/<int:product_id>/', views.product_detail, name='product_detail'),  # New route
     path('orders/', views.order_list, name='order_list'),  # Order List View
     path('orders/search/', views.order_product_search, name='order_product_search'),
+    path('orders/items/create/', views.order_item_create, name='order_item_create'),
     path('orders/<int:order_id>/', views.order_detail, name='order_detail'),  # Order Detail View
     path('sales/', views.sales, name='sales'),
     path('sales/referrers/', views.sales_referrers, name='sales_referrers'),
