@@ -1,64 +1,54 @@
 <div class="row">
   <div class="col s12">
-    <div class="card-panel">
-      <div class="row item">
-        <div class="col s12 content">
-          <div class="row title">
-            <div class="col s12">
-              <span class="title">
-                <strong>{{ product.product_name }}</strong>
-              </span>
-              ({{ product.product_id }})
-            </div>
-          </div>
-          <div class="row scorecard-boxes">
-            <div class="col s12 m6 l2 photo">
-              {% if product.product_photo %}
-                <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" class="circle product-photo-large">
-              {% else %}
-                <img src="{{ MEDIA_URL }}product_photos/product-placeholder.jpg" alt="{{ product.product_name }}" class="circle product-photo-large">
-              {% endif %}
-            </div>
-            <div class="col s12 m6 l10">
-              <div class="card-panel scorecard-box">
-                <div class="metric">
-                  <small class="grey-text">Retail Price</small>
-                  <p class="metric-value">
-                    {% if product.retail_price is not None %}
-                      ¥{{ product.retail_price|floatformat:0 }}
-                    {% else %}
-                      -
-                    {% endif %}
-                  </p>
-                </div>
-                <div class="metric">
-                  <small class="grey-text">Type</small>
-                  <p class="metric-value">
-                    {{ product.get_type_display|default:"-" }}
-                  </p>
-                </div>
-                <div class="metric">
-                  <small class="grey-text">Subtype</small>
-                  <p class="metric-value">
-                    {{ product.get_subtype_display|default:"-" }}
-                  </p>
-                </div>
-                <div class="metric">
-                  <small class="grey-text">Style</small>
-                  <p class="metric-value">
-                    {{ product.get_style_display|default:"-" }}
-                  </p>
-                </div>
-                <div class="metric">
-                  <small class="grey-text">Age Group</small>
-                  <p class="metric-value">
-                    {{ product.get_age_display|default:"-" }}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div class="card z-depth-2" style="overflow: hidden;">
+      <div class="card-image">
+        {% if product.product_photo %}
+          <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}">
+        {% else %}
+          <img src="{{ MEDIA_URL }}product_photos/product-placeholder.jpg" alt="{{ product.product_name }}">
+        {% endif %}
+      </div>
+      <div class="card-content" id="product_card">
+        <span class="title">{{ product.product_name }}</span><br/>
+        <span class="grey-text">{{ product.product_id }}</span><br/>
+        {% if product.type %}
+          <span><a href="{% url 'product_filtered' %}?type_filter={{ product.type }}">{{ product.get_type_display }}</a></span><br/>
+        {% endif %}
+        {% if product.style %}
+          <span><a href="{% url 'product_filtered' %}?style_filter={{ product.style }}">{{ product.get_style_display }}</a></span><br/>
+        {% endif %}
+        {% if product.subtype %}
+          <span>{{ product.get_subtype_display }}</span><br/>
+        {% endif %}
+        {% if product.age %}
+          <span>{{ product.get_age_display }}</span><br/>
+        {% endif %}
+        {% with product.groups.all as product_groups %}
+          {% if product_groups %}
+            <span>
+              {% for group in product_groups %}
+                <a href="{% url 'product_filtered' %}?group_filter={{ group.id }}">{{ group.name }}</a>{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            </span><br/>
+          {% endif %}
+        {% endwith %}
+        {% with product.series.all as product_series %}
+          {% if product_series %}
+            <span>
+              {% for series in product_series %}
+                <a href="{% url 'product_filtered' %}?series_filter={{ series.id }}">{{ series.name }}</a>{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            </span><br/>
+          {% endif %}
+        {% endwith %}
+        <span>
+          Retail price:
+          {% if product.retail_price is not None %}
+            ¥{{ product.retail_price|floatformat:"0" }}
+          {% else %}
+            -
+          {% endif %}
+        </span>
       </div>
     </div>
   </div>
