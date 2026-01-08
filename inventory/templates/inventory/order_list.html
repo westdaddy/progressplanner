@@ -380,6 +380,18 @@
     </div>
   </div>
 
+  <div class="row">
+    <div class="col s12">
+      {% if products %}
+        {% for product in products %}
+          {% include 'inventory/snippets/product_card.html' with product=product %}
+        {% endfor %}
+      {% else %}
+        <p class="grey-text">No products match the current filters.</p>
+      {% endif %}
+    </div>
+  </div>
+
   {% if selected_product %}
   
     {% include 'inventory/snippets/product_card.html' with product=selected_product %}
