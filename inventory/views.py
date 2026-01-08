@@ -3031,6 +3031,9 @@ def order_list(request):
         )
         for product in filtered_products
     )
+    filtered_sell_through_rate = filtered_sell_through_rate.quantize(
+        Decimal("1"), rounding=ROUND_HALF_UP
+    )
     if filtered_products:
         filtered_on_order = (
             OrderItem.objects.filter(
