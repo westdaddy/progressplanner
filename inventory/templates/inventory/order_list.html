@@ -181,6 +181,60 @@
       width: auto;
       margin-right: 10px;
     }
+
+    .product-order-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+    }
+
+    .product-order-modal.is-open {
+      display: block;
+    }
+
+    .product-order-modal__backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    .product-order-modal__content {
+      position: relative;
+      background: #fff;
+      width: min(900px, 90%);
+      margin: 5vh auto;
+      border-radius: 12px;
+      padding: 20px;
+      z-index: 1;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .product-order-modal__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .product-order-modal__body {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .product-order-modal__media img {
+      width: 180px;
+      height: 180px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+
+    .product-order-modal__table {
+      flex: 1;
+      min-width: 240px;
+    }
   </style>
   {% if filter_controls %}
 
@@ -988,6 +1042,28 @@
           const newState = !allExpanded;
           setAllExpanded(newState);
         });
+      });
+    });
+
+    const toggleModal = (modalId, open) => {
+      const modal = document.getElementById(modalId);
+      if (!modal) return;
+      modal.classList.toggle('is-open', open);
+      modal.setAttribute('aria-hidden', open ? 'false' : 'true');
+    };
+
+    document.querySelectorAll('[data-open-order-modal]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const modalId = btn.getAttribute('data-open-order-modal');
+        toggleModal(modalId, true);
+      });
+    });
+
+    document.querySelectorAll('[data-close-order-modal]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const modal = btn.closest('.product-order-modal');
+        if (!modal) return;
+        toggleModal(modal.id, false);
       });
     });
 

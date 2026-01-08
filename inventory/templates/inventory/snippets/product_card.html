@@ -30,26 +30,38 @@
 
             <div class="col s12 m6 l3">
               <div class="card-panel scorecard-box">
-              <span>
-                Current stock:
-                <strong>{{ product.total_inventory|default:0 }}</strong>
-              </span><br/>
-              <span>
-                Projected sell-out:
-                {% if product.projected_sell_out_date %}
-                  <strong>{{ product.projected_sell_out_date|date:"M j, Y" }}</strong>
-                {% else %}
-                  —
-                {% endif %}
-              </span><br/>
-              <span>
-                Low stock SKUs:
-                <strong>{{ product.low_stock_sku_count|default:0 }}</strong>
-              </span><br/>
-              <span>
-                Out of stock SKUs:
-                <strong>{{ product.out_of_stock_sku_count|default:0 }}</strong>
-              </span>
+              {% if product.total_inventory|default:0 == 0 and product.last_order_qty|default:0 == 0 %}
+                <span><strong>New product</strong></span><br/>
+                <span class="grey-text">No stock or order history yet.</span><br/>
+                <button
+                  type="button"
+                  class="btn teal lighten-1"
+                  data-open-order-modal="order-modal-{{ product.id }}"
+                >
+                  Create order
+                </button>
+              {% else %}
+                <span>
+                  Current stock:
+                  <strong>{{ product.total_inventory|default:0 }}</strong>
+                </span><br/>
+                <span>
+                  Projected sell-out:
+                  {% if product.projected_sell_out_date %}
+                    <strong>{{ product.projected_sell_out_date|date:"M j, Y" }}</strong>
+                  {% else %}
+                    —
+                  {% endif %}
+                </span><br/>
+                <span>
+                  Low stock SKUs:
+                  <strong>{{ product.low_stock_sku_count|default:0 }}</strong>
+                </span><br/>
+                <span>
+                  Out of stock SKUs:
+                  <strong>{{ product.out_of_stock_sku_count|default:0 }}</strong>
+                </span>
+              {% endif %}
               </div>
             </div>
 
@@ -58,3 +70,48 @@
       </div>
     </li>
   </ul>
+
+  <div class="product-order-modal" id="order-modal-{{ product.id }}" aria-hidden="true">
+    <div class="product-order-modal__backdrop" data-close-order-modal></div>
+    <div class="product-order-modal__content">
+      <div class="product-order-modal__header">
+        <h5>{{ product.product_name }}</h5>
+        <button type="button" class="btn-flat" data-close-order-modal>&times;</button>
+      </div>
+      <div class="product-order-modal__body">
+        <div class="product-order-modal__media">
+          {% if product.product_photo %}
+            <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}">
+          {% else %}
+            <img src="{{ MEDIA_URL }}product_photos/product-placeholder.jpg" alt="{{ product.product_name }}">
+          {% endif %}
+        </div>
+        <div class="product-order-modal__table">
+          <table class="striped">
+            <thead>
+              <tr>
+                <th>Size</th>
+                <th>SKU</th>
+                <th>Order Qty</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for variant in product.variants_with_inventory %}
+                <tr>
+                  <td>{{ variant.size|default:"—" }}</td>
+                  <td>{{ variant.variant_code }}</td>
+                  <td>
+                    <input type="number" min="0" placeholder="0">
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="3" class="grey-text">No variants available.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
