@@ -2859,6 +2859,8 @@ def order_list(request):
     selected_product = None
     variant_stock_rows = []
     total_current_stock = 0
+    category_sales_last_year = 0
+    category_stock_current = 0
     if selected_product_id:
         selected_product = Product.objects.filter(id=selected_product_id).first()
         if selected_product:
@@ -2885,6 +2887,40 @@ def order_list(request):
             ]
             total_current_stock = sum(
                 row["stock"] for row in variant_stock_rows if row["stock"] is not None
+            )
+            gender_values = list(
+                selected_product.variants.exclude(gender__isnull=True)
+                .exclude(gender__exact="")
+                .values_list("gender", flat=True)
+                .distinct()
+            )
+            category_filters = Q(product__type=selected_product.type)
+            if selected_product.style:
+                category_filters &= Q(product__style=selected_product.style)
+            if selected_product.age:
+                category_filters &= Q(product__age=selected_product.age)
+            if gender_values:
+                category_filters &= Q(gender__in=gender_values)
+
+            last_year_start = date.today() - relativedelta(years=1)
+            category_sales_last_year = (
+                Sale.objects.filter(date__gte=last_year_start)
+                .filter(variant__in=ProductVariant.objects.filter(category_filters))
+                .aggregate(total=Coalesce(Sum("sold_quantity"), 0))
+                .get("total", 0)
+            )
+
+            category_stock_current = (
+                ProductVariant.objects.filter(category_filters)
+                .annotate(
+                    latest_inventory=Coalesce(
+                        Subquery(latest_snapshot_sq.values("inventory_count")[:1]),
+                        Value(0),
+                        output_field=IntegerField(),
+                    )
+                )
+                .aggregate(total=Coalesce(Sum("latest_inventory"), 0))
+                .get("total", 0)
             )
 
     # Fetch orders and prefetch related items for efficiency
@@ -2940,6 +2976,8 @@ def order_list(request):
         "search_query": search_query,
         "variant_stock_rows": variant_stock_rows,
         "total_current_stock": total_current_stock,
+        "category_sales_last_year": category_sales_last_year,
+        "category_stock_current": category_stock_current,
     }
     return render(request, "inventory/order_list.html", context)
 

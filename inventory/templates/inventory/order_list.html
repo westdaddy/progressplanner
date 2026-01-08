@@ -34,6 +34,14 @@
           <p class="grey-text">Suggested order sizes, confidence, and reorder timing will appear here.</p>
           <ul class="collection">
             <li class="collection-item">
+              <strong>Last 12 months sold (matching categories):</strong>
+              {{ category_sales_last_year }}
+            </li>
+            <li class="collection-item">
+              <strong>Current stock (matching categories):</strong>
+              {{ category_stock_current }}
+            </li>
+            <li class="collection-item">
               <strong>Total current stock:</strong> {{ total_current_stock }}
             </li>
             <li class="collection-item">
