@@ -2351,6 +2351,141 @@ def _render_filtered_products(
     return render(request, "inventory/product_filtered_list.html", context)
 
 
+def _build_filter_controls_context(
+    context: dict[str, Any],
+    category: Optional[str] = None,
+) -> dict[str, Any]:
+    filter_controls: list[dict[str, Any]] = []
+
+    def build_control(
+        category_label: str,
+        field_name: str,
+        options: list[dict[str, Any]],
+        display_label: Optional[str] = None,
+    ):
+        display_label = display_label or category_label.capitalize()
+        selected_labels = [
+            option["label"] for option in options if option.get("checked")
+        ]
+        return {
+            "category_label": category_label,
+            "category_title": display_label,
+            "field_name": field_name,
+            "options": options,
+            "selected_labels": sorted(selected_labels, key=str.lower),
+            "header_text": display_label,
+        }
+
+    type_selected = set(context.get("type_filters", []))
+    subtype_selected = set(context.get("subtype_filters", []))
+    style_selected = set(context.get("style_filters", []))
+    age_selected = set(context.get("age_filters", []))
+    group_selected = set(context.get("group_filters", []))
+    series_selected = set(context.get("series_filters", []))
+
+    category_filter_control = {
+        "styles": [
+            {
+                "value": value,
+                "label": label,
+                "checked": str(value) in style_selected,
+            }
+            for value, label in PRODUCT_STYLE_CHOICES
+        ],
+        "types": [
+            {
+                "value": value,
+                "label": label,
+                "checked": str(value) in type_selected,
+            }
+            for value, label in context.get("type_choices", PRODUCT_TYPE_CHOICES)
+        ],
+        "subtypes": [
+            {
+                "value": value,
+                "label": label,
+                "checked": str(value) in subtype_selected,
+            }
+            for value, label in context.get("subtype_choices", PRODUCT_SUBTYPE_CHOICES)
+        ],
+        "type_map": PRODUCT_TYPE_CHOICES_BY_STYLE,
+        "subtype_map": PRODUCT_SUBTYPE_CHOICES_BY_TYPE,
+    }
+
+    control_candidates = [
+        build_control(
+            "age",
+            "age_filter",
+            [
+                {
+                    "value": value,
+                    "label": label,
+                    "checked": str(value) in age_selected,
+                }
+                for value, label in PRODUCT_AGE_CHOICES
+            ],
+        ),
+        build_control(
+            "group",
+            "group_filter",
+            [
+                {
+                    "value": str(group.id),
+                    "label": group.name,
+                    "checked": str(group.id) in group_selected,
+                }
+                for group in (context.get("group_choices") or Group.objects.all())
+            ],
+        ),
+        build_control(
+            "series",
+            "series_filter",
+            [
+                {
+                    "value": str(series.id),
+                    "label": series.name,
+                    "checked": str(series.id) in series_selected,
+                }
+                for series in (context.get("series_choices") or Series.objects.all())
+            ],
+        ),
+    ]
+
+    if category:
+        control_candidates.sort(
+            key=lambda control: 0
+            if control.get("category_label") == category
+            else 1
+        )
+
+    filter_controls.extend(control_candidates)
+
+    category_selected_labels = [
+        option["label"]
+        for option in (
+            category_filter_control["styles"]
+            + category_filter_control["types"]
+            + category_filter_control["subtypes"]
+        )
+        if option.get("checked")
+    ]
+
+    selected_labels_flat = category_selected_labels + [
+        label
+        for control in filter_controls
+        for label in control.get("selected_labels", [])
+    ]
+
+    return {
+        "filter_controls": filter_controls,
+        "showing_summary": " | ".join(selected_labels_flat)
+        if selected_labels_flat
+        else "All products",
+        "style_filters_json": json.dumps(context.get("style_filters", [])),
+        "category_filter": category_filter_control,
+    }
+
+
 def product_filtered(request):
     primary_category = None
     for query_name, label in (
@@ -2855,6 +2990,7 @@ def product_detail(request, product_id):
 
 def order_list(request):
     filter_context = _build_product_list_context(request)
+    filter_ui_context = _build_filter_controls_context(filter_context)
     filtered_products = filter_context.get("products", [])
     filtered_stock_current = sum(
         getattr(product, "total_inventory", 0) for product in filtered_products
@@ -2967,6 +3103,7 @@ def order_list(request):
 
     context = {
         **filter_context,
+        **filter_ui_context,
         "orders": orders,
         "calendar_data": calendar_data,
         "selected_product": selected_product,
