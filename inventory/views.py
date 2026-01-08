@@ -92,6 +92,7 @@ from .utils import (
     compute_product_health,
     get_low_stock_products,
     calculate_variant_sales_speed,
+    calculate_sales_speed_for_variants,
     get_variant_speed_map,
     get_category_speed_stats,
 )
@@ -3087,17 +3088,18 @@ def order_list(request):
     filtered_stock_current = sum(
         getattr(product, "total_inventory", 0) for product in filtered_products
     )
-    filtered_sell_through_rate = sum(
-        (
-            product.sales_speed_6_months
-            if product.sales_speed_6_months is not None
-            else Decimal("0")
+    if filtered_products:
+        variants_for_speed = ProductVariant.objects.filter(
+            product__in=filtered_products
+        ).prefetch_related("sales", "snapshots")
+        unified_speed = calculate_sales_speed_for_variants(
+            variants_for_speed, weeks=52, today=date.today(), weight="sales"
         )
-        for product in filtered_products
-    )
-    filtered_sell_through_rate = filtered_sell_through_rate.quantize(
-        Decimal("1"), rounding=ROUND_HALF_UP
-    )
+        filtered_sell_through_rate = Decimal(str(unified_speed)).quantize(
+            Decimal("1"), rounding=ROUND_HALF_UP
+        )
+    else:
+        filtered_sell_through_rate = Decimal("0")
     if filtered_products:
         filtered_on_order = (
             OrderItem.objects.filter(
