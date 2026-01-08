@@ -6,7 +6,7 @@
 
 
 <div class="section">
-  <h3>Suggested Order Planner</h3>
+  <h3>Order Planner</h3>
 
   <style>
     .filter-bar {
@@ -238,10 +238,44 @@
   </style>
   {% if filter_controls %}
 
-  <h3 class="filter-title">Products</h3>
-
   <div class="filter-divider"></div>
 
+  <!-- SEARCH BAR -->
+  <div class="row">
+    <form class="col s12" method="get">
+      {% for value in style_filters %}
+        <input type="hidden" name="style_filter" value="{{ value }}">
+      {% endfor %}
+      {% for value in type_filters %}
+        <input type="hidden" name="type_filter" value="{{ value }}">
+      {% endfor %}
+      {% for value in subtype_filters %}
+        <input type="hidden" name="subtype_filter" value="{{ value }}">
+      {% endfor %}
+      {% for value in age_filters %}
+        <input type="hidden" name="age_filter" value="{{ value }}">
+      {% endfor %}
+      {% for value in group_filters %}
+        <input type="hidden" name="group_filter" value="{{ value }}">
+      {% endfor %}
+      {% for value in series_filters %}
+        <input type="hidden" name="series_filter" value="{{ value }}">
+      {% endfor %}
+      <div class="input-field col s12 m8">
+        <input id="product-search" name="product_search" type="text" value="{{ search_query }}">
+        <label for="product-search">Search by product code or name</label>
+      </div>
+    </form>
+  </div>
+
+  <div class="row" id="search-results-row" style="display: none;">
+    <div class="col s12 m8">
+      <ul class="collection" id="search-results"></ul>
+    </div>
+  </div>
+
+
+  <!-- FILTERS BAR -->
     <form method="get" class="filter-bar__form">
       {% if search_query %}
         <input type="hidden" name="product_search" value="{{ search_query }}">
@@ -369,74 +403,70 @@
     {{ category_filter.subtype_map|json_script:"category-subtype-map" }}
   {% endif %}
 
+
+
+
+
+
+
+
+
+
+
+
+
+  <!-- STOCK POSITION -->
   <div class="row">
     <div class="col s12 m4">
-      <div class="card-panel center-align">
-        <h6 class="grey-text text-darken-1">Last 12 months sold (matching filters)</h6>
-        <div class="flow-text">{{ filtered_sales_last_year }}</div>
-      </div>
-    </div>
-    <div class="col s12 m4">
-      <div class="card-panel center-align">
-        <h6 class="grey-text text-darken-1">Current stock (matching filters)</h6>
-        <div class="flow-text">{{ filtered_stock_current }}</div>
-        <p class="grey-text text-darken-1" style="margin: 6px 0 0;">
-          On order: {{ filtered_on_order }}
-        </p>
-      </div>
-    </div>
-    <div class="col s12 m4">
-      <div class="card-panel center-align">
+      <div class="card-panel">
         <h6 class="grey-text text-darken-1">Stock position</h6>
-        <div class="flow-text">
-          {% if stock_status_label == "on target" %}
-            On target
-          {% else %}
-            {{ stock_status_label|capfirst }}
-            by
-            {% if stock_status_percent is not None %}{{ stock_status_percent }}%{% else %}—{% endif %}
-            /
-            {{ stock_status_items }}
-            items
-          {% endif %}
+          <ul class="collection" style="margin: 0;">
+              <li class="collection-item" style="border-left: 3px solid #26a69a;">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                    <strong>Sales in the last 12 months</strong>
+                    <span class="teal-text text-darken-2">{{ filtered_sales_last_year }}</span>
+                </div>
+                <p class="grey-text text-darken-1" style="margin: 4px 0 0;">Placeholder text</p>
+              </li>
+
+              <li class="collection-item" style="border-left: 3px solid #26a69a;">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                    <strong>Current stock (matching filters)</strong>
+                    <span class="teal-text text-darken-2">{{ filtered_stock_current }}</span>
+                </div>
+                <p class="grey-text text-darken-1" style="margin: 4px 0 0;">On order: {{ filtered_on_order }}</p>
+              </li>
+
+              <li class="collection-item" style="border-left: 3px solid #26a69a;">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                    <strong>Stock position</strong>
+                    <span class="teal-text text-darken-2">
+                      {% if stock_status_label == "on target" %}
+                        On target
+                      {% else %}
+                        {{ stock_status_label|capfirst }}
+                        by
+                        {% if stock_status_percent is not None %}{{ stock_status_percent }}%{% else %}—{% endif %}
+                        /
+                        {{ stock_status_items }}
+                        items
+                      {% endif %}
+                    </span>
+                </div>
+                <p class="grey-text text-darken-1" style="margin: 4px 0 0;">Placeholder text</p>
+              </li>
+          </ul>
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="row">
-    <form class="col s12" method="get">
-      {% for value in style_filters %}
-        <input type="hidden" name="style_filter" value="{{ value }}">
-      {% endfor %}
-      {% for value in type_filters %}
-        <input type="hidden" name="type_filter" value="{{ value }}">
-      {% endfor %}
-      {% for value in subtype_filters %}
-        <input type="hidden" name="subtype_filter" value="{{ value }}">
-      {% endfor %}
-      {% for value in age_filters %}
-        <input type="hidden" name="age_filter" value="{{ value }}">
-      {% endfor %}
-      {% for value in group_filters %}
-        <input type="hidden" name="group_filter" value="{{ value }}">
-      {% endfor %}
-      {% for value in series_filters %}
-        <input type="hidden" name="series_filter" value="{{ value }}">
-      {% endfor %}
-      <div class="input-field col s12 m8">
-        <input id="product-search" name="product_search" type="text" value="{{ search_query }}">
-        <label for="product-search">Search by product code or name</label>
-      </div>
-    </form>
-  </div>
 
-  <div class="row" id="search-results-row" style="display: none;">
-    <div class="col s12 m8">
-      <ul class="collection" id="search-results"></ul>
-    </div>
-  </div>
 
+
+  <!-- END STOCK POSITION -->
+
+
+  <!-- PRODUCTS LIST -->
   <div class="row">
     <div class="col s12">
       {% if products %}
@@ -450,7 +480,7 @@
   </div>
 
   {% if selected_product %}
-  
+
     {% include 'inventory/snippets/product_card.html' with product=selected_product %}
 
     <div class="row">
