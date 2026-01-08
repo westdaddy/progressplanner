@@ -3023,6 +3023,14 @@ def order_list(request):
     filtered_stock_current = sum(
         getattr(product, "total_inventory", 0) for product in filtered_products
     )
+    filtered_sell_through_rate = sum(
+        (
+            product.sales_speed_6_months
+            if product.sales_speed_6_months is not None
+            else Decimal("0")
+        )
+        for product in filtered_products
+    )
     if filtered_products:
         filtered_on_order = (
             OrderItem.objects.filter(
@@ -3188,6 +3196,7 @@ def order_list(request):
         "filtered_sales_last_year": filtered_sales_last_year,
         "filtered_stock_current": filtered_stock_current,
         "filtered_on_order": filtered_on_order,
+        "filtered_sell_through_rate": filtered_sell_through_rate,
         "stock_status_label": stock_status_label,
         "stock_status_percent": stock_status_percent,
         "stock_status_items": stock_status_items,
