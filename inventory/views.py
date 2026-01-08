@@ -3025,6 +3025,26 @@ def order_list(request):
     )
     last_year_start = date.today() - relativedelta(years=1)
     if filtered_products:
+        size_sales_rows = (
+            Sale.objects.filter(
+                date__gte=last_year_start, variant__product__in=filtered_products
+            )
+            .values("variant__size")
+            .annotate(
+                sold_total=Coalesce(Sum("sold_quantity"), 0),
+                returned_total=Coalesce(Sum("return_quantity"), 0),
+            )
+        )
+        size_sales_totals = {
+            row["variant__size"]: row["sold_total"] - row["returned_total"]
+            for row in size_sales_rows
+        }
+        size_sales_total = sum(size_sales_totals.values())
+        size_sales_share = {
+            size: float(total / size_sales_total)
+            for size, total in size_sales_totals.items()
+            if size_sales_total
+        }
         filtered_sales_qs = Sale.objects.filter(
             date__gte=last_year_start, variant__product__in=filtered_products
         ).values("sold_quantity", "return_quantity")
@@ -3034,6 +3054,12 @@ def order_list(request):
         )
     else:
         filtered_sales_last_year = 0
+        size_sales_share = {}
+
+    if size_sales_share:
+        for product in filtered_products:
+            for variant in getattr(product, "variants_with_inventory", []):
+                variant.size_sales_share = size_sales_share.get(variant.size, 0)
 
     stock_delta = filtered_stock_current - filtered_sales_last_year
     if stock_delta > 0:
@@ -3080,6 +3106,8 @@ def order_list(request):
                 )
                 .order_by("variant_code")
             )
+            for variant in variants:
+                variant.size_sales_share = size_sales_share.get(variant.size, 0)
             variant_stock_rows = [
                 {
                     "variant_code": variant.variant_code,

@@ -1067,6 +1067,44 @@
       });
     });
 
+    const updateOrderSplit = (modal) => {
+      const totalInput = modal.querySelector('[data-total-order-input]');
+      if (!totalInput) return;
+      const total = Math.max(parseInt(totalInput.value, 10) || 0, 0);
+      const rows = Array.from(modal.querySelectorAll('[data-order-qty-input]'));
+      if (!rows.length) return;
+
+      const rawSplits = rows.map((input) => {
+        const share = parseFloat(input.dataset.sizeShare || '0');
+        const rawValue = total * share;
+        const floorValue = Math.floor(rawValue);
+        return {
+          input,
+          rawValue,
+          floorValue,
+          fraction: rawValue - floorValue,
+        };
+      });
+
+      const baseTotal = rawSplits.reduce((sum, row) => sum + row.floorValue, 0);
+      let remainder = total - baseTotal;
+
+      rawSplits
+        .sort((a, b) => b.fraction - a.fraction)
+        .forEach((row) => {
+          const add = remainder > 0 ? 1 : 0;
+          const value = row.floorValue + add;
+          row.input.value = value > 0 ? value : '';
+          remainder = Math.max(remainder - add, 0);
+        });
+    };
+
+    document.querySelectorAll('.product-order-modal').forEach((modal) => {
+      const totalInput = modal.querySelector('[data-total-order-input]');
+      if (!totalInput) return;
+      totalInput.addEventListener('input', () => updateOrderSplit(modal));
+    });
+
     const input = document.getElementById("product-search");
     const resultsRow = document.getElementById("search-results-row");
     const resultsList = document.getElementById("search-results");

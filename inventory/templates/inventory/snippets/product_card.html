@@ -87,6 +87,16 @@
           {% endif %}
         </div>
         <div class="product-order-modal__table">
+          <div class="input-field" style="margin-top: 0;">
+            <input
+              type="number"
+              min="0"
+              class="total-order-input"
+              data-total-order-input
+              placeholder="0"
+            >
+            <label>Total order quantity</label>
+          </div>
           <table class="striped">
             <thead>
               <tr>
@@ -101,7 +111,14 @@
                   <td>{{ variant.size|default:"—" }}</td>
                   <td>{{ variant.variant_code }}</td>
                   <td>
-                    <input type="number" min="0" placeholder="0">
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      data-order-qty-input
+                      data-size="{{ variant.size|default:'' }}"
+                      data-size-share="{{ variant.size_sales_share|default:0 }}"
+                    >
                   </td>
                 </tr>
               {% empty %}
