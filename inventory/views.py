@@ -23,7 +23,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404, redirect
-from django.db import models
+from django.db import models, transaction
 from django.db.models import (
     Count,
     F,
@@ -3020,6 +3020,70 @@ def order_list(request):
     filter_context = _build_product_list_context(request)
     filter_ui_context = _build_filter_controls_context(filter_context)
     filtered_products = filter_context.get("products", [])
+    pending_order_lookup = {}
+    if filtered_products:
+        pending_items = (
+            OrderItem.objects.filter(
+                product_variant__product__in=filtered_products,
+                date_arrived__isnull=True,
+            )
+            .select_related("product_variant", "order")
+            .order_by("-date_expected")
+        )
+        grouped_pending = defaultdict(dict)
+        for item in pending_items:
+            product_id = item.product_variant.product_id
+            order_id = item.order_id
+            key = order_id if order_id is not None else "unassigned"
+            group = grouped_pending[product_id].setdefault(
+                key,
+                {
+                    "order_id": order_id,
+                    "order_date": item.order.order_date if item.order_id else None,
+                    "expected_date": item.date_expected,
+                    "item_cost_price": item.item_cost_price,
+                    "total_quantity": 0,
+                    "variant_quantities": defaultdict(int),
+                    "latest_reference_date": item.order.order_date
+                    if item.order_id
+                    else item.date_expected,
+                },
+            )
+            if item.date_expected > group["expected_date"]:
+                group["expected_date"] = item.date_expected
+            reference_date = item.order.order_date if item.order_id else item.date_expected
+            if reference_date and reference_date > group["latest_reference_date"]:
+                group["latest_reference_date"] = reference_date
+            group["item_cost_price"] = group["item_cost_price"] or item.item_cost_price
+            group["total_quantity"] += item.quantity
+            group["variant_quantities"][item.product_variant_id] += item.quantity
+
+        for product_id, groups in grouped_pending.items():
+            pending_order = None
+            for group in groups.values():
+                if pending_order is None or group["latest_reference_date"] > pending_order["latest_reference_date"]:
+                    pending_order = group
+            if pending_order:
+                pending_order_lookup[product_id] = {
+                    "order_id": pending_order["order_id"],
+                    "expected_date": pending_order["expected_date"],
+                    "item_cost_price": pending_order["item_cost_price"],
+                    "total_quantity": pending_order["total_quantity"],
+                    "variant_quantities": dict(pending_order["variant_quantities"]),
+                    "unassigned": pending_order["order_id"] is None,
+                }
+
+    for product in filtered_products:
+        pending_order = pending_order_lookup.get(product.id)
+        product.pending_order = pending_order
+        if pending_order and getattr(product, "variants_with_inventory", None):
+            for variant in product.variants_with_inventory:
+                variant.pending_order_qty = pending_order["variant_quantities"].get(
+                    variant.id, 0
+                )
+        elif getattr(product, "variants_with_inventory", None):
+            for variant in product.variants_with_inventory:
+                variant.pending_order_qty = 0
     filtered_stock_current = sum(
         getattr(product, "total_inventory", 0) for product in filtered_products
     )
@@ -3246,6 +3310,80 @@ def order_item_create(request):
 
     if not created:
         return HttpResponseBadRequest("No quantities provided.")
+
+    return redirect("order_list")
+
+
+@require_POST
+def order_item_update(request):
+    item_cost = request.POST.get("item_cost_price")
+    date_expected = request.POST.get("date_expected")
+    product_id = request.POST.get("product_id")
+    pending_order_id = request.POST.get("pending_order_id")
+    pending_unassigned = request.POST.get("pending_order_unassigned")
+    if not item_cost or not date_expected or not product_id:
+        return HttpResponseBadRequest("Missing cost, expected date, or product.")
+
+    try:
+        item_cost_price = Decimal(item_cost)
+    except (TypeError, ValueError):
+        return HttpResponseBadRequest("Invalid cost.")
+
+    try:
+        expected_date = date.fromisoformat(date_expected)
+    except ValueError:
+        return HttpResponseBadRequest("Invalid expected date.")
+
+    try:
+        product_id_int = int(product_id)
+    except (TypeError, ValueError):
+        return HttpResponseBadRequest("Invalid product.")
+
+    if pending_order_id:
+        try:
+            order_id = int(pending_order_id)
+        except (TypeError, ValueError):
+            return HttpResponseBadRequest("Invalid order.")
+    elif pending_unassigned:
+        order_id = None
+    else:
+        return HttpResponseBadRequest("Missing pending order reference.")
+
+    quantities = []
+    for key, value in request.POST.items():
+        if not key.startswith("variant_"):
+            continue
+        variant_id = key.split("_", 1)[1]
+        try:
+            quantity = int(value)
+        except (TypeError, ValueError):
+            continue
+        if quantity <= 0:
+            continue
+        quantities.append((variant_id, quantity))
+
+    if not quantities:
+        return HttpResponseBadRequest("No quantities provided.")
+
+    pending_items = OrderItem.objects.filter(
+        product_variant__product_id=product_id_int,
+        date_arrived__isnull=True,
+    )
+    if order_id is None:
+        pending_items = pending_items.filter(order__isnull=True)
+    else:
+        pending_items = pending_items.filter(order_id=order_id)
+
+    with transaction.atomic():
+        pending_items.delete()
+        for variant_id, quantity in quantities:
+            OrderItem.objects.create(
+                product_variant_id=variant_id,
+                quantity=quantity,
+                item_cost_price=item_cost_price,
+                date_expected=expected_date,
+                order_id=order_id,
+            )
 
     return redirect("order_list")
 
