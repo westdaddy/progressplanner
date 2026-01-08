@@ -407,20 +407,18 @@ def calculate_size_order_mix(
 WEEKS_PER_MONTH = 365.25 / 12 / 7
 
 
-def calculate_variant_sales_speed(
+def calculate_variant_sales_speed_details(
     variant: ProductVariant,
     *,
     weeks: int = 26,
     today: Optional[date] = None,
     fallback_weeks: int = 52,
-) -> float:
-    """Return the average monthly sales speed of ``variant``.
+) -> dict:
+    """Return detailed sales speed info for ``variant``.
 
-    The speed is calculated using weekly periods for accuracy. Weeks where the
-    variant had no stock are ignored. ``weeks`` defaults to 26 (roughly six
-    months). If no sales are found within ``weeks`` and ``fallback_weeks`` is
-    greater, the window is automatically expanded up to ``fallback_weeks``.
-    The returned value is expressed in units sold per month.
+    Weeks where the variant had no stock are ignored. Returns a dict with
+    ``speed`` (units per month), ``total_sold`` across counted periods, and
+    ``periods`` (weeks) that contributed to the calculation.
     """
 
     today = today or date.today()
@@ -429,7 +427,7 @@ def calculate_variant_sales_speed(
 
     week_start_today = today - timedelta(days=today.weekday())
 
-    def _speed_for_window(window_weeks: int) -> float:
+    def _speed_for_window(window_weeks: int) -> dict:
         start_week = week_start_today - timedelta(weeks=window_weeks - 1)
         week_starts = [start_week + timedelta(weeks=i) for i in range(window_weeks)]
 
@@ -478,15 +476,84 @@ def calculate_variant_sales_speed(
                 total += sold
 
         if periods == 0:
-            return 0.0
+            return {"speed": 0.0, "total_sold": 0, "periods": 0}
 
         avg_weekly = total / periods
-        return avg_weekly * WEEKS_PER_MONTH
+        return {
+            "speed": avg_weekly * WEEKS_PER_MONTH,
+            "total_sold": total,
+            "periods": periods,
+        }
 
-    speed = _speed_for_window(weeks)
-    if speed == 0.0 and fallback_weeks and fallback_weeks > weeks:
-        speed = _speed_for_window(fallback_weeks)
-    return speed
+    result = _speed_for_window(weeks)
+    if result["speed"] == 0.0 and fallback_weeks and fallback_weeks > weeks:
+        result = _speed_for_window(fallback_weeks)
+    return result
+
+
+def calculate_variant_sales_speed(
+    variant: ProductVariant,
+    *,
+    weeks: int = 26,
+    today: Optional[date] = None,
+    fallback_weeks: int = 52,
+) -> float:
+    """Return the average monthly sales speed of ``variant``.
+
+    The speed is calculated using weekly periods for accuracy. Weeks where the
+    variant had no stock are ignored. ``weeks`` defaults to 26 (roughly six
+    months). If no sales are found within ``weeks`` and ``fallback_weeks`` is
+    greater, the window is automatically expanded up to ``fallback_weeks``.
+    The returned value is expressed in units sold per month.
+    """
+
+    return calculate_variant_sales_speed_details(
+        variant, weeks=weeks, today=today, fallback_weeks=fallback_weeks
+    )["speed"]
+
+
+def calculate_sales_speed_for_variants(
+    variants,
+    *,
+    weeks: int = 26,
+    today: Optional[date] = None,
+    weight: str = "sales",
+) -> float:
+    """Return a unified sales speed for a group of variants.
+
+    ``weight`` controls aggregation:
+      - "sales": weight by total units sold while in stock (default).
+      - "equal": simple mean of variant speeds.
+    """
+
+    today = today or date.today()
+    details = []
+    for variant in variants:
+        detail = calculate_variant_sales_speed_details(
+            variant, weeks=weeks, today=today
+        )
+        details.append(detail)
+
+    if not details:
+        return 0.0
+
+    if weight == "equal":
+        speeds = [d["speed"] for d in details]
+        return sum(speeds) / len(speeds) if speeds else 0.0
+
+    weighted_total = 0.0
+    weight_sum = 0.0
+    for detail in details:
+        weight_value = detail["total_sold"]
+        if weight_value:
+            weighted_total += detail["speed"] * weight_value
+            weight_sum += weight_value
+
+    if weight_sum > 0:
+        return weighted_total / weight_sum
+
+    speeds = [d["speed"] for d in details]
+    return sum(speeds) / len(speeds) if speeds else 0.0
 
 
 def get_variant_speed_map(variants, *, weeks=26, today=None):
