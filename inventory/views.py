@@ -2854,6 +2854,21 @@ def product_detail(request, product_id):
 
 
 def order_list(request):
+    search_query = request.GET.get("product_search", "").strip()
+    selected_product_id = request.GET.get("product")
+    matching_products = []
+    selected_product = None
+    if search_query:
+        matching_products = list(
+            Product.objects.filter(
+                Q(product_id__icontains=search_query)
+                | Q(product_name__icontains=search_query)
+            )
+            .order_by("product_name")[:10]
+        )
+    if selected_product_id:
+        selected_product = Product.objects.filter(id=selected_product_id).first()
+
     # Fetch orders and prefetch related items for efficiency
     orders = (
         Order.objects.all()
@@ -2903,6 +2918,9 @@ def order_list(request):
     context = {
         "orders": orders,
         "calendar_data": calendar_data,
+        "matching_products": matching_products,
+        "selected_product": selected_product,
+        "search_query": search_query,
     }
     return render(request, "inventory/order_list.html", context)
 

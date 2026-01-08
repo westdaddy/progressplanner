@@ -1,0 +1,65 @@
+<div class="row">
+  <div class="col s12">
+    <div class="card-panel">
+      <div class="row item">
+        <div class="col s12 content">
+          <div class="row title">
+            <div class="col s12">
+              <span class="title">
+                <strong>{{ product.product_name }}</strong>
+              </span>
+              ({{ product.product_id }})
+            </div>
+          </div>
+          <div class="row scorecard-boxes">
+            <div class="col s12 m6 l2 photo">
+              {% if product.product_photo %}
+                <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" class="circle product-photo-large">
+              {% else %}
+                <img src="{{ MEDIA_URL }}product_photos/product-placeholder.jpg" alt="{{ product.product_name }}" class="circle product-photo-large">
+              {% endif %}
+            </div>
+            <div class="col s12 m6 l10">
+              <div class="card-panel scorecard-box">
+                <div class="metric">
+                  <small class="grey-text">Retail Price</small>
+                  <p class="metric-value">
+                    {% if product.retail_price is not None %}
+                      ¥{{ product.retail_price|floatformat:0 }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </p>
+                </div>
+                <div class="metric">
+                  <small class="grey-text">Type</small>
+                  <p class="metric-value">
+                    {{ product.get_type_display|default:"-" }}
+                  </p>
+                </div>
+                <div class="metric">
+                  <small class="grey-text">Subtype</small>
+                  <p class="metric-value">
+                    {{ product.get_subtype_display|default:"-" }}
+                  </p>
+                </div>
+                <div class="metric">
+                  <small class="grey-text">Style</small>
+                  <p class="metric-value">
+                    {{ product.get_style_display|default:"-" }}
+                  </p>
+                </div>
+                <div class="metric">
+                  <small class="grey-text">Age Group</small>
+                  <p class="metric-value">
+                    {{ product.get_age_display|default:"-" }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

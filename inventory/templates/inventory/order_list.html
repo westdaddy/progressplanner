@@ -7,6 +7,54 @@
 
 
 <div class="section">
+  <h3>Suggested Order Planner</h3>
+
+  <div class="row">
+    <form class="col s12" method="get">
+      <div class="input-field col s12 m8">
+        <input id="product-search" name="product_search" type="text" value="{{ search_query }}">
+        <label for="product-search">Search by product code or name</label>
+      </div>
+      <div class="input-field col s12 m4">
+        <button class="btn waves-effect waves-light" type="submit">Search</button>
+      </div>
+    </form>
+  </div>
+
+  {% if search_query %}
+    <div class="row">
+      <div class="col s12">
+        <ul class="collection">
+          {% for product in matching_products %}
+            <li class="collection-item">
+              <a href="{% url 'order_list' %}?product={{ product.id }}&product_search={{ search_query|urlencode }}">
+                {{ product.product_name }} ({{ product.product_id }})
+              </a>
+            </li>
+          {% empty %}
+            <li class="collection-item grey-text">No matching products found.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if selected_product %}
+    {% include 'inventory/snippets/product_card.html' with product=selected_product %}
+    <div class="row">
+      <div class="col s12">
+        <div class="card-panel">
+          <h5>Suggested Order Analysis</h5>
+          <p class="grey-text">Suggested order sizes, confidence, and reorder timing will appear here.</p>
+          <ul class="collection">
+            <li class="collection-item">Recommended order quantity: —</li>
+            <li class="collection-item">Confidence score: —</li>
+            <li class="collection-item">Notes: —</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  {% endif %}
 
   <h3>Stock Orders</h3>
 
