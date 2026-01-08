@@ -1074,6 +1074,12 @@
       const rows = Array.from(modal.querySelectorAll('[data-order-qty-input]'));
       if (!rows.length) return;
 
+      const totalShare = rows.reduce(
+        (sum, input) => sum + parseFloat(input.dataset.sizeShare || '0'),
+        0
+      );
+      if (totalShare <= 0) return;
+
       const rawSplits = rows.map((input) => {
         const share = parseFloat(input.dataset.sizeShare || '0');
         const rawValue = total * share;

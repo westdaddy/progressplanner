@@ -382,13 +382,17 @@ class OrderItem(models.Model):
     )
     order = models.ForeignKey(
         Order,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name="order_items",
         verbose_name="Related Order",
+        blank=True,
+        null=True,
     )
 
     def __str__(self):
-        return f"{self.quantity} x {self.product_variant} (Order {self.order.id})"
+        if self.order_id:
+            return f"{self.quantity} x {self.product_variant} (Order {self.order.id})"
+        return f"{self.quantity} x {self.product_variant} (Unassigned)"
 
 class RestockSetting(models.Model):
     """Configuration of groups considered for restock checks."""

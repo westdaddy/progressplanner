@@ -45,7 +45,7 @@ from django.db.models import (
     Max,
 )
 from django.db.models.functions import Coalesce
-from django.http import Http404, HttpResponse, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse, HttpResponseBadRequest
 from django.db.models.functions import TruncMonth
 from django.urls import reverse
 from django.utils.http import http_date
@@ -3182,6 +3182,49 @@ def order_list(request):
         "stock_status_items": stock_status_items,
     }
     return render(request, "inventory/order_list.html", context)
+
+
+@require_POST
+def order_item_create(request):
+    item_cost = request.POST.get("item_cost_price")
+    date_expected = request.POST.get("date_expected")
+    if not item_cost or not date_expected:
+        return HttpResponseBadRequest("Missing cost or expected date.")
+
+    try:
+        item_cost_price = Decimal(item_cost)
+    except (TypeError, ValueError):
+        return HttpResponseBadRequest("Invalid cost.")
+
+    try:
+        expected_date = date.fromisoformat(date_expected)
+    except ValueError:
+        return HttpResponseBadRequest("Invalid expected date.")
+
+    created = False
+    for key, value in request.POST.items():
+        if not key.startswith("variant_"):
+            continue
+        variant_id = key.split("_", 1)[1]
+        try:
+            quantity = int(value)
+        except (TypeError, ValueError):
+            continue
+        if quantity <= 0:
+            continue
+        OrderItem.objects.create(
+            product_variant_id=variant_id,
+            quantity=quantity,
+            item_cost_price=item_cost_price,
+            date_expected=expected_date,
+            order=None,
+        )
+        created = True
+
+    if not created:
+        return HttpResponseBadRequest("No quantities provided.")
+
+    return redirect("order_list")
 
 
 @require_GET
