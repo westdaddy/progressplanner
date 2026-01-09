@@ -92,8 +92,8 @@ from .utils import (
     compute_product_health,
     get_low_stock_products,
     calculate_sales_speed,
-    calculate_sell_through_projection,
     calculate_variant_sales_speed,
+    calculate_months_to_stockout,
     CORE_SIZES,
     get_variant_speed_map,
     get_category_speed_stats,
@@ -642,9 +642,11 @@ def _compute_product_metrics(
         gift_units += v.sales.filter(sold_value__lte=0).aggregate(
             total=Coalesce(Sum("sold_quantity"), 0)
         )["total"]
-        sales_12 += v.sales.filter(date__gte=last_12_months).aggregate(
-            total=Coalesce(Sum("sold_quantity"), 0)
-        )["total"]
+        sales_12_agg = v.sales.filter(date__gte=last_12_months).aggregate(
+            sold=Coalesce(Sum("sold_quantity"), 0),
+            returned=Coalesce(Sum("return_quantity"), 0),
+        )
+        sales_12 += (sales_12_agg["sold"] or 0) - (sales_12_agg["returned"] or 0)
         sales_30 += v.sales.filter(date__gte=last_30_days).aggregate(
             total=Coalesce(Sum("sold_quantity"), 0)
         )["total"]
@@ -986,6 +988,20 @@ def _build_product_list_context(request, preset_filters=None):
     # Default ordering: by product ID (e.g. PG001, PG002, ...)
     products.sort(key=lambda p: p.product_id)
 
+    pending_variant_totals: dict[int, int] = {}
+    if products:
+        pending_rows = (
+            OrderItem.objects.filter(
+                product_variant__product__in=products,
+                date_arrived__isnull=True,
+            )
+            .values("product_variant_id")
+            .annotate(total=Coalesce(Sum("quantity"), 0))
+        )
+        pending_variant_totals = {
+            row["product_variant_id"]: row["total"] or 0 for row in pending_rows
+        }
+
     # ─── Compute per‐product stats ───────────────────────────────────────────────
     SIZE_ORDER = {
         code: idx for idx, (code, _) in enumerate(ProductVariant.SIZE_CHOICES)
@@ -1132,13 +1148,14 @@ def _build_product_list_context(request, preset_filters=None):
     }
 
     for product in products:
-        # Months to sell out based on the recent sales speed
-        projection = calculate_sell_through_projection(
-            product.variants_with_inventory, months=12, weeks=26, today=today
+        # Months to sell out based on unified sales speed
+        months_to_sell_out = calculate_months_to_stockout(
+            product.variants_with_inventory,
+            on_order_by_variant=pending_variant_totals,
+            annual_sales=Decimal(product.sales_last_12_months or 0),
+            weeks=26,
+            today=today,
         )
-        months_to_sell_out = projection["months_to_sell_out"]
-        if months_to_sell_out is not None and months_to_sell_out < 0:
-            months_to_sell_out = None
         if months_to_sell_out is not None:
             product.projected_sell_out_date = today + relativedelta(
                 months=int(math.ceil(float(months_to_sell_out)))
@@ -3219,9 +3236,11 @@ def order_list(request):
         is_one_and_done = "oneanddone" in normalized_groups
         is_core_group = any("core" in group for group in normalized_groups)
         is_mid_group = any("midrange" in group for group in normalized_groups)
+        is_no_restock = getattr(product, "no_restock", False)
+        is_core = bool(product.restock_time and product.restock_time > 0 and not is_no_restock)
         if is_one_and_done:
             continue
-        if not (is_core_group or is_mid_group):
+        if not (is_core_group or is_mid_group or is_core):
             continue
 
         variants = getattr(product, "variants_with_inventory", None) or list(
@@ -3246,12 +3265,15 @@ def order_list(request):
             )
 
         on_order_total = pending_product_totals.get(product.id, 0)
-        sales_speed = Decimal(str(product.sales_speed_6_months or 0))
         months_remaining = None
-        if sales_speed > 0:
-            months_remaining = _format_months(
-                (Decimal(total_stock + on_order_total) / sales_speed)
-            )
+        months_remaining = calculate_months_to_stockout(
+            variants,
+            on_order_by_variant=pending_variant_totals,
+            annual_sales=Decimal(product.sales_last_12_months or 0),
+            weeks=26,
+            today=today,
+        )
+        months_remaining = _format_months(months_remaining)
 
         status = "SAFE"
         if months_remaining is None:
@@ -3477,10 +3499,23 @@ def order_list(request):
             return "No data"
         return status.title()
 
-    if filtered_sell_through_rate:
-        stock_coverage_months = (
-            Decimal(filtered_stock_current) / filtered_sell_through_rate
-        ).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
+    if filtered_products:
+        filtered_variants = [
+            variant
+            for product in filtered_products
+            for variant in getattr(product, "variants_with_inventory", [])
+        ]
+        stock_coverage_months = calculate_months_to_stockout(
+            filtered_variants,
+            on_order_by_variant=pending_variant_totals,
+            annual_sales=Decimal(filtered_sales_last_year or 0),
+            weeks=26,
+            today=today,
+        )
+        if stock_coverage_months is not None:
+            stock_coverage_months = stock_coverage_months.quantize(
+                Decimal("0.1"), rounding=ROUND_HALF_UP
+            )
     else:
         stock_coverage_months = None
 
@@ -3533,6 +3568,9 @@ def order_list(request):
     inventory_by_style = defaultdict(int)
     inventory_by_type = defaultdict(int)
     inventory_by_subtype = defaultdict(int)
+    variants_by_style: dict[str, list[ProductVariant]] = defaultdict(list)
+    variants_by_type: dict[str, list[ProductVariant]] = defaultdict(list)
+    variants_by_subtype: dict[str, list[ProductVariant]] = defaultdict(list)
     for product in filtered_products:
         stock_units = getattr(product, "total_inventory", 0) or 0
         if product.style:
@@ -3541,6 +3579,13 @@ def order_list(request):
             inventory_by_type[product.type] += stock_units
         if product.subtype:
             inventory_by_subtype[product.subtype] += stock_units
+        for variant in getattr(product, "variants_with_inventory", []):
+            if product.style:
+                variants_by_style[product.style].append(variant)
+            if product.type:
+                variants_by_type[product.type].append(variant)
+            if product.subtype:
+                variants_by_subtype[product.subtype].append(variant)
 
     sales_by_style = defaultdict(int)
     sales_by_type = defaultdict(int)
@@ -3570,18 +3615,20 @@ def order_list(request):
             subtype_code = row["variant__product__subtype"]
             sales_by_subtype[subtype_code] += row["sold"] - row["returned"]
 
-    def _coverage_months(stock_units: int, sales_units: int) -> Optional[Decimal]:
-        if not sales_units:
-            return None
-        monthly_rate = Decimal(sales_units) / Decimal("12")
-        if monthly_rate <= 0:
-            return None
-        return (Decimal(stock_units) / monthly_rate).quantize(
-            Decimal("0.1"), rounding=ROUND_HALF_UP
+    def _build_stock_entry(
+        label: str,
+        variants: list[ProductVariant],
+        annual_sales: int,
+    ) -> dict[str, Any]:
+        coverage = calculate_months_to_stockout(
+            variants,
+            on_order_by_variant=pending_variant_totals,
+            annual_sales=Decimal(annual_sales),
+            weeks=26,
+            today=today,
         )
-
-    def _build_stock_entry(label: str, stock_units: int, sales_units: int) -> dict[str, Any]:
-        coverage = _coverage_months(stock_units, sales_units)
+        if coverage is not None:
+            coverage = coverage.quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
         status = _stock_status_label(coverage)
         return {
             "label": label,
@@ -3599,7 +3646,7 @@ def order_list(request):
         type_label = type_label_map.get(type_code, type_code)
         type_entry = _build_stock_entry(
             type_label,
-            inventory_by_type.get(type_code, 0),
+            variants_by_type.get(type_code, []),
             sales_by_type.get(type_code, 0),
         )
         subtype_entries = []
@@ -3607,7 +3654,7 @@ def order_list(request):
             subtype_entries.append(
                 _build_stock_entry(
                     subtype_label,
-                    inventory_by_subtype.get(subtype_code, 0),
+                    variants_by_subtype.get(subtype_code, []),
                     sales_by_subtype.get(subtype_code, 0),
                 )
             )
@@ -3619,7 +3666,7 @@ def order_list(request):
         for type_code, type_label in get_type_choices_for_styles([style_code]):
             type_entry = _build_stock_entry(
                 type_label,
-                inventory_by_type.get(type_code, 0),
+                variants_by_type.get(type_code, []),
                 sales_by_type.get(type_code, 0),
             )
             subtype_entries = []
@@ -3627,7 +3674,7 @@ def order_list(request):
                 subtype_entries.append(
                     _build_stock_entry(
                         subtype_label,
-                        inventory_by_subtype.get(subtype_code, 0),
+                        variants_by_subtype.get(subtype_code, []),
                         sales_by_subtype.get(subtype_code, 0),
                     )
                 )
@@ -3639,7 +3686,7 @@ def order_list(request):
         for style_code, style_label in PRODUCT_STYLE_CHOICES:
             style_entry = _build_stock_entry(
                 style_label,
-                inventory_by_style.get(style_code, 0),
+                variants_by_style.get(style_code, []),
                 sales_by_style.get(style_code, 0),
             )
             type_entries = []
@@ -3647,7 +3694,7 @@ def order_list(request):
                 type_entries.append(
                     _build_stock_entry(
                         type_label,
-                        inventory_by_type.get(type_code, 0),
+                        variants_by_type.get(type_code, []),
                         sales_by_type.get(type_code, 0),
                     )
                 )
