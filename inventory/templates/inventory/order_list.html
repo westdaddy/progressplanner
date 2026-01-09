@@ -247,46 +247,8 @@
 
   <div class="filter-divider"></div>
 
-  <!-- SEARCH BAR -->
-  <div class="row">
-    <form class="col s12" method="get">
-      {% for value in style_filters %}
-        <input type="hidden" name="style_filter" value="{{ value }}">
-      {% endfor %}
-      {% for value in type_filters %}
-        <input type="hidden" name="type_filter" value="{{ value }}">
-      {% endfor %}
-      {% for value in subtype_filters %}
-        <input type="hidden" name="subtype_filter" value="{{ value }}">
-      {% endfor %}
-      {% for value in age_filters %}
-        <input type="hidden" name="age_filter" value="{{ value }}">
-      {% endfor %}
-      {% for value in group_filters %}
-        <input type="hidden" name="group_filter" value="{{ value }}">
-      {% endfor %}
-      {% for value in series_filters %}
-        <input type="hidden" name="series_filter" value="{{ value }}">
-      {% endfor %}
-      <div class="input-field col s12 m8">
-        <input id="product-search" name="product_search" type="text" value="{{ search_query }}">
-        <label for="product-search">Search by product code or name</label>
-      </div>
-    </form>
-  </div>
-
-  <div class="row" id="search-results-row" style="display: none;">
-    <div class="col s12 m8">
-      <ul class="collection" id="search-results"></ul>
-    </div>
-  </div>
-
-
   <!-- FILTERS BAR -->
     <form method="get" class="filter-bar__form">
-      {% if search_query %}
-        <input type="hidden" name="product_search" value="{{ search_query }}">
-      {% endif %}
       {% if selected_product %}
         <input type="hidden" name="product" value="{{ selected_product.id }}">
       {% endif %}
@@ -456,20 +418,33 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
                     <strong>Stock position</strong>
                     <span class="teal-text text-darken-2 right-align">
-                      {% if stock_status_label == "on target" %}
-                        On target
+                      {% if stock_status_label == "no data" %}
+                        No data
+                      {% elif stock_status_label == "priority low" %}
+                        Priority low
                       {% else %}
                         {{ stock_status_label|capfirst }}
-                        by
-                        {% if stock_status_percent is not None %}{{ stock_status_percent }}%{% else %}—{% endif %}
-                        /
-                        {{ stock_status_items }}
-                        items
+                      {% endif %}
+                      {% if stock_coverage_months is not None %}
+                        ({{ stock_coverage_months }} months)
                       {% endif %}
                     </span>
                 </div>
-                <p class="grey-text text-darken-1" style="margin: 4px 0 0;">Compared to last 12 months of demand.</p>
+                <p class="grey-text text-darken-1" style="margin: 4px 0 0;">Based on the last 12 months of demand.</p>
               </li>
+              {% if reorder_recommendation %}
+                <li class="collection-item" style="border-left: 3px solid #26a69a;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                    <strong>Reorder suggestion</strong>
+                    <span class="teal-text text-darken-2 right-align">
+                      {{ reorder_recommendation.restock_lead_months }} mo lead
+                    </span>
+                  </div>
+                  <p class="grey-text text-darken-1" style="margin: 4px 0 0;">
+                    {{ reorder_recommendation.message }}
+                  </p>
+                </li>
+              {% endif %}
           </ul>
         </div>
       </div>
@@ -491,6 +466,47 @@
 
 
   <!-- END STOCK POSITION -->
+
+  {% if stock_position_cards %}
+    <div class="row">
+      {% for card in stock_position_cards %}
+        <div class="col s12 m4">
+          <div class="card-panel">
+            <h6 class="grey-text text-darken-1" style="margin-top: 0;">
+              {% if card.parent_label %}
+                {{ card.parent_label }} · {{ card.label }}
+              {% else %}
+                {{ card.label }}
+              {% endif %}
+            </h6>
+            <p class="teal-text text-darken-2" style="margin: 0 0 8px;">
+              {{ card.status_display }}
+              {% if card.coverage_months is not None %}
+                ({{ card.coverage_months }} months)
+              {% endif %}
+            </p>
+            {% if card.entries %}
+              <ul class="collection" style="margin: 0;">
+                {% for entry in card.entries %}
+                  <li class="collection-item" style="border-left: 3px solid #26a69a;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                      <strong>{{ entry.label }}</strong>
+                      <span class="teal-text text-darken-2 right-align">
+                        {{ entry.status_display }}
+                        {% if entry.coverage_months is not None %}
+                          ({{ entry.coverage_months }} months)
+                        {% endif %}
+                      </span>
+                    </div>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
 
 
   <!-- PRODUCTS LIST -->
@@ -1370,64 +1386,9 @@
       totalInput.addEventListener('input', () => updateOrderSplit(modal));
     });
 
-    const input = document.getElementById("product-search");
-    const resultsRow = document.getElementById("search-results-row");
-    const resultsList = document.getElementById("search-results");
-    let debounceId = null;
-
     document.addEventListener('DOMContentLoaded', function() {
       const elems = document.querySelectorAll('select');
       M.FormSelect.init(elems);
-    });
-
-    const renderResults = (items, query) => {
-      resultsList.innerHTML = "";
-      if (!query) {
-        resultsRow.style.display = "none";
-        return;
-      }
-      if (!items.length) {
-        const emptyItem = document.createElement("li");
-        emptyItem.className = "collection-item grey-text";
-        emptyItem.textContent = "No matching products found.";
-        resultsList.appendChild(emptyItem);
-      } else {
-        items.forEach((product) => {
-          const item = document.createElement("li");
-          item.className = "collection-item";
-          const link = document.createElement("a");
-          const params = new URLSearchParams(window.location.search);
-          params.set("product", product.id);
-          params.set("product_search", query);
-          link.href = "{% url 'order_list' %}?" + params.toString();
-          link.textContent = product.name + " (" + product.code + ")";
-          item.appendChild(link);
-          resultsList.appendChild(item);
-        });
-      }
-      resultsRow.style.display = "block";
-    };
-
-    const fetchResults = async (query) => {
-      const response = await fetch("{% url 'order_product_search' %}?q=" + encodeURIComponent(query));
-      if (!response.ok) {
-        renderResults([], query);
-        return;
-      }
-      const payload = await response.json();
-      renderResults(payload.results || [], query);
-    };
-
-    input.addEventListener("input", () => {
-      const query = input.value.trim();
-      clearTimeout(debounceId);
-      if (!query) {
-        renderResults([], query);
-        return;
-      }
-      debounceId = setTimeout(() => {
-        fetchResults(query);
-      }, 250);
     });
   })();
 </script>

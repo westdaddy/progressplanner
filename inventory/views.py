@@ -91,8 +91,8 @@ from .utils import (
     calculate_dynamic_product_score,
     compute_product_health,
     get_low_stock_products,
-    calculate_variant_sales_speed,
-    calculate_sales_speed_for_variants,
+    calculate_sales_speed,
+    calculate_sell_through_projection,
     get_variant_speed_map,
     get_category_speed_stats,
     build_product_reorder_summary,
@@ -628,6 +628,10 @@ def _compute_product_metrics(
     gift_units = 0
     variant_months_to_sell_out: dict[str, Optional[Decimal]] = {}
 
+    speed_map = get_variant_speed_map(
+        product.variants_with_inventory, weeks=26, today=today
+    )
+
     for v in product.variants_with_inventory:
         total_sales += v.sales.aggregate(total=Coalesce(Sum("sold_quantity"), 0))["total"]
         total_returns += v.sales.aggregate(total=Coalesce(Sum("return_quantity"), 0))["total"]
@@ -648,9 +652,7 @@ def _compute_product_metrics(
         )["total"]
         sales_6 += variant_sales_6
 
-        monthly_rate_6 = (
-            Decimal(variant_sales_6) / Decimal("6") if variant_sales_6 else Decimal("0")
-        )
+        monthly_rate_6 = Decimal(str(speed_map.get(v.id, 0) or 0))
         variant_months_to_sell_out[v.size] = (
             Decimal(v.latest_inventory) / monthly_rate_6 if monthly_rate_6 > 0 else None
         )
@@ -716,14 +718,13 @@ def _compute_product_metrics(
         (today - first_sale).days / Decimal("30") if first_sale else None
     )
 
-    if time_on_market_months and time_on_market_months < Decimal("6"):
-        sales_speed_6_months = (
-            Decimal(total_sales) / time_on_market_months
-            if time_on_market_months > 0
-            else None
+    sales_speed_6_months = Decimal(
+        str(
+            calculate_sales_speed(
+                product.variants_with_inventory, weeks=26, today=today
+            )
         )
-    else:
-        sales_speed_6_months = Decimal(sales_6) / Decimal("6") if sales_6 is not None else None
+    )
 
     last_item = (
         OrderItem.objects.filter(product_variant__product=product)
@@ -925,6 +926,7 @@ def _build_product_list_context(request, preset_filters=None):
 
     zero_inventory = _get_filter("zero_inventory", "false")
     zero_inventory = zero_inventory if isinstance(zero_inventory, bool) else str(zero_inventory).lower() == "true"
+    search_query = request.GET.get("product_search", "").strip()
 
     # ─── Date ranges ────────────────────────────────────────────────────────────
     today = now().date()
@@ -980,6 +982,12 @@ def _build_product_list_context(request, preset_filters=None):
 
     if series_filters:
         products_qs = products_qs.filter(series__id__in=series_filters).distinct()
+
+    if search_query:
+        products_qs = products_qs.filter(
+            Q(product_id__icontains=search_query)
+            | Q(product_name__icontains=search_query)
+        )
 
     products = list(products_qs)
 
@@ -1133,10 +1141,10 @@ def _build_product_list_context(request, preset_filters=None):
 
     for product in products:
         # Months to sell out based on the recent sales speed
-        sales_speed = product.sales_speed_6_months or Decimal("0")
-        months_to_sell_out = (
-            Decimal(product.total_inventory) / sales_speed if sales_speed else None
+        projection = calculate_sell_through_projection(
+            product.variants_with_inventory, months=12, weeks=26, today=today
         )
+        months_to_sell_out = projection["months_to_sell_out"]
         if months_to_sell_out is not None and months_to_sell_out < 0:
             months_to_sell_out = None
         if months_to_sell_out is not None:
@@ -1282,6 +1290,7 @@ def _build_product_list_context(request, preset_filters=None):
         "group_filters": group_filters,
         "series_filters": series_filters,
         "zero_inventory": zero_inventory,
+        "search_query": search_query,
         "type_choices": available_type_choices,
         "subtype_choices": available_subtype_choices,
         "style_choices": PRODUCT_STYLE_CHOICES,
@@ -3022,6 +3031,9 @@ def order_list(request):
     filter_context = _build_product_list_context(request)
     filter_ui_context = _build_filter_controls_context(filter_context)
     filtered_products = filter_context.get("products", [])
+    style_filters = filter_context.get("style_filters", [])
+    type_filters = filter_context.get("type_filters", [])
+    subtype_filters = filter_context.get("subtype_filters", [])
     pending_order_lookup = {}
     if filtered_products:
         pending_items = (
@@ -3152,8 +3164,8 @@ def order_list(request):
     else:
         filtered_sell_through_rate = Decimal("0")
 
+    today = now().date()
     if filtered_products:
-        today = now().date()
         snap_qs = InventorySnapshot.objects.filter(
             date__lte=today, product_variant__product__in=filtered_products
         )
@@ -3216,23 +3228,72 @@ def order_list(request):
         sell_through_actual_data = []
         sell_through_forecast_data = []
 
-    stock_delta = filtered_stock_current - filtered_sales_last_year
-    if stock_delta > 0:
-        stock_status_label = "over"
-    elif stock_delta < 0:
-        stock_status_label = "under"
-    else:
-        stock_status_label = "on target"
+    avg_restock_months = None
+    restock_candidates = [
+        product.restock_time
+        for product in filtered_products
+        if getattr(product, "restock_time", 0)
+    ]
+    if restock_candidates:
+        avg_restock_months = sum(restock_candidates) / len(restock_candidates)
+    restock_lead_months = max(int(math.ceil(avg_restock_months or 3)), 1)
 
+    def _stock_status_label(stock_coverage: Optional[Decimal]) -> str:
+        if stock_coverage is None:
+            return "no data"
+        if stock_coverage >= Decimal("9"):
+            return "overstocked"
+        if stock_coverage >= Decimal("6"):
+            return "on target"
+        if stock_coverage >= Decimal("3"):
+            return "low stock"
+        return "priority low"
+
+    def _stock_status_display(status: str) -> str:
+        if status == "priority low":
+            return "Priority low"
+        if status == "no data":
+            return "No data"
+        return status.title()
+
+    if filtered_sell_through_rate:
+        stock_coverage_months = (
+            Decimal(filtered_stock_current) / filtered_sell_through_rate
+        ).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
+    else:
+        stock_coverage_months = None
+
+    stock_status_label = _stock_status_label(stock_coverage_months)
+    reorder_recommendation = None
     if filtered_sales_last_year:
-        stock_status_percent = round(
-            (abs(stock_delta) / filtered_sales_last_year) * 100, 1
-        )
-    else:
-        stock_status_percent = None
-    stock_status_items = abs(stock_delta)
+        safe_stock_6_months = Decimal(filtered_sales_last_year) / Decimal("2")
+        threshold_date = None
+        for point in sell_through_forecast_data:
+            try:
+                point_date = date.fromisoformat(point["x"])
+            except (TypeError, ValueError):
+                continue
+            if Decimal(point["y"]) <= safe_stock_6_months:
+                threshold_date = point_date
+                break
+        if threshold_date:
+            order_by_date = threshold_date - relativedelta(months=restock_lead_months)
+            if order_by_date <= today:
+                recommendation = (
+                    "Order now to avoid dropping below 6-month stock coverage."
+                )
+            else:
+                recommendation = (
+                    f"Order by {order_by_date.strftime('%b %d, %Y')} to avoid "
+                    "dropping below 6-month stock coverage."
+                )
+            reorder_recommendation = {
+                "message": recommendation,
+                "order_by_date": order_by_date,
+                "threshold_date": threshold_date,
+                "restock_lead_months": restock_lead_months,
+            }
 
-    search_query = request.GET.get("product_search", "").strip()
     selected_product_id = request.GET.get("product")
     selected_product = None
     variant_stock_rows = []
@@ -3284,6 +3345,144 @@ def order_list(request):
                 selected_product.reorder_summary = build_product_reorder_summary(
                     selected_product, today=today
                 )
+
+    style_label_map = dict(PRODUCT_STYLE_CHOICES)
+    type_label_map = dict(PRODUCT_TYPE_CHOICES)
+
+    inventory_by_style = defaultdict(int)
+    inventory_by_type = defaultdict(int)
+    inventory_by_subtype = defaultdict(int)
+    for product in filtered_products:
+        stock_units = getattr(product, "total_inventory", 0) or 0
+        if product.style:
+            inventory_by_style[product.style] += stock_units
+        if product.type:
+            inventory_by_type[product.type] += stock_units
+        if product.subtype:
+            inventory_by_subtype[product.subtype] += stock_units
+
+    sales_by_style = defaultdict(int)
+    sales_by_type = defaultdict(int)
+    sales_by_subtype = defaultdict(int)
+    if filtered_products:
+        sales_qs = Sale.objects.filter(
+            date__gte=last_year_start, variant__product__in=filtered_products
+        )
+        for row in sales_qs.values("variant__product__style").annotate(
+            sold=Coalesce(Sum("sold_quantity"), 0),
+            returned=Coalesce(Sum("return_quantity"), 0),
+        ):
+            style_code = row["variant__product__style"]
+            sales_by_style[style_code] += row["sold"] - row["returned"]
+
+        for row in sales_qs.values("variant__product__type").annotate(
+            sold=Coalesce(Sum("sold_quantity"), 0),
+            returned=Coalesce(Sum("return_quantity"), 0),
+        ):
+            type_code = row["variant__product__type"]
+            sales_by_type[type_code] += row["sold"] - row["returned"]
+
+        for row in sales_qs.values("variant__product__subtype").annotate(
+            sold=Coalesce(Sum("sold_quantity"), 0),
+            returned=Coalesce(Sum("return_quantity"), 0),
+        ):
+            subtype_code = row["variant__product__subtype"]
+            sales_by_subtype[subtype_code] += row["sold"] - row["returned"]
+
+    def _coverage_months(stock_units: int, sales_units: int) -> Optional[Decimal]:
+        if not sales_units:
+            return None
+        monthly_rate = Decimal(sales_units) / Decimal("12")
+        if monthly_rate <= 0:
+            return None
+        return (Decimal(stock_units) / monthly_rate).quantize(
+            Decimal("0.1"), rounding=ROUND_HALF_UP
+        )
+
+    def _build_stock_entry(label: str, stock_units: int, sales_units: int) -> dict[str, Any]:
+        coverage = _coverage_months(stock_units, sales_units)
+        status = _stock_status_label(coverage)
+        return {
+            "label": label,
+            "coverage_months": coverage,
+            "status_label": status,
+            "status_display": _stock_status_display(status),
+        }
+
+    stock_position_cards: list[dict[str, Any]] = []
+    show_level_2_as_types = len(style_filters) == 1 and not subtype_filters and not type_filters
+    show_level_2_as_subtypes = len(type_filters) == 1
+
+    if show_level_2_as_subtypes:
+        type_code = type_filters[0]
+        type_label = type_label_map.get(type_code, type_code)
+        type_entry = _build_stock_entry(
+            type_label,
+            inventory_by_type.get(type_code, 0),
+            sales_by_type.get(type_code, 0),
+        )
+        subtype_entries = []
+        for subtype_code, subtype_label in get_subtype_choices_for_types([type_code]):
+            subtype_entries.append(
+                _build_stock_entry(
+                    subtype_label,
+                    inventory_by_subtype.get(subtype_code, 0),
+                    sales_by_subtype.get(subtype_code, 0),
+                )
+            )
+        type_entry["entries"] = subtype_entries
+        stock_position_cards.append(type_entry)
+    elif show_level_2_as_types:
+        style_code = style_filters[0]
+        style_label = style_label_map.get(style_code, style_code)
+        for type_code, type_label in get_type_choices_for_styles([style_code]):
+            type_entry = _build_stock_entry(
+                type_label,
+                inventory_by_type.get(type_code, 0),
+                sales_by_type.get(type_code, 0),
+            )
+            subtype_entries = []
+            for subtype_code, subtype_label in get_subtype_choices_for_types([type_code]):
+                subtype_entries.append(
+                    _build_stock_entry(
+                        subtype_label,
+                        inventory_by_subtype.get(subtype_code, 0),
+                        sales_by_subtype.get(subtype_code, 0),
+                    )
+                )
+            if subtype_entries:
+                type_entry["entries"] = subtype_entries
+            type_entry["parent_label"] = style_label
+            stock_position_cards.append(type_entry)
+    else:
+        for style_code, style_label in PRODUCT_STYLE_CHOICES:
+            style_entry = _build_stock_entry(
+                style_label,
+                inventory_by_style.get(style_code, 0),
+                sales_by_style.get(style_code, 0),
+            )
+            type_entries = []
+            for type_code, type_label in get_type_choices_for_styles([style_code]):
+                type_entries.append(
+                    _build_stock_entry(
+                        type_label,
+                        inventory_by_type.get(type_code, 0),
+                        sales_by_type.get(type_code, 0),
+                    )
+                )
+            if type_entries:
+                style_entry["entries"] = type_entries
+            stock_position_cards.append(style_entry)
+
+    seen_cards: set[tuple[Optional[str], str]] = set()
+    unique_stock_cards: list[dict[str, Any]] = []
+    for card in stock_position_cards:
+        card_key = (card.get("parent_label"), card.get("label"))
+        if card_key in seen_cards:
+            continue
+        seen_cards.add(card_key)
+        unique_stock_cards.append(card)
+    stock_position_cards = unique_stock_cards
 
     # Fetch orders and prefetch related items for efficiency
     orders = (
@@ -3337,7 +3536,6 @@ def order_list(request):
         "orders": orders,
         "calendar_data": calendar_data,
         "selected_product": selected_product,
-        "search_query": search_query,
         "variant_stock_rows": variant_stock_rows,
         "total_current_stock": total_current_stock,
         "filtered_sales_last_year": filtered_sales_last_year,
@@ -3347,8 +3545,9 @@ def order_list(request):
         "sell_through_actual_data": json.dumps(sell_through_actual_data),
         "sell_through_forecast_data": json.dumps(sell_through_forecast_data),
         "stock_status_label": stock_status_label,
-        "stock_status_percent": stock_status_percent,
-        "stock_status_items": stock_status_items,
+        "stock_coverage_months": stock_coverage_months,
+        "stock_position_cards": stock_position_cards,
+        "reorder_recommendation": reorder_recommendation,
     }
     return render(request, "inventory/order_list.html", context)
 

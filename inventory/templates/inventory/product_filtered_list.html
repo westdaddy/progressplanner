@@ -183,7 +183,44 @@
 
   <div class="filter-divider"></div>
 
+  <!-- SEARCH BAR -->
+  <div class="row">
+    <form class="col s12" method="get">
+      {% for value in style_filters %}
+        <input type="hidden" name="style_filter" value="{{ value }}">
+      {% endfor %}
+      {% for value in type_filters %}
+        <input type="hidden" name="type_filter" value="{{ value }}">
+      {% endfor %}
+      {% for value in subtype_filters %}
+        <input type="hidden" name="subtype_filter" value="{{ value }}">
+      {% endfor %}
+      {% for value in age_filters %}
+        <input type="hidden" name="age_filter" value="{{ value }}">
+      {% endfor %}
+      {% for value in group_filters %}
+        <input type="hidden" name="group_filter" value="{{ value }}">
+      {% endfor %}
+      {% for value in series_filters %}
+        <input type="hidden" name="series_filter" value="{{ value }}">
+      {% endfor %}
+      <div class="input-field col s12 m8">
+        <input id="product-search" name="product_search" type="text" value="{{ search_query }}">
+        <label for="product-search">Search by product code or name</label>
+      </div>
+    </form>
+  </div>
+
+  <div class="row" id="search-results-row" style="display: none;">
+    <div class="col s12 m8">
+      <ul class="collection" id="search-results"></ul>
+    </div>
+  </div>
+
     <form method="get" class="filter-bar__form">
+      {% if search_query %}
+        <input type="hidden" name="product_search" value="{{ search_query }}">
+      {% endif %}
       <div class="filter-section-header">
         <div>
           <p class="filter-showing">Showing: {{ showing_summary }}</p>
@@ -1031,6 +1068,66 @@
           });
         });
       });
+
+      const searchInput = document.getElementById('product-search');
+      const resultsRow = document.getElementById('search-results-row');
+      const resultsList = document.getElementById('search-results');
+      let debounceId = null;
+
+      const renderResults = (items, query) => {
+        if (!resultsList || !resultsRow) return;
+        resultsList.innerHTML = '';
+        if (!query) {
+          resultsRow.style.display = 'none';
+          return;
+        }
+        if (!items.length) {
+          const emptyItem = document.createElement('li');
+          emptyItem.className = 'collection-item grey-text';
+          emptyItem.textContent = 'No matching products found.';
+          resultsList.appendChild(emptyItem);
+        } else {
+          items.forEach((product) => {
+            const item = document.createElement('li');
+            item.className = 'collection-item';
+            const link = document.createElement('a');
+            const params = new URLSearchParams(window.location.search);
+            params.set('product_search', query);
+            link.href = "{% url 'product_filtered' %}?" + params.toString();
+            link.textContent = product.name + ' (' + product.code + ')';
+            item.appendChild(link);
+            resultsList.appendChild(item);
+          });
+        }
+        resultsRow.style.display = 'block';
+      };
+
+      const fetchResults = async (query) => {
+        if (!searchInput) return;
+        const response = await fetch(
+          "{% url 'order_product_search' %}?q=" + encodeURIComponent(query)
+        );
+        if (!response.ok) {
+          renderResults([], query);
+          return;
+        }
+        const payload = await response.json();
+        renderResults(payload.results || [], query);
+      };
+
+      if (searchInput) {
+        searchInput.addEventListener('input', () => {
+          const query = searchInput.value.trim();
+          clearTimeout(debounceId);
+          if (!query) {
+            renderResults([], query);
+            return;
+          }
+          debounceId = setTimeout(() => {
+            fetchResults(query);
+          }, 250);
+        });
+      }
 
       const labels = {{ quarterly_labels|safe }};
       const dataPoints = {{ quarterly_sales|safe }};
