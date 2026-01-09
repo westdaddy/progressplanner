@@ -446,19 +446,6 @@
                 </div>
                 <p class="grey-text text-darken-1" style="margin: 4px 0 0;">Based on the last 12 months of demand.</p>
               </li>
-              {% if reorder_recommendation %}
-                <li class="collection-item" style="border-left: 3px solid #26a69a;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                    <strong>Reorder suggestion</strong>
-                    <span class="teal-text text-darken-2 right-align">
-                      {{ reorder_recommendation.restock_lead_months }} mo lead
-                    </span>
-                  </div>
-                  <p class="grey-text text-darken-1" style="margin: 4px 0 0;">
-                    {{ reorder_recommendation.message }}
-                  </p>
-                </li>
-              {% endif %}
           </ul>
         </div>
       </div>
@@ -466,138 +453,30 @@
       <div class="col s12 m6">
         <div class="card-panel">
           <h6 class="grey-text text-darken-1">Recommendations</h6>
+          {% if new_product_recommendations %}
+            <p class="grey-text text-darken-1" style="margin-top: 4px;">
+              New products with no prior orders or sales and no undelivered orders.
+            </p>
+            <ul class="collection" style="margin-top: 12px;">
+              {% for product in new_product_recommendations %}
+                <li class="collection-item">
+                  <strong>{{ product.product_id }}</strong>
+                  <span class="grey-text text-darken-1">
+                    {{ product.product_name }}
+                  </span>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="grey-text text-darken-1" style="margin-top: 4px;">
+              No new product order recommendations right now.
+            </p>
+          {% endif %}
         </div>
       </div>
 
     </div>
   <!-- END STOCK POSITION -->
-
-  {% if stock_position_cards %}
-    <div class="row">
-      {% for card in stock_position_cards %}
-        <div class="col s12 m4">
-          <div class="card-panel">
-            <h6 class="grey-text text-darken-1" style="margin-top: 0;">
-              {% if card.parent_label %}
-                {{ card.parent_label }} · {{ card.label }}
-              {% else %}
-                {{ card.label }}
-              {% endif %}
-            </h6>
-            <p class="teal-text text-darken-2" style="margin: 0 0 8px;">
-              {{ card.status_display }}
-              {% if card.coverage_months is not None %}
-                ({{ card.coverage_months }} months)
-              {% endif %}
-            </p>
-            {% if card.entries %}
-              <ul class="collection" style="margin: 0;">
-                {% for entry in card.entries %}
-                  <li class="collection-item" style="border-left: 3px solid #26a69a;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                      <strong>{{ entry.label }}</strong>
-                      <span class="teal-text text-darken-2 right-align">
-                        {{ entry.status_display }}
-                        {% if entry.coverage_months is not None %}
-                          ({{ entry.coverage_months }} months)
-                        {% endif %}
-                      </span>
-                    </div>
-                  </li>
-                {% endfor %}
-              </ul>
-            {% endif %}
-          </div>
-        </div>
-      {% endfor %}
-    </div>
-  {% endif %}
-
-
-
-
-
-  {% if stock_position_cards %}
-    <div class="row">
-      {% for card in stock_position_cards %}
-        <div class="col s12 m4">
-          <div class="card-panel">
-            <h6 class="grey-text text-darken-1" style="margin-top: 0;">
-              {% if card.parent_label %}
-                {{ card.parent_label }} · {{ card.label }}
-              {% else %}
-                {{ card.label }}
-              {% endif %}
-            </h6>
-            <p class="teal-text text-darken-2" style="margin: 0 0 8px;">
-              {{ card.status_display }}
-              {% if card.coverage_months is not None %}
-                ({{ card.coverage_months }} months)
-              {% endif %}
-            </p>
-            {% if card.entries %}
-              <ul class="collection" style="margin: 0;">
-                {% for entry in card.entries %}
-                  <li class="collection-item" style="border-left: 3px solid #26a69a;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                      <strong>{{ entry.label }}</strong>
-                      <span class="teal-text text-darken-2 right-align">
-                        {{ entry.status_display }}
-                        {% if entry.coverage_months is not None %}
-                          ({{ entry.coverage_months }} months)
-                        {% endif %}
-                      </span>
-                    </div>
-                  </li>
-                {% endfor %}
-              </ul>
-            {% endif %}
-          </div>
-        </div>
-      {% endfor %}
-    </div>
-  {% endif %}
-
-  {% if stock_position_cards %}
-    <div class="row">
-      {% for card in stock_position_cards %}
-        <div class="col s12 m4">
-          <div class="card-panel">
-            <h6 class="grey-text text-darken-1" style="margin-top: 0;">
-              {% if card.parent_label %}
-                {{ card.parent_label }} · {{ card.label }}
-              {% else %}
-                {{ card.label }}
-              {% endif %}
-            </h6>
-            <p class="teal-text text-darken-2" style="margin: 0 0 8px;">
-              {{ card.status_display }}
-              {% if card.coverage_months is not None %}
-                ({{ card.coverage_months }} months)
-              {% endif %}
-            </p>
-            {% if card.entries %}
-              <ul class="collection" style="margin: 0;">
-                {% for entry in card.entries %}
-                  <li class="collection-item" style="border-left: 3px solid #26a69a;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                      <strong>{{ entry.label }}</strong>
-                      <span class="teal-text text-darken-2 right-align">
-                        {{ entry.status_display }}
-                        {% if entry.coverage_months is not None %}
-                          ({{ entry.coverage_months }} months)
-                        {% endif %}
-                      </span>
-                    </div>
-                  </li>
-                {% endfor %}
-              </ul>
-            {% endif %}
-          </div>
-        </div>
-      {% endfor %}
-    </div>
-  {% endif %}
 
   {% if stock_position_cards %}
     <div class="row">
@@ -669,90 +548,6 @@
         <div class="card-panel center-align">
           <h6 class="grey-text text-darken-1">Current stock (matching categories)</h6>
           <div class="flow-text">{{ category_stock_current }}</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col s12">
-        <div class="card-panel">
-          <h5>Suggested Order Analysis</h5>
-          <p class="grey-text">Demand-adjusted reorder plan based on in-stock selling periods and size curve learning.</p>
-          <ul class="collection">
-            <li class="collection-item">
-              <strong>Total current stock:</strong> {{ total_current_stock }}
-            </li>
-            <li class="collection-item">
-              <details>
-                <summary><strong>Variant stock levels</strong></summary>
-                <ul class="collection">
-                  {% for variant in variant_stock_rows %}
-                    <li class="collection-item">
-                      {{ variant.variant_code }}{% if variant.variant_size %} ({{ variant.variant_size }}){% endif %}: {{ variant.stock }}
-                    </li>
-                  {% empty %}
-                    <li class="collection-item grey-text">No variants available.</li>
-                  {% endfor %}
-                </ul>
-              </details>
-            </li>
-            {% if selected_product.reorder_summary %}
-              <li class="collection-item">
-                <strong>Avg monthly demand (12 mo):</strong>
-                {{ selected_product.reorder_summary.speed_12 }}
-                ·
-                <strong>Recent (3 mo):</strong>
-                {{ selected_product.reorder_summary.speed_3 }}
-                {% if selected_product.reorder_summary.momentum_pct is not None %}
-                  <span class="grey-text text-darken-1">
-                    ({{ selected_product.reorder_summary.momentum_label }} {{ selected_product.reorder_summary.momentum_pct }}%)
-                  </span>
-                {% endif %}
-              </li>
-              <li class="collection-item">
-                <strong>Suggested reorder (6 months):</strong>
-                {{ selected_product.reorder_summary.suggested_total }}
-                <span class="grey-text text-darken-1">
-                  (includes {{ selected_product.reorder_summary.on_order_total }} on order)
-                </span>
-              </li>
-              <li class="collection-item">
-                <strong>Confidence:</strong>
-                {{ selected_product.reorder_summary.confidence|capfirst }}
-              </li>
-              <li class="collection-item">
-                <strong>Notes:</strong>
-                <ul class="collection">
-                  {% for reason in selected_product.reorder_summary.confidence_reasons %}
-                    <li class="collection-item">{{ reason }}</li>
-                  {% empty %}
-                    <li class="collection-item grey-text">No additional notes.</li>
-                  {% endfor %}
-                  {% for warning in selected_product.reorder_summary.warnings %}
-                    <li class="collection-item red-text text-darken-1">{{ warning }}</li>
-                  {% endfor %}
-                </ul>
-              </li>
-              <li class="collection-item">
-                <details>
-                  <summary><strong>Learned size curve (similar products)</strong></summary>
-                  <ul class="collection">
-                    {% for size, ratio in selected_product.reorder_summary.size_curve.ratios.items %}
-                      <li class="collection-item">
-                        {{ size|default:"—" }}: {{ ratio|floatformat:2 }}
-                      </li>
-                    {% empty %}
-                      <li class="collection-item grey-text">Not enough history to infer a size curve.</li>
-                    {% endfor %}
-                  </ul>
-                </details>
-              </li>
-            {% else %}
-              <li class="collection-item">Recommended order quantity: —</li>
-              <li class="collection-item">Confidence score: —</li>
-              <li class="collection-item">Notes: —</li>
-            {% endif %}
-          </ul>
         </div>
       </div>
     </div>
