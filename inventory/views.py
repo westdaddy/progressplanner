@@ -3152,6 +3152,70 @@ def order_list(request):
     else:
         filtered_sell_through_rate = Decimal("0")
 
+    if filtered_products:
+        today = now().date()
+        snap_qs = InventorySnapshot.objects.filter(
+            date__lte=today, product_variant__product__in=filtered_products
+        )
+        sale_qs = Sale.objects.filter(
+            date__lte=today, variant__product__in=filtered_products
+        )
+        order_qs = OrderItem.objects.filter(
+            date_arrived__isnull=True, product_variant__product__in=filtered_products
+        )
+
+        snaps = (
+            snap_qs.values("date").annotate(total=Sum("inventory_count")).order_by("date")
+        )
+        sell_through_actual_data = [
+            {"x": row["date"].isoformat(), "y": row["total"]} for row in snaps
+        ]
+
+        if not sell_through_actual_data:
+            last_snapshot_date = today.replace(day=1)
+            last_inventory = 0
+        else:
+            last_snapshot_date = date.fromisoformat(sell_through_actual_data[-1]["x"])
+            last_inventory = sell_through_actual_data[-1]["y"]
+
+        six_mo_ago = today - relativedelta(months=6)
+        total_sold = (
+            sale_qs.filter(date__gte=six_mo_ago).aggregate(total=Sum("sold_quantity"))[
+                "total"
+            ]
+            or 0
+        )
+        avg_monthly = (total_sold / 6) if total_sold else 0
+
+        events = defaultdict(float)
+        dim = calendar.monthrange(last_snapshot_date.year, last_snapshot_date.month)[1]
+        next1 = last_snapshot_date.replace(day=1) + relativedelta(months=1)
+        days_to_n1 = (next1 - last_snapshot_date).days
+        daily_rate = avg_monthly / dim if dim else 0
+        events[next1] += -daily_rate * days_to_n1
+
+        cursor = next1
+        for _ in range(1, 13):
+            cursor = cursor + relativedelta(months=1)
+            mo = cursor.replace(day=1)
+            events[mo] += -avg_monthly
+
+        for oi in order_qs.filter(date_expected__gt=last_snapshot_date):
+            events[oi.date_expected] += oi.quantity
+
+        sell_through_forecast_data = [
+            {"x": last_snapshot_date.isoformat(), "y": round(last_inventory)}
+        ]
+        running = last_inventory
+        for dt in sorted(events):
+            running += events[dt]
+            sell_through_forecast_data.append(
+                {"x": dt.isoformat(), "y": round(max(running, 0))}
+            )
+    else:
+        sell_through_actual_data = []
+        sell_through_forecast_data = []
+
     stock_delta = filtered_stock_current - filtered_sales_last_year
     if stock_delta > 0:
         stock_status_label = "over"
@@ -3280,6 +3344,8 @@ def order_list(request):
         "filtered_stock_current": filtered_stock_current,
         "filtered_on_order": filtered_on_order,
         "filtered_sell_through_rate": filtered_sell_through_rate,
+        "sell_through_actual_data": json.dumps(sell_through_actual_data),
+        "sell_through_forecast_data": json.dumps(sell_through_forecast_data),
         "stock_status_label": stock_status_label,
         "stock_status_percent": stock_status_percent,
         "stock_status_items": stock_status_items,
