@@ -1150,6 +1150,7 @@ def _build_product_list_context(request, preset_filters=None):
         months_to_sell_out = calculate_months_to_stockout(
             product.variants_with_inventory,
             on_order_by_variant=pending_variant_totals,
+            annual_sales=Decimal(product.sales_last_12_months or 0),
             weeks=26,
             today=today,
         )
@@ -3266,6 +3267,7 @@ def order_list(request):
         months_remaining = calculate_months_to_stockout(
             variants,
             on_order_by_variant=pending_variant_totals,
+            annual_sales=Decimal(product.sales_last_12_months or 0),
             weeks=26,
             today=today,
         )
@@ -3504,6 +3506,7 @@ def order_list(request):
         stock_coverage_months = calculate_months_to_stockout(
             filtered_variants,
             on_order_by_variant=pending_variant_totals,
+            annual_sales=Decimal(filtered_sales_last_year or 0),
             weeks=26,
             today=today,
         )
@@ -3563,6 +3566,9 @@ def order_list(request):
     inventory_by_style = defaultdict(int)
     inventory_by_type = defaultdict(int)
     inventory_by_subtype = defaultdict(int)
+    variants_by_style: dict[str, list[ProductVariant]] = defaultdict(list)
+    variants_by_type: dict[str, list[ProductVariant]] = defaultdict(list)
+    variants_by_subtype: dict[str, list[ProductVariant]] = defaultdict(list)
     for product in filtered_products:
         stock_units = getattr(product, "total_inventory", 0) or 0
         if product.style:
@@ -3571,6 +3577,13 @@ def order_list(request):
             inventory_by_type[product.type] += stock_units
         if product.subtype:
             inventory_by_subtype[product.subtype] += stock_units
+        for variant in getattr(product, "variants_with_inventory", []):
+            if product.style:
+                variants_by_style[product.style].append(variant)
+            if product.type:
+                variants_by_type[product.type].append(variant)
+            if product.subtype:
+                variants_by_subtype[product.subtype].append(variant)
 
     sales_by_style = defaultdict(int)
     sales_by_type = defaultdict(int)
@@ -3600,18 +3613,20 @@ def order_list(request):
             subtype_code = row["variant__product__subtype"]
             sales_by_subtype[subtype_code] += row["sold"] - row["returned"]
 
-    def _coverage_months(stock_units: int, sales_units: int) -> Optional[Decimal]:
-        if not sales_units:
-            return None
-        monthly_rate = Decimal(sales_units) / Decimal("12")
-        if monthly_rate <= 0:
-            return None
-        return (Decimal(stock_units) / monthly_rate).quantize(
-            Decimal("0.1"), rounding=ROUND_HALF_UP
+    def _build_stock_entry(
+        label: str,
+        variants: list[ProductVariant],
+        annual_sales: int,
+    ) -> dict[str, Any]:
+        coverage = calculate_months_to_stockout(
+            variants,
+            on_order_by_variant=pending_variant_totals,
+            annual_sales=Decimal(annual_sales),
+            weeks=26,
+            today=today,
         )
-
-    def _build_stock_entry(label: str, stock_units: int, sales_units: int) -> dict[str, Any]:
-        coverage = _coverage_months(stock_units, sales_units)
+        if coverage is not None:
+            coverage = coverage.quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
         status = _stock_status_label(coverage)
         return {
             "label": label,
@@ -3629,7 +3644,7 @@ def order_list(request):
         type_label = type_label_map.get(type_code, type_code)
         type_entry = _build_stock_entry(
             type_label,
-            inventory_by_type.get(type_code, 0),
+            variants_by_type.get(type_code, []),
             sales_by_type.get(type_code, 0),
         )
         subtype_entries = []
@@ -3637,7 +3652,7 @@ def order_list(request):
             subtype_entries.append(
                 _build_stock_entry(
                     subtype_label,
-                    inventory_by_subtype.get(subtype_code, 0),
+                    variants_by_subtype.get(subtype_code, []),
                     sales_by_subtype.get(subtype_code, 0),
                 )
             )
@@ -3649,7 +3664,7 @@ def order_list(request):
         for type_code, type_label in get_type_choices_for_styles([style_code]):
             type_entry = _build_stock_entry(
                 type_label,
-                inventory_by_type.get(type_code, 0),
+                variants_by_type.get(type_code, []),
                 sales_by_type.get(type_code, 0),
             )
             subtype_entries = []
@@ -3657,7 +3672,7 @@ def order_list(request):
                 subtype_entries.append(
                     _build_stock_entry(
                         subtype_label,
-                        inventory_by_subtype.get(subtype_code, 0),
+                        variants_by_subtype.get(subtype_code, []),
                         sales_by_subtype.get(subtype_code, 0),
                     )
                 )
@@ -3669,7 +3684,7 @@ def order_list(request):
         for style_code, style_label in PRODUCT_STYLE_CHOICES:
             style_entry = _build_stock_entry(
                 style_label,
-                inventory_by_style.get(style_code, 0),
+                variants_by_style.get(style_code, []),
                 sales_by_style.get(style_code, 0),
             )
             type_entries = []
@@ -3677,7 +3692,7 @@ def order_list(request):
                 type_entries.append(
                     _build_stock_entry(
                         type_label,
-                        inventory_by_type.get(type_code, 0),
+                        variants_by_type.get(type_code, []),
                         sales_by_type.get(type_code, 0),
                     )
                 )
