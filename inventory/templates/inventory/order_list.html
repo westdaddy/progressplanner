@@ -433,15 +433,15 @@
                     <strong>Sales in the last 12 months</strong>
                     <span class="teal-text text-darken-2">{{ filtered_sales_last_year }}</span>
                 </div>
-                <p class="grey-text text-darken-1" style="margin: 4px 0 0;">Placeholder text</p>
+                <p class="grey-text text-darken-1" style="margin: 4px 0 0;">Net of returns across filtered products.</p>
               </li>
 
               <li class="collection-item" style="border-left: 3px solid #26a69a;">
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                    <strong>Sell-through rate</strong>
+                    <strong>Avg monthly demand</strong>
                     <span class="teal-text text-darken-2">{{ filtered_sell_through_rate }}</span>
                 </div>
-                <p class="grey-text text-darken-1" style="margin: 4px 0 0;">Items per month across matching products.</p>
+                <p class="grey-text text-darken-1" style="margin: 4px 0 0;">12-month average per month across matching products.</p>
               </li>
 
               <li class="collection-item" style="border-left: 3px solid #26a69a;">
@@ -468,7 +468,7 @@
                       {% endif %}
                     </span>
                 </div>
-                <p class="grey-text text-darken-1" style="margin: 4px 0 0;">Placeholder text</p>
+                <p class="grey-text text-darken-1" style="margin: 4px 0 0;">Compares current stock to last 12 months of demand.</p>
               </li>
           </ul>
         </div>
@@ -517,7 +517,7 @@
       <div class="col s12">
         <div class="card-panel">
           <h5>Suggested Order Analysis</h5>
-          <p class="grey-text">Suggested order sizes, confidence, and reorder timing will appear here.</p>
+          <p class="grey-text">Demand-adjusted reorder plan based on in-stock selling periods and size curve learning.</p>
           <ul class="collection">
             <li class="collection-item">
               <strong>Total current stock:</strong> {{ total_current_stock }}
@@ -536,9 +536,62 @@
                 </ul>
               </details>
             </li>
-            <li class="collection-item">Recommended order quantity: —</li>
-            <li class="collection-item">Confidence score: —</li>
-            <li class="collection-item">Notes: —</li>
+            {% if selected_product.reorder_summary %}
+              <li class="collection-item">
+                <strong>Avg monthly demand (12 mo):</strong>
+                {{ selected_product.reorder_summary.speed_12 }}
+                ·
+                <strong>Recent (3 mo):</strong>
+                {{ selected_product.reorder_summary.speed_3 }}
+                {% if selected_product.reorder_summary.momentum_pct is not None %}
+                  <span class="grey-text text-darken-1">
+                    ({{ selected_product.reorder_summary.momentum_label }} {{ selected_product.reorder_summary.momentum_pct }}%)
+                  </span>
+                {% endif %}
+              </li>
+              <li class="collection-item">
+                <strong>Suggested reorder (6 months):</strong>
+                {{ selected_product.reorder_summary.suggested_total }}
+                <span class="grey-text text-darken-1">
+                  (includes {{ selected_product.reorder_summary.on_order_total }} on order)
+                </span>
+              </li>
+              <li class="collection-item">
+                <strong>Confidence:</strong>
+                {{ selected_product.reorder_summary.confidence|capfirst }}
+              </li>
+              <li class="collection-item">
+                <strong>Notes:</strong>
+                <ul class="collection">
+                  {% for reason in selected_product.reorder_summary.confidence_reasons %}
+                    <li class="collection-item">{{ reason }}</li>
+                  {% empty %}
+                    <li class="collection-item grey-text">No additional notes.</li>
+                  {% endfor %}
+                  {% for warning in selected_product.reorder_summary.warnings %}
+                    <li class="collection-item red-text text-darken-1">{{ warning }}</li>
+                  {% endfor %}
+                </ul>
+              </li>
+              <li class="collection-item">
+                <details>
+                  <summary><strong>Learned size curve (similar products)</strong></summary>
+                  <ul class="collection">
+                    {% for size, ratio in selected_product.reorder_summary.size_curve.ratios.items %}
+                      <li class="collection-item">
+                        {{ size|default:"—" }}: {{ ratio|floatformat:2 }}
+                      </li>
+                    {% empty %}
+                      <li class="collection-item grey-text">Not enough history to infer a size curve.</li>
+                    {% endfor %}
+                  </ul>
+                </details>
+              </li>
+            {% else %}
+              <li class="collection-item">Recommended order quantity: —</li>
+              <li class="collection-item">Confidence score: —</li>
+              <li class="collection-item">Notes: —</li>
+            {% endif %}
           </ul>
         </div>
       </div>
