@@ -642,9 +642,11 @@ def _compute_product_metrics(
         gift_units += v.sales.filter(sold_value__lte=0).aggregate(
             total=Coalesce(Sum("sold_quantity"), 0)
         )["total"]
-        sales_12 += v.sales.filter(date__gte=last_12_months).aggregate(
-            total=Coalesce(Sum("sold_quantity"), 0)
-        )["total"]
+        sales_12_agg = v.sales.filter(date__gte=last_12_months).aggregate(
+            sold=Coalesce(Sum("sold_quantity"), 0),
+            returned=Coalesce(Sum("return_quantity"), 0),
+        )
+        sales_12 += (sales_12_agg["sold"] or 0) - (sales_12_agg["returned"] or 0)
         sales_30 += v.sales.filter(date__gte=last_30_days).aggregate(
             total=Coalesce(Sum("sold_quantity"), 0)
         )["total"]
