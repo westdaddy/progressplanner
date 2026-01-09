@@ -95,7 +95,6 @@ from .utils import (
     calculate_sell_through_projection,
     get_variant_speed_map,
     get_category_speed_stats,
-    build_product_reorder_summary,
 )
 
 
@@ -3098,6 +3097,22 @@ def order_list(request):
         elif getattr(product, "variants_with_inventory", None):
             for variant in product.variants_with_inventory:
                 variant.pending_order_qty = 0
+    delivered_product_ids = set(
+        OrderItem.objects.filter(
+            product_variant__product__in=filtered_products,
+            date_arrived__isnull=False,
+        )
+        .values_list("product_variant__product_id", flat=True)
+        .distinct()
+    )
+    pending_product_ids = set(
+        OrderItem.objects.filter(
+            product_variant__product__in=filtered_products,
+            date_arrived__isnull=True,
+        )
+        .values_list("product_variant__product_id", flat=True)
+        .distinct()
+    )
     filtered_stock_current = sum(
         getattr(product, "total_inventory", 0) for product in filtered_products
     )
@@ -3149,13 +3164,12 @@ def order_list(request):
             for variant in getattr(product, "variants_with_inventory", []):
                 variant.size_sales_share = size_sales_share.get(variant.size, 0)
 
-    today = date.today()
-    for product in filtered_products:
-        product.reorder_summary = build_product_reorder_summary(product, today=today)
-        size_share_map = product.reorder_summary.get("size_shares", {})
-        for variant in getattr(product, "variants_with_inventory", []):
-            if size_share_map:
-                variant.size_sales_share = size_share_map.get(variant.size, 0)
+    new_product_recommendations = [
+        product
+        for product in filtered_products
+        if product.id not in delivered_product_ids
+        and product.id not in pending_product_ids
+    ]
 
     if filtered_sales_last_year:
         filtered_sell_through_rate = (Decimal(filtered_sales_last_year) / Decimal("12")).quantize(
@@ -3264,36 +3278,6 @@ def order_list(request):
         stock_coverage_months = None
 
     stock_status_label = _stock_status_label(stock_coverage_months)
-    reorder_recommendation = None
-    if filtered_sales_last_year:
-        safe_stock_6_months = Decimal(filtered_sales_last_year) / Decimal("2")
-        threshold_date = None
-        for point in sell_through_forecast_data:
-            try:
-                point_date = date.fromisoformat(point["x"])
-            except (TypeError, ValueError):
-                continue
-            if Decimal(point["y"]) <= safe_stock_6_months:
-                threshold_date = point_date
-                break
-        if threshold_date:
-            order_by_date = threshold_date - relativedelta(months=restock_lead_months)
-            if order_by_date <= today:
-                recommendation = (
-                    "Order now to avoid dropping below 6-month stock coverage."
-                )
-            else:
-                recommendation = (
-                    f"Order by {order_by_date.strftime('%b %d, %Y')} to avoid "
-                    "dropping below 6-month stock coverage."
-                )
-            reorder_recommendation = {
-                "message": recommendation,
-                "order_by_date": order_by_date,
-                "threshold_date": threshold_date,
-                "restock_lead_months": restock_lead_months,
-            }
-
     selected_product_id = request.GET.get("product")
     selected_product = None
     variant_stock_rows = []
@@ -3323,13 +3307,7 @@ def order_list(request):
                 .order_by("variant_code")
             )
             for variant in variants:
-                if hasattr(selected_product, "reorder_summary"):
-                    size_share_map = selected_product.reorder_summary.get("size_shares", {})
-                    variant.size_sales_share = size_share_map.get(
-                        variant.size, size_sales_share.get(variant.size, 0)
-                    )
-                else:
-                    variant.size_sales_share = size_sales_share.get(variant.size, 0)
+                variant.size_sales_share = size_sales_share.get(variant.size, 0)
             variant_stock_rows = [
                 {
                     "variant_code": variant.variant_code,
@@ -3341,10 +3319,6 @@ def order_list(request):
             total_current_stock = sum(
                 row["stock"] for row in variant_stock_rows if row["stock"] is not None
             )
-            if not hasattr(selected_product, "reorder_summary"):
-                selected_product.reorder_summary = build_product_reorder_summary(
-                    selected_product, today=today
-                )
 
     style_label_map = dict(PRODUCT_STYLE_CHOICES)
     type_label_map = dict(PRODUCT_TYPE_CHOICES)
@@ -3547,7 +3521,7 @@ def order_list(request):
         "stock_status_label": stock_status_label,
         "stock_coverage_months": stock_coverage_months,
         "stock_position_cards": stock_position_cards,
-        "reorder_recommendation": reorder_recommendation,
+        "new_product_recommendations": new_product_recommendations,
     }
     return render(request, "inventory/order_list.html", context)
 
