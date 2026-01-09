@@ -3150,14 +3150,20 @@ def order_list(request):
     for product in filtered_products:
         pending_order = pending_order_lookup.get(product.id)
         product.pending_order = pending_order
-        if pending_order and getattr(product, "variants_with_inventory", None):
-            for variant in product.variants_with_inventory:
-                variant.pending_order_qty = pending_order["variant_quantities"].get(
-                    variant.id, 0
+        variants_with_inventory = getattr(product, "variants_with_inventory", None)
+        speed_map = (
+            get_variant_speed_map(variants_with_inventory, weeks=26, today=today)
+            if variants_with_inventory
+            else {}
+        )
+        if variants_with_inventory:
+            for variant in variants_with_inventory:
+                variant.pending_order_qty = (
+                    pending_order["variant_quantities"].get(variant.id, 0)
+                    if pending_order
+                    else 0
                 )
-        elif getattr(product, "variants_with_inventory", None):
-            for variant in product.variants_with_inventory:
-                variant.pending_order_qty = 0
+                variant.sales_speed_6_months = speed_map.get(variant.id)
     ordered_product_ids = set()
     sold_product_ids = set()
     if filtered_products:

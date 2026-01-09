@@ -148,13 +148,6 @@
           <input type="hidden" name="product_id" value="{{ product.id }}">
           <input type="hidden" name="pending_order_id" value="" data-pending-order-id>
           <input type="hidden" name="pending_order_unassigned" value="" data-pending-unassigned>
-        <div class="product-order-modal__media">
-          {% if product.product_photo %}
-            <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}">
-          {% else %}
-            <img src="{{ MEDIA_URL }}product_photos/product-placeholder.jpg" alt="{{ product.product_name }}">
-          {% endif %}
-        </div>
         <div class="product-order-modal__table">
           <div class="row" style="margin: 0 0 8px;">
             <div class="input-field col s12 m6" style="margin-top: 0;">
@@ -188,11 +181,17 @@
             >
             <label>Total order quantity</label>
           </div>
+          <div class="product-order-modal__chart">
+            <h6>Variant Stock Projection</h6>
+            <canvas data-order-stock-chart></canvas>
+          </div>
           <table class="striped">
             <thead>
               <tr>
                 <th>Size</th>
                 <th>SKU</th>
+                <th>Stock</th>
+                <th>Sales speed (6 mo)</th>
                 <th>Order Qty</th>
               </tr>
             </thead>
@@ -201,6 +200,14 @@
                 <tr>
                   <td>{{ variant.size|default:"—" }}</td>
                   <td>{{ variant.variant_code }}</td>
+                  <td>{{ variant.latest_inventory|default:0 }}</td>
+                  <td>
+                    {% if variant.sales_speed_6_months is not None %}
+                      {{ variant.sales_speed_6_months|floatformat:1 }} / month
+                    {% else %}
+                      —
+                    {% endif %}
+                  </td>
                   <td>
                     <input
                       type="number"
@@ -211,12 +218,15 @@
                       data-size="{{ variant.size|default:'' }}"
                       data-size-share="{{ variant.size_sales_share|default:0 }}"
                       data-pending-qty="{{ variant.pending_order_qty|default:0 }}"
+                      data-variant-code="{{ variant.variant_code }}"
+                      data-variant-stock="{{ variant.latest_inventory|default:0 }}"
+                      data-variant-speed="{{ variant.sales_speed_6_months|default_if_none:0 }}"
                     >
                   </td>
                 </tr>
               {% empty %}
                 <tr>
-                  <td colspan="3" class="grey-text">No variants available.</td>
+                  <td colspan="5" class="grey-text">No variants available.</td>
                 </tr>
               {% endfor %}
             </tbody>
