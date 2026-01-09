@@ -490,39 +490,60 @@
             <h6 class="grey-text text-darken-1" style="margin-top: 12px;">Restock Recommendations</h6>
             <ul class="collection" style="margin-top: 12px;">
               {% for rec in prior_order_recommendations %}
-                <li class="collection-item">
-                  <div style="display: flex; align-items: flex-start; gap: 12px;">
-                    <div>
-                      {% if rec.product.product_photo %}
-                        <img src="{{ rec.product.product_photo.url }}" alt="{{ rec.product.product_name }}" class="circle product-photo-large">
-                      {% else %}
-                        <img src="{{ MEDIA_URL }}product_photos/product-placeholder.jpg" alt="{{ rec.product.product_name }}" class="circle product-photo-large">
-                      {% endif %}
+                <li class="collection-item avatar">
+
+                    <div class="row item">
+
+                      <div class="col s12 content">
+
+                        <div class="row title">
+                          <div class="col s12">
+                            <span class="title">
+                              <a href="{% url 'product_detail' rec.product.id %}">
+                                <strong>{{ rec.product.product_name }}</strong>
+                              </a>
+                            </span>
+                            ({{ rec.product.product_id }})
+                          </div>
+                        </div>
+
+                        <div class="row scorecard-boxes">
+
+                          <div class="col s12 m6 l2 photo">
+                            {% if rec.product.product_photo %}
+                              <img src="{{ rec.product.product_photo.url }}" alt="{{ rec.product.product_name }}" class="circle product-photo-large">
+                            {% else %}
+                              <img src="{{ MEDIA_URL }}product_photos/product-placeholder.jpg" alt="{{ rec.product.product_name }}" class="circle product-photo-large">
+                            {% endif %}
+                          </div>
+
+                          <div class="col s12 m6 l10">
+                            <div class="card-panel scorecard-box">
+
+                              <span class="badge">{{ rec.status }}</span>
+                              {% if rec.months_remaining is not None %}
+                                <div class="grey-text text-darken-1">
+                                  {{ rec.months_remaining }} months of stock remaining
+                                </div>
+                              {% endif %}
+                              {% if rec.flags %}
+                                <div class="grey-text text-darken-1">
+                                  Flags: {{ rec.flags|join:", " }}
+                                </div>
+                              {% endif %}
+                              {% if rec.size_ratio_summary %}
+                                <div class="grey-text text-darken-1">
+                                  Suggested size mix: {{ rec.size_ratio_summary }}
+                                </div>
+                              {% endif %}
+                              <div class="grey-text text-darken-1">{{ rec.message }}</div>
+
+                            </div>
+                          </div>
+
+                        </div>
+                      </div>
                     </div>
-                    <div style="flex: 1;">
-                      <strong>{{ rec.product.product_id }}</strong>
-                      <span class="grey-text text-darken-1">
-                        {{ rec.product.product_name }}
-                      </span>
-                      <span class="badge">{{ rec.status }}</span>
-                      {% if rec.months_remaining is not None %}
-                        <div class="grey-text text-darken-1">
-                          {{ rec.months_remaining }} months of stock remaining
-                        </div>
-                      {% endif %}
-                      {% if rec.flags %}
-                        <div class="grey-text text-darken-1">
-                          Flags: {{ rec.flags|join:", " }}
-                        </div>
-                      {% endif %}
-                      {% if rec.size_ratio_summary %}
-                        <div class="grey-text text-darken-1">
-                          Suggested size mix: {{ rec.size_ratio_summary }}
-                        </div>
-                      {% endif %}
-                      <div class="grey-text text-darken-1">{{ rec.message }}</div>
-                    </div>
-                  </div>
                 </li>
               {% endfor %}
             </ul>
