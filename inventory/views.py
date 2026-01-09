@@ -926,6 +926,7 @@ def _build_product_list_context(request, preset_filters=None):
 
     zero_inventory = _get_filter("zero_inventory", "false")
     zero_inventory = zero_inventory if isinstance(zero_inventory, bool) else str(zero_inventory).lower() == "true"
+    search_query = request.GET.get("product_search", "").strip()
 
     # ─── Date ranges ────────────────────────────────────────────────────────────
     today = now().date()
@@ -981,6 +982,12 @@ def _build_product_list_context(request, preset_filters=None):
 
     if series_filters:
         products_qs = products_qs.filter(series__id__in=series_filters).distinct()
+
+    if search_query:
+        products_qs = products_qs.filter(
+            Q(product_id__icontains=search_query)
+            | Q(product_name__icontains=search_query)
+        )
 
     products = list(products_qs)
 
@@ -1283,6 +1290,7 @@ def _build_product_list_context(request, preset_filters=None):
         "group_filters": group_filters,
         "series_filters": series_filters,
         "zero_inventory": zero_inventory,
+        "search_query": search_query,
         "type_choices": available_type_choices,
         "subtype_choices": available_subtype_choices,
         "style_choices": PRODUCT_STYLE_CHOICES,
@@ -3247,7 +3255,6 @@ def order_list(request):
 
     stock_status_label = _stock_status_label(stock_coverage_months)
 
-    search_query = request.GET.get("product_search", "").strip()
     selected_product_id = request.GET.get("product")
     selected_product = None
     variant_stock_rows = []
@@ -3480,7 +3487,6 @@ def order_list(request):
         "orders": orders,
         "calendar_data": calendar_data,
         "selected_product": selected_product,
-        "search_query": search_query,
         "variant_stock_rows": variant_stock_rows,
         "total_current_stock": total_current_stock,
         "filtered_sales_last_year": filtered_sales_last_year,
