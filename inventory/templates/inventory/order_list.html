@@ -661,10 +661,10 @@
       const levels = [Math.max(Math.round(current), 0)];
       for (let i = 1; i < labels.length; i += 1) {
         const label = labels[i];
+        current = Math.max(current - variant.speed, 0);
         if (arrivalMonthKey && label === arrivalMonthKey) {
           current += variant.arrivalQty;
         }
-        current -= variant.speed;
         current = Math.max(Math.round(current), 0);
         levels.push(current);
       }
