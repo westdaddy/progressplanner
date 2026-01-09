@@ -668,6 +668,14 @@
     if (sellThroughCanvas && window.Chart) {
       const sellThroughActual = {{ sell_through_actual_data|safe }};
       const sellThroughForecast = {{ sell_through_forecast_data|safe }};
+      const safeStock12Months = Number({{ filtered_sales_last_year|default:0 }});
+      const safeStock6Months = safeStock12Months / 2;
+      const combinedPoints = [...sellThroughActual, ...sellThroughForecast];
+      const buildThresholdSeries = (value) =>
+        combinedPoints.map((point) => ({
+          x: point.x,
+          y: value,
+        }));
       const sellThroughCtx = sellThroughCanvas.getContext("2d");
       new Chart(sellThroughCtx, {
         type: 'line',
@@ -691,6 +699,22 @@
             fill: false,
             tension: 0.3,
             pointRadius: 0
+          }, {
+            label: '12-month safe stock',
+            data: buildThresholdSeries(safeStock12Months),
+            borderColor: '#ff8f00',
+            borderWidth: 2,
+            borderDash: [4, 4],
+            pointRadius: 0,
+            fill: false
+          }, {
+            label: '6-month safe stock',
+            data: buildThresholdSeries(safeStock6Months),
+            borderColor: '#ffe082',
+            borderWidth: 2,
+            borderDash: [2, 6],
+            pointRadius: 0,
+            fill: false
           }]
         },
         options: {
