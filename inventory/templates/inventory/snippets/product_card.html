@@ -66,14 +66,18 @@
                     —
                   {% endif %}
                 </span><br/>
-                <span>
-                  Low stock SKUs:
-                  <strong>{{ product.low_stock_sku_count|default:0 }}</strong>
-                </span><br/>
-                <span>
-                  Out of stock SKUs:
-                  <strong>{{ product.out_of_stock_sku_count|default:0 }}</strong>
-                </span>
+                {% if product.low_stock_skus %}
+                  <span>
+                    Low stock SKUs:
+                    <strong>{{ product.low_stock_skus|join:" / " }}</strong>
+                  </span><br/>
+                {% endif %}
+                {% if product.out_of_stock_skus %}
+                  <span>
+                    Out of stock SKUs:
+                    <strong>{{ product.out_of_stock_skus|join:" / " }}</strong>
+                  </span>
+                {% endif %}
                 <div style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px;">
                   <button
                     type="button"
