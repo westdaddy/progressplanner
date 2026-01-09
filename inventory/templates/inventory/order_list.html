@@ -433,7 +433,7 @@
                     <strong>Sales in the last 12 months</strong>
                     <span class="teal-text text-darken-2">{{ filtered_sales_last_year }}</span>
                 </div>
-                <p class="grey-text text-darken-1" style="margin: 4px 0 0;">Net of returns across filtered products.</p>
+                <p class="grey-text text-darken-1" style="margin: 4px 0 0;">Net of returns</p>
               </li>
 
               <li class="collection-item" style="border-left: 3px solid #26a69a;">
@@ -441,7 +441,7 @@
                     <strong>Avg monthly demand</strong>
                     <span class="teal-text text-darken-2">{{ filtered_sell_through_rate }}</span>
                 </div>
-                <p class="grey-text text-darken-1" style="margin: 4px 0 0;">12-month average per month across matching products.</p>
+                <p class="grey-text text-darken-1" style="margin: 4px 0 0;">12-month average / month</p>
               </li>
 
               <li class="collection-item" style="border-left: 3px solid #26a69a;">
@@ -455,7 +455,7 @@
               <li class="collection-item" style="border-left: 3px solid #26a69a;">
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
                     <strong>Stock position</strong>
-                    <span class="teal-text text-darken-2">
+                    <span class="teal-text text-darken-2 right-align">
                       {% if stock_status_label == "on target" %}
                         On target
                       {% else %}
@@ -468,7 +468,7 @@
                       {% endif %}
                     </span>
                 </div>
-                <p class="grey-text text-darken-1" style="margin: 4px 0 0;">Compares current stock to last 12 months of demand.</p>
+                <p class="grey-text text-darken-1" style="margin: 4px 0 0;">Compared to last 12 months of demand.</p>
               </li>
           </ul>
         </div>

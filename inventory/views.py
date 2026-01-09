@@ -3154,9 +3154,9 @@ def order_list(request):
 
     stock_delta = filtered_stock_current - filtered_sales_last_year
     if stock_delta > 0:
-        stock_status_label = "overstocked"
+        stock_status_label = "over"
     elif stock_delta < 0:
-        stock_status_label = "understocked"
+        stock_status_label = "under"
     else:
         stock_status_label = "on target"
 
