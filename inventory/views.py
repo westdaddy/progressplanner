@@ -3113,6 +3113,11 @@ def order_list(request):
         .values_list("product_variant__product_id", flat=True)
         .distinct()
     )
+    sold_product_ids = set(
+        Sale.objects.filter(variant__product__in=filtered_products)
+        .values_list("variant__product_id", flat=True)
+        .distinct()
+    )
     filtered_stock_current = sum(
         getattr(product, "total_inventory", 0) for product in filtered_products
     )
@@ -3167,8 +3172,8 @@ def order_list(request):
     new_product_recommendations = [
         product
         for product in filtered_products
-        if product.id not in delivered_product_ids
-        and product.id not in pending_product_ids
+        if product.id not in ordered_product_ids
+        and product.id not in sold_product_ids
     ]
 
     if filtered_sales_last_year:
