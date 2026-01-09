@@ -3023,6 +3023,9 @@ def order_list(request):
     filter_context = _build_product_list_context(request)
     filter_ui_context = _build_filter_controls_context(filter_context)
     filtered_products = filter_context.get("products", [])
+    style_filters = filter_context.get("style_filters", [])
+    type_filters = filter_context.get("type_filters", [])
+    subtype_filters = filter_context.get("subtype_filters", [])
     pending_order_lookup = {}
     if filtered_products:
         pending_items = (
@@ -3217,6 +3220,24 @@ def order_list(request):
         sell_through_actual_data = []
         sell_through_forecast_data = []
 
+    def _stock_status_label(stock_coverage: Optional[Decimal]) -> str:
+        if stock_coverage is None:
+            return "no data"
+        if stock_coverage >= Decimal("9"):
+            return "overstocked"
+        if stock_coverage >= Decimal("6"):
+            return "on target"
+        if stock_coverage >= Decimal("3"):
+            return "low stock"
+        return "priority low"
+
+    def _stock_status_display(status: str) -> str:
+        if status == "priority low":
+            return "Priority low"
+        if status == "no data":
+            return "No data"
+        return status.title()
+
     if filtered_sell_through_rate:
         stock_coverage_months = (
             Decimal(filtered_stock_current) / filtered_sell_through_rate
@@ -3224,16 +3245,7 @@ def order_list(request):
     else:
         stock_coverage_months = None
 
-    if stock_coverage_months is None:
-        stock_status_label = "no data"
-    elif stock_coverage_months >= Decimal("9"):
-        stock_status_label = "overstocked"
-    elif stock_coverage_months >= Decimal("6"):
-        stock_status_label = "on target"
-    elif stock_coverage_months >= Decimal("3"):
-        stock_status_label = "low stock"
-    else:
-        stock_status_label = "priority low"
+    stock_status_label = _stock_status_label(stock_coverage_months)
 
     search_query = request.GET.get("product_search", "").strip()
     selected_product_id = request.GET.get("product")
@@ -3287,6 +3299,134 @@ def order_list(request):
                 selected_product.reorder_summary = build_product_reorder_summary(
                     selected_product, today=today
                 )
+
+    style_label_map = dict(PRODUCT_STYLE_CHOICES)
+    type_label_map = dict(PRODUCT_TYPE_CHOICES)
+
+    inventory_by_style = defaultdict(int)
+    inventory_by_type = defaultdict(int)
+    inventory_by_subtype = defaultdict(int)
+    for product in filtered_products:
+        stock_units = getattr(product, "total_inventory", 0) or 0
+        if product.style:
+            inventory_by_style[product.style] += stock_units
+        if product.type:
+            inventory_by_type[product.type] += stock_units
+        if product.subtype:
+            inventory_by_subtype[product.subtype] += stock_units
+
+    sales_by_style = defaultdict(int)
+    sales_by_type = defaultdict(int)
+    sales_by_subtype = defaultdict(int)
+    if filtered_products:
+        sales_qs = Sale.objects.filter(
+            date__gte=last_year_start, variant__product__in=filtered_products
+        )
+        for row in sales_qs.values("variant__product__style").annotate(
+            sold=Coalesce(Sum("sold_quantity"), 0),
+            returned=Coalesce(Sum("return_quantity"), 0),
+        ):
+            style_code = row["variant__product__style"]
+            sales_by_style[style_code] += row["sold"] - row["returned"]
+
+        for row in sales_qs.values("variant__product__type").annotate(
+            sold=Coalesce(Sum("sold_quantity"), 0),
+            returned=Coalesce(Sum("return_quantity"), 0),
+        ):
+            type_code = row["variant__product__type"]
+            sales_by_type[type_code] += row["sold"] - row["returned"]
+
+        for row in sales_qs.values("variant__product__subtype").annotate(
+            sold=Coalesce(Sum("sold_quantity"), 0),
+            returned=Coalesce(Sum("return_quantity"), 0),
+        ):
+            subtype_code = row["variant__product__subtype"]
+            sales_by_subtype[subtype_code] += row["sold"] - row["returned"]
+
+    def _coverage_months(stock_units: int, sales_units: int) -> Optional[Decimal]:
+        if not sales_units:
+            return None
+        monthly_rate = Decimal(sales_units) / Decimal("12")
+        if monthly_rate <= 0:
+            return None
+        return (Decimal(stock_units) / monthly_rate).quantize(
+            Decimal("0.1"), rounding=ROUND_HALF_UP
+        )
+
+    def _build_stock_entry(label: str, stock_units: int, sales_units: int) -> dict[str, Any]:
+        coverage = _coverage_months(stock_units, sales_units)
+        status = _stock_status_label(coverage)
+        return {
+            "label": label,
+            "coverage_months": coverage,
+            "status_label": status,
+            "status_display": _stock_status_display(status),
+        }
+
+    stock_position_cards: list[dict[str, Any]] = []
+    show_level_2_as_types = len(style_filters) == 1 and not subtype_filters and not type_filters
+    show_level_2_as_subtypes = len(type_filters) == 1
+
+    if show_level_2_as_subtypes:
+        type_code = type_filters[0]
+        type_label = type_label_map.get(type_code, type_code)
+        type_entry = _build_stock_entry(
+            type_label,
+            inventory_by_type.get(type_code, 0),
+            sales_by_type.get(type_code, 0),
+        )
+        subtype_entries = []
+        for subtype_code, subtype_label in get_subtype_choices_for_types([type_code]):
+            subtype_entries.append(
+                _build_stock_entry(
+                    subtype_label,
+                    inventory_by_subtype.get(subtype_code, 0),
+                    sales_by_subtype.get(subtype_code, 0),
+                )
+            )
+        type_entry["entries"] = subtype_entries
+        stock_position_cards.append(type_entry)
+    elif show_level_2_as_types:
+        style_code = style_filters[0]
+        style_label = style_label_map.get(style_code, style_code)
+        for type_code, type_label in get_type_choices_for_styles([style_code]):
+            type_entry = _build_stock_entry(
+                type_label,
+                inventory_by_type.get(type_code, 0),
+                sales_by_type.get(type_code, 0),
+            )
+            subtype_entries = []
+            for subtype_code, subtype_label in get_subtype_choices_for_types([type_code]):
+                subtype_entries.append(
+                    _build_stock_entry(
+                        subtype_label,
+                        inventory_by_subtype.get(subtype_code, 0),
+                        sales_by_subtype.get(subtype_code, 0),
+                    )
+                )
+            if subtype_entries:
+                type_entry["entries"] = subtype_entries
+            type_entry["parent_label"] = style_label
+            stock_position_cards.append(type_entry)
+    else:
+        for style_code, style_label in PRODUCT_STYLE_CHOICES:
+            style_entry = _build_stock_entry(
+                style_label,
+                inventory_by_style.get(style_code, 0),
+                sales_by_style.get(style_code, 0),
+            )
+            type_entries = []
+            for type_code, type_label in get_type_choices_for_styles([style_code]):
+                type_entries.append(
+                    _build_stock_entry(
+                        type_label,
+                        inventory_by_type.get(type_code, 0),
+                        sales_by_type.get(type_code, 0),
+                    )
+                )
+            if type_entries:
+                style_entry["entries"] = type_entries
+            stock_position_cards.append(style_entry)
 
     # Fetch orders and prefetch related items for efficiency
     orders = (
@@ -3351,6 +3491,7 @@ def order_list(request):
         "sell_through_forecast_data": json.dumps(sell_through_forecast_data),
         "stock_status_label": stock_status_label,
         "stock_coverage_months": stock_coverage_months,
+        "stock_position_cards": stock_position_cards,
     }
     return render(request, "inventory/order_list.html", context)
 
