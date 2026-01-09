@@ -467,10 +467,28 @@
                 </li>
               {% endfor %}
             </ul>
+          {% elif prior_order_recommendations %}
+            <p class="grey-text text-darken-1" style="margin-top: 4px;">
+              No new product recommendations. Existing products with prior orders:
+            </p>
           {% else %}
             <p class="grey-text text-darken-1" style="margin-top: 4px;">
               No new product order recommendations right now.
             </p>
+          {% endif %}
+          {% if prior_order_recommendations %}
+            <ul class="collection" style="margin-top: 12px;">
+              {% for rec in prior_order_recommendations %}
+                <li class="collection-item">
+                  <strong>{{ rec.product.product_id }}</strong>
+                  <span class="grey-text text-darken-1">
+                    {{ rec.product.product_name }}
+                  </span>
+                  <span class="badge">{{ rec.status }}</span>
+                  <div class="grey-text text-darken-1">{{ rec.message }}</div>
+                </li>
+              {% endfor %}
+            </ul>
           {% endif %}
         </div>
       </div>

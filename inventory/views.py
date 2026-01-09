@@ -3161,12 +3161,47 @@ def order_list(request):
             for variant in getattr(product, "variants_with_inventory", []):
                 variant.size_sales_share = size_sales_share.get(variant.size, 0)
 
+    def _normalize_group_label(value: str) -> str:
+        return (
+            value.lower()
+            .replace("&", "and")
+            .replace("-", "")
+            .replace(" ", "")
+        )
+
     new_product_recommendations = [
         product
         for product in filtered_products
         if product.id not in ordered_product_ids
         and product.id not in sold_product_ids
     ]
+    prior_order_recommendations = []
+    for product in filtered_products:
+        if product.id not in ordered_product_ids:
+            continue
+        normalized_groups = {
+            _normalize_group_label(group.name)
+            for group in product.groups.all()
+        }
+        is_one_and_done = "oneanddone" in normalized_groups
+        is_core_group = any("core" in group for group in normalized_groups)
+        is_mid_group = any("midrange" in group for group in normalized_groups)
+        if is_one_and_done:
+            prior_order_recommendations.append(
+                {
+                    "product": product,
+                    "status": "IGNORE",
+                    "message": "One & done category excludes from reorder logic.",
+                }
+            )
+        elif is_core_group or is_mid_group:
+            prior_order_recommendations.append(
+                {
+                    "product": product,
+                    "status": "NEXT",
+                    "message": "Core or mid-range category continues to next rule layer.",
+                }
+            )
 
     if filtered_sales_last_year:
         filtered_sell_through_rate = (Decimal(filtered_sales_last_year) / Decimal("12")).quantize(
@@ -3519,6 +3554,7 @@ def order_list(request):
         "stock_coverage_months": stock_coverage_months,
         "stock_position_cards": stock_position_cards,
         "new_product_recommendations": new_product_recommendations,
+        "prior_order_recommendations": prior_order_recommendations,
     }
     return render(request, "inventory/order_list.html", context)
 
