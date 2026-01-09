@@ -3028,6 +3028,7 @@ def order_list(request):
     style_filters = filter_context.get("style_filters", [])
     type_filters = filter_context.get("type_filters", [])
     subtype_filters = filter_context.get("subtype_filters", [])
+    today = now().date()
     pending_order_lookup = {}
     if filtered_products:
         pending_items = (
@@ -3403,7 +3404,6 @@ def order_list(request):
     else:
         filtered_sell_through_rate = Decimal("0")
 
-    today = now().date()
     if filtered_products:
         snap_qs = InventorySnapshot.objects.filter(
             date__lte=today, product_variant__product__in=filtered_products
