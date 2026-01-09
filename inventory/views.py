@@ -3164,8 +3164,8 @@ def order_list(request):
     else:
         filtered_sell_through_rate = Decimal("0")
 
+    today = now().date()
     if filtered_products:
-        today = now().date()
         snap_qs = InventorySnapshot.objects.filter(
             date__lte=today, product_variant__product__in=filtered_products
         )
@@ -3228,6 +3228,16 @@ def order_list(request):
         sell_through_actual_data = []
         sell_through_forecast_data = []
 
+    avg_restock_months = None
+    restock_candidates = [
+        product.restock_time
+        for product in filtered_products
+        if getattr(product, "restock_time", 0)
+    ]
+    if restock_candidates:
+        avg_restock_months = sum(restock_candidates) / len(restock_candidates)
+    restock_lead_months = max(int(math.ceil(avg_restock_months or 3)), 1)
+
     def _stock_status_label(stock_coverage: Optional[Decimal]) -> str:
         if stock_coverage is None:
             return "no data"
@@ -3254,6 +3264,35 @@ def order_list(request):
         stock_coverage_months = None
 
     stock_status_label = _stock_status_label(stock_coverage_months)
+    reorder_recommendation = None
+    if filtered_sales_last_year:
+        safe_stock_6_months = Decimal(filtered_sales_last_year) / Decimal("2")
+        threshold_date = None
+        for point in sell_through_forecast_data:
+            try:
+                point_date = date.fromisoformat(point["x"])
+            except (TypeError, ValueError):
+                continue
+            if Decimal(point["y"]) <= safe_stock_6_months:
+                threshold_date = point_date
+                break
+        if threshold_date:
+            order_by_date = threshold_date - relativedelta(months=restock_lead_months)
+            if order_by_date <= today:
+                recommendation = (
+                    "Order now to avoid dropping below 6-month stock coverage."
+                )
+            else:
+                recommendation = (
+                    f"Order by {order_by_date.strftime('%b %d, %Y')} to avoid "
+                    "dropping below 6-month stock coverage."
+                )
+            reorder_recommendation = {
+                "message": recommendation,
+                "order_by_date": order_by_date,
+                "threshold_date": threshold_date,
+                "restock_lead_months": restock_lead_months,
+            }
 
     selected_product_id = request.GET.get("product")
     selected_product = None
@@ -3498,6 +3537,7 @@ def order_list(request):
         "stock_status_label": stock_status_label,
         "stock_coverage_months": stock_coverage_months,
         "stock_position_cards": stock_position_cards,
+        "reorder_recommendation": reorder_recommendation,
     }
     return render(request, "inventory/order_list.html", context)
 
