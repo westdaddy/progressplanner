@@ -166,6 +166,21 @@
             >
             <label>Total order quantity</label>
           </div>
+          {% if product.reorder_summary %}
+            <div class="card-panel teal lighten-5" style="margin: 0 0 12px;">
+              <strong>Suggested reorder:</strong>
+              {{ product.reorder_summary.suggested_total }} units
+              <span class="grey-text text-darken-1">
+                (6 months, includes {{ product.reorder_summary.on_order_total }} on order)
+              </span>
+              <br>
+              <span class="grey-text text-darken-1">
+                Demand: {{ product.reorder_summary.speed_12 }}/mo ·
+                Recent: {{ product.reorder_summary.speed_3 }}/mo ·
+                Confidence: {{ product.reorder_summary.confidence|capfirst }}
+              </span>
+            </div>
+          {% endif %}
           <table class="striped">
             <thead>
               <tr>

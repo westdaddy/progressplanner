@@ -95,6 +95,7 @@ from .utils import (
     calculate_sales_speed_for_variants,
     get_variant_speed_map,
     get_category_speed_stats,
+    build_product_reorder_summary,
 )
 
 
@@ -3136,6 +3137,14 @@ def order_list(request):
             for variant in getattr(product, "variants_with_inventory", []):
                 variant.size_sales_share = size_sales_share.get(variant.size, 0)
 
+    today = date.today()
+    for product in filtered_products:
+        product.reorder_summary = build_product_reorder_summary(product, today=today)
+        size_share_map = product.reorder_summary.get("size_shares", {})
+        for variant in getattr(product, "variants_with_inventory", []):
+            if size_share_map:
+                variant.size_sales_share = size_share_map.get(variant.size, 0)
+
     if filtered_sales_last_year:
         filtered_sell_through_rate = (Decimal(filtered_sales_last_year) / Decimal("12")).quantize(
             Decimal("1"), rounding=ROUND_HALF_UP
@@ -3189,7 +3198,13 @@ def order_list(request):
                 .order_by("variant_code")
             )
             for variant in variants:
-                variant.size_sales_share = size_sales_share.get(variant.size, 0)
+                if hasattr(selected_product, "reorder_summary"):
+                    size_share_map = selected_product.reorder_summary.get("size_shares", {})
+                    variant.size_sales_share = size_share_map.get(
+                        variant.size, size_sales_share.get(variant.size, 0)
+                    )
+                else:
+                    variant.size_sales_share = size_sales_share.get(variant.size, 0)
             variant_stock_rows = [
                 {
                     "variant_code": variant.variant_code,
@@ -3201,6 +3216,10 @@ def order_list(request):
             total_current_stock = sum(
                 row["stock"] for row in variant_stock_rows if row["stock"] is not None
             )
+            if not hasattr(selected_product, "reorder_summary"):
+                selected_product.reorder_summary = build_product_reorder_summary(
+                    selected_product, today=today
+                )
 
     # Fetch orders and prefetch related items for efficiency
     orders = (

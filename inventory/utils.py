@@ -407,6 +407,238 @@ def calculate_size_order_mix(
 WEEKS_PER_MONTH = 365.25 / 12 / 7
 
 
+def _variant_current_stock(variant: ProductVariant) -> int:
+    if hasattr(variant, "latest_inventory"):
+        return variant.latest_inventory or 0
+    latest = (
+        InventorySnapshot.objects.filter(product_variant=variant)
+        .order_by("-date")
+        .values_list("inventory_count", flat=True)
+        .first()
+    )
+    return latest or 0
+
+
+def calculate_product_size_curve(
+    product: Product,
+    *,
+    months: int = 12,
+    today: Optional[date] = None,
+) -> dict:
+    """Return size curve ratios for products similar to ``product``.
+
+    Similarity is based on product category (type), age group, and variant gender.
+    """
+
+    today = today or date.today()
+    start_date = today - relativedelta(months=months)
+
+    gender_values = list(
+        ProductVariant.objects.filter(product=product, gender__isnull=False)
+        .values_list("gender", flat=True)
+        .distinct()
+    )
+
+    variants_qs = ProductVariant.objects.filter(product__type=product.type)
+    if product.age:
+        variants_qs = variants_qs.filter(product__age=product.age)
+    if gender_values:
+        variants_qs = variants_qs.filter(gender__in=gender_values)
+
+    sales_rows = (
+        Sale.objects.filter(date__gte=start_date, variant__in=variants_qs)
+        .values("variant__size")
+        .annotate(
+            sold=Coalesce(Sum("sold_quantity"), 0),
+            returned=Coalesce(Sum("return_quantity"), 0),
+        )
+    )
+
+    size_units: Dict[str, int] = {}
+    total_units = 0
+    for row in sales_rows:
+        size = row["variant__size"]
+        net = (row["sold"] or 0) - (row["returned"] or 0)
+        if net <= 0:
+            continue
+        size_units[size] = size_units.get(size, 0) + net
+        total_units += net
+
+    ratios = (
+        {size: units / total_units for size, units in size_units.items()}
+        if total_units
+        else {}
+    )
+
+    return {
+        "ratios": ratios,
+        "total_units": total_units,
+        "sample_sizes": size_units,
+        "gender_values": gender_values,
+    }
+
+
+def build_product_reorder_summary(
+    product: Product,
+    *,
+    today: Optional[date] = None,
+    history_weeks: int = 52,
+    recent_weeks: int = 13,
+    target_months: int = 6,
+) -> dict:
+    """Return demand, size mix, and reorder recommendations for a product."""
+
+    today = today or date.today()
+    variants = getattr(product, "variants_with_inventory", None) or list(
+        product.variants.all()
+    )
+
+    size_curve = calculate_product_size_curve(product, today=today)
+    size_curve_ratios = size_curve.get("ratios", {})
+
+    variant_rows = []
+    speed_total_12 = 0.0
+    speed_total_3 = 0.0
+    total_sold_12 = 0
+    current_stock_total = 0
+    on_order_total = 0
+    warnings = []
+
+    size_speed_map: Dict[str, float] = defaultdict(float)
+
+    for variant in variants:
+        details_12 = calculate_variant_sales_speed_details(
+            variant, weeks=history_weeks, today=today, fallback_weeks=history_weeks
+        )
+        details_3 = calculate_variant_sales_speed_details(
+            variant, weeks=recent_weeks, today=today, fallback_weeks=recent_weeks
+        )
+        speed_12 = details_12["speed"]
+        speed_3 = details_3["speed"]
+        net_sold_12 = details_12["total_sold"]
+
+        current_stock = _variant_current_stock(variant)
+        on_order_qty = (
+            OrderItem.objects.filter(
+                product_variant=variant, date_arrived__isnull=True
+            ).aggregate(total=Coalesce(Sum("quantity"), 0))["total"]
+            or 0
+        )
+
+        speed_total_12 += speed_12
+        speed_total_3 += speed_3
+        total_sold_12 += net_sold_12
+        current_stock_total += current_stock
+        on_order_total += on_order_qty
+        size_speed_map[variant.size] += speed_12
+
+        if details_12.get("had_stockout") and speed_12 > 0:
+            warnings.append(
+                f"Size {variant.size or variant.variant_code} sold out during the last year; demand may be higher than observed."
+            )
+
+        if current_stock == 0 and speed_12 > 0:
+            warnings.append(
+                f"Size {variant.size or variant.variant_code} is out of stock despite steady demand."
+            )
+
+        variant_rows.append(
+            {
+                "variant": variant,
+                "speed_12": round(speed_12, 1),
+                "speed_3": round(speed_3, 1),
+                "net_sold_12": net_sold_12,
+                "current_stock": current_stock,
+                "on_order_qty": on_order_qty,
+            }
+        )
+
+    momentum_pct = None
+    if speed_total_12 > 0:
+        momentum_pct = round(((speed_total_3 - speed_total_12) / speed_total_12) * 100, 1)
+
+    if momentum_pct is None:
+        momentum_label = "flat"
+    elif momentum_pct >= 20:
+        momentum_label = "up"
+    elif momentum_pct <= -20:
+        momentum_label = "down"
+    else:
+        momentum_label = "flat"
+
+    variant_share_map: Dict[str, float] = {}
+    if speed_total_12 > 0:
+        for size, speed in size_speed_map.items():
+            variant_share_map[size] = speed / speed_total_12
+
+    if size_curve.get("total_units", 0) >= 80:
+        blend_factor = 0.7
+    elif size_curve.get("total_units", 0) >= 30:
+        blend_factor = 0.4
+    elif size_curve.get("total_units", 0) > 0:
+        blend_factor = 0.2
+    else:
+        blend_factor = 0.0
+
+    combined_share_map: Dict[str, float] = {}
+    if variant_share_map or size_curve_ratios:
+        all_sizes = set(variant_share_map.keys()) | set(size_curve_ratios.keys())
+        for size in all_sizes:
+            base = variant_share_map.get(size, 0.0)
+            curve = size_curve_ratios.get(size, 0.0)
+            combined_share_map[size] = (1 - blend_factor) * base + blend_factor * curve
+
+    total_combined = sum(combined_share_map.values())
+    if total_combined > 0:
+        combined_share_map = {
+            size: share / total_combined for size, share in combined_share_map.items()
+        }
+    else:
+        total_sizes = len(size_speed_map) or len(variants)
+        if total_sizes:
+            equal_share = 1 / total_sizes
+            combined_share_map = {
+                variant.size: equal_share for variant in variants
+            }
+
+    suggested_total = max(
+        math.ceil(speed_total_12 * target_months - (current_stock_total + on_order_total)),
+        0,
+    )
+
+    confidence_reasons = []
+    if total_sold_12 >= 60 and size_curve.get("total_units", 0) >= 80:
+        confidence = "high"
+    elif total_sold_12 >= 30:
+        confidence = "medium"
+        confidence_reasons.append("Moderate sales history; size curve partially inferred.")
+    else:
+        confidence = "low"
+        confidence_reasons.append("Limited sales history; size ratios are provisional.")
+
+    if size_curve.get("total_units", 0) < 30:
+        confidence_reasons.append("Low sample size for similar products.")
+
+    if warnings:
+        confidence_reasons.append("Stock-outs suggest demand may be understated.")
+
+    return {
+        "variant_rows": variant_rows,
+        "speed_12": round(speed_total_12, 1),
+        "speed_3": round(speed_total_3, 1),
+        "momentum_pct": momentum_pct,
+        "momentum_label": momentum_label,
+        "size_curve": size_curve,
+        "size_shares": combined_share_map,
+        "suggested_total": suggested_total,
+        "current_stock_total": current_stock_total,
+        "on_order_total": on_order_total,
+        "confidence": confidence,
+        "confidence_reasons": confidence_reasons,
+        "warnings": warnings,
+    }
+
+
 def calculate_variant_sales_speed_details(
     variant: ProductVariant,
     *,
@@ -417,8 +649,8 @@ def calculate_variant_sales_speed_details(
     """Return detailed sales speed info for ``variant``.
 
     Weeks where the variant had no stock are ignored. Returns a dict with
-    ``speed`` (units per month), ``total_sold`` across counted periods, and
-    ``periods`` (weeks) that contributed to the calculation.
+    ``speed`` (units per month), ``total_sold`` (net of returns) across counted
+    periods, and ``periods`` (weeks) that contributed to the calculation.
     """
 
     today = today or date.today()
@@ -433,10 +665,15 @@ def calculate_variant_sales_speed_details(
 
         # Gather events to track inventory over time
         events = []
-        for snap in variant.snapshots.all():
+        snapshots = list(variant.snapshots.all())
+        sales = list(variant.sales.all())
+        for snap in snapshots:
             events.append((snap.date, "snapshot", snap.inventory_count))
-        for sale in variant.sales.all():
-            events.append((sale.date, "sale", sale.sold_quantity or 0))
+        for sale in sales:
+            sold_qty = sale.sold_quantity or 0
+            return_qty = sale.return_quantity or 0
+            net_delta = sold_qty - return_qty
+            events.append((sale.date, "sale", net_delta))
         events.sort(key=lambda x: x[0])
 
         # Inventory level at end of each week
@@ -457,15 +694,21 @@ def calculate_variant_sales_speed_details(
                 idx += 1
             inventory_by_week[ws] = max(current_inv, 0) if seen_snapshot else None
 
-        # Sales totals per week
+        # Sales totals per week (net of returns)
         sales_by_week: Dict[date, int] = defaultdict(int)
-        for sale in variant.sales.all():
+        for sale in sales:
             ws = sale.date - timedelta(days=sale.date.weekday())
             if start_week <= ws <= week_start_today:
-                sales_by_week[ws] += sale.sold_quantity or 0
+                sold_qty = sale.sold_quantity or 0
+                return_qty = sale.return_quantity or 0
+                net_sold = max(sold_qty - return_qty, 0)
+                sales_by_week[ws] += net_sold
 
         total = 0
         periods = 0
+        had_stockout = False
+        stockout_weeks = 0
+        saw_in_stock = False
         for ws in week_starts:
             sold = sales_by_week.get(ws, 0)
             inv = inventory_by_week.get(ws)
@@ -474,18 +717,36 @@ def calculate_variant_sales_speed_details(
             else:
                 had_stock = inv > 0
 
+            if inv is not None and inv > 0:
+                saw_in_stock = True
+            elif inv is not None and inv <= 0 and saw_in_stock:
+                had_stockout = True
+                stockout_weeks += 1
+
             if sold or had_stock:
                 periods += 1
                 total += sold
 
         if periods == 0:
-            return {"speed": 0.0, "total_sold": 0, "periods": 0}
+            return {
+                "speed": 0.0,
+                "total_sold": 0,
+                "periods": 0,
+                "active_weeks": 0,
+                "active_months": 0.0,
+                "had_stockout": False,
+                "stockout_weeks": 0,
+            }
 
         avg_weekly = total / periods
         return {
             "speed": avg_weekly * WEEKS_PER_MONTH,
             "total_sold": total,
             "periods": periods,
+            "active_weeks": periods,
+            "active_months": periods / WEEKS_PER_MONTH,
+            "had_stockout": had_stockout,
+            "stockout_weeks": stockout_weeks,
         }
 
     result = _speed_for_window(weeks)
