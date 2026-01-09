@@ -78,6 +78,16 @@
                     <strong>{{ product.out_of_stock_skus|join:" / " }}</strong>
                   </span>
                 {% endif %}
+                {% if product.reorder_status == "SAFE" %}
+                  {% if product.reorder_flags %}
+                    <div class="grey-text text-darken-1" style="margin-top: 8px;">
+                      Flags: {{ product.reorder_flags|join:", " }}
+                    </div>
+                  {% endif %}
+                  {% if product.reorder_message %}
+                    <div class="grey-text text-darken-1">{{ product.reorder_message }}</div>
+                  {% endif %}
+                {% endif %}
                 <div style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px;">
                   <button
                     type="button"
