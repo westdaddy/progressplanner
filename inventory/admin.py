@@ -41,6 +41,15 @@ class AssignReferrerForm(forms.Form):
     )
 
 
+class AssignGroupForm(forms.Form):
+    """Simple form to choose a Group for an admin action."""
+
+    group = forms.ModelChoiceField(queryset=Group.objects.all(), required=True)
+    _selected_action = forms.CharField(
+        widget=forms.MultipleHiddenInput, required=False
+    )
+
+
 class SaleDateFilterForm(forms.Form):
     """Form that exposes a single date input for admin filtering."""
 
@@ -186,6 +195,7 @@ class ProductAdmin(admin.ModelAdmin):
     )
     list_filter = ("groups", "series", "type", "subtype", "style", "age", "no_restock")
     inlines = [ProductVariantInline]
+    actions = ["assign_group"]
 
     class Media:
         js = ("admin/js/product_admin.js",)
@@ -201,6 +211,44 @@ class ProductAdmin(admin.ModelAdmin):
                 variant_code=code,
                 defaults={"size": size, "gender": "male"},
             )
+
+    def assign_group(self, request, queryset):
+        """Admin action to assign a group to selected products."""
+
+        if "apply" in request.POST:
+            form = AssignGroupForm(request.POST)
+            if form.is_valid():
+                group = form.cleaned_data["group"]
+                for product in queryset:
+                    product.groups.set([group])
+                updated = queryset.count()
+                self.message_user(
+                    request,
+                    f"Successfully assigned {group} to {updated} product(s).",
+                    messages.SUCCESS,
+                )
+                return HttpResponseRedirect(request.get_full_path())
+        else:
+            form = AssignGroupForm(
+                initial={
+                    "_selected_action": request.POST.getlist(ACTION_CHECKBOX_NAME)
+                }
+            )
+
+        context = {
+            "title": "Assign group",
+            "queryset": queryset,
+            "form": form,
+            "action_checkbox_name": ACTION_CHECKBOX_NAME,
+            "opts": self.model._meta,
+            "media": self.media + form.media,
+            "action_name": "assign_group",
+            "select_across": request.POST.get("select_across"),
+        }
+
+        return render(request, "admin/inventory/product/assign_group.html", context)
+
+    assign_group.short_description = "Assign group to selected products"
 
 
 
