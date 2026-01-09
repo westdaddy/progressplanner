@@ -455,15 +455,19 @@
           <h6 class="grey-text text-darken-1">Recommendations</h6>
           {% if new_product_recommendations %}
             <p class="grey-text text-darken-1" style="margin-top: 4px;">
-              New products with no prior orders or sales and no undelivered orders.
+              New products with no prior orders.
             </p>
             <ul class="collection" style="margin-top: 12px;">
-              {% for product in new_product_recommendations %}
+              {% for rec in new_product_recommendations %}
                 <li class="collection-item">
-                  <strong>{{ product.product_id }}</strong>
+                  <strong>{{ rec.product.product_id }}</strong>
                   <span class="grey-text text-darken-1">
-                    {{ product.product_name }}
+                    {{ rec.product.product_name }}
                   </span>
+                  <span class="badge">{{ rec.status }}</span>
+                  {% if rec.message %}
+                    <div class="grey-text text-darken-1">{{ rec.message }}</div>
+                  {% endif %}
                 </li>
               {% endfor %}
             </ul>
@@ -485,6 +489,21 @@
                     {{ rec.product.product_name }}
                   </span>
                   <span class="badge">{{ rec.status }}</span>
+                  {% if rec.months_remaining is not None %}
+                    <div class="grey-text text-darken-1">
+                      {{ rec.months_remaining }} months of stock remaining
+                    </div>
+                  {% endif %}
+                  {% if rec.flags %}
+                    <div class="grey-text text-darken-1">
+                      Flags: {{ rec.flags|join:", " }}
+                    </div>
+                  {% endif %}
+                  {% if rec.size_ratio_summary %}
+                    <div class="grey-text text-darken-1">
+                      Suggested size mix: {{ rec.size_ratio_summary }}
+                    </div>
+                  {% endif %}
                   <div class="grey-text text-darken-1">{{ rec.message }}</div>
                 </li>
               {% endfor %}
