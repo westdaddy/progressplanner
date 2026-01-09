@@ -1072,16 +1072,16 @@ def _build_product_list_context(request, preset_filters=None):
                     SIZE_ORDER.get(variant.size, 9999),
                 )
             )
-        product.low_stock_sku_count = sum(
-            1
+        product.low_stock_skus = [
+            variant.size
             for variant in product.variants_with_inventory
             if 0 < (getattr(variant, "latest_inventory", 0) or 0) < 2
-        )
-        product.out_of_stock_sku_count = sum(
-            1
+        ]
+        product.out_of_stock_skus = [
+            variant.size
             for variant in product.variants_with_inventory
             if (getattr(variant, "latest_inventory", 0) or 0) <= 0
-        )
+        ]
 
     sitewide_average_discount = (
         ((sitewide_retail_total - sitewide_actual_total) / sitewide_retail_total)
