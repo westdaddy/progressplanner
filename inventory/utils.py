@@ -945,6 +945,45 @@ def calculate_sell_through_projection(
     }
 
 
+def calculate_months_to_stockout(
+    target: Optional[Union[ProductVariant, Product, Iterable[ProductVariant]]] = None,
+    *,
+    variants: Optional[Iterable[ProductVariant]] = None,
+    variant_filters: Optional[dict[str, Any]] = None,
+    on_order_by_variant: Optional[dict[int, int]] = None,
+    weeks: int = 26,
+    today: Optional[date] = None,
+) -> Optional[Decimal]:
+    """Return months of coverage based on current inventory and sales speed."""
+
+    today = today or date.today()
+    resolved_variants = _resolve_variants_for_sales_speed(
+        target, variants=variants, variant_filters=variant_filters
+    )
+    if not resolved_variants:
+        return None
+
+    speed_map = {
+        v.id: Decimal(str(calculate_variant_sales_speed(v, weeks=weeks, today=today) or 0))
+        for v in resolved_variants
+    }
+
+    total_speed = sum(speed_map.values())
+    if total_speed <= 0:
+        return None
+
+    on_order_by_variant = on_order_by_variant or {}
+    total_stock = sum(
+        Decimal(getattr(v, "latest_inventory", 0) or 0)
+        + Decimal(on_order_by_variant.get(v.id, 0) or 0)
+        for v in resolved_variants
+    )
+    if total_stock <= 0:
+        return None
+
+    return total_stock / total_speed
+
+
 def get_variant_speed_map(variants, *, weeks=26, today=None):
     """Return a {variant_id: speed} map for the given variants."""
     today = today or date.today()
