@@ -3373,6 +3373,10 @@ def order_list(request):
             "size_ratios": size_ratios,
             "size_ratio_summary": size_ratio_summary,
         }
+        if status == "SAFE":
+            product.reorder_status = status
+            product.reorder_flags = flags
+            product.reorder_message = entry["message"]
         if status not in {"IGNORE", "SAFE"}:
             prior_order_recommendations.append(entry)
 
