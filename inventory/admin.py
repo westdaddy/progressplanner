@@ -177,13 +177,14 @@ class ProductAdmin(admin.ModelAdmin):
         "product_name",
         "retail_price",
         "restock_time",
+        "no_restock",
         "type",
         "subtype",
         "style",
         "age",
         "product_photo",
     )
-    list_filter = ("groups", "series", "type", "subtype", "style", "age")
+    list_filter = ("groups", "series", "type", "subtype", "style", "age", "no_restock")
     inlines = [ProductVariantInline]
 
     class Media:

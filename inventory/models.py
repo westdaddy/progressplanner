@@ -193,6 +193,10 @@ class Product(models.Model):
         default=0,
         help_text="Number of months required to restock this product.",
     )
+    no_restock = models.BooleanField(
+        default=False,
+        help_text="Exclude this product from reorder recommendations.",
+    )
     type = models.CharField(
         max_length=20,
         choices=PRODUCT_TYPE_CHOICES,
