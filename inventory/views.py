@@ -3176,6 +3176,7 @@ def order_list(request):
             _normalize_group_label(group.name)
             for group in product.groups.all()
         }
+        is_premium = "premium" in normalized_groups
         is_no_restock = getattr(product, "no_restock", False)
         is_core_group = any("core" in group for group in normalized_groups)
         is_mid_group = any("midrange" in group for group in normalized_groups)
@@ -3185,6 +3186,14 @@ def order_list(request):
                     "product": product,
                     "status": "IGNORE",
                     "message": "No restock flag excludes from reorder logic.",
+                }
+            )
+        elif is_premium:
+            prior_order_recommendations.append(
+                {
+                    "product": product,
+                    "status": "NEXT",
+                    "message": "Premium category continues to next rule layer.",
                 }
             )
         elif is_core_group or is_mid_group:
