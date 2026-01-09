@@ -202,12 +202,12 @@
     .product-order-modal__content {
       position: relative;
       background: #fff;
-      width: min(900px, 90%);
-      margin: 5vh auto;
+      width: min(1200px, 95%);
+      margin: 3vh auto;
       border-radius: 12px;
       padding: 20px;
       z-index: 1;
-      max-height: 90vh;
+      max-height: 94vh;
       overflow-y: auto;
     }
 
@@ -231,16 +231,22 @@
       width: 100%;
     }
 
-    .product-order-modal__media img {
-      width: 180px;
-      height: 180px;
-      object-fit: cover;
-      border-radius: 8px;
-    }
-
     .product-order-modal__table {
       flex: 1;
       min-width: 240px;
+    }
+
+    .product-order-modal__chart {
+      margin: 16px 0 20px;
+      padding: 12px 16px;
+      border-radius: 10px;
+      background: #f6f7f8;
+    }
+
+    .product-order-modal__chart h6 {
+      margin: 0 0 12px;
+      font-weight: 600;
+      color: #455a64;
     }
   </style>
   {% if filter_controls %}
@@ -629,6 +635,104 @@
   (function() {
     const filterControllers = [];
     const applyButton = document.querySelector('.filter-apply-button');
+    const orderCharts = new WeakMap();
+
+    const buildMonthLabels = (monthsAhead = 12) => {
+      const labels = [];
+      const base = new Date();
+      const start = new Date(base.getFullYear(), base.getMonth(), 1);
+      for (let i = 0; i <= monthsAhead; i += 1) {
+        const d = new Date(start.getFullYear(), start.getMonth() + i, 1);
+        const label = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        labels.push(label);
+      }
+      return labels;
+    };
+
+    const getMonthKey = (value) => {
+      if (!value) return null;
+      const parsed = new Date(value);
+      if (Number.isNaN(parsed.getTime())) return null;
+      return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}`;
+    };
+
+    const buildVariantProjection = (variant, labels, arrivalMonthKey) => {
+      let current = variant.stock;
+      const levels = [Math.max(Math.round(current), 0)];
+      for (let i = 1; i < labels.length; i += 1) {
+        const label = labels[i];
+        if (arrivalMonthKey && label === arrivalMonthKey) {
+          current += variant.arrivalQty;
+        }
+        current -= variant.speed;
+        current = Math.max(Math.round(current), 0);
+        levels.push(current);
+      }
+      return levels;
+    };
+
+    const getVariantInputs = (modal) => {
+      const inputs = Array.from(modal.querySelectorAll('[data-order-qty-input]'));
+      return inputs.map((input) => {
+        const stock = Number(input.dataset.variantStock || 0);
+        const speed = Number(input.dataset.variantSpeed || 0);
+        const arrivalQty = Math.max(parseInt(input.value, 10) || 0, 0);
+        return {
+          label: input.dataset.variantCode || input.name,
+          stock,
+          speed,
+          arrivalQty,
+        };
+      });
+    };
+
+    const updateOrderProjectionChart = (modal) => {
+      const canvas = modal.querySelector('[data-order-stock-chart]');
+      if (!canvas || !window.Chart) return;
+      const labels = buildMonthLabels(12);
+      const expectedInput = modal.querySelector('[data-expected-date-input]');
+      const arrivalMonthKey = getMonthKey(expectedInput ? expectedInput.value : null);
+      const variants = getVariantInputs(modal);
+      const datasets = variants.map((variant) => ({
+        label: variant.label,
+        data: buildVariantProjection(variant, labels, arrivalMonthKey),
+        borderWidth: 2,
+        fill: false,
+        tension: 0.2,
+        pointRadius: 2,
+      }));
+
+      let chart = orderCharts.get(modal);
+      if (!chart) {
+        const ctx = canvas.getContext('2d');
+        chart = new Chart(ctx, {
+          type: 'line',
+          data: { labels, datasets },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: 'bottom' },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => `${ctx.dataset.label}: ${Math.round(ctx.parsed.y)} units`,
+                },
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: { precision: 0 },
+              },
+            },
+          },
+        });
+        orderCharts.set(modal, chart);
+      } else {
+        chart.data.labels = labels;
+        chart.data.datasets = datasets;
+        chart.update();
+      }
+    };
 
     const sellThroughCanvas = document.getElementById("sellThroughChart");
     if (sellThroughCanvas && window.Chart) {
@@ -1278,6 +1382,8 @@
       if (window.M && typeof M.updateTextFields === 'function') {
         M.updateTextFields();
       }
+
+      updateOrderProjectionChart(modal);
     };
 
     document.querySelectorAll('[data-open-order-modal]').forEach((btn) => {
@@ -1328,12 +1434,23 @@
           row.input.value = value > 0 ? value : '';
           remainder = Math.max(remainder - add, 0);
         });
+
+      updateOrderProjectionChart(modal);
     };
 
     document.querySelectorAll('.product-order-modal').forEach((modal) => {
       const totalInput = modal.querySelector('[data-total-order-input]');
       if (!totalInput) return;
       totalInput.addEventListener('input', () => updateOrderSplit(modal));
+
+      const expectedInput = modal.querySelector('[data-expected-date-input]');
+      if (expectedInput) {
+        expectedInput.addEventListener('input', () => updateOrderProjectionChart(modal));
+      }
+
+      modal.querySelectorAll('[data-order-qty-input]').forEach((input) => {
+        input.addEventListener('input', () => updateOrderProjectionChart(modal));
+      });
     });
 
     document.addEventListener('DOMContentLoaded', function() {
