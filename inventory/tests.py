@@ -486,6 +486,23 @@ class ProductAdminGroupActionTests(TestCase):
         self.assertEqual(list(self.product_one.groups.all()), [self.group_b])
         self.assertEqual(list(self.product_two.groups.all()), [self.group_b])
 
+    def test_mark_no_restock_updates_selected_products(self):
+        selected_ids = [str(self.product_one.pk), str(self.product_two.pk)]
+        data = {
+            "action": "mark_no_restock",
+            ACTION_CHECKBOX_NAME: selected_ids,
+        }
+        request = self._prepare_request(data)
+        queryset = Product.objects.filter(pk__in=selected_ids)
+
+        response = self.admin.mark_no_restock(request, queryset)
+
+        self.assertIsNone(response)
+        self.product_one.refresh_from_db()
+        self.product_two.refresh_from_db()
+        self.assertTrue(self.product_one.no_restock)
+        self.assertTrue(self.product_two.no_restock)
+
 
 class ProductVariantOrderingTests(TestCase):
     def test_admin_orders_variants_by_size(self):
