@@ -195,7 +195,7 @@ class ProductAdmin(admin.ModelAdmin):
     )
     list_filter = ("groups", "series", "type", "subtype", "style", "age", "no_restock")
     inlines = [ProductVariantInline]
-    actions = ["assign_group"]
+    actions = ["assign_group", "mark_no_restock"]
 
     class Media:
         js = ("admin/js/product_admin.js",)
@@ -249,6 +249,17 @@ class ProductAdmin(admin.ModelAdmin):
         return render(request, "admin/inventory/product/assign_group.html", context)
 
     assign_group.short_description = "Assign group to selected products"
+
+    def mark_no_restock(self, request, queryset):
+        """Admin action to mark selected products as no restock."""
+        updated = queryset.update(no_restock=True)
+        self.message_user(
+            request,
+            f"Marked {updated} product(s) as no restock.",
+            messages.SUCCESS,
+        )
+
+    mark_no_restock.short_description = "Mark selected products as no restock"
 
 
 
