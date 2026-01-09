@@ -3201,6 +3201,8 @@ def order_list(request):
     new_product_recommendations = []
     prior_order_recommendations = []
     for product in filtered_products:
+        if getattr(product, "no_restock", False):
+            continue
         if product.id not in ordered_product_ids:
             new_product_recommendations.append(
                 {
@@ -3215,11 +3217,8 @@ def order_list(request):
             for group in product.groups.all()
         }
         is_one_and_done = "oneanddone" in normalized_groups
-        is_no_restock = getattr(product, "no_restock", False)
         is_core_group = any("core" in group for group in normalized_groups)
         is_mid_group = any("midrange" in group for group in normalized_groups)
-        if is_no_restock:
-            continue
         if is_one_and_done:
             continue
         if not (is_core_group or is_mid_group):
