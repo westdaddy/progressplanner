@@ -821,8 +821,8 @@ def _build_product_list_context(request, preset_filters=None):
                 return sorted(styles)[0]
         return None
 
-    def _is_one_and_done(product):
-        normalized_targets = {"oneanddone"}
+    def _is_premium(product):
+        normalized_targets = {"premium"}
         for group in product.groups.all():
             normalized = group.name.lower().replace("&", "and")
             normalized = normalized.replace("-", "").replace(" ", "")
@@ -1160,8 +1160,11 @@ def _build_product_list_context(request, preset_filters=None):
             else None
         )
 
-        is_one_and_done = _is_one_and_done(product)
-        is_core = bool(product.restock_time and product.restock_time > 0 and not is_one_and_done)
+        is_premium = _is_premium(product)
+        is_no_restock = getattr(product, "no_restock", False)
+        is_core = bool(
+            product.restock_time and product.restock_time > 0 and not is_premium and not is_no_restock
+        )
 
         confidence = compute_product_confidence(
             months_to_sell_out=months_to_sell_out,
@@ -1242,7 +1245,7 @@ def _build_product_list_context(request, preset_filters=None):
                 f"Sizes {size_list} are out of stock—restock ASAP."
             )
 
-        if is_one_and_done:
+        if is_premium or is_no_restock:
             advisories = [
                 note
                 for note in advisories
@@ -3183,15 +3186,24 @@ def order_list(request):
             _normalize_group_label(group.name)
             for group in product.groups.all()
         }
-        is_one_and_done = "oneanddone" in normalized_groups
+        is_premium = "premium" in normalized_groups
+        is_no_restock = getattr(product, "no_restock", False)
         is_core_group = any("core" in group for group in normalized_groups)
         is_mid_group = any("midrange" in group for group in normalized_groups)
-        if is_one_and_done:
+        if is_no_restock:
             prior_order_recommendations.append(
                 {
                     "product": product,
                     "status": "IGNORE",
-                    "message": "One & done category excludes from reorder logic.",
+                    "message": "No restock flag excludes from reorder logic.",
+                }
+            )
+        elif is_premium:
+            prior_order_recommendations.append(
+                {
+                    "product": product,
+                    "status": "IGNORE",
+                    "message": "Premium category excludes from reorder logic.",
                 }
             )
         elif is_core_group or is_mid_group:
