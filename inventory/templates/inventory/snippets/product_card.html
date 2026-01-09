@@ -193,6 +193,8 @@
               <tr>
                 <th>Size</th>
                 <th>SKU</th>
+                <th>Stock</th>
+                <th>Sales speed (6 mo)</th>
                 <th>Order Qty</th>
               </tr>
             </thead>
@@ -201,6 +203,14 @@
                 <tr>
                   <td>{{ variant.size|default:"—" }}</td>
                   <td>{{ variant.variant_code }}</td>
+                  <td>{{ variant.latest_inventory|default:0 }}</td>
+                  <td>
+                    {% if variant.sales_speed_6_months is not None %}
+                      {{ variant.sales_speed_6_months|floatformat:1 }} / month
+                    {% else %}
+                      —
+                    {% endif %}
+                  </td>
                   <td>
                     <input
                       type="number"
@@ -216,7 +226,7 @@
                 </tr>
               {% empty %}
                 <tr>
-                  <td colspan="3" class="grey-text">No variants available.</td>
+                  <td colspan="5" class="grey-text">No variants available.</td>
                 </tr>
               {% endfor %}
             </tbody>
