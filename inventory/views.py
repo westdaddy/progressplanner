@@ -2861,6 +2861,51 @@ def product_detail(request, product_id):
     # Format for Chart.js time-series
     actual_data = [{"x": row["date"].isoformat(), "y": row["total"]} for row in snaps]
 
+    sell_through_start = today - relativedelta(months=18)
+    sell_through_snaps = (
+        InventorySnapshot.objects.filter(
+            product_variant__product=product, date__gte=sell_through_start
+        )
+        .values("product_variant__variant_code", "date", "inventory_count")
+        .order_by("product_variant__variant_code", "date")
+    )
+    sell_through_by_variant = defaultdict(list)
+    for snap in sell_through_snaps:
+        sell_through_by_variant[snap["product_variant__variant_code"]].append(snap)
+
+    variant_codes = [variant.variant_code for variant in variants]
+    sell_through_segments = []
+
+    for variant_code in variant_codes:
+        snaps_for_variant = sell_through_by_variant.get(variant_code, [])
+        in_stock_start = None
+        last_seen_date = None
+
+        for snap in snaps_for_variant:
+            last_seen_date = snap["date"]
+            if snap["inventory_count"] > 0:
+                if in_stock_start is None:
+                    in_stock_start = snap["date"]
+            elif in_stock_start is not None:
+                sell_through_segments.append(
+                    {
+                        "variant": variant_code,
+                        "start": in_stock_start.isoformat(),
+                        "end": snap["date"].isoformat(),
+                    }
+                )
+                in_stock_start = None
+
+        if in_stock_start is not None:
+            end_date = max(last_seen_date or in_stock_start, today)
+            sell_through_segments.append(
+                {
+                    "variant": variant_code,
+                    "start": in_stock_start.isoformat(),
+                    "end": end_date.isoformat(),
+                }
+            )
+
     # Suppose `safe_stock['safe_stock_data']` is a list of dicts from compute_safe_stock
     # each with 'variant_code', 'current_stock', and 'avg_speed'.
     initial = {
@@ -3022,6 +3067,9 @@ def product_detail(request, product_id):
         **sales_data,
         "actual_data": json.dumps(actual_data),
         "forecast_data": json.dumps(forecast_data),
+        "sell_through_data": json.dumps(
+            {"variants": variant_codes, "segments": sell_through_segments}
+        ),
         "threshold_value": json.dumps(threshold_value),
         "health": health,
         "prev_orders": prev_orders,

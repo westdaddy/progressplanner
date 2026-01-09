@@ -269,6 +269,20 @@ table#restock tr#totals {
   </div>
 </div>
 
+<!-- Sell-through Timeline -->
+<div class="section">
+  <div class="row">
+    <div class="col s12">
+      <div class="card z-depth-2" style="overflow: hidden;">
+        <div style="padding: 20px;">
+          <h5>Variant Sell-through Timeline</h5>
+          <canvas id="sellThroughChart" height="140"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 
 {% endblock %}
@@ -291,6 +305,58 @@ table#restock tr#totals {
       datasets: stockChartData.variant_lines.map(v => ({ label: v.variant_name, data: v.stock_levels, borderWidth: 2, fill: false }))
     },
     options: { responsive: true }
+  });
+</script>
+
+<script>
+  // Variant Sell-through Timeline
+  const sellThroughData = {{ sell_through_data|safe }};
+  const sellThroughCtx = document.getElementById('sellThroughChart').getContext('2d');
+  const sellThroughDatasets = sellThroughData.segments.map(segment => ({
+    label: segment.variant,
+    data: [
+      { x: segment.start, y: segment.variant },
+      { x: segment.end, y: segment.variant }
+    ],
+    borderWidth: 4,
+    pointRadius: 0,
+    fill: false
+  }));
+
+  new Chart(sellThroughCtx, {
+    type: 'line',
+    data: {
+      datasets: sellThroughDatasets
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.parsed.y}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: {
+            unit: 'month',
+            tooltipFormat: 'dd LLL yyyy',
+            displayFormats: { month: 'MMM yyyy' }
+          },
+          title: { display: true, text: 'Date', color: 'black' },
+          grid: { color: 'rgba(0,0,0,0.1)' }
+        },
+        y: {
+          type: 'category',
+          labels: sellThroughData.variants,
+          title: { display: true, text: 'Variant', color: 'black' },
+          grid: { color: 'rgba(0,0,0,0.1)' }
+        }
+      }
+    }
   });
 </script>
 
