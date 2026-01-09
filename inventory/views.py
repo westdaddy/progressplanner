@@ -3097,8 +3097,19 @@ def order_list(request):
         elif getattr(product, "variants_with_inventory", None):
             for variant in product.variants_with_inventory:
                 variant.pending_order_qty = 0
-    ordered_product_ids = set(
-        OrderItem.objects.filter(product_variant__product__in=filtered_products)
+    delivered_product_ids = set(
+        OrderItem.objects.filter(
+            product_variant__product__in=filtered_products,
+            date_arrived__isnull=False,
+        )
+        .values_list("product_variant__product_id", flat=True)
+        .distinct()
+    )
+    pending_product_ids = set(
+        OrderItem.objects.filter(
+            product_variant__product__in=filtered_products,
+            date_arrived__isnull=True,
+        )
         .values_list("product_variant__product_id", flat=True)
         .distinct()
     )
