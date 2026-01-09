@@ -3305,6 +3305,43 @@ def order_list(request):
             explanations.append(
                 f"Core sizes out of stock: {', '.join(sorted(core_oos))}."
             )
+        else:
+            explanations.append("Sales speed data unavailable; review manually.")
+
+        has_stockout = len(out_of_stock_sizes) > 0
+        if has_stockout:
+            flags.append("HAS_STOCKOUT")
+            if not has_in_stock:
+                status = "HIGH_PRIORITY_REORDER"
+                explanations.append("All variants are currently out of stock.")
+            else:
+                explanations.append(
+                    f"Stockout detected in {', '.join(sorted(out_of_stock_sizes))}."
+                )
+
+        style_code = _resolve_style_code(product)
+        core_sizes = CORE_SIZES.get(style_code or "", [])
+        core_oos: set[str] = set()
+        core_low: set[str] = set()
+        for variant in variants:
+            if not variant.size or variant.size not in core_sizes:
+                continue
+            stock_units = int(getattr(variant, "latest_inventory", 0) or 0)
+            if stock_units <= 0:
+                core_oos.add(variant.size)
+            speed = speed_by_size.get(variant.size or variant.variant_code, Decimal("0"))
+            if speed > 0:
+                pending_qty = pending_variant_totals.get(variant.id, 0)
+                variant_months = Decimal(stock_units + pending_qty) / speed
+                if variant_months <= lead_time_months:
+                    core_low.add(variant.size)
+
+        if core_oos:
+            flags.append("CORE_VARIANT_OOS")
+            status = "HIGH_PRIORITY_REORDER"
+            explanations.append(
+                f"Core sizes out of stock: {', '.join(sorted(core_oos))}."
+            )
             continue
 
         variants = getattr(product, "variants_with_inventory", None) or list(
@@ -3457,6 +3494,76 @@ def order_list(request):
                 "size_ratio_summary": size_ratio_summary,
             }
         )
+
+        if core_low and "CORE_VARIANT_OOS" not in flags:
+            flags.append("CORE_VARIANT_LOW")
+            status = "HIGH_PRIORITY_REORDER"
+            explanations.append(
+                f"Core sizes running low within lead time: {', '.join(sorted(core_low))}."
+            )
+
+        if has_stockout and not core_oos:
+            flags.append("NON_CORE_VARIANT_OOS")
+
+        size_ratios = []
+        size_ratio_summary = None
+        if status in {"REORDER_CANDIDATE", "HIGH_PRIORITY_REORDER"}:
+            total_speed = sum(
+                speed for speed in speed_by_size.values() if speed and speed > 0
+            )
+            if total_speed > 0:
+                for size, speed in sorted(speed_by_size.items()):
+                    if not speed or speed <= 0:
+                        continue
+                    ratio = float(speed / total_speed)
+                    size_ratios.append(
+                        {
+                            "size": size,
+                            "ratio": round(ratio * 100, 1),
+                        }
+                    )
+            else:
+                fallback_sizes = sorted(stock_by_size.keys())
+                if fallback_sizes:
+                    equal_ratio = round(100 / len(fallback_sizes), 1)
+                    size_ratios = [
+                        {"size": size, "ratio": equal_ratio} for size in fallback_sizes
+                    ]
+
+            if size_ratios:
+                size_ratio_summary = ", ".join(
+                    f"{entry['size']} {entry['ratio']}%" for entry in size_ratios
+                )
+                explanations.append(
+                    f"Suggested size mix based on sales speed: {size_ratio_summary}."
+                )
+
+            total_stock_by_size = sum(stock_by_size.values()) or 0
+            if total_speed > 0 and total_stock_by_size > 0:
+                imbalance_threshold = 0.2
+                for size, speed in speed_by_size.items():
+                    if speed <= 0:
+                        continue
+                    speed_share = float(speed / total_speed)
+                    stock_share = stock_by_size.get(size, 0) / total_stock_by_size
+                    if abs(stock_share - speed_share) >= imbalance_threshold:
+                        flags.append("SIZE_IMBALANCE")
+                        explanations.append(
+                            "Size imbalance detected between stock and sales speed."
+                        )
+                        break
+
+        entry = {
+            "product": product,
+            "status": status,
+            "months_remaining": months_remaining,
+            "flags": flags,
+            "message": " ".join(explanations),
+            "size_ratios": size_ratios,
+            "size_ratio_summary": size_ratio_summary,
+        }
+        if status != "IGNORE":
+            prior_order_recommendations.append(entry)
 
         if core_low and "CORE_VARIANT_OOS" not in flags:
             flags.append("CORE_VARIANT_LOW")

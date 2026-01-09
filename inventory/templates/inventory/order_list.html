@@ -452,8 +452,9 @@
 
       <div class="col s12 m6">
         <div class="card-panel">
-          <h6 class="grey-text text-darken-1">Recommendations</h6>
+          <h5 class="grey-text text-darken-1">Recommendations</h5>
           {% if new_product_recommendations %}
+            <h6 class="grey-text text-darken-1" style="margin-top: 12px;">New Product Orders</h6>
             <p class="grey-text text-darken-1" style="margin-top: 4px;">
               New products with no prior orders.
             </p>
@@ -481,6 +482,7 @@
             </p>
           {% endif %}
           {% if prior_order_recommendations %}
+            <h6 class="grey-text text-darken-1" style="margin-top: 12px;">Restock Recommendations</h6>
             <ul class="collection" style="margin-top: 12px;">
               {% for rec in prior_order_recommendations %}
                 <li class="collection-item">
