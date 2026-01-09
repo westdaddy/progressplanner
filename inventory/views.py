@@ -3474,6 +3474,16 @@ def order_list(request):
                 style_entry["entries"] = type_entries
             stock_position_cards.append(style_entry)
 
+    seen_cards: set[tuple[Optional[str], str]] = set()
+    unique_stock_cards: list[dict[str, Any]] = []
+    for card in stock_position_cards:
+        card_key = (card.get("parent_label"), card.get("label"))
+        if card_key in seen_cards:
+            continue
+        seen_cards.add(card_key)
+        unique_stock_cards.append(card)
+    stock_position_cards = unique_stock_cards
+
     # Fetch orders and prefetch related items for efficiency
     orders = (
         Order.objects.all()
