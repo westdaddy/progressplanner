@@ -91,8 +91,8 @@ from .utils import (
     calculate_dynamic_product_score,
     compute_product_health,
     get_low_stock_products,
-    calculate_variant_sales_speed,
-    calculate_sales_speed_for_variants,
+    calculate_sales_speed,
+    calculate_sell_through_projection,
     get_variant_speed_map,
     get_category_speed_stats,
     build_product_reorder_summary,
@@ -628,6 +628,10 @@ def _compute_product_metrics(
     gift_units = 0
     variant_months_to_sell_out: dict[str, Optional[Decimal]] = {}
 
+    speed_map = get_variant_speed_map(
+        product.variants_with_inventory, weeks=26, today=today
+    )
+
     for v in product.variants_with_inventory:
         total_sales += v.sales.aggregate(total=Coalesce(Sum("sold_quantity"), 0))["total"]
         total_returns += v.sales.aggregate(total=Coalesce(Sum("return_quantity"), 0))["total"]
@@ -648,9 +652,7 @@ def _compute_product_metrics(
         )["total"]
         sales_6 += variant_sales_6
 
-        monthly_rate_6 = (
-            Decimal(variant_sales_6) / Decimal("6") if variant_sales_6 else Decimal("0")
-        )
+        monthly_rate_6 = Decimal(str(speed_map.get(v.id, 0) or 0))
         variant_months_to_sell_out[v.size] = (
             Decimal(v.latest_inventory) / monthly_rate_6 if monthly_rate_6 > 0 else None
         )
@@ -716,14 +718,13 @@ def _compute_product_metrics(
         (today - first_sale).days / Decimal("30") if first_sale else None
     )
 
-    if time_on_market_months and time_on_market_months < Decimal("6"):
-        sales_speed_6_months = (
-            Decimal(total_sales) / time_on_market_months
-            if time_on_market_months > 0
-            else None
+    sales_speed_6_months = Decimal(
+        str(
+            calculate_sales_speed(
+                product.variants_with_inventory, weeks=26, today=today
+            )
         )
-    else:
-        sales_speed_6_months = Decimal(sales_6) / Decimal("6") if sales_6 is not None else None
+    )
 
     last_item = (
         OrderItem.objects.filter(product_variant__product=product)
@@ -1133,10 +1134,10 @@ def _build_product_list_context(request, preset_filters=None):
 
     for product in products:
         # Months to sell out based on the recent sales speed
-        sales_speed = product.sales_speed_6_months or Decimal("0")
-        months_to_sell_out = (
-            Decimal(product.total_inventory) / sales_speed if sales_speed else None
+        projection = calculate_sell_through_projection(
+            product.variants_with_inventory, months=12, weeks=26, today=today
         )
+        months_to_sell_out = projection["months_to_sell_out"]
         if months_to_sell_out is not None and months_to_sell_out < 0:
             months_to_sell_out = None
         if months_to_sell_out is not None:
@@ -3216,21 +3217,23 @@ def order_list(request):
         sell_through_actual_data = []
         sell_through_forecast_data = []
 
-    stock_delta = filtered_stock_current - filtered_sales_last_year
-    if stock_delta > 0:
-        stock_status_label = "over"
-    elif stock_delta < 0:
-        stock_status_label = "under"
+    if filtered_sell_through_rate:
+        stock_coverage_months = (
+            Decimal(filtered_stock_current) / filtered_sell_through_rate
+        ).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
     else:
-        stock_status_label = "on target"
+        stock_coverage_months = None
 
-    if filtered_sales_last_year:
-        stock_status_percent = round(
-            (abs(stock_delta) / filtered_sales_last_year) * 100, 1
-        )
+    if stock_coverage_months is None:
+        stock_status_label = "no data"
+    elif stock_coverage_months >= Decimal("9"):
+        stock_status_label = "overstocked"
+    elif stock_coverage_months >= Decimal("6"):
+        stock_status_label = "on target"
+    elif stock_coverage_months >= Decimal("3"):
+        stock_status_label = "low stock"
     else:
-        stock_status_percent = None
-    stock_status_items = abs(stock_delta)
+        stock_status_label = "priority low"
 
     search_query = request.GET.get("product_search", "").strip()
     selected_product_id = request.GET.get("product")
@@ -3347,8 +3350,7 @@ def order_list(request):
         "sell_through_actual_data": json.dumps(sell_through_actual_data),
         "sell_through_forecast_data": json.dumps(sell_through_forecast_data),
         "stock_status_label": stock_status_label,
-        "stock_status_percent": stock_status_percent,
-        "stock_status_items": stock_status_items,
+        "stock_coverage_months": stock_coverage_months,
     }
     return render(request, "inventory/order_list.html", context)
 

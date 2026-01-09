@@ -456,19 +456,19 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
                     <strong>Stock position</strong>
                     <span class="teal-text text-darken-2 right-align">
-                      {% if stock_status_label == "on target" %}
-                        On target
+                      {% if stock_status_label == "no data" %}
+                        No data
+                      {% elif stock_status_label == "priority low" %}
+                        Priority low
                       {% else %}
                         {{ stock_status_label|capfirst }}
-                        by
-                        {% if stock_status_percent is not None %}{{ stock_status_percent }}%{% else %}—{% endif %}
-                        /
-                        {{ stock_status_items }}
-                        items
+                      {% endif %}
+                      {% if stock_coverage_months is not None %}
+                        ({{ stock_coverage_months }} months)
                       {% endif %}
                     </span>
                 </div>
-                <p class="grey-text text-darken-1" style="margin: 4px 0 0;">Compared to last 12 months of demand.</p>
+                <p class="grey-text text-darken-1" style="margin: 4px 0 0;">Based on the last 12 months of demand.</p>
               </li>
           </ul>
         </div>
