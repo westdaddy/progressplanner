@@ -193,6 +193,16 @@
               </span>
             </div>
           {% endif %}
+          {% if product.restock_recommendations %}
+            <div class="card-panel blue-grey lighten-5" style="margin: 0 0 12px;">
+              <strong>Restock recommendations:</strong>
+              <ul style="margin: 8px 0 0; padding-left: 18px;">
+                {% for rec in product.restock_recommendations %}
+                  <li>{{ rec.message }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
           <table class="striped">
             <thead>
               <tr>
