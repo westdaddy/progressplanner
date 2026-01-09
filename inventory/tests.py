@@ -420,6 +420,73 @@ class ProductAdminFormTests(TestCase):
         self.assertIn(ProductVariantInline, admin.inlines)
 
 
+class ProductAdminGroupActionTests(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        from inventory.admin import ProductAdmin
+
+        self.admin = ProductAdmin(Product, admin_site=AdminSite())
+        self.group_a = Group.objects.create(name="Group A")
+        self.group_b = Group.objects.create(name="Group B")
+        self.product_one = Product.objects.create(
+            product_id="G1", product_name="Group Product 1"
+        )
+        self.product_two = Product.objects.create(
+            product_id="G2", product_name="Group Product 2"
+        )
+        self.product_one.groups.add(self.group_a)
+        self.product_two.groups.add(self.group_a)
+
+        user_model = get_user_model()
+        self.user = user_model.objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+
+    def _prepare_request(self, data):
+        request = self.factory.post("/admin/inventory/product/", data)
+        request.user = self.user
+        SessionMiddleware(lambda r: None).process_request(request)
+        request.session.save()
+        messages = FallbackStorage(request)
+        setattr(request, "_messages", messages)
+        return request
+
+    def test_assign_group_prompts_for_confirmation(self):
+        data = {
+            "action": "assign_group",
+            ACTION_CHECKBOX_NAME: [str(self.product_one.pk)],
+        }
+        request = self._prepare_request(data)
+        queryset = Product.objects.filter(pk=self.product_one.pk)
+
+        response = self.admin.assign_group(request, queryset)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Assign group", response.content.decode())
+
+    def test_assign_group_updates_selected_products(self):
+        selected_ids = [str(self.product_one.pk), str(self.product_two.pk)]
+        data = {
+            "action": "assign_group",
+            "apply": "1",
+            "group": str(self.group_b.pk),
+            ACTION_CHECKBOX_NAME: selected_ids,
+            "_selected_action": selected_ids,
+        }
+        request = self._prepare_request(data)
+        queryset = Product.objects.filter(pk__in=selected_ids)
+
+        response = self.admin.assign_group(request, queryset)
+
+        self.assertEqual(response.status_code, 302)
+        self.product_one.refresh_from_db()
+        self.product_two.refresh_from_db()
+        self.assertEqual(list(self.product_one.groups.all()), [self.group_b])
+        self.assertEqual(list(self.product_two.groups.all()), [self.group_b])
+
+
 class ProductVariantOrderingTests(TestCase):
     def test_admin_orders_variants_by_size(self):
         from inventory.admin import ProductVariantAdmin
