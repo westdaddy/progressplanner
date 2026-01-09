@@ -95,7 +95,6 @@ from .utils import (
     calculate_sell_through_projection,
     get_variant_speed_map,
     get_category_speed_stats,
-    build_product_reorder_summary,
 )
 
 
@@ -822,8 +821,8 @@ def _build_product_list_context(request, preset_filters=None):
                 return sorted(styles)[0]
         return None
 
-    def _is_one_and_done(product):
-        normalized_targets = {"oneanddone"}
+    def _is_premium(product):
+        normalized_targets = {"premium"}
         for group in product.groups.all():
             normalized = group.name.lower().replace("&", "and")
             normalized = normalized.replace("-", "").replace(" ", "")
@@ -1161,8 +1160,11 @@ def _build_product_list_context(request, preset_filters=None):
             else None
         )
 
-        is_one_and_done = _is_one_and_done(product)
-        is_core = bool(product.restock_time and product.restock_time > 0 and not is_one_and_done)
+        is_premium = _is_premium(product)
+        is_no_restock = getattr(product, "no_restock", False)
+        is_core = bool(
+            product.restock_time and product.restock_time > 0 and not is_premium and not is_no_restock
+        )
 
         confidence = compute_product_confidence(
             months_to_sell_out=months_to_sell_out,
@@ -1243,7 +1245,7 @@ def _build_product_list_context(request, preset_filters=None):
                 f"Sizes {size_list} are out of stock—restock ASAP."
             )
 
-        if is_one_and_done:
+        if is_premium or is_no_restock:
             advisories = [
                 note
                 for note in advisories
@@ -3098,11 +3100,19 @@ def order_list(request):
         elif getattr(product, "variants_with_inventory", None):
             for variant in product.variants_with_inventory:
                 variant.pending_order_qty = 0
-    ordered_product_ids = set(
-        OrderItem.objects.filter(product_variant__product__in=filtered_products)
-        .values_list("product_variant__product_id", flat=True)
-        .distinct()
-    )
+    ordered_product_ids = set()
+    sold_product_ids = set()
+    if filtered_products:
+        ordered_product_ids = set(
+            OrderItem.objects.filter(product_variant__product__in=filtered_products)
+            .values_list("product_variant__product_id", flat=True)
+            .distinct()
+        )
+        sold_product_ids = set(
+            Sale.objects.filter(variant__product__in=filtered_products)
+            .values_list("variant__product_id", flat=True)
+            .distinct()
+        )
     filtered_stock_current = sum(
         getattr(product, "total_inventory", 0) for product in filtered_products
     )
@@ -3154,105 +3164,56 @@ def order_list(request):
             for variant in getattr(product, "variants_with_inventory", []):
                 variant.size_sales_share = size_sales_share.get(variant.size, 0)
 
-    today = date.today()
+    def _normalize_group_label(value: str) -> str:
+        return (
+            value.lower()
+            .replace("&", "and")
+            .replace("-", "")
+            .replace(" ", "")
+        )
+
+    new_product_recommendations = [
+        product
+        for product in filtered_products
+        if product.id not in ordered_product_ids
+        and product.id not in sold_product_ids
+    ]
+    prior_order_recommendations = []
     for product in filtered_products:
-        product.reorder_summary = build_product_reorder_summary(product, today=today)
-        size_share_map = product.reorder_summary.get("size_shares", {})
-        for variant in getattr(product, "variants_with_inventory", []):
-            if size_share_map:
-                variant.size_sales_share = size_share_map.get(variant.size, 0)
-
-        restock_recommendations = []
-        has_order_history = product.id in ordered_product_ids
-        if not has_order_history:
-            restock_recommendations.append(
-                {
-                    "level": "info",
-                    "message": "No prior orders on record—consider placing an initial order.",
-                }
-            )
-
-        def _normalize_group_label(value: str) -> str:
-            return (
-                value.lower()
-                .replace("&", "and")
-                .replace("-", "")
-                .replace(" ", "")
-            )
-
+        if product.id not in ordered_product_ids:
+            continue
         normalized_groups = {
             _normalize_group_label(group.name)
             for group in product.groups.all()
         }
-        is_one_and_done = "oneanddone" in normalized_groups
+        is_premium = "premium" in normalized_groups
+        is_no_restock = getattr(product, "no_restock", False)
         is_core_group = any("core" in group for group in normalized_groups)
         is_mid_group = any("midrange" in group for group in normalized_groups)
-        is_restock_candidate = not is_one_and_done and (is_core_group or is_mid_group)
-
-        if is_restock_candidate and product.reorder_summary:
-            restock_lead_months = product.restock_time or 3
-            style_code = product.style
-            if not style_code and product.type:
-                styles = PRODUCT_TYPE_TO_STYLES.get(product.type, set())
-                style_code = sorted(styles)[0] if styles else None
-
-            key_sizes = []
-            if style_code == "ng":
-                key_sizes = ["S", "M", "L"]
-            elif style_code == "gi":
-                key_sizes = ["A1", "A2", "F1", "F2"]
-
-            seen_messages = set()
-            for row in product.reorder_summary.get("variant_rows", []):
-                variant = row["variant"]
-                size_label = variant.size or variant.variant_code
-                speed = Decimal(str(row.get("speed_12") or 0))
-                current_stock = row.get("current_stock", 0) or 0
-                safe_stock = speed * Decimal("6")
-                months_to_sell_out = (
-                    (Decimal(current_stock) / speed) if speed > 0 else None
-                )
-                is_key_size = bool(size_label in key_sizes)
-
-                if current_stock <= 0:
-                    level = "critical" if is_key_size else "warning"
-                    message = f"Size {size_label} is out of stock."
-                    if message not in seen_messages:
-                        restock_recommendations.append(
-                            {
-                                "level": level,
-                                "message": message,
-                            }
-                        )
-                        seen_messages.add(message)
-                elif months_to_sell_out is not None and months_to_sell_out <= Decimal(
-                    str(restock_lead_months)
-                ):
-                    level = "warning" if is_key_size else "info"
-                    message = (
-                        f"Size {size_label} projected to run out within "
-                        f"{restock_lead_months} months."
-                    )
-                    if message not in seen_messages:
-                        restock_recommendations.append(
-                            {
-                                "level": level,
-                                "message": message,
-                            }
-                        )
-                        seen_messages.add(message)
-                elif safe_stock and current_stock <= safe_stock:
-                    message = f"Size {size_label} is below 6-month stock coverage."
-                    if message not in seen_messages:
-                        restock_recommendations.append(
-                            {
-                                "level": "info",
-                                "message": message,
-                            }
-                        )
-                        seen_messages.add(message)
-
-        product.restock_recommendations = restock_recommendations
+        if is_no_restock:
+            prior_order_recommendations.append(
+                {
+                    "product": product,
+                    "status": "IGNORE",
+                    "message": "No restock flag excludes from reorder logic.",
+                }
+            )
+        elif is_premium:
+            prior_order_recommendations.append(
+                {
+                    "product": product,
+                    "status": "IGNORE",
+                    "message": "Premium category excludes from reorder logic.",
+                }
+            )
+        elif is_core_group or is_mid_group:
+            prior_order_recommendations.append(
+                {
+                    "product": product,
+                    "status": "NEXT",
+                    "message": "Core or mid-range category continues to next rule layer.",
+                }
+            )
 
     if filtered_sales_last_year:
         filtered_sell_through_rate = (Decimal(filtered_sales_last_year) / Decimal("12")).quantize(
@@ -3361,36 +3322,6 @@ def order_list(request):
         stock_coverage_months = None
 
     stock_status_label = _stock_status_label(stock_coverage_months)
-    reorder_recommendation = None
-    if filtered_sales_last_year:
-        safe_stock_6_months = Decimal(filtered_sales_last_year) / Decimal("2")
-        threshold_date = None
-        for point in sell_through_forecast_data:
-            try:
-                point_date = date.fromisoformat(point["x"])
-            except (TypeError, ValueError):
-                continue
-            if Decimal(point["y"]) <= safe_stock_6_months:
-                threshold_date = point_date
-                break
-        if threshold_date:
-            order_by_date = threshold_date - relativedelta(months=restock_lead_months)
-            if order_by_date <= today:
-                recommendation = (
-                    "Order now to avoid dropping below 6-month stock coverage."
-                )
-            else:
-                recommendation = (
-                    f"Order by {order_by_date.strftime('%b %d, %Y')} to avoid "
-                    "dropping below 6-month stock coverage."
-                )
-            reorder_recommendation = {
-                "message": recommendation,
-                "order_by_date": order_by_date,
-                "threshold_date": threshold_date,
-                "restock_lead_months": restock_lead_months,
-            }
-
     selected_product_id = request.GET.get("product")
     selected_product = None
     variant_stock_rows = []
@@ -3420,13 +3351,7 @@ def order_list(request):
                 .order_by("variant_code")
             )
             for variant in variants:
-                if hasattr(selected_product, "reorder_summary"):
-                    size_share_map = selected_product.reorder_summary.get("size_shares", {})
-                    variant.size_sales_share = size_share_map.get(
-                        variant.size, size_sales_share.get(variant.size, 0)
-                    )
-                else:
-                    variant.size_sales_share = size_sales_share.get(variant.size, 0)
+                variant.size_sales_share = size_sales_share.get(variant.size, 0)
             variant_stock_rows = [
                 {
                     "variant_code": variant.variant_code,
@@ -3438,10 +3363,6 @@ def order_list(request):
             total_current_stock = sum(
                 row["stock"] for row in variant_stock_rows if row["stock"] is not None
             )
-            if not hasattr(selected_product, "reorder_summary"):
-                selected_product.reorder_summary = build_product_reorder_summary(
-                    selected_product, today=today
-                )
 
     style_label_map = dict(PRODUCT_STYLE_CHOICES)
     type_label_map = dict(PRODUCT_TYPE_CHOICES)
@@ -3644,7 +3565,8 @@ def order_list(request):
         "stock_status_label": stock_status_label,
         "stock_coverage_months": stock_coverage_months,
         "stock_position_cards": stock_position_cards,
-        "reorder_recommendation": reorder_recommendation,
+        "new_product_recommendations": new_product_recommendations,
+        "prior_order_recommendations": prior_order_recommendations,
     }
     return render(request, "inventory/order_list.html", context)
 
