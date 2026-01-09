@@ -4,7 +4,7 @@ import json
 
 from collections import defaultdict
 from datetime import date, datetime, timedelta
-from typing import List, Optional, Sequence, Dict, Any, Iterable
+from typing import List, Optional, Sequence, Dict, Any, Iterable, Union
 from decimal import Decimal, ROUND_HALF_UP
 
 from dateutil.relativedelta import relativedelta
@@ -818,6 +818,131 @@ def calculate_sales_speed_for_variants(
 
     speeds = [d["speed"] for d in details]
     return sum(speeds) / len(speeds) if speeds else 0.0
+
+
+def _resolve_variants_for_sales_speed(
+    target: Optional[Union[ProductVariant, Product, Iterable[ProductVariant]]] = None,
+    *,
+    variants: Optional[Iterable[ProductVariant]] = None,
+    variant_filters: Optional[dict[str, Any]] = None,
+) -> list[ProductVariant]:
+    """Return a list of variants for speed/projection calculations."""
+
+    if variants is not None:
+        return list(variants)
+
+    if target is None:
+        qs = ProductVariant.objects.all()
+    elif isinstance(target, ProductVariant):
+        qs = ProductVariant.objects.filter(pk=target.pk)
+    elif isinstance(target, Product):
+        qs = ProductVariant.objects.filter(product=target)
+    elif hasattr(target, "model") and target.model is ProductVariant:
+        qs = target
+    else:
+        return list(target)
+
+    if variant_filters:
+        qs = qs.filter(**variant_filters)
+
+    return list(qs.prefetch_related("sales", "snapshots"))
+
+
+def calculate_sales_speed(
+    target: Optional[Union[ProductVariant, Product, Iterable[ProductVariant]]] = None,
+    *,
+    variants: Optional[Iterable[ProductVariant]] = None,
+    variant_filters: Optional[dict[str, Any]] = None,
+    weeks: int = 26,
+    today: Optional[date] = None,
+    weight: str = "sales",
+) -> float:
+    """Return a unified sales speed (units/month) for variants or filters."""
+
+    resolved_variants = _resolve_variants_for_sales_speed(
+        target, variants=variants, variant_filters=variant_filters
+    )
+    return calculate_sales_speed_for_variants(
+        resolved_variants, weeks=weeks, today=today, weight=weight
+    )
+
+
+def calculate_sell_through_projection(
+    target: Optional[Union[ProductVariant, Product, Iterable[ProductVariant]]] = None,
+    *,
+    variants: Optional[Iterable[ProductVariant]] = None,
+    variant_filters: Optional[dict[str, Any]] = None,
+    months: int = 12,
+    max_months: int = 60,
+    weeks: int = 26,
+    today: Optional[date] = None,
+) -> dict[str, Any]:
+    """Project sell-through over a period using variant speeds and stock."""
+
+    today = today or date.today()
+    resolved_variants = _resolve_variants_for_sales_speed(
+        target, variants=variants, variant_filters=variant_filters
+    )
+    if not resolved_variants:
+        return {
+            "months": months,
+            "projected_sold": 0,
+            "projected_remaining": 0,
+            "months_to_sell_out": None,
+            "remaining_by_month": [],
+        }
+
+    speed_map = {
+        v.id: calculate_variant_sales_speed(v, weeks=weeks, today=today)
+        for v in resolved_variants
+    }
+
+    remaining_by_variant = {
+        v.id: Decimal(getattr(v, "latest_inventory", 0) or 0)
+        for v in resolved_variants
+    }
+    total_initial = sum(remaining_by_variant.values())
+
+    remaining_by_month: list[dict[str, int]] = []
+    months_to_sell_out: Optional[Decimal] = None
+    remaining_after_period = total_initial
+
+    projection_months = max(months, max_months)
+    for month in range(1, projection_months + 1):
+        month_sold = Decimal("0")
+        for variant in resolved_variants:
+            remaining = remaining_by_variant[variant.id]
+            speed = Decimal(str(speed_map.get(variant.id) or 0))
+            if remaining <= 0 or speed <= 0:
+                continue
+            sold = min(remaining, speed)
+            remaining_by_variant[variant.id] = remaining - sold
+            month_sold += sold
+
+        remaining_total = sum(remaining_by_variant.values())
+        if month <= months:
+            remaining_by_month.append(
+                {
+                    "month": month,
+                    "sold_units": int(month_sold),
+                    "remaining_units": int(remaining_total),
+                }
+            )
+            remaining_after_period = remaining_total
+
+        if months_to_sell_out is None and remaining_total <= 0:
+            months_to_sell_out = Decimal(month)
+            break
+
+    projected_sold = total_initial - remaining_after_period
+
+    return {
+        "months": months,
+        "projected_sold": int(projected_sold),
+        "projected_remaining": int(remaining_after_period),
+        "months_to_sell_out": months_to_sell_out,
+        "remaining_by_month": remaining_by_month,
+    }
 
 
 def get_variant_speed_map(variants, *, weeks=26, today=None):
