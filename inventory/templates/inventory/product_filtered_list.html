@@ -486,6 +486,63 @@
 
     <div class="col s12 m12">
       <div class="card-panel">
+        <h6 class="grey-text text-darken-1">Filtered Product Summary</h6>
+        <ul class="collection" style="margin: 0;">
+          <li class="collection-item">
+            <strong>Different products</strong>
+            <span class="secondary-content teal-text text-darken-2">{{ total_products }}</span>
+          </li>
+          <li class="collection-item">
+            <strong>Partially out-of-stock</strong>
+            <span class="secondary-content teal-text text-darken-2">{{ partial_oos_products }}</span>
+          </li>
+          <li class="collection-item">
+            <strong>Discounted products</strong>
+            <span class="secondary-content teal-text text-darken-2">{{ discounted_products }}</span>
+          </li>
+          <li class="collection-item">
+            <strong>New products (no orders or sales)</strong>
+            <span class="secondary-content teal-text text-darken-2">{{ new_products }}</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="card-panel" style="margin-top: 16px;">
+        <h6 class="grey-text text-darken-1">Size Variant Stock Snapshot</h6>
+        <table class="striped" style="font-size: 13px; margin-bottom: 0;">
+          <thead>
+            <tr>
+              <th>Size</th>
+              <th>Status</th>
+              <th>In stock</th>
+              <th>Net sales (12 mo)</th>
+              <th>OOS variants</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in size_stock_rows %}
+              <tr>
+                <td><strong>{{ row.label }}</strong></td>
+                <td>{{ row.status }}</td>
+                <td>{{ row.inventory }}</td>
+                <td>{{ row.sales }}</td>
+                <td>{{ row.oos_variants }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="5" class="grey-text text-darken-1">
+                  No size data available.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <p class="grey-text text-darken-1" style="margin: 8px 0 0;">
+          Net sales are calculated over the last 12 months after returns.
+        </p>
+      </div>
+
+      <div class="card-panel">
         <h6 class="grey-text text-darken-1">Quarterly Sales (last 12 quarters)</h6>
         {% if has_quarterly_data %}
           <canvas id="quarterlySalesChart" height="220"></canvas>

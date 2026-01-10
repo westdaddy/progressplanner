@@ -1521,6 +1521,42 @@ def _render_filtered_products(
     filtered_inventory_total = sum(
         getattr(product, "total_inventory", 0) for product in products
     )
+    product_ids = [product.id for product in products]
+    total_products = len(products)
+    discounted_products = sum(1 for product in products if product.discounted)
+    partial_oos_products = 0
+    for product in products:
+        variants = getattr(product, "variants_with_inventory", [])
+        if not variants:
+            continue
+        has_in_stock = any(
+            (getattr(variant, "latest_inventory", 0) or 0) > 0 for variant in variants
+        )
+        has_oos = any(
+            (getattr(variant, "latest_inventory", 0) or 0) <= 0 for variant in variants
+        )
+        if has_in_stock and has_oos:
+            partial_oos_products += 1
+
+    sales_product_ids = set()
+    order_product_ids = set()
+    if product_ids:
+        sales_product_ids = set(
+            Sale.objects.filter(variant__product_id__in=product_ids)
+            .values_list("variant__product_id", flat=True)
+            .distinct()
+        )
+        order_product_ids = set(
+            OrderItem.objects.filter(product_variant__product_id__in=product_ids)
+            .values_list("product_variant__product_id", flat=True)
+            .distinct()
+        )
+    new_products = sum(
+        1
+        for product in products
+        if product.id not in sales_product_ids
+        and product.id not in order_product_ids
+    )
 
     group_choices = list(context.get("group_choices") or Group.objects.all())
     group_label_map = {group.id: group.name or "Unspecified" for group in group_choices}
@@ -1531,6 +1567,7 @@ def _render_filtered_products(
     ]
 
     size_totals: dict[str, int] = {}
+    size_oos_counts: dict[str, int] = {}
     size_label_map = dict(ProductVariant.SIZE_CHOICES)
     age_totals: dict[str, int] = {}
     style_totals: dict[str, int] = {}
@@ -1556,6 +1593,7 @@ def _render_filtered_products(
                 continue
             inventory_count = getattr(variant, "latest_inventory", 0) or 0
             if inventory_count <= 0:
+                size_oos_counts[variant.size] = size_oos_counts.get(variant.size, 0) + 1
                 continue
             size_totals[variant.size] = size_totals.get(variant.size, 0) + inventory_count
 
@@ -1658,12 +1696,14 @@ def _render_filtered_products(
     variant_style_map = {}
     variant_type_map = {}
     variant_groups_map: dict[int, list[int]] = {}
+    variant_size_map: dict[int, Optional[str]] = {}
 
     for product in products:
         product_group_ids = list(product.groups.values_list("id", flat=True))
         for variant in getattr(product, "variants_with_inventory", []):
             variant_style_map[variant.pk] = product.style or "unspecified"
             variant_type_map[variant.pk] = product.type or "unspecified"
+            variant_size_map[variant.pk] = variant.size
             if product_group_ids:
                 variant_groups_map[variant.pk] = product_group_ids
 
@@ -1756,6 +1796,7 @@ def _render_filtered_products(
     sales_style_totals: dict[str, int] = {}
     sales_type_totals_by_style: dict[str, dict[str, int]] = {}
     sales_group_totals: dict[int, int] = {}
+    size_sales_totals: dict[str, int] = {}
     sales_qs = []
     last_year_start = today - relativedelta(years=1)
 
@@ -1891,6 +1932,11 @@ def _render_filtered_products(
             sales_style_totals[style_key] = (
                 sales_style_totals.get(style_key, 0) + net_sold
             )
+            size_key = variant_size_map.get(sale["variant_id"])
+            if size_key:
+                size_sales_totals[size_key] = (
+                    size_sales_totals.get(size_key, 0) + net_sold
+                )
             sales_value_style_totals[style_key] = (
                 sales_value_style_totals.get(style_key, Decimal("0")) + net_value
             )
@@ -1933,6 +1979,38 @@ def _render_filtered_products(
         {"label": period["label"], "total": period["total"]}
         for period in yearly_periods
     ]
+
+    size_keys = set(size_totals.keys()) | set(size_sales_totals.keys()) | set(
+        size_oos_counts.keys()
+    )
+    ordered_size_keys = sorted(
+        size_keys, key=lambda code: SIZE_ORDER.get(code, 9999)
+    )
+    size_stock_rows = []
+    for size_code in ordered_size_keys:
+        inventory_qty = size_totals.get(size_code, 0)
+        sales_qty = size_sales_totals.get(size_code, 0)
+        oos_variants = size_oos_counts.get(size_code, 0)
+        if sales_qty > 0:
+            delta = (inventory_qty - sales_qty) / sales_qty * 100
+            status = "Overstocked" if delta > 0 else "Understocked"
+            status_note = f"{status} by {abs(delta):.1f}%"
+        elif inventory_qty > 0:
+            status_note = "No sales in last 12 months"
+        elif oos_variants > 0:
+            status_note = "Out of stock"
+        else:
+            status_note = "No stock or sales data"
+
+        size_stock_rows.append(
+            {
+                "label": size_label_map.get(size_code, size_code),
+                "inventory": inventory_qty,
+                "sales": sales_qty,
+                "oos_variants": oos_variants,
+                "status": status_note,
+            }
+        )
 
     sales_category_description = "Sales split by product category"
     ordered_sales_styles = sorted(
@@ -2342,6 +2420,11 @@ def _render_filtered_products(
             "filter_heading": heading,
             "filter_description": description,
             "filtered_inventory_total": filtered_inventory_total,
+            "total_products": total_products,
+            "partial_oos_products": partial_oos_products,
+            "discounted_products": discounted_products,
+            "new_products": new_products,
+            "size_stock_rows": size_stock_rows,
             "quarterly_labels": json.dumps(quarter_labels),
             "quarterly_sales": json.dumps(quarterly_values),
             "yearly_sales": yearly_sales,
