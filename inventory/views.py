@@ -3436,11 +3436,7 @@ def order_list(request):
             flags.append("HAS_STOCKOUT")
             if not has_in_stock:
                 status = "HIGH_PRIORITY_REORDER"
-                explanations.append("All variants are currently out of stock.")
-            else:
-                explanations.append(
-                    f"Stockout detected in {', '.join(sorted(out_of_stock_sizes))}."
-                )
+            # Stockout details are surfaced via flag details.
 
         style_code = _resolve_style_code(product)
         core_sizes = CORE_SIZES.get(style_code or "", [])
@@ -3466,16 +3462,12 @@ def order_list(request):
         if core_oos:
             flags.append("CORE_VARIANT_OOS")
             status = "HIGH_PRIORITY_REORDER"
-            explanations.append(
-                f"Core sizes out of stock: {', '.join(sorted(core_oos))}."
-            )
+            # Core out-of-stock details are surfaced via flag details.
 
         if core_low and "CORE_VARIANT_OOS" not in flags:
             flags.append("CORE_VARIANT_LOW")
             status = "HIGH_PRIORITY_REORDER"
-            explanations.append(
-                f"Core sizes running low within lead time: {', '.join(sorted(core_low))}."
-            )
+            # Core low details are surfaced via flag details.
 
         if has_stockout and not core_oos:
             flags.append("NON_CORE_VARIANT_OOS")
@@ -3520,9 +3512,6 @@ def order_list(request):
                     stock_share = stock_by_size.get(size, 0) / total_stock_by_size
                     if abs(stock_share - speed_share) >= imbalance_threshold:
                         flags.append("SIZE_IMBALANCE")
-                        explanations.append(
-                            "Size imbalance detected between stock and sales speed."
-                        )
                         break
 
         flag_variants = {
