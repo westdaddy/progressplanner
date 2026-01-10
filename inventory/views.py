@@ -3469,8 +3469,7 @@ def order_list(request):
             status = "HIGH_PRIORITY_REORDER"
             # Core low details are surfaced via flag details.
 
-        if has_stockout and not core_oos:
-            flags.append("NON_CORE_VARIANT_OOS")
+        # HAS_STOCKOUT already surfaces all out-of-stock variants.
 
         size_ratios = []
         size_ratio_summary = None
@@ -3514,11 +3513,14 @@ def order_list(request):
                         flags.append("SIZE_IMBALANCE")
                         break
 
+        has_stockout_variants = [
+            f"{code} (Core Size)" if code in core_oos_variants else code
+            for code in sorted(out_of_stock_variants)
+        ]
         flag_variants = {
-            "HAS_STOCKOUT": sorted(out_of_stock_variants),
+            "HAS_STOCKOUT": has_stockout_variants,
             "CORE_VARIANT_OOS": sorted(core_oos_variants),
             "CORE_VARIANT_LOW": sorted(core_low_variants),
-            "NON_CORE_VARIANT_OOS": sorted(out_of_stock_variants - core_oos_variants),
         }
         entry = {
             "product": product,
