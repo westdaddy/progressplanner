@@ -89,14 +89,16 @@
                   {% endif %}
                 {% endif %}
                 <div style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px;">
-                  <button
-                    type="button"
-                    class="btn teal lighten-1"
-                    data-open-order-modal="order-modal-{{ product.id }}"
-                    data-order-mode="create"
-                  >
-                    {% if product.last_order_qty %}Create reorder{% else %}Create order{% endif %}
-                  </button>
+                  {% if not product.no_restock %}
+                    <button
+                      type="button"
+                      class="btn teal lighten-1"
+                      data-open-order-modal="order-modal-{{ product.id }}"
+                      data-order-mode="create"
+                    >
+                      {% if product.last_order_qty %}Create reorder{% else %}Create order{% endif %}
+                    </button>
+                  {% endif %}
                   {% if product.pending_order %}
                     <button
                       type="button"
