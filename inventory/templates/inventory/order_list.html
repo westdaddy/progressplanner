@@ -182,6 +182,18 @@
       margin-right: 10px;
     }
 
+    .flag-details {
+      margin: 6px 0 0;
+    }
+
+    .flag-details__flag {
+      font-weight: 600;
+    }
+
+    .flag-details__variant {
+      margin-left: 12px;
+    }
+
     .product-order-modal {
       display: none;
       position: fixed;
@@ -523,14 +535,14 @@
                                 {{ rec.months_remaining }} months of stock remaining
                               </div>
                             {% endif %}
-                            {% if rec.flags %}
-                              <div class="grey-text text-darken-1">
-                                Flags: {{ rec.flags|join:", " }}
-                              </div>
-                            {% endif %}
-                            {% if rec.size_ratio_summary %}
-                              <div class="grey-text text-darken-1">
-                                Suggested size mix: {{ rec.size_ratio_summary }}
+                            {% if rec.flag_details %}
+                              <div class="grey-text text-darken-1 flag-details">
+                                {% for flag in rec.flag_details %}
+                                  <div class="flag-details__flag">{{ flag.flag }}</div>
+                                  {% for variant in flag.variants %}
+                                    <div class="flag-details__variant">{{ variant }}</div>
+                                  {% endfor %}
+                                {% endfor %}
                               </div>
                             {% endif %}
                             <div class="grey-text text-darken-1">{{ rec.message }}</div>

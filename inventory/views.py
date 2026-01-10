@@ -3386,6 +3386,7 @@ def order_list(request):
         stock_by_size: dict[str, int] = defaultdict(int)
         speed_by_size: dict[str, Decimal] = {}
         out_of_stock_sizes: set[str] = set()
+        out_of_stock_variants: set[str] = set()
         total_stock = 0
         has_in_stock = False
         for variant in variants:
@@ -3395,6 +3396,7 @@ def order_list(request):
             stock_by_size[size_key] += stock_units
             if stock_units <= 0:
                 out_of_stock_sizes.add(size_key)
+                out_of_stock_variants.add(variant.variant_code)
             else:
                 has_in_stock = True
             speed_by_size[size_key] = speed_by_size.get(size_key, Decimal("0")) + Decimal(
@@ -3444,18 +3446,22 @@ def order_list(request):
         core_sizes = CORE_SIZES.get(style_code or "", [])
         core_oos: set[str] = set()
         core_low: set[str] = set()
+        core_oos_variants: set[str] = set()
+        core_low_variants: set[str] = set()
         for variant in variants:
             if not variant.size or variant.size not in core_sizes:
                 continue
             stock_units = int(getattr(variant, "latest_inventory", 0) or 0)
             if stock_units <= 0:
                 core_oos.add(variant.size)
+                core_oos_variants.add(variant.variant_code)
             speed = speed_by_size.get(variant.size or variant.variant_code, Decimal("0"))
             if speed > 0:
                 pending_qty = pending_variant_totals.get(variant.id, 0)
                 variant_months = Decimal(stock_units + pending_qty) / speed
                 if variant_months <= lead_time_months:
                     core_low.add(variant.size)
+                    core_low_variants.add(variant.variant_code)
 
         if core_oos:
             flags.append("CORE_VARIANT_OOS")
@@ -3503,9 +3509,6 @@ def order_list(request):
                 size_ratio_summary = ", ".join(
                     f"{entry['size']} {entry['ratio']}%" for entry in size_ratios
                 )
-                explanations.append(
-                    f"Suggested size mix based on sales speed: {size_ratio_summary}."
-                )
 
             total_stock_by_size = sum(stock_by_size.values()) or 0
             if total_speed > 0 and total_stock_by_size > 0:
@@ -3522,11 +3525,20 @@ def order_list(request):
                         )
                         break
 
+        flag_variants = {
+            "HAS_STOCKOUT": sorted(out_of_stock_variants),
+            "CORE_VARIANT_OOS": sorted(core_oos_variants),
+            "CORE_VARIANT_LOW": sorted(core_low_variants),
+            "NON_CORE_VARIANT_OOS": sorted(out_of_stock_variants - core_oos_variants),
+        }
         entry = {
             "product": product,
             "status": status,
             "months_remaining": months_remaining,
             "flags": flags,
+            "flag_details": [
+                {"flag": flag, "variants": flag_variants.get(flag, [])} for flag in flags
+            ],
             "message": " ".join(explanations),
             "size_ratios": size_ratios,
             "size_ratio_summary": size_ratio_summary,
