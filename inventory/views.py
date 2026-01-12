@@ -3460,7 +3460,8 @@ def order_list(request):
                     core_low_variants.add(variant.variant_code)
 
         if core_oos:
-            flags.append("CORE_VARIANT_OOS")
+            if "HAS_STOCKOUT" not in flags:
+                flags.append("CORE_VARIANT_OOS")
             status = "HIGH_PRIORITY_REORDER"
             # Core out-of-stock details are surfaced via flag details.
 
