@@ -82,6 +82,66 @@
         </div>
       </div>
 
+      <div class="card-panel sales-insights-card">
+        <div class="sales-insights__header">
+          <div>
+            <h6 class="sales-insights__title">Monthly sales snapshot</h6>
+            <p class="sales-insights__subtitle grey-text text-darken-1">
+              {{ insights_month_label }} ({{ insights_start|date:"M j" }}–{{ insights_end|date:"M j" }})
+              {% if insights_is_current %}
+                · Current month
+              {% else %}
+                · Previous month
+              {% endif %}
+            </p>
+          </div>
+        </div>
+
+        {% if insights_has_data %}
+          <div class="sales-insights__grid">
+            <div class="sales-insights__panel">
+              <h6 class="sales-insights__panel-title">Top selling products</h6>
+              <table class="striped sales-insights-table">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th class="right-align">Items</th>
+                    <th class="right-align">Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in top_products %}
+                    <tr>
+                      <td>{{ row.variant__product__product_name }}</td>
+                      <td class="right-align">{{ row.net_quantity }}</td>
+                      <td class="right-align">¥{{ row.net_value|floatformat:2 }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            <div class="sales-insights__panel sales-insights__panel--chart">
+              <div class="sales-insights__chart-block">
+                <h6 class="sales-insights__panel-title">Category mix</h6>
+                <div class="sales-insights__chart">
+                  <canvas id="salesCategoryChart" aria-label="Sales by category pie chart"></canvas>
+                </div>
+              </div>
+              <div class="sales-insights__chart-block">
+                <h6 class="sales-insights__panel-title">Group mix</h6>
+                <div class="sales-insights__chart">
+                  <canvas id="salesGroupChart" aria-label="Sales by group pie chart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% else %}
+          <p class="grey-text text-darken-1 sales-insights__empty">
+            No sales recorded for this month.
+          </p>
+        {% endif %}
+      </div>
+
       <div class="card-panel blue lighten-5 pricing-breakdown-card">
         <h6 class="pricing-breakdown-card__title grey-text text-darken-2">Pricing breakdown</h6>
         <p class="pricing-breakdown-card__note grey-text text-darken-1">
@@ -146,6 +206,7 @@
 
 {% block extrajs %}
   {{ block.super }}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       document
@@ -187,6 +248,87 @@
             target += dateQuerystring;
           }
           window.location.href = target;
+        });
+      }
+
+      const categoryChartEl = document.getElementById("salesCategoryChart");
+      if (categoryChartEl) {
+        const categoryChart = new Chart(categoryChartEl.getContext("2d"), {
+          type: "pie",
+          data: {
+            labels: JSON.parse('{{ category_chart_labels|escapejs }}'),
+            datasets: [
+              {
+                data: JSON.parse('{{ category_chart_values|escapejs }}'),
+                backgroundColor: JSON.parse('{{ category_chart_colors|escapejs }}'),
+                borderColor: "#ffffff",
+                borderWidth: 2,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom",
+                labels: {
+                  boxWidth: 12,
+                  padding: 16,
+                },
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    return context.label + ": " + context.parsed + " items";
+                  },
+                },
+              },
+            },
+          },
+        });
+      }
+
+      const groupChartEl = document.getElementById("salesGroupChart");
+      if (groupChartEl) {
+        const groupLabels = JSON.parse('{{ group_chart_labels|escapejs }}');
+        const groupValues = JSON.parse('{{ group_chart_values|escapejs }}');
+        const groupColors = JSON.parse('{{ group_chart_colors|escapejs }}');
+        const groupChart = new Chart(groupChartEl.getContext("2d"), {
+          type: "pie",
+          data: {
+            labels: groupLabels,
+            datasets: [
+              {
+                data: groupValues,
+                backgroundColor: groupValues.map(
+                  (_value, index) => groupColors[index % groupColors.length]
+                ),
+                borderColor: "#ffffff",
+                borderWidth: 2,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom",
+                labels: {
+                  boxWidth: 12,
+                  padding: 16,
+                },
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    return context.label + ": " + context.parsed + " items";
+                  },
+                },
+              },
+            },
+          },
         });
       }
     });
