@@ -598,6 +598,61 @@ vertical-align: middle;
   margin-top: 0.25rem;
 }
 
+.sales-insights-card {
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  padding: 1.5rem;
+}
+
+.sales-insights__header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.sales-insights__title {
+  margin: 0;
+}
+
+.sales-insights__subtitle {
+  margin: 0.25rem 0 0;
+}
+
+.sales-insights__grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+}
+
+.sales-insights__panel {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+}
+
+.sales-insights__panel--chart {
+  display: flex;
+  flex-direction: column;
+}
+
+.sales-insights__panel-title {
+  margin: 0 0 0.75rem;
+}
+
+.sales-insights-table {
+  margin: 0;
+}
+
+.sales-insights__chart {
+  min-height: 220px;
+  position: relative;
+}
+
+.sales-insights__empty {
+  margin: 0;
+}
+
 .pricing-breakdown-card {
   border-radius: 8px;
   margin: 0 0 2rem;
@@ -815,6 +870,14 @@ vertical-align: middle;
 
   .filter-toolbar__aside {
     justify-content: flex-start;
+  }
+
+  .sales-insights__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sales-insights__chart {
+    min-height: 260px;
   }
 }
 
