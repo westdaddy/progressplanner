@@ -112,7 +112,7 @@
                 <tbody>
                   {% for row in top_products %}
                     <tr>
-                      <td>{{ row.variant__product__name }}</td>
+                      <td>{{ row.variant__product__product_name }}</td>
                       <td class="right-align">{{ row.net_quantity }}</td>
                       <td class="right-align">¥{{ row.net_value|floatformat:2 }}</td>
                     </tr>
