@@ -4226,7 +4226,7 @@ def sales(request):
     if insights_has_data:
         top_products = list(
             insights_sales.values(
-                "variant__product_id", "variant__product__name"
+                "variant__product_id", "variant__product__product_name"
             )
             .annotate(
                 sold_qty=Coalesce(Sum("sold_quantity"), Value(0)),
@@ -4245,7 +4245,9 @@ def sales(request):
                 ),
             )
             .filter(net_quantity__gt=0)
-            .order_by("-net_value", "-net_quantity", "variant__product__name")[:10]
+            .order_by(
+                "-net_value", "-net_quantity", "variant__product__product_name"
+            )[:10]
         )
 
     category_totals = {
