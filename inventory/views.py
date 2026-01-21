@@ -296,6 +296,29 @@ def _simplify_type(type_code):
     return "other"
 
 
+def _resolve_style_for_type(type_code: Optional[str]) -> str:
+    if not type_code:
+        return "ac"
+    styles = PRODUCT_TYPE_TO_STYLES.get(type_code, set())
+    if not styles:
+        return "ac"
+    for style_code, _label in PRODUCT_STYLE_CHOICES:
+        if style_code in styles:
+            return style_code
+    return "ac"
+
+
+def _get_sales_insights_month(today: date) -> Tuple[date, date, bool]:
+    current_start = today.replace(day=1)
+    current_end = (current_start + relativedelta(months=1)) - timedelta(days=1)
+    has_current = Sale.objects.filter(date__range=(current_start, current_end)).exists()
+    if has_current:
+        return current_start, current_end, True
+    previous_end = current_start - timedelta(days=1)
+    previous_start = previous_end.replace(day=1)
+    return previous_start, previous_end, False
+
+
 def _get_monthly_inventory_data(end_of_month: date) -> dict:
     """Return inventory and on-order stats as of the given month end.
 
@@ -4191,6 +4214,59 @@ def sales(request):
         }
     )
 
+    insights_start, insights_end, insights_is_current = _get_sales_insights_month(
+        now().date()
+    )
+    insights_sales = Sale.objects.filter(
+        date__range=(insights_start, insights_end)
+    ).select_related("variant__product")
+    insights_has_data = insights_sales.exists()
+
+    top_products = []
+    if insights_has_data:
+        top_products = list(
+            insights_sales.values(
+                "variant__product_id", "variant__product__product_name"
+            )
+            .annotate(
+                sold_qty=Coalesce(Sum("sold_quantity"), Value(0)),
+                return_qty=Coalesce(Sum("return_quantity"), Value(0)),
+                sold_value=Coalesce(Sum("sold_value"), Value(Decimal("0.00"))),
+                return_value=Coalesce(Sum("return_value"), Value(Decimal("0.00"))),
+            )
+            .annotate(
+                net_quantity=ExpressionWrapper(
+                    F("sold_qty") - F("return_qty"),
+                    output_field=IntegerField(),
+                ),
+                net_value=ExpressionWrapper(
+                    F("sold_value") - F("return_value"),
+                    output_field=DecimalField(max_digits=12, decimal_places=2),
+                ),
+            )
+            .filter(net_quantity__gt=0)
+            .order_by(
+                "-net_value", "-net_quantity", "variant__product__product_name"
+            )[:10]
+        )
+
+    category_totals = {
+        style_code: 0 for style_code, _label in PRODUCT_STYLE_CHOICES
+    }
+    for sale in insights_sales:
+        if not sale.variant:
+            continue
+        style_code = _resolve_style_for_type(sale.variant.product.type)
+        net_sold = (sale.sold_quantity or 0) - (sale.return_quantity or 0)
+        if net_sold > 0:
+            category_totals[style_code] += net_sold
+
+    category_labels = [label for _code, label in PRODUCT_STYLE_CHOICES]
+    category_values = [
+        category_totals.get(code, 0) for code, _label in PRODUCT_STYLE_CHOICES
+    ]
+    category_colors = ["#1e88e5", "#43a047", "#fb8c00", "#8e24aa"]
+
     context = {
         "start_date": start_date,
         "end_date": end_date,
@@ -4206,6 +4282,15 @@ def sales(request):
         "returns_total_value": returns_total_value,
         "date_querystring": date_querystring,
         "referrers": Referrer.objects.order_by("name"),
+        "insights_start": insights_start,
+        "insights_end": insights_end,
+        "insights_is_current": insights_is_current,
+        "insights_has_data": insights_has_data,
+        "insights_month_label": insights_start.strftime("%B %Y"),
+        "top_products": top_products,
+        "category_chart_labels": json.dumps(category_labels),
+        "category_chart_values": json.dumps(category_values),
+        "category_chart_colors": json.dumps(category_colors),
     }
 
     return render(request, "inventory/sales.html", context)
