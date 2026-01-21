@@ -4214,9 +4214,17 @@ def sales(request):
         }
     )
 
-    insights_start, insights_end, insights_is_current = _get_sales_insights_month(
-        now().date()
+    has_custom_range = bool(
+        _parse_sales_date(request.GET.get("start_date"))
+        or _parse_sales_date(request.GET.get("end_date"))
     )
+    if has_custom_range:
+        insights_start, insights_end = start_date, end_date
+        insights_is_current = None
+    else:
+        insights_start, insights_end, insights_is_current = _get_sales_insights_month(
+            now().date()
+        )
     insights_sales = Sale.objects.filter(
         date__range=(insights_start, insights_end)
     ).select_related("variant__product")
@@ -4334,6 +4342,7 @@ def sales(request):
         "insights_is_current": insights_is_current,
         "insights_has_data": insights_has_data,
         "insights_month_label": insights_start.strftime("%B %Y"),
+        "insights_is_custom": has_custom_range,
         "top_products": top_products,
         "category_chart_labels": json.dumps(category_labels),
         "category_chart_values": json.dumps(category_values),

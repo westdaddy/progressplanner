@@ -87,8 +87,10 @@
           <div>
             <h6 class="sales-insights__title">Monthly sales snapshot</h6>
             <p class="sales-insights__subtitle grey-text text-darken-1">
-              {{ insights_month_label }} ({{ insights_start|date:"M j" }}–{{ insights_end|date:"M j" }})
-              {% if insights_is_current %}
+              {{ insights_start|date:"M j" }}–{{ insights_end|date:"M j" }}
+              {% if insights_is_custom %}
+                · Custom range
+              {% elif insights_is_current %}
                 · Current month
               {% else %}
                 · Previous month
