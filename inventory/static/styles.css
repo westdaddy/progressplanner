@@ -634,10 +634,16 @@ vertical-align: middle;
 .sales-insights__panel--chart {
   display: flex;
   flex-direction: column;
+  gap: 1.25rem;
 }
 
 .sales-insights__panel-title {
   margin: 0 0 0.75rem;
+}
+
+.sales-insights__chart-block {
+  display: flex;
+  flex-direction: column;
 }
 
 .sales-insights-table {

@@ -4267,6 +4267,53 @@ def sales(request):
     ]
     category_colors = ["#1e88e5", "#43a047", "#fb8c00", "#8e24aa"]
 
+    group_rows = (
+        insights_sales.values("variant__product__groups__name")
+        .annotate(
+            sold_qty=Coalesce(Sum("sold_quantity"), Value(0)),
+            return_qty=Coalesce(Sum("return_quantity"), Value(0)),
+        )
+        .annotate(
+            net_quantity=ExpressionWrapper(
+                F("sold_qty") - F("return_qty"),
+                output_field=IntegerField(),
+            )
+        )
+        .filter(net_quantity__gt=0)
+        .order_by("-net_quantity")
+    )
+    group_labels = []
+    group_values = []
+    for row in group_rows:
+        label = row["variant__product__groups__name"] or "Unassigned"
+        group_labels.append(label)
+        group_values.append(row["net_quantity"])
+
+    unassigned_row = insights_sales.filter(
+        variant__product__groups__isnull=True
+    ).aggregate(
+        sold_qty=Coalesce(Sum("sold_quantity"), Value(0)),
+        return_qty=Coalesce(Sum("return_quantity"), Value(0)),
+    )
+    unassigned_net = (unassigned_row["sold_qty"] or 0) - (
+        unassigned_row["return_qty"] or 0
+    )
+    if unassigned_net > 0 and "Unassigned" not in group_labels:
+        group_labels.append("Unassigned")
+        group_values.append(unassigned_net)
+    group_palette = [
+        "#1e88e5",
+        "#43a047",
+        "#fb8c00",
+        "#8e24aa",
+        "#00897b",
+        "#f4511e",
+        "#6d4c41",
+        "#3949ab",
+        "#c0ca33",
+        "#f06292",
+    ]
+
     context = {
         "start_date": start_date,
         "end_date": end_date,
@@ -4291,6 +4338,9 @@ def sales(request):
         "category_chart_labels": json.dumps(category_labels),
         "category_chart_values": json.dumps(category_values),
         "category_chart_colors": json.dumps(category_colors),
+        "group_chart_labels": json.dumps(group_labels),
+        "group_chart_values": json.dumps(group_values),
+        "group_chart_colors": json.dumps(group_palette),
     }
 
     return render(request, "inventory/sales.html", context)

@@ -121,9 +121,17 @@
               </table>
             </div>
             <div class="sales-insights__panel sales-insights__panel--chart">
-              <h6 class="sales-insights__panel-title">Category mix</h6>
-              <div class="sales-insights__chart">
-                <canvas id="salesCategoryChart" aria-label="Sales by category pie chart"></canvas>
+              <div class="sales-insights__chart-block">
+                <h6 class="sales-insights__panel-title">Category mix</h6>
+                <div class="sales-insights__chart">
+                  <canvas id="salesCategoryChart" aria-label="Sales by category pie chart"></canvas>
+                </div>
+              </div>
+              <div class="sales-insights__chart-block">
+                <h6 class="sales-insights__panel-title">Group mix</h6>
+                <div class="sales-insights__chart">
+                  <canvas id="salesGroupChart" aria-label="Sales by group pie chart"></canvas>
+                </div>
               </div>
             </div>
           </div>
@@ -253,6 +261,49 @@
               {
                 data: JSON.parse('{{ category_chart_values|escapejs }}'),
                 backgroundColor: JSON.parse('{{ category_chart_colors|escapejs }}'),
+                borderColor: "#ffffff",
+                borderWidth: 2,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom",
+                labels: {
+                  boxWidth: 12,
+                  padding: 16,
+                },
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    return context.label + ": " + context.parsed + " items";
+                  },
+                },
+              },
+            },
+          },
+        });
+      }
+
+      const groupChartEl = document.getElementById("salesGroupChart");
+      if (groupChartEl) {
+        const groupLabels = JSON.parse('{{ group_chart_labels|escapejs }}');
+        const groupValues = JSON.parse('{{ group_chart_values|escapejs }}');
+        const groupColors = JSON.parse('{{ group_chart_colors|escapejs }}');
+        const groupChart = new Chart(groupChartEl.getContext("2d"), {
+          type: "pie",
+          data: {
+            labels: groupLabels,
+            datasets: [
+              {
+                data: groupValues,
+                backgroundColor: groupValues.map(
+                  (_value, index) => groupColors[index % groupColors.length]
+                ),
                 borderColor: "#ffffff",
                 borderWidth: 2,
               },
