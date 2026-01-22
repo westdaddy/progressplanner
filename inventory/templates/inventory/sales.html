@@ -135,9 +135,9 @@
                         <th class="right-align">Sell-through (mo)</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="newProductsTable">
                       {% for row in new_products %}
-                        <tr>
+                        <tr{% if forloop.counter > 10 %} class="is-hidden"{% endif %}>
                           <td>{{ row.product_name }}</td>
                           <td class="right-align">{{ row.sold_qty }}</td>
                           <td class="right-align">{{ row.stock_qty }}</td>
@@ -152,6 +152,17 @@
                       {% endfor %}
                     </tbody>
                   </table>
+                  {% if new_products|length > 10 %}
+                    <div class="sales-insights__actions">
+                      <button
+                        type="button"
+                        class="btn-flat sales-insights__toggle"
+                        data-target="newProductsTable"
+                      >
+                        Show more
+                      </button>
+                    </div>
+                  {% endif %}
                 {% else %}
                   <p class="grey-text text-darken-1 sales-insights__empty">
                     No new products in this timeframe.
@@ -370,6 +381,29 @@
           },
         });
       }
+
+      document.querySelectorAll(".sales-insights__toggle").forEach((button) => {
+        const targetId = button.dataset.target;
+        const targetBody = document.getElementById(targetId);
+        if (!targetBody) {
+          return;
+        }
+        button.addEventListener("click", () => {
+          const hiddenRows = targetBody.querySelectorAll("tr.is-hidden");
+          const isExpanded = hiddenRows.length === 0;
+          if (isExpanded) {
+            Array.from(targetBody.rows).forEach((row, index) => {
+              if (index >= 10) {
+                row.classList.add("is-hidden");
+              }
+            });
+            button.textContent = "Show more";
+          } else {
+            hiddenRows.forEach((row) => row.classList.remove("is-hidden"));
+            button.textContent = "Show less";
+          }
+        });
+      });
     });
   </script>
 {% endblock %}

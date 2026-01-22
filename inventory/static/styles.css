@@ -661,6 +661,20 @@ vertical-align: middle;
   position: relative;
 }
 
+.sales-insights__actions {
+  margin-top: 0.75rem;
+  text-align: right;
+}
+
+.sales-insights__toggle {
+  font-weight: 600;
+  text-transform: none;
+}
+
+.sales-insights-table .is-hidden {
+  display: none;
+}
+
 .sales-insights__empty {
   margin: 0;
 }
