@@ -4275,6 +4275,77 @@ def sales(request):
     ]
     category_colors = ["#1e88e5", "#43a047", "#fb8c00", "#8e24aa"]
 
+    recent_start = insights_end - relativedelta(months=3)
+    new_product_ids = list(
+        Sale.objects.filter(date__lte=insights_end)
+        .values("variant__product_id")
+        .annotate(first_sale=Min("date"))
+        .filter(first_sale__gte=recent_start)
+        .values_list("variant__product_id", flat=True)
+    )
+    new_products = []
+    if new_product_ids:
+        new_product_sales = (
+            insights_sales.filter(variant__product_id__in=new_product_ids)
+            .values("variant__product_id", "variant__product__product_name")
+            .annotate(
+                sold_qty=Coalesce(Sum("sold_quantity"), Value(0)),
+                return_qty=Coalesce(Sum("return_quantity"), Value(0)),
+            )
+            .annotate(
+                net_quantity=ExpressionWrapper(
+                    F("sold_qty") - F("return_qty"),
+                    output_field=IntegerField(),
+                )
+            )
+            .order_by("-net_quantity")
+        )
+
+        snapshot_date = (
+            InventorySnapshot.objects.order_by("-date")
+            .values_list("date", flat=True)
+            .first()
+        )
+        snapshot_qs = (
+            InventorySnapshot.objects.filter(date=snapshot_date)
+            if snapshot_date
+            else InventorySnapshot.objects.none()
+        )
+        variant_stock = (
+            ProductVariant.objects.filter(product_id__in=new_product_ids)
+            .annotate(
+                latest_inventory=Coalesce(
+                    Subquery(
+                        snapshot_qs.filter(product_variant=OuterRef("pk")).values(
+                            "inventory_count"
+                        )[:1]
+                    ),
+                    Value(0),
+                )
+            )
+            .values("product_id")
+            .annotate(total_stock=Coalesce(Sum("latest_inventory"), Value(0)))
+        )
+        stock_map = {row["product_id"]: row["total_stock"] for row in variant_stock}
+        days_in_range = max((insights_end - insights_start).days, 1)
+        months_in_range = Decimal(str(days_in_range)) / Decimal("30")
+
+        for row in new_product_sales:
+            sold_qty = row["net_quantity"] or 0
+            stock_qty = stock_map.get(row["variant__product_id"], 0) or 0
+            monthly_rate = Decimal(str(sold_qty)) / months_in_range
+            sell_through_months = (
+                Decimal(stock_qty) / monthly_rate if monthly_rate > 0 else None
+            )
+            new_products.append(
+                {
+                    "product_name": row["variant__product__product_name"],
+                    "sold_qty": sold_qty,
+                    "stock_qty": stock_qty,
+                    "sell_through_months": sell_through_months,
+                }
+            )
+
     group_rows = (
         insights_sales.values("variant__product__groups__name")
         .annotate(
@@ -4344,6 +4415,7 @@ def sales(request):
         "insights_month_label": insights_start.strftime("%B %Y"),
         "insights_is_custom": has_custom_range,
         "top_products": top_products,
+        "new_products": new_products,
         "category_chart_labels": json.dumps(category_labels),
         "category_chart_values": json.dumps(category_values),
         "category_chart_colors": json.dumps(category_colors),

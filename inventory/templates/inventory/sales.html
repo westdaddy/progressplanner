@@ -101,26 +101,63 @@
 
         {% if insights_has_data %}
           <div class="sales-insights__grid">
-            <div class="sales-insights__panel">
-              <h6 class="sales-insights__panel-title">Top selling products</h6>
-              <table class="striped sales-insights-table">
-                <thead>
-                  <tr>
-                    <th>Product</th>
-                    <th class="right-align">Items</th>
-                    <th class="right-align">Value</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for row in top_products %}
+            <div class="sales-insights__stack">
+              <div class="sales-insights__panel">
+                <h6 class="sales-insights__panel-title">Top selling products</h6>
+                <table class="striped sales-insights-table">
+                  <thead>
                     <tr>
-                      <td>{{ row.variant__product__product_name }}</td>
-                      <td class="right-align">{{ row.net_quantity }}</td>
-                      <td class="right-align">¥{{ row.net_value|floatformat:2 }}</td>
+                      <th>Product</th>
+                      <th class="right-align">Items</th>
+                      <th class="right-align">Value</th>
                     </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {% for row in top_products %}
+                      <tr>
+                        <td>{{ row.variant__product__product_name }}</td>
+                        <td class="right-align">{{ row.net_quantity }}</td>
+                        <td class="right-align">¥{{ row.net_value|floatformat:2 }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              <div class="sales-insights__panel">
+                <h6 class="sales-insights__panel-title">New product performance</h6>
+                {% if new_products %}
+                  <table class="striped sales-insights-table">
+                    <thead>
+                      <tr>
+                        <th>Product</th>
+                        <th class="right-align">Sold</th>
+                        <th class="right-align">Stock</th>
+                        <th class="right-align">Sell-through (mo)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for row in new_products %}
+                        <tr>
+                          <td>{{ row.product_name }}</td>
+                          <td class="right-align">{{ row.sold_qty }}</td>
+                          <td class="right-align">{{ row.stock_qty }}</td>
+                          <td class="right-align">
+                            {% if row.sell_through_months %}
+                              {{ row.sell_through_months|floatformat:1 }}
+                            {% else %}
+                              &mdash;
+                            {% endif %}
+                          </td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                {% else %}
+                  <p class="grey-text text-darken-1 sales-insights__empty">
+                    No new products in this timeframe.
+                  </p>
+                {% endif %}
+              </div>
             </div>
             <div class="sales-insights__panel sales-insights__panel--chart">
               <div class="sales-insights__chart-block">

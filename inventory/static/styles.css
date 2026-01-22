@@ -631,6 +631,12 @@ vertical-align: middle;
   padding: 1rem 1.25rem;
 }
 
+.sales-insights__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
 .sales-insights__panel--chart {
   display: flex;
   flex-direction: column;
