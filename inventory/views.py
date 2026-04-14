@@ -5287,6 +5287,14 @@ def inventory_snapshots(request):
     )
     avg_monthly = (total_sold / 6) if total_sold else 0
 
+    twelve_mo_ago = today - relativedelta(months=12)
+    sales_last_12_months = (
+        sale_qs.filter(date__gte=twelve_mo_ago).aggregate(total=Sum("sold_quantity"))[
+            "total"
+        ]
+        or 0
+    )
+
     # ——— 3) Build combined “events” dict keyed by date —————————————
     events = defaultdict(float)
 
@@ -5382,6 +5390,7 @@ def inventory_snapshots(request):
             "selected_type": selected_type,
             "actual_data": json.dumps(actual_data),
             "forecast_data": json.dumps(forecast_data),
+            "sales_last_12_months": sales_last_12_months,
             "size_mix": size_mix,
         },
     )
