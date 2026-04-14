@@ -4,85 +4,241 @@
 
 {% block content %}
 <div class="section">
+  <h3>Inventory</h3>
+
   <div class="row">
     <div class="col s12">
       <div class="card z-depth-2" style="overflow: hidden;">
-
-        <!-- Top: Chart Title with teal background -->
-        <div class="card-content cyan darken-2 white-text" style="padding: 0;">
-          <div style="padding: 20px;">
-            <div id="chartHeader">
-                <div class="row" style="margin: 0;">
-                  <div class="col s6">
-                    <span>Inventory Forecast – Last 6 Months + 12 Month Projection</span>
-                  </div>
-                  <div class="col s6">
-                    <form method="get" id="filterForm">
-                      <div class="dropdown">
-                        <select name="type">
-                          <option value="all" {% if selected_type == 'all' %}selected{% endif %}>All Categories</option>
-                          {% for ct in categories %}
-                            <option value="{{ ct }}" {% if ct == selected_type %}selected{% endif %}>
-                              {{ ct }}
-                            </option>
-                          {% endfor %}
-                        </select>
-                        <label>Filter by Category</label>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-            </div>
-            <canvas id="inventoryLineChart" height="100"></canvas>
+        <div class="card-content cyan darken-2 white-text" style="padding: 20px;">
+          <div id="chartHeader" style="margin-bottom: 12px;">
+            <span>Inventory Forecast – Last 6 Months + 12 Month Projection</span>
           </div>
+          <canvas id="inventoryLineChart" height="100"></canvas>
         </div>
-
       </div>
     </div>
   </div>
+
+  <style>
+    .filter-bar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .filter-card {
+      padding: 12px 16px 10px;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      box-shadow: none;
+      flex: 0 0 15%;
+      max-width: 20%;
+      min-width: 310px;
+    }
+
+    @media (max-width: 992px) {
+      .filter-card {
+        flex: 1 1 100%;
+        max-width: 100%;
+      }
+    }
+
+    .filter-card__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .filter-title {
+      margin: 15px 0 6px;
+    }
+
+    .chip-set {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0;
+      min-height: 32px;
+    }
+
+    .chip-set .chip__placeholder {
+      background: #eceff1;
+      color: #607d8b;
+      padding: 6px 10px;
+      border-radius: 5px;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .chip--selected {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #e0f2f1;
+      border: 1px solid #b2dfdb;
+      border-radius: 0;
+    }
+
+    .chip__remove {
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 0 4px;
+      color: #00695c;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .filter-card__toggle-symbol {
+      display: inline-block;
+      font-size: 22px;
+      line-height: 0;
+      width: 24px;
+      text-align: right;
+      position: relative;
+      top: -6px;
+      right: -16px;
+    }
+
+    .filter-card__options {
+      border-top: 1px solid #eceff1;
+      margin-top: 12px;
+      padding-top: 12px;
+    }
+
+    .option-list {
+      display: block;
+      margin: 0 0 12px;
+    }
+
+    .filter-option {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 6px 0;
+      border: none;
+      background: transparent;
+      color: #039be5;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: underline;
+      transition: color 0.2s ease;
+    }
+
+    .filter-option:hover {
+      color: #0277bd;
+    }
+
+    .filter-apply-button {
+      background: #f5f5f5;
+      color: #455a64;
+      border: 1px solid #dcdcdc;
+      border-radius: 10px;
+      box-shadow: none;
+      font-size: 12px;
+      line-height: 18px;
+      text-transform: none;
+      padding: 8px 8px;
+      opacity: 0.5;
+      transition: opacity 0.2s ease, color 0.2s ease;
+      cursor: default;
+    }
+
+    .filter-apply-button.is-dirty {
+      opacity: 1;
+      cursor: pointer;
+    }
+  </style>
+
+  <form method="get" class="filter-bar__form">
+    <input type="hidden" name="type" value="{{ selected_type|default:'all' }}" data-category-input>
+    <div class="filter-bar">
+      <section class="card-panel filter-card" data-filter-card data-initial-value="{{ selected_type|default:'all' }}">
+        <div class="filter-card__header">
+          <div>
+            <h6 class="filter-title">Category</h6>
+            <div class="chip-set" data-selected-chips>
+              {% if selected_type and selected_type != 'all' %}
+                <span class="chip chip--selected" data-selected-value="{{ selected_type }}">
+                  {{ selected_type }}
+                  <button type="button" class="chip__remove" aria-label="Remove {{ selected_type }}" data-clear-filter>&times;</button>
+                </span>
+              {% else %}
+                <span class="chip__placeholder" data-placeholder>None selected</span>
+              {% endif %}
+            </div>
+          </div>
+          <button type="button" class="btn-flat filter-card__toggle" aria-expanded="false" aria-controls="category-filter-options">
+            <span class="filter-card__toggle-symbol blue">+</span>
+          </button>
+        </div>
+
+        <div id="category-filter-options" class="filter-card__options" hidden>
+          <div class="option-list">
+            <button type="button" class="filter-option" data-filter-value="all">All Categories</button>
+            {% for ct in categories %}
+              <button type="button" class="filter-option" data-filter-value="{{ ct }}">{{ ct }}</button>
+            {% endfor %}
+          </div>
+          <button type="submit" class="btn-small filter-apply-button" data-apply-button>Apply</button>
+        </div>
+      </section>
+    </div>
+  </form>
 </div>
 
-
-  <div class="section">
-    <h5>Size Order Mix (Last 6 Months)</h5>
-    <table class="highlight">
-      <thead>
+<div class="section">
+  <h5>Size Order Mix (Last 6 Months)</h5>
+  <table class="highlight">
+    <thead>
+      <tr>
+        <th>Size</th>
+        <th>Ideal %</th>
+        <th>Demand</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in size_mix %}
         <tr>
-          <th>Size</th>
-          <th>Ideal %</th>
-          <th>Demand</th>
+          <td>{{ item.size }}</td>
+          <td>{{ item.ideal_pct }}&#37;</td>
+          <td>{{ item.demand_score }}</td>
         </tr>
-      </thead>
-      <tbody>
-        {% for item in size_mix %}
-          <tr>
-            <td>{{ item.size }}</td>
-            <td>{{ item.ideal_pct }}&#37;</td>
-            <td>{{ item.demand_score }}</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
 {% endblock %}
 
 {% block extrajs %}
-  <!-- 1) Chart.js core (UMD) -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <!-- 2) Luxon + adapter (for the line chart) -->
-  <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.3/build/global/luxon.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.3/build/global/luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
 
-  <script>
-  document.addEventListener("DOMContentLoaded", function() {
-    // ——— Inventory Line Chart —————————————————————————
-    const lineCtx = document.getElementById("inventoryLineChart").getContext("2d");
-    new Chart(lineCtx, {
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const lineCanvas = document.getElementById("inventoryLineChart");
+  if (lineCanvas && window.Chart) {
+    const actualData = {{ actual_data|safe }};
+    const forecastData = {{ forecast_data|safe }};
+    const safeStock12Months = Number({{ sales_last_12_months|default:0 }});
+    const safeStock6Months = safeStock12Months / 2;
+    const combinedPoints = [...actualData, ...forecastData];
+    const buildThresholdSeries = (value) =>
+      combinedPoints.map((point) => ({
+        x: point.x,
+        y: value,
+      }));
+
+    new Chart(lineCanvas.getContext("2d"), {
       type: 'line',
       data: {
         datasets: [{
           label: 'Actual Inventory',
-          data: {{ actual_data|safe }},
+          data: actualData,
           borderColor: '#29b6f6',
           backgroundColor: 'rgba(41,182,246,0.2)',
           borderWidth: 2,
@@ -90,15 +246,31 @@
           tension: 0.3,
           pointRadius: 3,
           pointBackgroundColor: '#fff'
-        },{
+        }, {
           label: 'Forecasted Inventory',
-          data: {{ forecast_data|safe }},
+          data: forecastData,
           borderColor: '#ffca28',
           borderDash: [6,4],
           borderWidth: 2,
           fill: false,
           tension: 0.3,
           pointRadius: 0
+        }, {
+          label: '12-month safe stock',
+          data: buildThresholdSeries(safeStock12Months),
+          borderColor: '#ff8f00',
+          borderWidth: 2,
+          borderDash: [4, 4],
+          pointRadius: 0,
+          fill: false
+        }, {
+          label: '6-month safe stock',
+          data: buildThresholdSeries(safeStock6Months),
+          borderColor: '#ffe082',
+          borderWidth: 2,
+          borderDash: [2, 6],
+          pointRadius: 0,
+          fill: false
         }]
       },
       options: {
@@ -132,73 +304,71 @@
         }
       }
     });
+  }
 
-    // ——— Materialize Select Dropdown ———————————————————————
-    var elems = document.querySelectorAll('select');
-    M.FormSelect.init(elems);
-    document.querySelector('#filterForm select')
-            .addEventListener('change', ()=> document.getElementById('filterForm').submit());
+  const filterCard = document.querySelector('[data-filter-card]');
+  if (filterCard) {
+    const typeInput = document.querySelector('[data-category-input]');
+    const chipsContainer = filterCard.querySelector('[data-selected-chips]');
+    const toggleButton = filterCard.querySelector('.filter-card__toggle');
+    const symbol = filterCard.querySelector('.filter-card__toggle-symbol');
+    const optionsPanel = filterCard.querySelector('.filter-card__options');
+    const applyButton = filterCard.querySelector('[data-apply-button]');
+    const initialValue = filterCard.dataset.initialValue || 'all';
 
-    // ——— Size‐Mix Bar Chart —————————————————————————————
-    const sizeData = {{ size_mix|safe }};
-    console.log("size_mix:", sizeData);      // verify data
-    const labels = sizeData.map(d => d.size);
-    const values = sizeData.map(d => d.pct);
-    const colors = sizeData.map(d => d.color);
-    const indicators = Object.fromEntries(sizeData.map(d => [d.size, d.indicator]));
+    const renderChip = (value) => {
+      chipsContainer.innerHTML = '';
+      if (!value || value === 'all') {
+        chipsContainer.innerHTML = '<span class="chip__placeholder" data-placeholder>None selected</span>';
+        return;
+      }
+      chipsContainer.innerHTML = `
+        <span class="chip chip--selected" data-selected-value="${value}">
+          ${value}
+          <button type="button" class="chip__remove" aria-label="Remove ${value}" data-clear-filter>&times;</button>
+        </span>
+      `;
+    };
 
-    const barCanvas = document.getElementById("sizeMixChart");
-    if (barCanvas && values.length) {
-      const barCtx = barCanvas.getContext("2d");
-      new Chart(barCtx, {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Ideal Order Mix (%)',
-            data: values,
-            backgroundColor: colors,
-            borderColor: colors,
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            x: {
-              ticks: { color: 'white' },
-              title: { display: true, text: 'Size', color: 'white' },
-              grid: { display: false }
-            },
-            y: {
-              beginAtZero: true,
-              max: 100,
-              ticks: {
-                callback: v => v + '%',
-                color: 'white'
-              },
-              title: { display: true, text: 'Percentage', color: 'white' },
-              grid: { color: 'rgba(255,255,255,0.1)' }
-            }
-          },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: ctx => {
-                  const size = ctx.label;
-                  const pct  = ctx.parsed.y.toFixed(1) + '%';
-                  const ind  = indicators[size];
-                  return ind
-                    ? `${size}: ${pct} — ${ind}`
-                    : `${size}: ${pct}`;
-                }
-              }
-            }
-          }
-        }
+    const updateApplyState = () => {
+      if ((typeInput.value || 'all') === initialValue) {
+        applyButton.classList.remove('is-dirty');
+      } else {
+        applyButton.classList.add('is-dirty');
+      }
+    };
+
+    toggleButton.addEventListener('click', () => {
+      const isHidden = optionsPanel.hasAttribute('hidden');
+      if (isHidden) {
+        optionsPanel.removeAttribute('hidden');
+        toggleButton.setAttribute('aria-expanded', 'true');
+        symbol.textContent = '−';
+      } else {
+        optionsPanel.setAttribute('hidden', 'hidden');
+        toggleButton.setAttribute('aria-expanded', 'false');
+        symbol.textContent = '+';
+      }
+    });
+
+    filterCard.querySelectorAll('[data-filter-value]').forEach((optionButton) => {
+      optionButton.addEventListener('click', () => {
+        typeInput.value = optionButton.dataset.filterValue;
+        renderChip(typeInput.value);
+        updateApplyState();
       });
-    }
-  });
-  </script>
+    });
+
+    chipsContainer.addEventListener('click', (event) => {
+      if (!event.target.closest('[data-clear-filter]')) return;
+      typeInput.value = 'all';
+      renderChip(typeInput.value);
+      updateApplyState();
+    });
+
+    renderChip(typeInput.value || 'all');
+    updateApplyState();
+  }
+});
+</script>
 {% endblock %}
