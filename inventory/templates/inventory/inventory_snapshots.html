@@ -4,201 +4,526 @@
 
 {% block content %}
 <div class="section">
+  <h3>Inventory</h3>
+
   <div class="row">
     <div class="col s12">
       <div class="card z-depth-2" style="overflow: hidden;">
-
-        <!-- Top: Chart Title with teal background -->
-        <div class="card-content cyan darken-2 white-text" style="padding: 0;">
-          <div style="padding: 20px;">
-            <div id="chartHeader">
-                <div class="row" style="margin: 0;">
-                  <div class="col s6">
-                    <span>Inventory Forecast – Last 6 Months + 12 Month Projection</span>
-                  </div>
-                  <div class="col s6">
-                    <form method="get" id="filterForm">
-                      <div class="dropdown">
-                        <select name="type">
-                          <option value="all" {% if selected_type == 'all' %}selected{% endif %}>All Categories</option>
-                          {% for ct in categories %}
-                            <option value="{{ ct }}" {% if ct == selected_type %}selected{% endif %}>
-                              {{ ct }}
-                            </option>
-                          {% endfor %}
-                        </select>
-                        <label>Filter by Category</label>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-            </div>
-            <canvas id="inventoryLineChart" height="100"></canvas>
+        <div class="card-content cyan darken-2 white-text" style="padding: 20px;">
+          <div id="chartHeader" style="margin-bottom: 12px;">
+            <span>Inventory Forecast – Last 6 Months + 12 Month Projection</span>
           </div>
+          <canvas id="inventoryLineChart" height="100"></canvas>
         </div>
-
       </div>
     </div>
   </div>
+
+  <style>
+    .filter-bar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .filter-card {
+      padding: 12px 16px 10px;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      box-shadow: none;
+      flex: 0 0 15%;
+      max-width: 20%;
+      min-width: 310px;
+    }
+
+    .filter-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0px;
+      margin: 0px;
+    }
+
+    .filter-showing {
+      margin: 0;
+      color: #546e7a;
+      font-weight: 600;
+    }
+
+    @media (max-width: 992px) {
+      .filter-card {
+        flex: 1 1 100%;
+        max-width: 100%;
+      }
+    }
+
+    .filter-card__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .chip-set {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0;
+      min-height: 32px;
+    }
+
+    .chip-set .chip__placeholder {
+      background: #eceff1;
+      color: #607d8b;
+      padding: 6px 10px;
+      border-radius: 5px;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .chip--selected {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #e0f2f1;
+      border: 1px solid #b2dfdb;
+      border-radius: 0;
+    }
+
+    .chip__remove {
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 0 4px;
+      color: #00695c;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .filter-card__toggle-symbol {
+      display: inline-block;
+      font-size: 22px;
+      line-height: 0;
+      width: 24px;
+      text-align: right;
+      position:relative;
+      top:-6px;
+      right:-16px;
+    }
+
+    .filter-card__options {
+      border-top: 1px solid #eceff1;
+      margin-top: 12px;
+      padding-top: 12px;
+    }
+
+    .option-list {
+      display: block;
+      margin: 0 0 12px;
+    }
+
+    .filter-option {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 6px 0;
+      border: none;
+      background: transparent;
+      color: #039be5;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: underline;
+      transition: color 0.2s ease;
+    }
+
+    .filter-option:hover {
+      color: #0277bd;
+    }
+
+    .filter-divider {
+      border-bottom: 1px solid #e0e0e0;
+      margin: 12px 0 20px;
+      padding-bottom: 8px;
+    }
+
+    .filter-apply-button {
+      background: #f5f5f5;
+      color: #455a64;
+      border: 1px solid #dcdcdc;
+      border-radius: 10px;
+      box-shadow: none;
+      font-size: 12px;
+      line-height: 18px;
+      text-transform: none;
+      padding: 8px 8px;
+      opacity: 0.5;
+      transition: opacity 0.2s ease, color 0.2s ease;
+      cursor: default;
+    }
+
+    .filter-apply-button.is-dirty {
+      opacity: 1;
+      cursor: pointer;
+    }
+  </style>
+
+  <div class="filter-divider"></div>
+
+  <form method="get" class="filter-bar__form">
+    <div class="filter-section-header">
+      <div>
+        <p class="filter-showing">Showing: {{ showing_summary }}</p>
+      </div>
+      <button type="submit" class="btn filter-apply-button" disabled>
+        Apply
+      </button>
+    </div>
+
+    <div class="filter-bar">
+      <div class="card-panel filter-card" data-field-name="type_filter" data-category-label="Category">
+        <div class="filter-card__header">
+          <div style="flex: 1; min-width: 0;">
+            <p class="grey-text text-darken-1" style="margin: 0 0 6px;" data-filter-heading>
+              Category
+            </p>
+            <div class="chip-set" data-selected-chips>
+              {% if selected_types %}
+                {% for selected_type in selected_types %}
+                  <span class="chip chip--selected" data-selected-value="{{ selected_type }}">
+                    <span class="chip__label">{{ selected_type }}</span>
+                    <button type="button" class="chip__remove" aria-label="Remove {{ selected_type }}">&times;</button>
+                  </span>
+                {% endfor %}
+              {% else %}
+                <span class="chip__placeholder" data-placeholder>None selected</span>
+              {% endif %}
+            </div>
+          </div>
+          <button type="button" class="btn-flat filter-card__toggle" aria-expanded="false" aria-controls="filter-options-type">
+            <span class="filter-card__toggle-symbol blue">+</span>
+          </button>
+        </div>
+
+        <div id="filter-options-type" class="filter-card__options" hidden>
+          <p class="grey-text text-darken-1" style="margin: 0 0 8px;">Add or remove Category options</p>
+          <div class="option-list" data-available-options>
+            {% for ct in categories %}
+              {% if ct not in selected_types %}
+                <button type="button" class="filter-option" data-option-value="{{ ct }}" data-option-label="{{ ct }}">{{ ct }}</button>
+              {% endif %}
+            {% empty %}
+              <p class="grey-text text-darken-1" style="margin: 0;">No options available.</p>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div data-hidden-inputs></div>
+      </div>
+    </div>
+    <div class="filter-divider"></div>
+  </form>
 </div>
-
-
-  <div class="section">
-    <h5>Size Order Mix (Last 6 Months)</h5>
-    <table class="highlight">
-      <thead>
-        <tr>
-          <th>Size</th>
-          <th>Ideal %</th>
-          <th>Demand</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in size_mix %}
-          <tr>
-            <td>{{ item.size }}</td>
-            <td>{{ item.ideal_pct }}&#37;</td>
-            <td>{{ item.demand_score }}</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
 {% endblock %}
 
 {% block extrajs %}
-  <!-- 1) Chart.js core (UMD) -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <!-- 2) Luxon + adapter (for the line chart) -->
-  <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.3/build/global/luxon.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.3/build/global/luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
 
-  <script>
-  document.addEventListener("DOMContentLoaded", function() {
-    // ——— Inventory Line Chart —————————————————————————
-    const lineCtx = document.getElementById("inventoryLineChart").getContext("2d");
-    new Chart(lineCtx, {
-      type: 'line',
-      data: {
-        datasets: [{
-          label: 'Actual Inventory',
-          data: {{ actual_data|safe }},
-          borderColor: '#29b6f6',
-          backgroundColor: 'rgba(41,182,246,0.2)',
-          borderWidth: 2,
-          fill: true,
-          tension: 0.3,
-          pointRadius: 3,
-          pointBackgroundColor: '#fff'
-        },{
-          label: 'Forecasted Inventory',
-          data: {{ forecast_data|safe }},
-          borderColor: '#ffca28',
-          borderDash: [6,4],
-          borderWidth: 2,
-          fill: false,
-          tension: 0.3,
-          pointRadius: 0
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { labels: { color: 'white' } },
-          tooltip: {
-            callbacks: {
-              label: ctx => `${ctx.dataset.label}: ${Math.round(ctx.parsed.y)} units`
-            }
-          }
-        },
-        scales: {
-          x: {
-            type: 'time',
-            time: {
-              unit: 'day',
-              tooltipFormat: 'dd LLL yyyy',
-              displayFormats: { month: 'MMM yyyy' }
-            },
-            ticks: { color: 'white', maxTicksLimit: 13 },
-            title: { display: true, text: 'Month', color: 'white' },
-            grid: { color: 'rgba(255,255,255,0.1)' }
-          },
-          y: {
-            beginAtZero: true,
-            ticks: { color: 'white' },
-            title: { display: true, text: 'Units in Stock', color: 'white' },
-            grid: { color: 'rgba(255,255,255,0.1)' }
-          }
-        }
-      }
-    });
+<script>
+  (function() {
+    const filterControllers = [];
+    const applyButton = document.querySelector('.filter-apply-button');
 
-    // ——— Materialize Select Dropdown ———————————————————————
-    var elems = document.querySelectorAll('select');
-    M.FormSelect.init(elems);
-    document.querySelector('#filterForm select')
-            .addEventListener('change', ()=> document.getElementById('filterForm').submit());
+    const lineCanvas = document.getElementById('inventoryLineChart');
+    if (lineCanvas && window.Chart) {
+      const actualData = {{ actual_data|safe }};
+      const forecastData = {{ forecast_data|safe }};
+      const safeStock12Months = Number({{ sales_last_12_months|default:0 }});
+      const safeStock6Months = safeStock12Months / 2;
+      const combinedPoints = [...actualData, ...forecastData];
+      const buildThresholdSeries = (value) =>
+        combinedPoints.map((point) => ({
+          x: point.x,
+          y: value,
+        }));
 
-    // ——— Size‐Mix Bar Chart —————————————————————————————
-    const sizeData = {{ size_mix|safe }};
-    console.log("size_mix:", sizeData);      // verify data
-    const labels = sizeData.map(d => d.size);
-    const values = sizeData.map(d => d.pct);
-    const colors = sizeData.map(d => d.color);
-    const indicators = Object.fromEntries(sizeData.map(d => [d.size, d.indicator]));
-
-    const barCanvas = document.getElementById("sizeMixChart");
-    if (barCanvas && values.length) {
-      const barCtx = barCanvas.getContext("2d");
-      new Chart(barCtx, {
-        type: 'bar',
+      new Chart(lineCanvas.getContext('2d'), {
+        type: 'line',
         data: {
-          labels: labels,
           datasets: [{
-            label: 'Ideal Order Mix (%)',
-            data: values,
-            backgroundColor: colors,
-            borderColor: colors,
-            borderWidth: 1
+            label: 'Actual Inventory',
+            data: actualData,
+            borderColor: '#29b6f6',
+            backgroundColor: 'rgba(41,182,246,0.2)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.3,
+            pointRadius: 3,
+            pointBackgroundColor: '#fff'
+          }, {
+            label: 'Forecasted Inventory',
+            data: forecastData,
+            borderColor: '#ffca28',
+            borderDash: [6, 4],
+            borderWidth: 2,
+            fill: false,
+            tension: 0.3,
+            pointRadius: 0
+          }, {
+            label: '12-month safe stock',
+            data: buildThresholdSeries(safeStock12Months),
+            borderColor: '#ff8f00',
+            borderWidth: 2,
+            borderDash: [4, 4],
+            pointRadius: 0,
+            fill: false
+          }, {
+            label: '6-month safe stock',
+            data: buildThresholdSeries(safeStock6Months),
+            borderColor: '#ffe082',
+            borderWidth: 2,
+            borderDash: [2, 6],
+            pointRadius: 0,
+            fill: false
           }]
         },
         options: {
           responsive: true,
+          plugins: {
+            legend: { labels: { color: 'white' } },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `${ctx.dataset.label}: ${Math.round(ctx.parsed.y)} units`
+              }
+            }
+          },
           scales: {
             x: {
-              ticks: { color: 'white' },
-              title: { display: true, text: 'Size', color: 'white' },
-              grid: { display: false }
+              type: 'time',
+              time: {
+                unit: 'day',
+                tooltipFormat: 'dd LLL yyyy',
+                displayFormats: { month: 'MMM yyyy' }
+              },
+              ticks: { color: 'white', maxTicksLimit: 13 },
+              title: { display: true, text: 'Month', color: 'white' },
+              grid: { color: 'rgba(255,255,255,0.1)' }
             },
             y: {
               beginAtZero: true,
-              max: 100,
-              ticks: {
-                callback: v => v + '%',
-                color: 'white'
-              },
-              title: { display: true, text: 'Percentage', color: 'white' },
+              ticks: { color: 'white' },
+              title: { display: true, text: 'Units in Stock', color: 'white' },
               grid: { color: 'rgba(255,255,255,0.1)' }
-            }
-          },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: ctx => {
-                  const size = ctx.label;
-                  const pct  = ctx.parsed.y.toFixed(1) + '%';
-                  const ind  = indicators[size];
-                  return ind
-                    ? `${size}: ${pct} — ${ind}`
-                    : `${size}: ${pct}`;
-                }
-              }
             }
           }
         }
       });
     }
-  });
-  </script>
+
+    const selectionsDiffer = (a, b) => {
+      if (a.length !== b.length) return true;
+      return a.some((value, index) => value !== b[index]);
+    };
+
+    const rebuildApplyState = () => {
+      if (!applyButton) return;
+
+      const isDirty = filterControllers.some((controller) => {
+        const current = controller.getSelection();
+        const initial = controller.initialSelection || [];
+        return selectionsDiffer(current, initial);
+      });
+
+      applyButton.disabled = !isDirty;
+      applyButton.classList.toggle('is-dirty', isDirty);
+    };
+
+    const initFilterCard = (filterCard) => {
+      const optionPanel = filterCard.querySelector('.filter-card__options');
+      const toggleButtons = filterCard.querySelectorAll('.filter-card__toggle');
+      const symbol = filterCard.querySelector('.filter-card__toggle-symbol');
+      const selectedChips = filterCard.querySelector('[data-selected-chips]');
+      const availableOptions = filterCard.querySelector('[data-available-options]');
+      const hiddenInputs = filterCard.querySelector('[data-hidden-inputs]');
+      const heading = filterCard.querySelector('[data-filter-heading]');
+      const fieldName = filterCard.dataset.fieldName;
+      const categoryLabel = filterCard.dataset.categoryLabel || '';
+
+      const updateHeading = () => {
+        if (!heading) return;
+        heading.textContent = categoryLabel;
+      };
+
+      const syncHiddenInputs = () => {
+        if (!hiddenInputs || !selectedChips) return;
+        hiddenInputs.innerHTML = '';
+
+        selectedChips.querySelectorAll('[data-selected-value]').forEach((chip) => {
+          const value = chip.getAttribute('data-selected-value');
+          if (!value) return;
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = fieldName;
+          input.value = value;
+          hiddenInputs.appendChild(input);
+        });
+      };
+
+      const ensurePlaceholder = () => {
+        if (!selectedChips) return;
+
+        const hasSelection = !!selectedChips.querySelector('[data-selected-value]');
+        const placeholder = selectedChips.querySelector('[data-placeholder]');
+        if (!hasSelection && !placeholder) {
+          const span = document.createElement('span');
+          span.className = 'chip__placeholder';
+          span.setAttribute('data-placeholder', '');
+          span.textContent = 'None selected';
+          selectedChips.appendChild(span);
+        } else if (hasSelection && placeholder) {
+          placeholder.remove();
+        }
+      };
+
+      const notifyChange = () => {
+        rebuildApplyState();
+      };
+
+      const getSelection = () => {
+        const values = [];
+        if (selectedChips) {
+          selectedChips.querySelectorAll('[data-selected-value]').forEach((chip) => {
+            const value = chip.getAttribute('data-selected-value');
+            if (value) values.push(value);
+          });
+        }
+        return values.sort();
+      };
+
+      const removeOption = (chip) => {
+        const value = chip.getAttribute('data-selected-value');
+        const labelNode = chip.querySelector('.chip__label');
+        const label = labelNode ? labelNode.textContent.trim() : value;
+
+        if (availableOptions) {
+          const optionBtn = document.createElement('button');
+          optionBtn.type = 'button';
+          optionBtn.className = 'filter-option';
+          optionBtn.dataset.optionValue = value;
+          optionBtn.dataset.optionLabel = label;
+          optionBtn.textContent = label;
+          optionBtn.addEventListener('click', () => addOption(value, label, optionBtn));
+          availableOptions.appendChild(optionBtn);
+        }
+
+        chip.remove();
+        ensurePlaceholder();
+        syncHiddenInputs();
+        updateHeading();
+        notifyChange();
+      };
+
+      const addOption = (value, label, optionBtn) => {
+        const chip = document.createElement('span');
+        chip.className = 'chip chip--selected';
+        chip.setAttribute('data-selected-value', value);
+
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'chip__label';
+        labelSpan.textContent = label;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'chip__remove';
+        removeBtn.setAttribute('aria-label', `Remove ${label}`);
+        removeBtn.textContent = '×';
+        removeBtn.addEventListener('click', () => removeOption(chip));
+
+        chip.appendChild(labelSpan);
+        chip.appendChild(removeBtn);
+        selectedChips.appendChild(chip);
+
+        if (optionBtn) {
+          optionBtn.remove();
+        }
+
+        ensurePlaceholder();
+        syncHiddenInputs();
+        updateHeading();
+        notifyChange();
+      };
+
+      if (availableOptions) {
+        availableOptions.querySelectorAll('.filter-option').forEach((btn) => {
+          btn.addEventListener('click', () =>
+            addOption(btn.dataset.optionValue, btn.dataset.optionLabel, btn)
+          );
+        });
+      }
+
+      if (selectedChips) {
+        selectedChips.querySelectorAll('.chip__remove').forEach((btn) => {
+          btn.addEventListener('click', (event) => {
+            event.preventDefault();
+            const chip = btn.closest('[data-selected-value]');
+            if (chip) {
+              removeOption(chip);
+            }
+          });
+        });
+      }
+
+      ensurePlaceholder();
+      syncHiddenInputs();
+      updateHeading();
+
+      const initialSelection = getSelection();
+
+      const setExpanded = (expanded) => {
+        if (!optionPanel) return;
+        optionPanel.hidden = !expanded;
+        filterCard.classList.toggle('filter-card--expanded', expanded);
+        toggleButtons.forEach((btn) => btn.setAttribute('aria-expanded', expanded));
+        if (symbol) {
+          symbol.textContent = expanded ? '−' : '+';
+        }
+      };
+
+      setExpanded(false);
+
+      return {
+        setExpanded,
+        isExpanded: () => optionPanel && !optionPanel.hidden,
+        toggleButtons,
+        getSelection,
+        initialSelection,
+      };
+    };
+
+    document.querySelectorAll('.filter-card').forEach((card) => {
+      const controller = initFilterCard(card);
+      filterControllers.push(controller);
+    });
+
+    rebuildApplyState();
+
+    const setAllExpanded = (expanded) => {
+      filterControllers.forEach((controller) => controller.setExpanded(expanded));
+    };
+
+    filterControllers.forEach((controller) => {
+      controller.toggleButtons.forEach((btn) => {
+        btn.addEventListener('click', (event) => {
+          event.preventDefault();
+          const allExpanded = filterControllers.every((c) => c.isExpanded());
+          const newState = !allExpanded;
+          setAllExpanded(newState);
+        });
+      });
+    });
+  })();
+</script>
 {% endblock %}

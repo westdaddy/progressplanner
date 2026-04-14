@@ -5244,7 +5244,11 @@ def inventory_snapshots(request):
     today = now().date()
 
     # ——— Category filter setup —————————————————————————————————————————
-    selected_type = request.GET.get("type", "all")
+    selected_types = [v for v in request.GET.getlist("type_filter") if v and v != "all"]
+    legacy_type = request.GET.get("type")
+    if legacy_type and legacy_type != "all" and legacy_type not in selected_types:
+        selected_types.append(legacy_type)
+
     # grab all available categories for the dropdown
     categories = (
         ProductVariant.objects.values_list("product__type", flat=True)
@@ -5257,10 +5261,10 @@ def inventory_snapshots(request):
     sale_qs = Sale.objects.filter(date__lte=today)
     order_qs = OrderItem.objects.filter(date_arrived__isnull=True)
 
-    if selected_type != "all":
-        snap_qs = snap_qs.filter(product_variant__product__type=selected_type)
-        sale_qs = sale_qs.filter(variant__product__type=selected_type)
-        order_qs = order_qs.filter(product_variant__product__type=selected_type)
+    if selected_types:
+        snap_qs = snap_qs.filter(product_variant__product__type__in=selected_types)
+        sale_qs = sale_qs.filter(variant__product__type__in=selected_types)
+        order_qs = order_qs.filter(product_variant__product__type__in=selected_types)
 
     # ——— 1) Build actual_data from snapshots ————————————————————————
     snaps = (
@@ -5286,6 +5290,14 @@ def inventory_snapshots(request):
         or 0
     )
     avg_monthly = (total_sold / 6) if total_sold else 0
+
+    twelve_mo_ago = today - relativedelta(months=12)
+    sales_last_12_months = (
+        sale_qs.filter(date__gte=twelve_mo_ago).aggregate(total=Sum("sold_quantity"))[
+            "total"
+        ]
+        or 0
+    )
 
     # ——— 3) Build combined “events” dict keyed by date —————————————
     events = defaultdict(float)
@@ -5316,62 +5328,7 @@ def inventory_snapshots(request):
         running += events[dt]
         forecast_data.append({"x": dt.isoformat(), "y": round(max(running, 0))})
 
-    # ———————— COMPUTATIONS FOR SIZES DATA —————————
-    # ——— 1) Compute avg monthly sales per size ——————————————
-    six_months_ago = today - relativedelta(months=6)
-    sales_by_size = (
-        sale_qs.filter(date__gte=six_months_ago)
-        .values(size=F("variant__size"))
-        .annotate(total_sold=Sum("sold_quantity"))
-    )
-    avg_monthly_by_size = {row["size"]: row["total_sold"] / 6 for row in sales_by_size}
-
-    # ——— 2) Compute sell-through rate and demand score per size ————
-    # need stock at last snapshot date
-    stock_on_last = (
-        snap_qs.filter(date=last_snapshot_date)
-        .values(size=F("product_variant__size"))
-        .annotate(current_stock=Sum("inventory_count"))
-    )
-    stock_map = {r["size"]: r["current_stock"] for r in stock_on_last}
-
-    scores = {}
-    for size, sold_avg in avg_monthly_by_size.items():
-        S = sold_avg * 6  # total sold
-        E = stock_map.get(size, 0)
-        R = 1.0 if (S + E) == 0 else S / (S + E)
-        scores[size] = S * R  # demand score
-
-    # ——— 3) Determine high/low threshold ————————————————
-    median_score = statistics.median(scores.values()) if scores else 0
-    indicators = {
-        size: ("High demand" if score >= median_score else "Low demand")
-        for size, score in scores.items()
-    }
-
-    # ——— 4) Build the “ideal mix” percentages —————————————————
-    total_avg = sum(avg_monthly_by_size.values()) or 1
-    ideal_pct = {
-        size: (avg_monthly_by_size[size] / total_avg) * 100
-        for size in avg_monthly_by_size
-    }
-
-    # ——— 5) Prepare datasets for Chart.js ———————————————
-    # assign a color per size (pick whatever you like)
-    color_map = {
-        "XS": "#ef9a9a",
-        "S": "#f48fb1",
-        "M": "#ce93d8",
-        "L": "#90caf9",
-        "XL": "#80deea",
-        "XXL": "#b0bec5",
-    }
-
-    # ——— after computing avg_monthly_by_size, scores, etc. —————
-    size_order = ["XS", "S", "M", "L", "XL", "XXL"]
-
-    size_mix = calculate_size_order_mix(category=selected_type, months=6)
-    logger.debug(size_mix)
+    showing_summary = ", ".join(selected_types) if selected_types else "All categories"
 
     # ——— 5) Render template —————————————————————————————————————
     return render(
@@ -5379,10 +5336,11 @@ def inventory_snapshots(request):
         "inventory/inventory_snapshots.html",
         {
             "categories": categories,
-            "selected_type": selected_type,
+            "selected_types": selected_types,
+            "showing_summary": showing_summary,
             "actual_data": json.dumps(actual_data),
             "forecast_data": json.dumps(forecast_data),
-            "size_mix": size_mix,
+            "sales_last_12_months": sales_last_12_months,
         },
     )
 
