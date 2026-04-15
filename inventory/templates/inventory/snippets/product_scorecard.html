@@ -1,30 +1,46 @@
 {% load inventory_extras %}
 
-<div class="signal-grid">
-  {% for product in products %}
-    <section class="signal-row">
-      <header class="signal-row__titlebar">
-        <a href="{% url 'product_detail' product.id %}" class="signal-row__title">
-          {{ product.product_name }}
-        </a>
-        <span class="signal-row__code">({{ product.product_id }})</span>
-      </header>
 
-      <div class="signal-row__content">
-        <div class="signal-thumb-panel">
-          {% if product.product_photo %}
-            <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}">
-          {% else %}
-            <img src="{{ MEDIA_URL }}product_photos/product-placeholder.jpg" alt="{{ product.product_name }}">
-          {% endif %}
-        </div>
+  {% for product in products %}
+
+  <ul class="collection">
+    <li class="collection-item avatar lighten-4 {% if product.total_sales|default:0 == 0 and product.total_inventory|default:0 == 0 %}new{% endif %}">
+
+        <div class="row item">
+
+          <div class="col s12 content">
+            <div class="row title">
+              <div class="col s12">
+                <span class="title">
+                  <a href="{% url 'product_detail' product.id %}">
+                    <strong>{{ product.product_name }}</strong>
+                  </a>
+                </span>
+                ({{ product.product_id }})
+              </div>
+            </div>
+
+            <div class="row scorecard-boxes">
+
+              <div class="col s12 m6 l2 photo">
+                {% if product.product_photo %}
+                  <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" class="circle product-photo-large">
+                {% else %}
+                  <img src="{{ MEDIA_URL }}product_photos/product-placeholder.jpg" alt="{{ product.product_name }}" class="circle product-photo-large">
+                {% endif %}
+              </div>
+
+      <!-- STATISTICS NEW SECTION -->
+      <div class="signal-grid">
 
         <article class="signal-card">
+
           <div class="signal-card__status-row">
             <span class="signal-badge signal-badge--{{ product.status_signal|default:'monitor'|slugify }}">
               {{ product.status_signal|default:"Monitor" }}
             </span>
           </div>
+
           <div class="signal-card__metrics">
           <p class="signal-line signal-line--stock">
             <span class="signal-label">Stock</span>
@@ -90,6 +106,8 @@
         </article>
       </div>
     </section>
+
+    <!-- STATISTICS NEW SECTION -->
 
     <div class="variant-panel" data-variant-panel="{{ product.id }}" aria-hidden="true">
       <div class="variant-panel__backdrop" data-variant-panel-close></div>
