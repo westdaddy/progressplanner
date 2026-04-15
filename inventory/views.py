@@ -1175,7 +1175,7 @@ def _build_product_list_context(request, preset_filters=None):
             product.sold_through_pct = None
             product.stock_remaining_pct = None
 
-        months_to_sell_out = product.months_to_sell_out
+        months_to_sell_out = getattr(product, "months_to_sell_out", None)
         if months_to_sell_out is None:
             product.speed_signal = "Unknown"
         elif months_to_sell_out <= Decimal("6"):
