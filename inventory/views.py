@@ -970,7 +970,6 @@ def _build_product_list_context(request, preset_filters=None):
             0,
             output_field=IntegerField(),
         ),
-        total_ordered=Coalesce(Sum("order_items__quantity"), 0, output_field=IntegerField()),
         previous_order_qty=Coalesce(Subquery(latest_variant_order_qty), 0),
     )
 
