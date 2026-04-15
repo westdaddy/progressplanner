@@ -957,9 +957,21 @@ def _build_product_list_context(request, preset_filters=None):
         .order_by("-date")
         .values("inventory_count")[:1]
     )
+    latest_variant_order_qty = (
+        OrderItem.objects.filter(product_variant=OuterRef("pk"))
+        .order_by("-date_expected", "-id")
+        .values("quantity")[:1]
+    )
 
     variants_qs = ProductVariant.objects.annotate(
-        latest_inventory=Coalesce(Subquery(latest_snapshot), 0)
+        latest_inventory=Coalesce(Subquery(latest_snapshot), 0),
+        total_sold=Coalesce(
+            Sum(F("sales__sold_quantity") - Coalesce(F("sales__return_quantity"), 0)),
+            0,
+            output_field=IntegerField(),
+        ),
+        total_ordered=Coalesce(Sum("order_items__quantity"), 0, output_field=IntegerField()),
+        previous_order_qty=Coalesce(Subquery(latest_variant_order_qty), 0),
     )
 
     # ─── Build product queryset ─────────────────────────────────────────────────
@@ -1111,6 +1123,10 @@ def _build_product_list_context(request, preset_filters=None):
                     SIZE_ORDER.get(variant.size, 9999),
                 )
             )
+        product.total_ordered = sum(
+            getattr(variant, "total_ordered", 0) or 0
+            for variant in product.variants_with_inventory
+        )
         product.low_stock_skus = [
             variant.size
             for variant in product.variants_with_inventory
