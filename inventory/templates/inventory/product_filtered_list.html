@@ -343,36 +343,12 @@
     {{ category_filter.subtype_map|json_script:"category-subtype-map" }}
   {% endif %}
 
-  <!-- NEW CATEGORY STATISTICS SECTION -->
-  <div class="row">
-
-  </div>
-  <!-- END NEW CATEGORY STATISTICS SECTION -->
-
 
   <!-- CATEGORY STATISTICS SECTION -->
   <div class="row">
-    <div class="col s12">
-      <div class="card-panel" style="padding: 16px 20px;">
-        <p style="margin: 0 0 8px; font-size: 1.1rem;">
-          <strong>{{ filtered_inventory_total }}</strong> items of stock in this category
-          |
-          Cost <strong>¥{{ inventory_value_total|floatformat:"0g" }}</strong>
-          |
-          Retail Value <strong>¥{{ inventory_value_total|floatformat:"0g" }}</strong>
-        </p>
-        <p style="margin: 0; font-size: 1.1rem;">
-          <strong>{{ sales_last_year_total }}</strong> items sold in the last 12 months from this category
-          |
-          Sales value <strong>¥{{ sales_last_year_value_total|floatformat:"0g" }}</strong>
-        </p>
-      </div>
-    </div>
 
     <!-- SALES SECTION -->
     <div class="col s12 m4">
-      <h4 class="center-align">Past Sales</h4>
-      <p class="grey-text center-align">Is this number higher or lower than the previous 12 months sales? </p>
       <div class="card-panel">
         <h4 class="teal-text text-darken-2" style="margin-top: 0;">{{ sales_last_year_total }}</h4>
         <p class="grey-text text-darken-1" style="margin-bottom: 0;">Items sold in the last 12 months</p>
@@ -400,8 +376,6 @@
 
     <!-- STOCK SECTION -->
     <div class="col s12 m4">
-        <h4 class="center-align">Current Stock</h4>
-        <p class="grey-text center-align">Compare the current stock levels and breakdown with previous years' sales.</p>
       <div class="card-panel">
         <h4 class="teal-text text-darken-2" style="margin-top: 0;">{{ filtered_inventory_total }}</h4>
         <p class="grey-text text-darken-1" style="margin-bottom: 0;">Total in stock across all matching products</p>
@@ -430,7 +404,6 @@
 
     <!-- NOTES COLUMN -->
     <div class="col s12 m4">
-      <h4 class="center-align">Notes</h4>
 
       <!-- TOTAL STOCK POSITION -->
       <div class="card-panel">
@@ -441,6 +414,28 @@
           <p class="grey-text text-darken-1" style="margin-bottom: 0;">Stock balance notes appear when viewing all products or a single product category.</p>
         {% endif %}
       </div>
+
+      <div class="card-panel">
+        <ul class="collection" style="margin: 0;">
+          <li class="collection-item">
+            <strong>Products in this category</strong>
+            <span class="secondary-content teal-text text-darken-2">{{ total_products }}</span>
+          </li>
+          <li class="collection-item">
+            <strong>Partially out-of-stock</strong>
+            <span class="secondary-content teal-text text-darken-2">{{ partial_oos_products }}</span>
+          </li>
+          <li class="collection-item">
+            <strong>Discounted products</strong>
+            <span class="secondary-content teal-text text-darken-2">{{ discounted_products }}</span>
+          </li>
+          <li class="collection-item">
+            <strong>New products (no orders or sales)</strong>
+            <span class="secondary-content teal-text text-darken-2">{{ new_products }}</span>
+          </li>
+        </ul>
+      </div>
+
 
       <!-- STOCK POSITION BY PRODUCT CATEGORY -->
       {% if stock_balance_categories %}
@@ -486,7 +481,7 @@
         </div>
       {% endif %}
 
-      <!-- STOCK POSITION BY STOCK AGE -->
+      <!-- TIME ON MARKET -->
       {% if stock_age_breakdown %}
         <div class="card-panel">
           <h6 class="grey-text text-darken-1" style="margin-top: 0;">Time on market</h6>
@@ -509,30 +504,6 @@
   </div>
 
   <div class="row">
-
-    <div class="col s12 m4">
-      <div class="card-panel">
-        <h6 class="grey-text text-darken-1">Filtered Product Summary</h6>
-        <ul class="collection" style="margin: 0;">
-          <li class="collection-item">
-            <strong>Different products</strong>
-            <span class="secondary-content teal-text text-darken-2">{{ total_products }}</span>
-          </li>
-          <li class="collection-item">
-            <strong>Partially out-of-stock</strong>
-            <span class="secondary-content teal-text text-darken-2">{{ partial_oos_products }}</span>
-          </li>
-          <li class="collection-item">
-            <strong>Discounted products</strong>
-            <span class="secondary-content teal-text text-darken-2">{{ discounted_products }}</span>
-          </li>
-          <li class="collection-item">
-            <strong>New products (no orders or sales)</strong>
-            <span class="secondary-content teal-text text-darken-2">{{ new_products }}</span>
-          </li>
-        </ul>
-      </div>
-    </div>
 
     <div class="col s12 m4">
       <div class="card-panel" style="margin-top: 16px;">
@@ -598,49 +569,7 @@
       </div>
     </div>
 
-    <div class="col s12 m12">
 
-      <div class="card-panel" style="margin-top: 16px;">
-        <h6 class="grey-text text-darken-1">Age & Gender Breakdown</h6>
-        <div class="row" style="margin-bottom: 0;">
-          <div class="col s12">
-            <h6 class="grey-text text-darken-1" style="margin-top: 0;">Age</h6>
-            {% if age_breakdown_values %}
-              <canvas id="ageBreakdownChart"></canvas>
-              <p class="grey-text text-darken-1" style="margin-bottom: 0;">Inventory split by age category</p>
-            {% else %}
-              <p class="grey-text text-darken-1" style="margin: 0;">No age data available.</p>
-            {% endif %}
-          </div>
-
-
-
-          <div class="col s12" style="margin-top: 16px;">
-            <h6 class="grey-text text-darken-1" style="margin-top: 0;">Gender</h6>
-            {% if gender_breakdown_values %}
-              <canvas id="genderBreakdownChart"></canvas>
-              <p class="grey-text text-darken-1" style="margin-bottom: 0;">Inventory split by gender</p>
-            {% else %}
-              <p class="grey-text text-darken-1" style="margin: 0;">No gender data available.</p>
-            {% endif %}
-          </div>
-
-          <div class="col s12" style="margin-top: 16px;">
-            <h6 class="grey-text text-darken-1" style="margin-top: 0;">Size Breakdown</h6>
-            {% if size_breakdown_values %}
-              <canvas id="sizeBreakdownChart"></canvas>
-              <p class="grey-text text-darken-1" style="margin-bottom: 0;">Sizes across selected products</p>
-            {% else %}
-              <p class="grey-text text-darken-1" style="margin: 0;">No size data available.</p>
-            {% endif %}
-          </div>
-
-        </div>
-
-
-
-      </div>
-    </div>
   </div>
 
   <div class="filter-divider"></div>

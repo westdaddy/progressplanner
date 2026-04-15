@@ -2468,10 +2468,10 @@ def _render_filtered_products(
                 bucket_totals[bucket_key] += inventory_count
 
         bucket_messages = {
-            "under_3": "Arrived within the last 3 months.",
-            "three_to_six": "Arrived between 3 and 6 months ago.",
-            "six_to_twelve": "Arrived between 6 and 12 months ago.",
-            "over_12": "Arrived over 12 months ago.",
+            "under_3": "arrived within the last 3 months.",
+            "three_to_six": "arrived between 3 and 6 months ago.",
+            "six_to_twelve": "arrived between 6 and 12 months ago.",
+            "over_12": "arrived over 12 months ago.",
         }
 
         bucket_labels = [
@@ -2487,7 +2487,7 @@ def _render_filtered_products(
                 continue
 
             percent_val = qty / filtered_inventory_total * 100
-            message = f"{qty} units ({percent_val:.1f}% of current stock). {bucket_messages[key]}"
+            message = f"{qty} items {bucket_messages[key]}"
 
             if key == "over_12" and unknown_inventory > 0:
                 message += f" Includes {unknown_inventory} units without recorded arrival dates."
