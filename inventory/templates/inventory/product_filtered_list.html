@@ -1644,6 +1644,27 @@
       renderVerticalBarChart('ageBreakdownChart', ageLabels, ageValues, 'Age');
       renderVerticalBarChart('genderBreakdownChart', genderLabels, genderValues, 'Gender');
 
+      const toggleVariantPanel = (panel, open) => {
+        if (!panel) return;
+        panel.classList.toggle('is-open', open);
+        panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+      };
+
+      document.querySelectorAll('[data-variant-panel-trigger]').forEach((trigger) => {
+        trigger.addEventListener('click', () => {
+          const productId = trigger.getAttribute('data-product-id');
+          const panel = document.querySelector(`[data-variant-panel="${productId}"]`);
+          toggleVariantPanel(panel, true);
+        });
+      });
+
+      document.querySelectorAll('[data-variant-panel-close]').forEach((closeButton) => {
+        closeButton.addEventListener('click', () => {
+          const panel = closeButton.closest('.variant-panel');
+          toggleVariantPanel(panel, false);
+        });
+      });
+
       if (!dataPoints || !dataPoints.length || !document.getElementById('quarterlySalesChart')) {
         return;
       }
