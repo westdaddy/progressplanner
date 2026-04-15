@@ -40,14 +40,6 @@
                   <p class="metric-value">{{ product.total_inventory|default:0 }}</p>
                 </div>
                 <div class="metric">
-                  <small class="grey-text">Total Sold</small>
-                  <p class="metric-value">{{ product.total_sales|default:0 }}</p>
-                </div>
-                <div class="metric">
-                  <small class="grey-text">Total Ordered</small>
-                  <p class="metric-value">{{ product.last_order_qty|default:0 }}</p>
-                </div>
-                <div class="metric">
                   <small class="grey-text">Time on Market</small>
                   <p class="metric-value">
                     {% if product.time_on_market_months is not None %}
@@ -144,51 +136,6 @@
                     ¥{{ product.profit_amount|floatformat:0|default_if_none:"-" }}
                   </p>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          <div
-            class="variant-panel"
-            data-variant-panel="{{ product.id }}"
-            aria-hidden="true"
-          >
-            <div class="variant-panel__backdrop" data-variant-panel-close></div>
-            <div class="variant-panel__content">
-              <div class="variant-panel__header">
-                <h6>
-                  {{ product.product_name }} variants
-                </h6>
-                <button type="button" class="btn-flat" data-variant-panel-close>&times;</button>
-              </div>
-              <div class="variant-panel__body">
-                <table class="striped responsive-table">
-                  <thead>
-                    <tr>
-                      <th>Variant</th>
-                      <th>Stock</th>
-                      <th>Sold</th>
-                      <th>Previous Order</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for variant in product.variants_with_inventory %}
-                      <tr>
-                        <td>
-                          {{ variant.size|default:"—" }}
-                          <span class="grey-text">({{ variant.variant_code }})</span>
-                        </td>
-                        <td>{{ variant.latest_inventory|default:0 }}</td>
-                        <td>{{ variant.total_sold|default:0 }}</td>
-                        <td>{{ variant.previous_order_qty|default:0 }}</td>
-                      </tr>
-                    {% empty %}
-                      <tr>
-                        <td colspan="4" class="grey-text">No variants available.</td>
-                      </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
               </div>
             </div>
           </div>
