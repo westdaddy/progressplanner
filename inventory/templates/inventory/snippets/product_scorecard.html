@@ -26,21 +26,13 @@
             {% endif %}
           </div>
 
-          <!-- STATISTICS NEW SECTION -->
-          <div class="col s12 m6 l10">
+          <!-- STATISTICS SECTION -->
+          <div class="col s12 m6 l7">
             <div class="card-panel scorecard-box signal-card">
-              <div class="signal-card__status-row">
-                <span class="signal-badge signal-badge--{{ product.status_signal|default:'monitor'|slugify }}">
-                  {{ product.status_signal|default:"Monitor" }}
-                </span>
-              </div>
+
 
               <div class="signal-card__metrics">
-                <p class="signal-line signal-line--stock">
-                  <span class="signal-label">Stock</span>
-                  <strong>{{ product.total_inventory|default:0 }} / {{ product.last_order_qty|default:0 }}</strong>
-                  <span class="signal-muted">{{ product.total_sales|default:0 }} sold</span>
-                </p>
+
 
                 <div class="signal-progress-wrap">
                   <div class="signal-progress">
@@ -58,19 +50,18 @@
                   </span>
                 </div>
 
-                <p class="signal-line">
-                  <strong>
-                    {% if product.time_on_market_months is not None %}
-                      {{ product.time_on_market_months|floatformat:0 }}m
-                    {% else %}
-                      -
-                    {% endif %}
-                  </strong>
-                  <span class="signal-muted">on market</span>
-                </p>
-
-                <p class="signal-line">
-                  <span class="signal-label">Core Sizes</span>
+                <p class="signal-line signal-line--stock">
+                  {{ product.total_inventory|default:0 }} in stock / {{ product.last_order_qty|default:0 }} ordered
+                  <span class="signal-muted">|</span>
+                  <button
+                    type="button"
+                    class="btn-flat signal-line signal-line--variants variant-summary-trigger"
+                    data-variant-panel-trigger
+                    data-product-id="{{ product.id }}"
+                  >
+                    Variants: {{ product.out_of_stock_variant_count|default:0 }} OOS · {{ product.low_stock_variant_count|default:0 }} Low
+                  </button>
+                  <span class="signal-muted">|</span>
                   {% for core in product.core_size_signals %}
                     <span class="signal-core {% if core.in_stock %}signal-core--ok{% else %}signal-core--miss{% endif %}">
                       {% if core.in_stock %}✔{% else %}✖{% endif %} {{ core.size }}
@@ -78,28 +69,44 @@
                   {% endfor %}
                 </p>
 
-                <button
-                  type="button"
-                  class="btn-flat signal-line signal-line--variants variant-summary-trigger"
-                  data-variant-panel-trigger
-                  data-product-id="{{ product.id }}"
-                >
-                  Variants: {{ product.out_of_stock_variant_count|default:0 }} OOS · {{ product.low_stock_variant_count|default:0 }} Low
-                </button>
+                <hr/>
 
-                <div class="signal-splits">
-                  <p class="signal-line"><span class="signal-label">Speed</span> <strong>{{ product.speed_signal|default:"Unknown" }}</strong></p>
-                  <p class="signal-line"><span class="signal-label">Quality</span> <strong>{{ product.stock_quality_signal|default:"Mixed" }}</strong></p>
-                </div>
-
-                <p class="signal-line signal-line--secondary">
-                  GM {{ product.profit_percentage|floatformat:0|default_if_none:"-" }}% ·
-                  Disc {{ product.average_discount_percentage|floatformat:0|default_if_none:"-" }}%
+                <p class="signal-line">
+                    {% if product.time_on_market_months is not None %}
+                      {{ product.time_on_market_months|floatformat:0 }} months
+                    {% else %}
+                      -
+                    {% endif %}
+                    on market
+                  <span class="signal-muted">|</span>
+                  {{ product.total_sales|default:0 }} sold
+                  <span class="signal-muted">|</span>
+                  gross margin {{ product.profit_percentage|floatformat:0|default_if_none:"-" }}%
+                  <span class="signal-muted">|</span>
+                  av. discount {{ product.average_discount_percentage|floatformat:0|default_if_none:"-" }}%
                 </p>
+
               </div>
             </div>
           </div>
-          <!-- STATISTICS NEW SECTION -->
+          <!-- END STATISTICS SECTION -->
+
+          <!-- ACTIONS SECTION -->
+          <div class="col s12 m6 l3">
+              <div class="card-panel scorecard-box">
+                <div class="signal-card__status-row">
+                  <span class="signal-badge signal-badge--{{ product.status_signal|default:'monitor'|slugify }}">
+                    {{ product.status_signal|default:"Monitor" }}
+                  </span>
+                </div>
+
+                <div class="signal-splits">
+                  <p class="signal-line"><span class="signal-label">Quality</span> <strong>{{ product.stock_quality_signal|default:"Mixed" }}</strong></p>
+                </div>
+              </div>
+          </div>
+          <!-- END ACTIONS SECTION -->
+
         </div>
       </div>
     </div>
