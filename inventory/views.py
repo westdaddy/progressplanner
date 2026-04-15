@@ -1127,6 +1127,10 @@ def _build_product_list_context(request, preset_filters=None):
                     SIZE_ORDER.get(variant.size, 9999),
                 )
             )
+        product.total_ordered = sum(
+            getattr(variant, "total_ordered", 0) or 0
+            for variant in product.variants_with_inventory
+        )
         product.low_stock_skus = [
             variant.size
             for variant in product.variants_with_inventory
