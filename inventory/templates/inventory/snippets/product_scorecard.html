@@ -1,8 +1,8 @@
 {% load inventory_extras %}
 
+<ul class="collection">
 {% for product in products %}
 
-<ul class="collection">
   <li class="collection-item avatar lighten-4 {% if product.total_sales|default:0 == 0 and product.total_inventory|default:0 == 0 %}new{% endif %}">
     <div class="row item">
       <div class="col s12 content">
@@ -104,7 +104,7 @@
       </div>
     </div>
   </li>
-</ul>
+
 
 <div class="variant-panel" data-variant-panel="{{ product.id }}" aria-hidden="true">
   <div class="variant-panel__backdrop" data-variant-panel-close></div>
@@ -143,3 +143,4 @@
 </div>
 
 {% endfor %}
+</ul>
