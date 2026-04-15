@@ -1,197 +1,130 @@
 {% load inventory_extras %}
 
-<!-- Product Scorecard List -->
-<ul class="collection">
+<div class="signal-grid">
   {% for product in products %}
-  <li class="collection-item avatar lighten-4 {% if product.total_sales|default:0 == 0 and product.total_inventory|default:0 == 0 %}new{% endif %}">
+    <section class="signal-row">
+      <header class="signal-row__titlebar">
+        <a href="{% url 'product_detail' product.id %}" class="signal-row__title">
+          {{ product.product_name }}
+        </a>
+        <span class="signal-row__code">({{ product.product_id }})</span>
+      </header>
 
-      <div class="row item">
+      <div class="signal-row__content">
+        <div class="signal-thumb-panel">
+          {% if product.product_photo %}
+            <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}">
+          {% else %}
+            <img src="{{ MEDIA_URL }}product_photos/product-placeholder.jpg" alt="{{ product.product_name }}">
+          {% endif %}
+        </div>
 
-        <div class="col s12 content">
-          <div class="row title">
-            <div class="col s12">
-              <span class="title">
-                <a href="{% url 'product_detail' product.id %}">
-                  <strong>{{ product.product_name }}</strong>
-                </a>
-              </span>
-              ({{ product.product_id }})
-            </div>
+        <article class="signal-card">
+          <div class="signal-card__status-row">
+            <span class="signal-badge signal-badge--{{ product.status_signal|default:'monitor'|slugify }}">
+              {{ product.status_signal|default:"Monitor" }}
+            </span>
           </div>
+          <div class="signal-card__metrics">
+          <p class="signal-line signal-line--stock">
+            <span class="signal-label">Stock</span>
+            <strong>{{ product.total_inventory|default:0 }} / {{ product.last_order_qty|default:0 }}</strong>
+            <span class="signal-muted">{{ product.total_sales|default:0 }} sold</span>
+          </p>
 
-
-
-
-          <div class="row scorecard-boxes">
-
-            <div class="col s12 m6 l2 photo">
-              {% if product.product_photo %}
-                <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" class="circle product-photo-large">
+          <div class="signal-progress-wrap">
+            <div class="signal-progress">
+              <span
+                class="signal-progress__fill"
+                style="width: {% if product.stock_remaining_pct is not None %}{{ product.stock_remaining_pct|floatformat:0 }}{% else %}0{% endif %}%; --stock-pct: {% if product.stock_remaining_pct is not None %}{{ product.stock_remaining_pct|floatformat:0 }}{% else %}0{% endif %};"
+              ></span>
+            </div>
+            <span class="signal-muted">
+              {% if product.stock_remaining_pct is not None %}
+                {{ product.stock_remaining_pct|floatformat:0 }}%
               {% else %}
-                <img src="{{ MEDIA_URL }}product_photos/product-placeholder.jpg" alt="{{ product.product_name }}" class="circle product-photo-large">
+                -
               {% endif %}
-            </div>
-
-
-            <div class="col s12 m6 l3">
-              <div class="card-panel scorecard-box">
-                <div class="confidence-highlight">
-                  {% if product.confidence_level == "High" %}
-                    <span class="confidence-icon green lighten-1">
-                      <i class="material-icons white-text">check_circle</i>
-                    </span>
-                  {% elif product.confidence_level == "Medium" %}
-                    <span class="confidence-icon amber lighten-1">
-                      <i class="material-icons white-text">priority_high</i>
-                    </span>
-                  {% elif product.confidence_level == "Low" %}
-                    <span class="confidence-icon red lighten-1">
-                      <i class="material-icons white-text">warning</i>
-                    </span>
-                  {% else %}
-                    <span class="confidence-icon grey lighten-2">
-                      <i class="material-icons white-text">help_outline</i>
-                    </span>
-                  {% endif %}
-                  <div>
-                    <small class="grey-text text-darken-1">Confidence</small>
-                    <p class="confidence-value">
-                      {% if product.confidence_level %}
-                        {{ product.confidence_level }}
-                        {% if product.confidence_score %}
-                          ({{ product.confidence_score|floatformat:0 }}%)
-                        {% endif %}
-                      {% else %}
-                        -
-                      {% endif %}
-                    </p>
-                  </div>
-                </div>
-                {% if product.confidence_advisories %}
-                  <ul class="advisories">
-                    {% for note in product.confidence_advisories %}
-                      <li>{{ note }}</li>
-                    {% endfor %}
-                  </ul>
-                {% else %}
-                  <small class="grey-text">No advisories</small>
-                {% endif %}
-              </div>
-            </div>
-
-            <div class="col s12 m6 l3">
-
-              <div class="card-panel scorecard-box">
-                <div class="discount-highlight">
-                  {% if product.discount_status == "better" %}
-                    <span class="discount-icon green lighten-1">
-                      <i class="material-icons white-text">check</i>
-                    </span>
-                  {% elif product.discount_status == "similar" %}
-                    <span class="discount-icon amber lighten-1">
-                      <i class="material-icons white-text">priority_high</i>
-                    </span>
-                  {% elif product.discount_status == "worse" %}
-                    <span class="discount-icon red lighten-1">
-                      <i class="material-icons white-text">brightness_1</i>
-                    </span>
-                  {% else %}
-                    <span class="discount-icon grey lighten-1">
-                      <i class="material-icons white-text">help_outline</i>
-                    </span>
-                  {% endif %}
-                  <div>
-
-                    <p class="discount-value">
-                      {% if product.average_discount_percentage is not None %}
-                        {{ product.average_discount_percentage|floatformat:1 }}%
-                      {% else %}
-                        -
-                      {% endif %}
-                    </p>
-                    <small class="grey-text text-darken-1">
-                      Average Discount
-                    </small>
-                  </div>
-                </div>
-                <div class="discount-highlight">
-                  <span class="discount-icon red lighten-1">
-                    <i class="material-icons white-text">priority_high</i>
-                  </span>
-                  <div>
-                    <p class="discount-value">
-                      {% if product.profit_percentage is not None %}
-                        {{ product.profit_percentage|floatformat:1 }}%
-                      {% else %}
-                        -
-                      {% endif %}
-                    </p>
-                    <small class="grey-text text-darken-1">
-                      Gross Margin
-                    </small>
-                  </div>
-                </div>
-                <div class="metric">
-                  <small class="grey-text">Retail Price / Actual Average Sold Price</small>
-                  <p class="metric-value">
-                    ¥{{ product.retail_price|floatformat:0|default_if_none:"-" }} /
-                    ¥{{ product.average_sale_price|floatformat:0|default_if_none:"-" }}
-                  </p>
-                </div>
-                <div class="metric">
-                  <small class="grey-text">Avg Cost Per Item / Profit Per Item</small>
-                  <p class="metric-value">
-                    ¥{{ product.average_cost_price|floatformat:0|default_if_none:"-" }} /
-                    ¥{{ product.profit_amount|floatformat:0|default_if_none:"-" }}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div class="col s12 m6 l2">
-              <div class="card-panel scorecard-box">
-                <div class="speed-highlight">
-                  <span class="speed-icon amber lighten-1">
-                    <i class="material-icons white-text">warning</i>
-                  </span>
-                  <div>
-                    <small class="grey-text text-darken-1">Sales Speed</small>
-                    <p class="speed-value">
-                      {% if product.sales_speed_6_months is not None %}
-                        {{ product.sales_speed_6_months|floatformat:1 }} / month
-                      {% else %}
-                        -
-                      {% endif %}
-                    </p>
-                  </div>
-                </div>
-                <div class="metric">
-                  <small class="grey-text">Time on Market</small>
-                  <p class="metric-value">
-                    {% if product.time_on_market_months is not None %}
-                      {{ product.time_on_market_months|floatformat:1 }} months
-                    {% else %}
-                      -
-                    {% endif %}
-                  </p>
-                </div>
-                <div class="metric">
-                  <small class="grey-text">Ordered vs Stock</small>
-                  <p class="metric-value">
-                    {% if product.sold_since_last_order is not None and product.last_order_qty %}
-                      {{ product.sold_since_last_order }} of {{ product.last_order_qty }} sold ({{ product.total_inventory|default:0 }} in stock)
-                    {% else %}
-                      -
-                    {% endif %}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-
-
+            </span>
           </div>
+
+          <p class="signal-line">
+            <strong>
+              {% if product.time_on_market_months is not None %}
+                {{ product.time_on_market_months|floatformat:0 }}m
+              {% else %}
+                -
+              {% endif %}
+            </strong>
+            <span class="signal-muted">on market</span>
+          </p>
+
+          <p class="signal-line">
+            <span class="signal-label">Core Sizes</span>
+            {% for core in product.core_size_signals %}
+              <span class="signal-core {% if core.in_stock %}signal-core--ok{% else %}signal-core--miss{% endif %}">
+                {% if core.in_stock %}✔{% else %}✖{% endif %} {{ core.size }}
+              </span>
+            {% endfor %}
+          </p>
+
+          <button
+            type="button"
+            class="btn-flat signal-line signal-line--variants variant-summary-trigger"
+            data-variant-panel-trigger
+            data-product-id="{{ product.id }}"
+          >
+            Variants: {{ product.out_of_stock_variant_count|default:0 }} OOS · {{ product.low_stock_variant_count|default:0 }} Low
+          </button>
+
+          <div class="signal-splits">
+            <p class="signal-line"><span class="signal-label">Speed</span> <strong>{{ product.speed_signal|default:"Unknown" }}</strong></p>
+            <p class="signal-line"><span class="signal-label">Quality</span> <strong>{{ product.stock_quality_signal|default:"Mixed" }}</strong></p>
+          </div>
+
+          <p class="signal-line signal-line--secondary">
+            GM {{ product.profit_percentage|floatformat:0|default_if_none:"-" }}% ·
+            Disc {{ product.average_discount_percentage|floatformat:0|default_if_none:"-" }}%
+          </p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <div class="variant-panel" data-variant-panel="{{ product.id }}" aria-hidden="true">
+      <div class="variant-panel__backdrop" data-variant-panel-close></div>
+      <div class="variant-panel__content">
+        <div class="variant-panel__header">
+          <h6>{{ product.product_name }} variants</h6>
+          <button type="button" class="btn-flat" data-variant-panel-close>&times;</button>
+        </div>
+        <div class="variant-panel__body">
+          <table class="striped responsive-table">
+            <thead>
+              <tr>
+                <th>Variant</th>
+                <th>Stock</th>
+                <th>Sold</th>
+                <th>Previous Order</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for variant in product.variants_with_inventory %}
+                <tr>
+                  <td>{{ variant.size|default:"—" }} <span class="grey-text">({{ variant.variant_code }})</span></td>
+                  <td>{{ variant.latest_inventory|default:0 }}</td>
+                  <td>{{ variant.total_sold|default:0 }}</td>
+                  <td>{{ variant.previous_order_qty|default:0 }}</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="4" class="grey-text">No variants available.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
       </div>
-    </li>
+    </div>
   {% endfor %}
-</ul>
+</div>
