@@ -132,46 +132,62 @@ main {
 .signal-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 12px;
+  gap: 10px;
 }
 
-.signal-card {
-  border: 1px solid #dfe5e8;
-  border-radius: 10px;
-  background: #fff;
-  padding: 14px 16px;
-  position: relative;
+.signal-row {
+  border-bottom: 1px solid #eceff1;
+  padding: 10px 0 14px;
 }
 
-.signal-card__header {
-  display: block;
-  margin-bottom: 12px;
+.signal-row__titlebar {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
-.signal-card__title-wrap {
-  padding-right: 140px;
-}
-
-.signal-card__title {
-  color: #0277bd;
+.signal-row__title {
+  color: #0288d1;
+  font-size: 2.2rem;
   font-weight: 700;
-  font-size: 2rem;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
-.signal-card__subtitle {
-  margin: 2px 0 0;
-  color: #78909c;
-  font-size: 0.82rem;
+.signal-row__code {
+  color: #263238;
+  font-size: 1.9rem;
+  font-weight: 700;
+}
+
+.signal-row__content {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.signal-thumb-panel {
+  border: 1px solid #dfe5e8;
+  border-radius: 14px;
+  background: #fff;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.signal-thumb-panel img {
+  width: 220px;
+  height: 220px;
+  object-fit: contain;
 }
 
 .signal-badge {
-  position: absolute;
-  top: 16px;
-  right: 16px;
+  position: static;
   border-radius: 999px;
-  padding: 3px 8px;
-  font-size: 0.72rem;
+  padding: 5px 11px;
+  font-size: 0.78rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -198,21 +214,25 @@ main {
 }
 
 .signal-card__body {
-  display: grid;
-  grid-template-columns: 116px minmax(0, 1fr);
-  gap: 12px;
+  display: none;
 }
 
-.signal-card__thumb img {
-  width: 112px;
-  height: 112px;
-  border-radius: 8px;
-  object-fit: cover;
+.signal-card {
+  border: 1px solid #dfe5e8;
+  border-radius: 14px;
+  background: #fff;
+  padding: 12px 16px;
+}
+
+.signal-card__status-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
 }
 
 .signal-card__metrics {
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
 .signal-line {
@@ -293,27 +313,22 @@ main {
 }
 
 @media (max-width: 900px) {
-  .signal-card__title-wrap {
-    padding-right: 0;
+  .signal-row__title {
+    font-size: 1.5rem;
   }
 
-  .signal-badge {
-    position: static;
-    display: inline-block;
-    margin-top: 8px;
+  .signal-row__code {
+    font-size: 1.25rem;
   }
 
-  .signal-card__title {
-    font-size: 1.4rem;
+  .signal-row__content {
+    grid-template-columns: 120px minmax(0, 1fr);
+    gap: 10px;
   }
 
-  .signal-card__body {
-    grid-template-columns: 80px minmax(0, 1fr);
-  }
-
-  .signal-card__thumb img {
-    width: 76px;
-    height: 76px;
+  .signal-thumb-panel img {
+    width: 96px;
+    height: 96px;
   }
 }
 

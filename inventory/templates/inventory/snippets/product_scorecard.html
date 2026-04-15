@@ -2,21 +2,16 @@
 
 <div class="signal-grid">
   {% for product in products %}
-    <article class="signal-card">
-      <header class="signal-card__header">
-        <div class="signal-card__title-wrap">
-          <a href="{% url 'product_detail' product.id %}" class="signal-card__title">
-            {{ product.product_name }}
-          </a>
-          <p class="signal-card__subtitle">{{ product.product_id }}</p>
-        </div>
-        <span class="signal-badge signal-badge--{{ product.status_signal|default:'monitor'|slugify }}">
-          {{ product.status_signal|default:"Monitor" }}
-        </span>
+    <section class="signal-row">
+      <header class="signal-row__titlebar">
+        <a href="{% url 'product_detail' product.id %}" class="signal-row__title">
+          {{ product.product_name }}
+        </a>
+        <span class="signal-row__code">({{ product.product_id }})</span>
       </header>
 
-      <div class="signal-card__body">
-        <div class="signal-card__thumb">
+      <div class="signal-row__content">
+        <div class="signal-thumb-panel">
           {% if product.product_photo %}
             <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}">
           {% else %}
@@ -24,7 +19,13 @@
           {% endif %}
         </div>
 
-        <div class="signal-card__metrics">
+        <article class="signal-card">
+          <div class="signal-card__status-row">
+            <span class="signal-badge signal-badge--{{ product.status_signal|default:'monitor'|slugify }}">
+              {{ product.status_signal|default:"Monitor" }}
+            </span>
+          </div>
+          <div class="signal-card__metrics">
           <p class="signal-line signal-line--stock">
             <span class="signal-label">Stock</span>
             <strong>{{ product.total_inventory|default:0 }} / {{ product.last_order_qty|default:0 }}</strong>
@@ -85,9 +86,10 @@
             GM {{ product.profit_percentage|floatformat:0|default_if_none:"-" }}% ·
             Disc {{ product.average_discount_percentage|floatformat:0|default_if_none:"-" }}%
           </p>
-        </div>
+          </div>
+        </article>
       </div>
-    </article>
+    </section>
 
     <div class="variant-panel" data-variant-panel="{{ product.id }}" aria-hidden="true">
       <div class="variant-panel__backdrop" data-variant-panel-close></div>
