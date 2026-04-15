@@ -139,21 +139,23 @@ main {
   border: 1px solid #dfe5e8;
   border-radius: 10px;
   background: #fff;
-  padding: 10px;
+  padding: 14px 16px;
+  position: relative;
 }
 
 .signal-card__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 8px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.signal-card__title-wrap {
+  padding-right: 140px;
 }
 
 .signal-card__title {
   color: #0277bd;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 2rem;
   line-height: 1.25;
 }
 
@@ -164,6 +166,9 @@ main {
 }
 
 .signal-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
   border-radius: 999px;
   padding: 3px 8px;
   font-size: 0.72rem;
@@ -194,13 +199,13 @@ main {
 
 .signal-card__body {
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
-  gap: 10px;
+  grid-template-columns: 116px minmax(0, 1fr);
+  gap: 12px;
 }
 
 .signal-card__thumb img {
-  width: 52px;
-  height: 52px;
+  width: 112px;
+  height: 112px;
   border-radius: 8px;
   object-fit: cover;
 }
@@ -285,6 +290,31 @@ main {
 .signal-line--secondary {
   color: #90a4ae;
   font-size: 0.8rem;
+}
+
+@media (max-width: 900px) {
+  .signal-card__title-wrap {
+    padding-right: 0;
+  }
+
+  .signal-badge {
+    position: static;
+    display: inline-block;
+    margin-top: 8px;
+  }
+
+  .signal-card__title {
+    font-size: 1.4rem;
+  }
+
+  .signal-card__body {
+    grid-template-columns: 80px minmax(0, 1fr);
+  }
+
+  .signal-card__thumb img {
+    width: 76px;
+    height: 76px;
+  }
 }
 
 .scorecard-box--review .metric {
