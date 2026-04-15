@@ -35,12 +35,12 @@
             <div class="signal-progress">
               <span
                 class="signal-progress__fill"
-                style="width: {% if product.sold_through_pct is not None %}{{ product.sold_through_pct|floatformat:0 }}{% else %}0{% endif %}%"
+                style="width: {% if product.stock_remaining_pct is not None %}{{ product.stock_remaining_pct|floatformat:0 }}{% else %}0{% endif %}%; --stock-pct: {% if product.stock_remaining_pct is not None %}{{ product.stock_remaining_pct|floatformat:0 }}{% else %}0{% endif %};"
               ></span>
             </div>
             <span class="signal-muted">
-              {% if product.sold_through_pct is not None %}
-                {{ product.sold_through_pct|floatformat:0 }}%
+              {% if product.stock_remaining_pct is not None %}
+                {{ product.stock_remaining_pct|floatformat:0 }}%
               {% else %}
                 -
               {% endif %}
