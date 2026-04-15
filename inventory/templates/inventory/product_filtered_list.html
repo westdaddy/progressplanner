@@ -345,6 +345,22 @@
 
   <!-- CATEGORY STATISTICS SECTION -->
   <div class="row">
+    <div class="col s12">
+      <div class="card-panel" style="padding: 16px 20px;">
+        <p style="margin: 0 0 8px; font-size: 1.1rem;">
+          <strong>{{ filtered_inventory_total }}</strong> items of stock in this category
+          |
+          Cost <strong>¥{{ inventory_value_total|floatformat:"0g" }}</strong>
+          |
+          Retail Value <strong>¥{{ inventory_value_total|floatformat:"0g" }}</strong>
+        </p>
+        <p style="margin: 0; font-size: 1.1rem;">
+          <strong>{{ sales_last_year_total }}</strong> items sold in the last 12 months from this category
+          |
+          Sales value <strong>¥{{ sales_last_year_value_total|floatformat:"0g" }}</strong>
+        </p>
+      </div>
+    </div>
 
     <!-- SALES SECTION -->
     <div class="col s12 m4">
