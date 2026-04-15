@@ -957,9 +957,20 @@ def _build_product_list_context(request, preset_filters=None):
         .order_by("-date")
         .values("inventory_count")[:1]
     )
+    latest_variant_order_qty = (
+        OrderItem.objects.filter(product_variant=OuterRef("pk"))
+        .order_by("-date_expected", "-id")
+        .values("quantity")[:1]
+    )
 
     variants_qs = ProductVariant.objects.annotate(
-        latest_inventory=Coalesce(Subquery(latest_snapshot), 0)
+        latest_inventory=Coalesce(Subquery(latest_snapshot), 0),
+        total_sold=Coalesce(
+            Sum(F("sales__sold_quantity") - Coalesce(F("sales__return_quantity"), 0)),
+            0,
+            output_field=IntegerField(),
+        ),
+        previous_order_qty=Coalesce(Subquery(latest_variant_order_qty), 0),
     )
 
     # ─── Build product queryset ─────────────────────────────────────────────────
@@ -1031,6 +1042,11 @@ def _build_product_list_context(request, preset_filters=None):
     }
     CHILD_GI_SIZE_ORDER = ["M000", "M00", "M0", "M1", "M2", "M3", "M4"]
     child_gi_rank = {code: idx for idx, code in enumerate(CHILD_GI_SIZE_ORDER)}
+    core_sizes_by_style = {
+        "ng": ["S", "M", "L"],
+        "gi": ["A1", "A2", "A3"],
+        "ap": ["S", "M", "L"],
+    }
 
     sitewide_retail_total = Decimal("0.00")
     sitewide_actual_total = Decimal("0.00")
@@ -1121,6 +1137,77 @@ def _build_product_list_context(request, preset_filters=None):
             for variant in product.variants_with_inventory
             if (getattr(variant, "latest_inventory", 0) or 0) <= 0
         ]
+        product.low_stock_variant_count = len(product.low_stock_skus)
+        product.out_of_stock_variant_count = len(product.out_of_stock_skus)
+
+        core_sizes = core_sizes_by_style.get(product.style or "", ["S", "M", "L"])
+        size_to_stock = {
+            (variant.size or ""): (getattr(variant, "latest_inventory", 0) or 0)
+            for variant in product.variants_with_inventory
+        }
+        core_size_signals = []
+        in_stock_core_count = 0
+        for size_code in core_sizes:
+            stock_units = size_to_stock.get(size_code, 0)
+            is_in_stock = stock_units > 0
+            if is_in_stock:
+                in_stock_core_count += 1
+            core_size_signals.append(
+                {
+                    "size": size_code,
+                    "in_stock": is_in_stock,
+                }
+            )
+        product.core_size_signals = core_size_signals
+        product.core_size_in_stock_count = in_stock_core_count
+
+        sold_in_order_window = product.sold_since_last_order
+        if sold_in_order_window is not None and product.last_order_qty:
+            sold_through_ratio = Decimal(sold_in_order_window) / Decimal(product.last_order_qty)
+            sold_through_ratio = min(max(sold_through_ratio, Decimal("0")), Decimal("1"))
+            product.sold_through_pct = sold_through_ratio * Decimal("100")
+            product.stock_remaining_pct = Decimal("100") - product.sold_through_pct
+        else:
+            product.sold_through_pct = None
+            product.stock_remaining_pct = None
+
+        months_to_sell_out = getattr(product, "months_to_sell_out", None)
+        if months_to_sell_out is None:
+            product.speed_signal = "Unknown"
+        elif months_to_sell_out <= Decimal("6"):
+            product.speed_signal = "Fast"
+        elif months_to_sell_out <= Decimal("12"):
+            product.speed_signal = "Average"
+        else:
+            product.speed_signal = "Slow"
+
+        if in_stock_core_count == len(core_sizes):
+            product.stock_quality_signal = "Good"
+        elif in_stock_core_count == 0:
+            product.stock_quality_signal = "Poor"
+        else:
+            product.stock_quality_signal = "Mixed"
+
+        clearance_triggered = (
+            product.speed_signal == "Slow"
+            and product.stock_remaining_pct is not None
+            and product.stock_remaining_pct >= Decimal("60")
+        )
+        reorder_triggered = (
+            product.total_inventory == 0
+            or (
+                in_stock_core_count < len(core_sizes)
+                and product.speed_signal in {"Fast", "Average"}
+            )
+        )
+        if clearance_triggered:
+            product.status_signal = "Clearance"
+        elif reorder_triggered:
+            product.status_signal = "Reorder Soon"
+        elif product.stock_quality_signal == "Good" and product.speed_signal in {"Fast", "Average"}:
+            product.status_signal = "Healthy"
+        else:
+            product.status_signal = "Monitor"
 
     sitewide_average_discount = (
         ((sitewide_retail_total - sitewide_actual_total) / sitewide_retail_total)
