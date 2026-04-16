@@ -4314,6 +4314,31 @@ def sales(request):
     returns_total_value = value_aggregates["returns_total"] or Decimal("0")
     net_sales_value = gross_sales_value - returns_total_value
 
+    top_referrers = list(
+        sales_qs.filter(referrer__isnull=False)
+        .exclude(referrer__name__iexact="no_referrer")
+        .values("referrer_id", "referrer__name")
+        .annotate(
+            total_sales=Coalesce(
+                Sum(
+                    ExpressionWrapper(
+                        Coalesce(
+                            F("sold_value"),
+                            Value(Decimal("0.00"), output_field=DecimalField()),
+                        )
+                        - Coalesce(
+                            F("return_value"),
+                            Value(Decimal("0.00"), output_field=DecimalField()),
+                        ),
+                        output_field=DecimalField(max_digits=12, decimal_places=2),
+                    )
+                ),
+                Value(Decimal("0.00"), output_field=DecimalField()),
+            )
+        )
+        .order_by("-total_sales", "referrer__name")[:5]
+    )
+
     if pricing_total_actual_value:
         for bucket in price_breakdown:
             percentage = (
@@ -4527,6 +4552,7 @@ def sales(request):
         "gross_sales_value": gross_sales_value,
         "net_sales_value": net_sales_value,
         "returns_total_value": returns_total_value,
+        "top_referrers": top_referrers,
         "date_querystring": date_querystring,
         "referrers": Referrer.objects.order_by("name"),
         "insights_start": insights_start,
@@ -4710,7 +4736,9 @@ def referrers_overview(request):
 
     start_date, end_date = _get_sales_date_range(request)
 
-    referrers = list(Referrer.objects.order_by("name"))
+    referrers = list(
+        Referrer.objects.exclude(name__iexact="no_referrer").order_by("name")
+    )
 
     net_sales_expression = ExpressionWrapper(
         Coalesce("sold_value", Value(Decimal("0")))

@@ -767,6 +767,60 @@ class SalesViewTests(TestCase):
         self.assertEqual(response.context["net_sales_value"], Decimal("75"))
         self.assertTrue(response.context["has_sales_data"])
 
+    def test_sales_includes_top_five_referrers_by_value(self):
+        no_referrer = Referrer.objects.create(name="no_referrer")
+        referrers = [
+            Referrer.objects.create(name="Alpha"),
+            Referrer.objects.create(name="Beta"),
+            Referrer.objects.create(name="Gamma"),
+            Referrer.objects.create(name="Delta"),
+            Referrer.objects.create(name="Epsilon"),
+            Referrer.objects.create(name="Zeta"),
+        ]
+
+        Sale.objects.create(
+            order_number="NO-REF",
+            date=date(2024, 4, 9),
+            variant=self.variant,
+            referrer=no_referrer,
+            sold_quantity=1,
+            sold_value=Decimal("999"),
+        )
+
+        totals = [
+            Decimal("500"),
+            Decimal("420"),
+            Decimal("300"),
+            Decimal("200"),
+            Decimal("100"),
+            Decimal("50"),
+        ]
+        for index, referrer in enumerate(referrers):
+            Sale.objects.create(
+                order_number=f"R{index}",
+                date=date(2024, 4, 10),
+                variant=self.variant,
+                referrer=referrer,
+                sold_quantity=1,
+                sold_value=totals[index],
+            )
+
+        with patch("inventory.views.now") as mock_now:
+            mock_now.return_value = timezone.make_aware(datetime(2024, 5, 15))
+            response = self.client.get(reverse("sales"))
+
+        self.assertEqual(response.status_code, 200)
+        top_referrers = response.context["top_referrers"]
+        self.assertEqual(len(top_referrers), 5)
+        self.assertEqual(
+            [row["referrer__name"] for row in top_referrers],
+            ["Alpha", "Beta", "Gamma", "Delta", "Epsilon"],
+        )
+        self.assertEqual(
+            [row["total_sales"] for row in top_referrers],
+            [Decimal("500"), Decimal("420"), Decimal("300"), Decimal("200"), Decimal("100")],
+        )
+
     def test_price_breakdown_categorises_sales(self):
         self.product.retail_price = Decimal("100")
         self.product.save(update_fields=["retail_price"])
@@ -1623,6 +1677,37 @@ class ReferrersOverviewViewTests(TestCase):
         rows = response.context["referrer_rows"]
         self.assertEqual(rows[0]["total_items"], 2)
         self.assertEqual(rows[0]["total_sales"], Decimal("160.00"))
+
+    def test_overview_excludes_no_referrer_row(self):
+        no_referrer = Referrer.objects.create(name="no_referrer")
+        Sale.objects.create(
+            order_number="NO-REF-100",
+            date=date(2024, 4, 3),
+            variant=self.variant,
+            sold_quantity=4,
+            sold_value=Decimal("400.00"),
+            referrer=no_referrer,
+        )
+        Sale.objects.create(
+            order_number="ALPHA-100",
+            date=date(2024, 4, 5),
+            variant=self.variant,
+            sold_quantity=2,
+            sold_value=Decimal("180.00"),
+            referrer=self.alpha,
+        )
+
+        response = self.client.get(
+            reverse("referrers_overview"),
+            {"start_date": "2024-04-01", "end_date": "2024-04-30"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        rows = response.context["referrer_rows"]
+        self.assertEqual([row["referrer"] for row in rows], [self.alpha, self.beta])
+        self.assertEqual(response.context["totals"]["sales"], Decimal("180.00"))
+
+
 class ReferrerDetailViewTests(TestCase):
     def setUp(self):
         self.product = Product.objects.create(

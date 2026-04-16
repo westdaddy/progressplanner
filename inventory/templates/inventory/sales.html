@@ -88,6 +88,30 @@
         </div>
       </div>
 
+      <div class="card-panel">
+        <h6 class="grey-text text-darken-2" style="margin-top: 0;">Top referrers</h6>
+        {% if top_referrers %}
+          <ul class="collection" style="margin-bottom: 12px;">
+            {% for row in top_referrers %}
+              <li class="collection-item">
+                <span>{{ row.referrer__name }}</span>
+                <span class="secondary-content">¥{{ row.total_sales|floatformat:2 }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="grey-text text-darken-1" style="margin-bottom: 12px;">
+            No referrer sales found for this date range.
+          </p>
+        {% endif %}
+        <a
+          href="{% url 'referrers_overview' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
+          class="filter-toolbar__link"
+        >
+          See all <span aria-hidden="true">→</span>
+        </a>
+      </div>
+
       <div class="card-panel sales-insights-card">
         <div class="sales-insights__header">
           <div>
