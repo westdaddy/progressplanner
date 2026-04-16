@@ -47,6 +47,12 @@
         >
           View sales by referrer <span aria-hidden="true">→</span>
         </a>
+        <a
+          href="{% url 'sales_assign_referrers' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
+          class="filter-toolbar__link"
+        >
+          Assign referrers <span aria-hidden="true">→</span>
+        </a>
         {% if referrers %}
           <div class="filter-toolbar__field referrer-detail-selector">
             <label for="referrerDetailSelect" class="active">Referrer detail</label>

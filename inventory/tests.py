@@ -978,6 +978,80 @@ class SalesViewTests(TestCase):
         self.assertIsNone(sale_one.referrer)
         self.assertIsNone(sale_two.referrer)
 
+    def test_assign_referrers_view_defaults_to_ten_to_fifty_discount(self):
+        self.product.retail_price = Decimal("100")
+        self.product.save(update_fields=["retail_price"])
+
+        Sale.objects.create(
+            order_number="IN-RANGE",
+            date=date(2024, 4, 5),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("80.00"),  # 20%
+        )
+        Sale.objects.create(
+            order_number="OUT-LOW",
+            date=date(2024, 4, 5),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("95.00"),  # 5%
+        )
+        Sale.objects.create(
+            order_number="OUT-HIGH",
+            date=date(2024, 4, 5),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("40.00"),  # 60%
+        )
+
+        response = self.client.get(
+            reverse("sales_assign_referrers"),
+            {"start_date": "2024-04-01", "end_date": "2024-04-30"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["min_discount"], 10)
+        self.assertEqual(response.context["max_discount"], 50)
+        self.assertEqual(response.context["orders_count"], 1)
+        self.assertEqual(response.context["orders"][0]["order_number"], "IN-RANGE")
+
+    def test_assign_referrer_discount_range_updates_all_sales(self):
+        referrer = Referrer.objects.create(name="Referrer A")
+        first_sale = Sale.objects.create(
+            order_number="ASSIGN-RANGE",
+            date=date(2024, 4, 5),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("90.00"),
+        )
+        second_sale = Sale.objects.create(
+            order_number="ASSIGN-RANGE",
+            date=date(2024, 4, 6),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("80.00"),
+        )
+
+        response = self.client.post(
+            reverse("assign_order_referrer_discount_range"),
+            {
+                "order_number": "ASSIGN-RANGE",
+                "referrer_id": str(referrer.id),
+                "date_querystring": "start_date=2024-04-01&end_date=2024-04-30&min_discount=10&max_discount=50",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response["Location"],
+            f"{reverse('sales_assign_referrers')}?start_date=2024-04-01&end_date=2024-04-30&min_discount=10&max_discount=50",
+        )
+
+        first_sale.refresh_from_db()
+        second_sale.refresh_from_db()
+        self.assertEqual(first_sale.referrer, referrer)
+        self.assertEqual(second_sale.referrer, referrer)
+
 
 class SalesBucketDetailViewTests(TestCase):
     def setUp(self):

@@ -23,6 +23,12 @@ urlpatterns = [
     path('sales/referrers/', views.sales_referrers, name='sales_referrers'),
     path('sales/referrers/overview/', views.referrers_overview, name='referrers_overview'),
     path('sales/referrers/<int:referrer_id>/', views.referrer_detail, name='referrer_detail'),
+    path('sales/assign-referrers/', views.sales_assign_referrers, name='sales_assign_referrers'),
+    path(
+        'sales/assign-referrers/assign/',
+        views.assign_order_referrer_discount_range,
+        name='assign_order_referrer_discount_range',
+    ),
     path('sales/price-group/<str:bucket_key>/', views.sales_bucket_detail, name='sales_bucket_detail'),
     path(
         'sales/price-group/<str:bucket_key>/assign-referrer/',
