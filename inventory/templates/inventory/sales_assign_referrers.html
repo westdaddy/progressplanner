@@ -123,8 +123,7 @@
     }
   </style>
   <div class="section">
-    
-    <h3>
+    <h3 class="page-title">
       Assign referrers
       <span class="grey-text small">
         | Discounted {{ min_discount }}%–{{ max_discount }}% from {{ start_date|date:"F j, Y" }} to {{ end_date|date:"F j, Y" }}
@@ -141,13 +140,12 @@
           <button type="submit" class="btn filter-apply-button waves-effect waves-light">Update</button>
         </div>
         <div class="filter-bar">
-          <div class="card-panel filter-card filter-card--compact">
+          <div class="card-panel filter-card filter-card--compact filter-card--date-range">
+            <p class="filter-card__title">Date Range</p>
             <div class="filter-toolbar__field">
               <label for="start_date" class="active">From</label>
               <input type="date" id="start_date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="browser-default" />
             </div>
-          </div>
-          <div class="card-panel filter-card filter-card--compact">
             <div class="filter-toolbar__field">
               <label for="end_date" class="active">To</label>
               <input type="date" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="browser-default" />
