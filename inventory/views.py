@@ -5514,6 +5514,11 @@ def sales_assign_referrers(request):
             )
 
     orders.sort(key=lambda order: (order["date"] or date.min, order["order_number"] or ""), reverse=True)
+    order_numbers_text = " ".join(
+        str(order["order_number"])
+        for order in orders
+        if order.get("order_number") is not None and str(order.get("order_number")).strip()
+    )
 
     date_querystring = urlencode(
         {
@@ -5543,6 +5548,7 @@ def sales_assign_referrers(request):
             ),
             "min_discount": min_discount,
             "max_discount": max_discount,
+            "order_numbers_text": order_numbers_text,
         },
     )
 

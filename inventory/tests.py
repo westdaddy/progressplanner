@@ -1113,6 +1113,65 @@ class SalesViewTests(TestCase):
         self.assertEqual(sale_one.referrer, no_referrer)
         self.assertEqual(sale_two.referrer, no_referrer)
 
+    def test_assign_referrers_view_provides_space_separated_order_number_list(self):
+        self.product.retail_price = Decimal("100")
+        self.product.save(update_fields=["retail_price"])
+        Sale.objects.create(
+            order_number="ORDER-A",
+            date=date(2024, 4, 10),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("80.00"),
+        )
+        Sale.objects.create(
+            order_number="ORDER-B",
+            date=date(2024, 4, 11),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("75.00"),
+        )
+
+        response = self.client.get(
+            reverse("sales_assign_referrers"),
+            {"start_date": "2024-04-01", "end_date": "2024-04-30"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["order_numbers_text"], "ORDER-B ORDER-A")
+
+    def test_ignore_button_hidden_when_order_has_referrer(self):
+        self.product.retail_price = Decimal("100")
+        self.product.save(update_fields=["retail_price"])
+        referrer = Referrer.objects.create(name="Coach")
+
+        Sale.objects.create(
+            order_number="ORDER-WITH-REF",
+            date=date(2024, 4, 10),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("80.00"),
+            referrer=referrer,
+        )
+        Sale.objects.create(
+            order_number="ORDER-NO-REF",
+            date=date(2024, 4, 11),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("80.00"),
+        )
+
+        response = self.client.get(
+            reverse("sales_assign_referrers"),
+            {"start_date": "2024-04-01", "end_date": "2024-04-30"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertEqual(
+            html.count('class="btn-flat red-text text-darken-2 ignore-order-button"'),
+            1,
+        )
+
 
 class SalesBucketDetailViewTests(TestCase):
     def setUp(self):

@@ -45,6 +45,10 @@
         <span class="page-summary__stat">Actual: ¥{{ summary_totals.actual_value|floatformat:2 }}</span>
       </div>
     </div>
+    <div class="card-panel">
+      <label for="orderNumbersText" class="active">Order numbers (copy list)</label>
+      <textarea id="orderNumbersText" readonly class="materialize-textarea">{{ order_numbers_text }}</textarea>
+    </div>
 
     {% if orders %}
       {% for order in orders %}
@@ -69,13 +73,15 @@
                     Assign referrer +
                   </a>
                 {% endif %}
-                <button
-                  type="button"
-                  class="btn-flat red-text text-darken-2 ignore-order-button"
-                  data-order-number="{{ order.order_number }}"
-                >
-                  Ignore
-                </button>
+                {% if not order.referrer %}
+                  <button
+                    type="button"
+                    class="btn-flat red-text text-darken-2 ignore-order-button"
+                    data-order-number="{{ order.order_number }}"
+                  >
+                    Ignore
+                  </button>
+                {% endif %}
               </div>
             </div>
           </div>
