@@ -68,20 +68,21 @@
 
     {% if has_sales_data %}
       <div class="col s12 m4">
-        <div class="card-panel">
-              <p id="netSales" class="sales-summary__net blue-text">
-                ¥{{ net_sales_value|floatformat:0 }}
-              </p>
-              <p class="sales-summary__metric grey-text text-darken-1">
-                ¥{{ gross_sales_value|floatformat:0 }} gross
-              </p>
-              <p class="sales-summary__metric red-text text-darken-4">
-                ¥{{ returns_total_value|floatformat:0 }} returns
-
-              </p>
-              <p class="sales-summary__metric grey-text text-darken-2">
-                {{ items_count }} items in {{ orders_count }} orders
-              </p>
+        <div class="card-panel" style="padding: 0; overflow: hidden;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto;">
+            <div class="green lighten-2 white-text center-align" style="padding: 35px;">
+              <span class="green-text text-darken-2" style="font-size: 1rem; font-weight: 300;">Gross Sales</span>
+              <h5 id="totalSales" class="green-text text-lighten-4" style="margin: 0; font-weight: 500;">¥{{ gross_sales_value|floatformat:0 }}</h5>
+            </div>
+            <div class="red lighten-2 white-text center-align" style="padding: 35px;">
+              <span class="red-text text-darken-2" style="font-size: 1rem; font-weight: 300;">Returns</span>
+              <h5 id="totalReturns" class="red-text text-lighten-4" style="margin: 0 0; font-weight: 500;">¥{{ returns_total_value|floatformat:0 }}</h5>
+            </div>
+            <div class="blue lighten-2 white-text center-align" style="padding: 30px 35px 40px; grid-column: 1 / span 2;">
+              <span class="blue-text text-darken-2" style="font-size: 1rem; font-weight: 300;">Net Sales</span>
+              <h5 id="netSales" style="margin: 0 0; font-weight: 500; font-size: 2rem;">¥{{ net_sales_value|floatformat:0 }}</h5>
+            </div>
+          </div>
         </div>
       </div>
 
