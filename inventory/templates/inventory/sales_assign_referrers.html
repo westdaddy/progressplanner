@@ -345,6 +345,48 @@
       var modalElems = document.querySelectorAll('.modal');
       M.Modal.init(modalElems);
 
+      var bindIgnoreButton = function(button) {
+        if (!button || button.dataset.ignoreBound === '1') {
+          return;
+        }
+        button.dataset.ignoreBound = '1';
+        button.addEventListener('click', function() {
+          var orderNumber = button.dataset.orderNumber || '';
+          if (!orderNumber || button.disabled) {
+            return;
+          }
+
+          button.disabled = true;
+          fetch("{% url 'ignore_order_referrer_discount_range' %}", {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+              'X-CSRFToken': getCookie('csrftoken'),
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: new URLSearchParams({ order_number: orderNumber }).toString(),
+          })
+            .then(function(response) {
+              if (!response.ok) {
+                throw new Error('Request failed');
+              }
+              return response.json();
+            })
+            .then(function(data) {
+              if (!data.ok) {
+                throw new Error(data.error || 'Unable to ignore order');
+              }
+              var orderBlock = button.closest('.order-block');
+              if (orderBlock) {
+                orderBlock.remove();
+              }
+            })
+            .catch(function() {
+              button.disabled = false;
+            });
+        });
+      };
+
       var chipGroups = document.querySelectorAll('.referrer-chip-group');
       chipGroups.forEach(function(group) {
         var chips = group.querySelectorAll('.referrer-chip');
@@ -374,6 +416,81 @@
               setActiveChip(chip);
             }
           });
+        });
+      });
+
+      var escapeHtml = function(value) {
+        var div = document.createElement('div');
+        div.textContent = value;
+        return div.innerHTML;
+      };
+
+      var assignForms = document.querySelectorAll('form[action="{% url "assign_order_referrer_discount_range" %}"]');
+      assignForms.forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+          event.preventDefault();
+          var formData = new FormData(form);
+          var submitButton = form.querySelector('button[type="submit"]');
+          if (submitButton) {
+            submitButton.disabled = true;
+          }
+
+          fetch(form.action, {
+            method: 'POST',
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: formData,
+          })
+            .then(function(response) {
+              if (!response.ok) {
+                throw new Error('Request failed');
+              }
+              return response.json();
+            })
+            .then(function(data) {
+              if (!data.ok) {
+                throw new Error(data.error || 'Unable to assign referrer');
+              }
+
+              var modalEl = form.closest('.modal');
+              var orderBlock = form.closest('.order-block');
+              if (orderBlock) {
+                var actionsContainer = orderBlock.querySelector('.order-topline__actions');
+                var modalTrigger = actionsContainer ? actionsContainer.querySelector('.modal-trigger') : null;
+                var modalHref = modalTrigger ? modalTrigger.getAttribute('href') : (modalEl ? '#' + modalEl.id : '#');
+                if (actionsContainer) {
+                  if (data.referrer_name) {
+                    actionsContainer.innerHTML =
+                      '<a href="' + escapeHtml(modalHref) + '" class="modal-trigger order-topline__action">Referrer: '
+                      + escapeHtml(data.referrer_name) + '</a>';
+                  } else {
+                    var orderNumber = orderBlock.dataset.orderNumber || '';
+                    actionsContainer.innerHTML =
+                      '<a href="' + escapeHtml(modalHref) + '" class="modal-trigger order-topline__action">Add Referrer</a>'
+                      + '<span class="order-topline__separator">|</span>'
+                      + '<button type="button" class="order-topline__action order-topline__action--no-referrer ignore-order-button" data-order-number="'
+                      + escapeHtml(orderNumber) + '">No Referrer</button>';
+                    bindIgnoreButton(actionsContainer.querySelector('.ignore-order-button'));
+                  }
+                }
+              }
+
+              if (modalEl) {
+                var modalInstance = M.Modal.getInstance(modalEl);
+                if (modalInstance) {
+                  modalInstance.close();
+                }
+              }
+            })
+            .catch(function() {
+              // keep modal open on failure
+            })
+            .finally(function() {
+              if (submitButton) {
+                submitButton.disabled = false;
+              }
+            });
         });
       });
 
@@ -425,41 +542,7 @@
 
       var ignoreButtons = document.querySelectorAll('.ignore-order-button');
       ignoreButtons.forEach(function(button) {
-        button.addEventListener('click', function() {
-          var orderNumber = button.dataset.orderNumber || '';
-          if (!orderNumber || button.disabled) {
-            return;
-          }
-
-          button.disabled = true;
-          fetch("{% url 'ignore_order_referrer_discount_range' %}", {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-              'X-CSRFToken': getCookie('csrftoken'),
-              'X-Requested-With': 'XMLHttpRequest',
-            },
-            body: new URLSearchParams({ order_number: orderNumber }).toString(),
-          })
-            .then(function(response) {
-              if (!response.ok) {
-                throw new Error('Request failed');
-              }
-              return response.json();
-            })
-            .then(function(data) {
-              if (!data.ok) {
-                throw new Error(data.error || 'Unable to ignore order');
-              }
-              var orderBlock = button.closest('.order-block');
-              if (orderBlock) {
-                orderBlock.remove();
-              }
-            })
-            .catch(function() {
-              button.disabled = false;
-            });
-        });
+        bindIgnoreButton(button);
       });
     });
   </script>

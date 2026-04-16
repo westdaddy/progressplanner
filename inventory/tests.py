@@ -1052,6 +1052,34 @@ class SalesViewTests(TestCase):
         self.assertEqual(first_sale.referrer, referrer)
         self.assertEqual(second_sale.referrer, referrer)
 
+    def test_assign_referrer_discount_range_ajax_returns_json(self):
+        referrer = Referrer.objects.create(name="Referrer Ajax")
+        sale = Sale.objects.create(
+            order_number="AJAX-ORDER",
+            date=date(2024, 4, 5),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("90.00"),
+        )
+
+        response = self.client.post(
+            reverse("assign_order_referrer_discount_range"),
+            {
+                "order_number": "AJAX-ORDER",
+                "referrer_id": str(referrer.id),
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["order_number"], "AJAX-ORDER")
+        self.assertEqual(payload["referrer_name"], "Referrer Ajax")
+
+        sale.refresh_from_db()
+        self.assertEqual(sale.referrer, referrer)
+
     def test_assign_referrers_view_excludes_orders_marked_no_referrer(self):
         self.product.retail_price = Decimal("100")
         self.product.save(update_fields=["retail_price"])
