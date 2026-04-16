@@ -4316,6 +4316,7 @@ def sales(request):
 
     top_referrers = list(
         sales_qs.filter(referrer__isnull=False)
+        .exclude(referrer__name__iexact="no_referrer")
         .values("referrer_id", "referrer__name")
         .annotate(
             total_sales=Coalesce(
@@ -4735,7 +4736,9 @@ def referrers_overview(request):
 
     start_date, end_date = _get_sales_date_range(request)
 
-    referrers = list(Referrer.objects.order_by("name"))
+    referrers = list(
+        Referrer.objects.exclude(name__iexact="no_referrer").order_by("name")
+    )
 
     net_sales_expression = ExpressionWrapper(
         Coalesce("sold_value", Value(Decimal("0")))
