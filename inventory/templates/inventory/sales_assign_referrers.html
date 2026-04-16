@@ -1,0 +1,466 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}Assign Referrers{% endblock %}
+
+{% block content %}
+  <style>
+    .discount-range-slider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 340px;
+    }
+
+    .discount-range-track-wrap {
+      position: relative;
+      width: 320px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+    }
+
+    .discount-range-track-bg,
+    .discount-range-track-fill {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 4px;
+      border-radius: 999px;
+      pointer-events: none;
+    }
+
+    .discount-range-track-bg {
+      background: #cfcfd4;
+    }
+
+    .discount-range-track-fill {
+      background: #26a69a;
+    }
+
+    .discount-range-track-wrap input[type="range"] {
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 100%;
+      margin: 0;
+      background: transparent;
+      pointer-events: none;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .discount-range-track-wrap input[type="range"]::-webkit-slider-thumb {
+      pointer-events: auto;
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #26a69a;
+      border: 0;
+      cursor: pointer;
+    }
+
+    .discount-range-track-wrap input[type="range"]::-moz-range-thumb {
+      pointer-events: auto;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #26a69a;
+      border: 0;
+      cursor: pointer;
+    }
+
+    .discount-range-track-wrap input[type="range"]::-webkit-slider-runnable-track {
+      background: transparent;
+    }
+
+    .discount-range-track-wrap input[type="range"]::-moz-range-track {
+      background: transparent;
+    }
+
+    .discount-range-values {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 4px;
+      font-size: 0.85rem;
+      color: #616161;
+    }
+
+    .order-topline {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .order-topline__actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: inherit;
+    }
+
+    .order-topline__action {
+      color: #00897b;
+      text-transform: none;
+      font-size: inherit;
+      font-weight: inherit;
+      background: none;
+      border: 0;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1.2;
+    }
+
+    .order-topline__action--no-referrer {
+      color: #e53935;
+    }
+
+    .order-topline__separator {
+      color: #9e9e9e;
+    }
+  </style>
+  <div class="section">
+    <h3>
+      Assign referrers
+      <span class="grey-text small">
+        | Discounted {{ min_discount }}%–{{ max_discount }}% from {{ start_date|date:"F j, Y" }} to {{ end_date|date:"F j, Y" }}
+      </span>
+    </h3>
+
+    <div class="card-panel filter-toolbar">
+      <form method="get" novalidate class="filter-toolbar__form">
+        <div class="filter-toolbar__field">
+          <label for="start_date" class="active">From</label>
+          <input type="date" id="start_date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="browser-default" />
+        </div>
+        <div class="filter-toolbar__field">
+          <label for="end_date" class="active">To</label>
+          <input type="date" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="browser-default" />
+        </div>
+        <div class="filter-toolbar__field" style="min-width: 280px;">
+          <label class="active">Discount range: <strong id="discountRangeLabel">{{ min_discount }}%–{{ max_discount }}%</strong></label>
+          <div class="discount-range-slider">
+            <span>0%</span>
+            <div>
+              <div class="discount-range-track-wrap">
+                <div class="discount-range-track-bg"></div>
+                <div class="discount-range-track-fill" id="discountRangeFill"></div>
+                <input type="range" id="min_discount" name="min_discount" min="0" max="100" value="{{ min_discount }}" />
+                <input type="range" id="max_discount" name="max_discount" min="0" max="100" value="{{ max_discount }}" />
+              </div>
+              <div class="discount-range-values">
+                <span id="discountMinValue">{{ min_discount }}%</span>
+                <span id="discountMaxValue">{{ max_discount }}%</span>
+              </div>
+            </div>
+            <span>100%</span>
+          </div>
+        </div>
+        <div class="filter-toolbar__actions">
+          <button type="submit" class="btn-tiny waves-effect waves-light">Update</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card-panel grey lighten-4 page-summary">
+      <div class="page-summary__primary">
+        <a href="{% url 'sales' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}" class="page-summary__back-link">
+          ← Back to sales overview
+        </a>
+      </div>
+      <div class="page-summary__stats">
+        <span class="page-summary__stat"><strong>{{ orders_count }}</strong> order{{ orders_count|pluralize }}</span>
+        <span class="page-summary__stat"><strong>{{ summary_totals.items_count }}</strong> item{{ summary_totals.items_count|pluralize }}</span>
+        <span class="page-summary__stat">Retail: ¥{{ summary_totals.retail_value|floatformat:2 }}</span>
+        <span class="page-summary__stat">Actual: ¥{{ summary_totals.actual_value|floatformat:2 }}</span>
+      </div>
+    </div>
+    <div class="card-panel">
+      <label for="orderNumbersText" class="active">Order numbers (copy list)</label>
+      <textarea id="orderNumbersText" readonly class="materialize-textarea">{{ order_numbers_text }}</textarea>
+    </div>
+
+    {% if orders %}
+      {% for order in orders %}
+        <div class="order-block" data-order-number="{{ order.order_number }}">
+          <div class="order-topline">
+            <span>#{{ order.order_number }} · {{ order.date|date:"F j, Y" }}</span>
+            <span class="order-topline__actions">
+              {% if order.referrer %}
+                <a href="#referrer-modal-{{ forloop.counter }}" class="modal-trigger order-topline__action">
+                  Referrer: {{ order.referrer.name }}
+                </a>
+              {% else %}
+                <a href="#referrer-modal-{{ forloop.counter }}" class="modal-trigger order-topline__action">
+                  Add Referrer
+                </a>
+                <span class="order-topline__separator">|</span>
+                <button
+                  type="button"
+                  class="order-topline__action order-topline__action--no-referrer ignore-order-button"
+                  data-order-number="{{ order.order_number }}"
+                >
+                  No Referrer
+                </button>
+              {% endif %}
+            </span>
+          </div>
+
+          <table class="highlight order-items-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th></th>
+                <th>Original price</th>
+                <th>Actual price</th>
+                <th>Total paid</th>
+                <th>Refunded</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in order.items %}
+                <tr class="{% if not item.is_filtered_item %}grey-text text-lighten-1{% endif %}">
+                  <td>
+                    <div class="order-item-product">
+                      {% if item.sale.variant.product.product_photo %}
+                        <img src="{{ item.sale.variant.product.product_photo.url }}" alt="{{ item.sale.variant.product.product_name }}" />
+                      {% else %}
+                        <div class="order-item-placeholder">No photo</div>
+                      {% endif %}
+                      <div>
+                        <div class="variant-code">
+                          {{ item.sale.variant.variant_code }}
+                          <a
+                            href="{% url 'admin:inventory_sale_change' item.sale.pk %}"
+                            class="variant-edit-link"
+                            target="_blank"
+                            rel="noopener"
+                            title="Edit sale in admin"
+                            aria-label="Edit sale {{ item.sale.sale_id }} in admin"
+                          >
+                            <i class="material-icons tiny">edit</i>
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>x{{ item.sold_quantity }}</td>
+                  <td>¥{{ item.retail_price|floatformat:2 }}</td>
+                  <td>
+                    <div class="price-with-discount">
+                      <span class="actual-price">¥{{ item.actual_unit_price|floatformat:2 }}</span>
+                      {% if item.discount_percentage is not None %}
+                        <span class="discount-percentage grey-text text-darken-1">
+                          -{{ item.discount_percentage|floatformat:-1 }}%
+                        </span>
+                      {% endif %}
+                    </div>
+                  </td>
+                  <td>¥{{ item.actual_total|floatformat:2 }}</td>
+                  <td>
+                    {% if item.return_value %}
+                      <span class="red-text text-darken-2">¥{{ item.return_value|floatformat:2 }} (x{{ item.return_quantity }})</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if item.returned %}
+                      <span class="chip return-chip red lighten-5 red-text text-darken-2">Returned</span>
+                    {% else %}
+                      &mdash;
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+              <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td><strong>TOTAL</strong></td>
+                <td><span class="order-total">¥{{ order.total_value|floatformat:2 }}</span></td>
+                <td>
+                  {% if order.returns_value %}
+                    <span class="order-returns red-text text-darken-1">-¥{{ order.returns_value|floatformat:2 }}</span>
+                  {% endif %}
+                </td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div id="referrer-modal-{{ forloop.counter }}" class="modal">
+            <form method="post" action="{% url 'assign_order_referrer_discount_range' %}">
+              {% csrf_token %}
+              <input type="hidden" name="order_number" value="{{ order.order_number }}" />
+              {% if date_querystring %}
+                <input type="hidden" name="date_querystring" value="{{ date_querystring }}" />
+              {% endif %}
+              <div class="modal-content">
+                <h4>Assign referrer</h4>
+                <input type="hidden" name="referrer_id" value="{% if order.referrer %}{{ order.referrer.id }}{% endif %}" />
+                <div class="referrer-chip-group">
+                  <div class="chip referrer-chip {% if not order.referrer %}selected{% endif %}" data-referrer-id="" tabindex="0">
+                    No referrer
+                  </div>
+                  {% for referrer in referrers %}
+                    <div class="chip referrer-chip {% if order.referrer and order.referrer.id == referrer.id %}selected{% endif %}" data-referrer-id="{{ referrer.id }}" tabindex="0">
+                      {{ referrer.name }}
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="submit" class="btn waves-effect waves-light">Save</button>
+                <a href="#!" class="modal-close btn-flat">Cancel</a>
+              </div>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="grey-text text-darken-1 no-data-message">
+        No orders matched this discount range for the selected date range.
+      </p>
+    {% endif %}
+  </div>
+{% endblock %}
+
+{% block extrajs %}
+  {{ block.super }}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var getCookie = function(name) {
+        var value = '; ' + document.cookie;
+        var parts = value.split('; ' + name + '=');
+        if (parts.length === 2) {
+          return parts.pop().split(';').shift();
+        }
+        return '';
+      };
+
+      var modalElems = document.querySelectorAll('.modal');
+      M.Modal.init(modalElems);
+
+      var chipGroups = document.querySelectorAll('.referrer-chip-group');
+      chipGroups.forEach(function(group) {
+        var chips = group.querySelectorAll('.referrer-chip');
+        var form = group.closest('form');
+        if (!chips.length || !form) {
+          return;
+        }
+
+        var hiddenInput = form.querySelector('input[name="referrer_id"]');
+        var setActiveChip = function(targetChip) {
+          chips.forEach(function(chip) {
+            chip.classList.remove('selected');
+          });
+          targetChip.classList.add('selected');
+          if (hiddenInput) {
+            hiddenInput.value = targetChip.dataset.referrerId || '';
+          }
+        };
+
+        chips.forEach(function(chip) {
+          chip.addEventListener('click', function() {
+            setActiveChip(chip);
+          });
+          chip.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              setActiveChip(chip);
+            }
+          });
+        });
+      });
+
+      var minInput = document.getElementById('min_discount');
+      var maxInput = document.getElementById('max_discount');
+      var label = document.getElementById('discountRangeLabel');
+      var minValueLabel = document.getElementById('discountMinValue');
+      var maxValueLabel = document.getElementById('discountMaxValue');
+      var rangeFill = document.getElementById('discountRangeFill');
+
+      var updateLabel = function(changedInput) {
+        if (!minInput || !maxInput || !label) {
+          return;
+        }
+
+        var minVal = parseInt(minInput.value || '0', 10);
+        var maxVal = parseInt(maxInput.value || '0', 10);
+        if (minVal > maxVal) {
+          if (changedInput === minInput) {
+            minVal = maxVal;
+            minInput.value = String(minVal);
+          } else {
+            maxVal = minVal;
+            maxInput.value = String(maxVal);
+          }
+        }
+        label.textContent = minVal + '%–' + maxVal + '%';
+        if (minValueLabel) {
+          minValueLabel.textContent = minVal + '%';
+        }
+        if (maxValueLabel) {
+          maxValueLabel.textContent = maxVal + '%';
+        }
+        if (rangeFill) {
+          rangeFill.style.left = minVal + '%';
+          rangeFill.style.right = (100 - maxVal) + '%';
+        }
+      };
+
+      if (minInput && maxInput) {
+        minInput.addEventListener('input', function() {
+          updateLabel(minInput);
+        });
+        maxInput.addEventListener('input', function() {
+          updateLabel(maxInput);
+        });
+      }
+      updateLabel();
+
+      var ignoreButtons = document.querySelectorAll('.ignore-order-button');
+      ignoreButtons.forEach(function(button) {
+        button.addEventListener('click', function() {
+          var orderNumber = button.dataset.orderNumber || '';
+          if (!orderNumber || button.disabled) {
+            return;
+          }
+
+          button.disabled = true;
+          fetch("{% url 'ignore_order_referrer_discount_range' %}", {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+              'X-CSRFToken': getCookie('csrftoken'),
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: new URLSearchParams({ order_number: orderNumber }).toString(),
+          })
+            .then(function(response) {
+              if (!response.ok) {
+                throw new Error('Request failed');
+              }
+              return response.json();
+            })
+            .then(function(data) {
+              if (!data.ok) {
+                throw new Error(data.error || 'Unable to ignore order');
+              }
+              var orderBlock = button.closest('.order-block');
+              if (orderBlock) {
+                orderBlock.remove();
+              }
+            })
+            .catch(function() {
+              button.disabled = false;
+            });
+        });
+      });
+    });
+  </script>
+{% endblock %}
