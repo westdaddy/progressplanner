@@ -4,7 +4,7 @@
 
 {% block content %}
   <div class="section">
-    <h3>Sales</h3>
+    <h3 class="page-title">Sales</h3>
 
     <div class="filter-divider"></div>
     <div class="card-panel filter-toolbar">
@@ -18,7 +18,8 @@
           </button>
         </div>
         <div class="filter-bar">
-          <div class="card-panel filter-card filter-card--compact">
+          <div class="card-panel filter-card filter-card--compact filter-card--date-range">
+            <p class="filter-card__title">Date Range</p>
             <div class="filter-toolbar__field">
               <label for="start_date" class="active">From</label>
               <input
@@ -29,8 +30,6 @@
                 class="browser-default"
               />
             </div>
-          </div>
-          <div class="card-panel filter-card filter-card--compact">
             <div class="filter-toolbar__field">
               <label for="end_date" class="active">To</label>
               <input
@@ -42,13 +41,11 @@
               />
             </div>
           </div>
-        </div>
-      </form>
-      <div class="filter-bar" style="margin-bottom: 0;">
-        <div class="card-panel filter-card filter-card--compact">
-          <div class="filter-toolbar__aside">
-            <a
-              href="{% url 'sales_referrers' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
+          <div class="card-panel filter-card filter-card--compact">
+            <p class="filter-card__title">Referrer Tools</p>
+            <div class="filter-toolbar__aside">
+              <a
+                href="{% url 'sales_referrers' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
               class="filter-toolbar__link"
             >
               View sales by referrer <span aria-hidden="true">→</span>
@@ -59,9 +56,10 @@
             >
               Assign referrers <span aria-hidden="true">→</span>
             </a>
+            </div>
           </div>
         </div>
-      </div>
+      </form>
     </div>
 
     <div class="row">
