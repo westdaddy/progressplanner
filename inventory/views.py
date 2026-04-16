@@ -284,6 +284,36 @@ def _determine_price_bucket(sale) -> Optional[str]:
     return "wholesale"
 
 
+def _calculate_sale_discount_percentage(sale) -> Optional[Decimal]:
+    sold_quantity = sale.sold_quantity or 0
+    if sold_quantity <= 0:
+        return None
+
+    retail_price = sale.variant.product.retail_price or Decimal("0")
+    if retail_price <= 0:
+        return None
+
+    actual_total = sale.sold_value or Decimal("0")
+    if not actual_total:
+        refund_value = sale.return_value or Decimal("0")
+        if refund_value:
+            actual_total = abs(refund_value)
+
+    actual_unit_price = actual_total / sold_quantity
+    discount_percentage = ((retail_price - actual_unit_price) / retail_price) * Decimal(
+        "100"
+    )
+    return discount_percentage.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def _parse_discount_percent(param: Optional[str], default: int) -> int:
+    try:
+        value = int(param) if param is not None else default
+    except (TypeError, ValueError):
+        value = default
+    return min(100, max(0, value))
+
+
 # — Helper to bucket types into our four categories —
 def _simplify_type(type_code):
     tc = (type_code or "").lower()
@@ -4977,14 +5007,7 @@ def referrer_detail(request, referrer_id: int):
                     actual_total / sold_quantity if sold_quantity else Decimal("0")
                 )
 
-                discount_percentage = None
-                if retail_price > 0 and sold_quantity > 0:
-                    discount_percentage = (
-                        (retail_price - actual_unit_price) / retail_price
-                    ) * Decimal("100")
-                    discount_percentage = discount_percentage.quantize(
-                        Decimal("0.01"), rounding=ROUND_HALF_UP
-                    )
+                discount_percentage = _calculate_sale_discount_percentage(sale)
 
                 order_total += actual_total
                 returns_total += return_value
@@ -5325,6 +5348,266 @@ def assign_order_referrer(request, bucket_key: str):
         redirect_url = f"{redirect_url}?{date_querystring}"
 
     return redirect(redirect_url)
+
+
+def sales_assign_referrers(request):
+    start_date, end_date = _get_sales_date_range(request)
+    min_discount = _parse_discount_percent(request.GET.get("min_discount"), default=10)
+    max_discount = _parse_discount_percent(request.GET.get("max_discount"), default=50)
+    if min_discount > max_discount:
+        min_discount, max_discount = max_discount, min_discount
+
+    sales_qs = Sale.objects.filter(date__range=(start_date, end_date))
+
+    ignored_order_numbers = set(
+        sales_qs.filter(referrer__name__iexact="no_referrer").values_list(
+            "order_number", flat=True
+        )
+    )
+
+    eligible_sales = (
+        sales_qs.filter(Q(return_quantity__isnull=True) | Q(return_quantity=0))
+        .filter(sold_quantity__gt=0)
+        .select_related("variant__product", "referrer")
+    )
+
+    filtered_sales = []
+    filtered_sale_ids = set()
+    orders_meta = {}
+    total_items = 0
+    total_retail_value = Decimal("0")
+    total_actual_value = Decimal("0")
+
+    min_discount_decimal = Decimal(str(min_discount))
+    max_discount_decimal = Decimal(str(max_discount))
+
+    for sale in eligible_sales:
+        if sale.order_number in ignored_order_numbers:
+            continue
+
+        discount_percentage = _calculate_sale_discount_percentage(sale)
+        if discount_percentage is None:
+            continue
+        if discount_percentage < min_discount_decimal or discount_percentage > max_discount_decimal:
+            continue
+
+        filtered_sales.append(sale)
+        filtered_sale_ids.add(sale.pk)
+
+        order_info = orders_meta.get(sale.order_number)
+        if not order_info:
+            order_info = {
+                "order_number": sale.order_number,
+                "date": sale.date,
+                "referrer": sale.referrer,
+            }
+            orders_meta[sale.order_number] = order_info
+        else:
+            if sale.date and (not order_info["date"] or sale.date > order_info["date"]):
+                order_info["date"] = sale.date
+            if not order_info.get("referrer") and sale.referrer:
+                order_info["referrer"] = sale.referrer
+
+        retail_price = sale.variant.product.retail_price or Decimal("0")
+        sold_quantity = sale.sold_quantity or 0
+        actual_total = sale.sold_value or Decimal("0")
+
+        total_items += sold_quantity
+        total_retail_value += retail_price * sold_quantity
+        total_actual_value += actual_total
+
+    orders = []
+
+    if orders_meta:
+        order_numbers = [number for number in orders_meta.keys() if number is not None]
+        include_null_orders = any(number is None for number in orders_meta.keys())
+
+        filters = []
+        if order_numbers:
+            filters.append(Q(order_number__in=order_numbers))
+        if include_null_orders:
+            filters.append(Q(order_number__isnull=True))
+
+        all_order_sales = []
+        if filters:
+            order_filter = filters[0]
+            for clause in filters[1:]:
+                order_filter |= clause
+            all_order_sales = list(sales_qs.filter(order_filter).select_related("variant__product", "referrer"))
+
+        sales_by_order = defaultdict(list)
+        for sale in all_order_sales:
+            sales_by_order[sale.order_number].append(sale)
+
+        filtered_sales_by_order = defaultdict(list)
+        for sale in filtered_sales:
+            filtered_sales_by_order[sale.order_number].append(sale)
+
+        def sale_sort_key(sale_obj):
+            return (sale_obj.date or date.min, sale_obj.sale_id or "", sale_obj.pk or 0)
+
+        for order_number, meta in orders_meta.items():
+            order_sales = list(sales_by_order.get(order_number, []))
+            if not order_sales:
+                order_sales = list(filtered_sales_by_order.get(order_number, []))
+            if not order_sales:
+                continue
+
+            order_sales.sort(key=sale_sort_key, reverse=True)
+
+            order_total = Decimal("0")
+            returns_total = Decimal("0")
+            retail_total = Decimal("0")
+            latest_date = meta["date"]
+            referrer = meta.get("referrer")
+            items = []
+
+            for sale in order_sales:
+                if sale.date and latest_date:
+                    if sale.date > latest_date:
+                        latest_date = sale.date
+                elif sale.date and not latest_date:
+                    latest_date = sale.date
+
+                if not referrer and sale.referrer:
+                    referrer = sale.referrer
+
+                retail_price = sale.variant.product.retail_price or Decimal("0")
+                sold_quantity = sale.sold_quantity or 0
+                actual_total = sale.sold_value or Decimal("0")
+                return_value = sale.return_value or Decimal("0")
+                return_quantity = sale.return_quantity or 0
+
+                actual_unit_price = (
+                    actual_total / sold_quantity if sold_quantity else Decimal("0")
+                )
+
+                order_total += actual_total
+                returns_total += return_value
+                retail_total += retail_price * sold_quantity
+
+                items.append(
+                    {
+                        "sale": sale,
+                        "retail_price": retail_price,
+                        "actual_unit_price": actual_unit_price,
+                        "actual_total": actual_total,
+                        "sold_quantity": sold_quantity,
+                        "returned": bool(return_quantity) or bool(return_value),
+                        "return_quantity": return_quantity,
+                        "return_value": return_value,
+                        "is_filtered_item": sale.pk in filtered_sale_ids,
+                        "discount_percentage": _calculate_sale_discount_percentage(sale),
+                    }
+                )
+
+            orders.append(
+                {
+                    "order_number": order_number,
+                    "date": latest_date,
+                    "total_value": order_total,
+                    "returns_value": returns_total,
+                    "retail_total": retail_total,
+                    "referrer": referrer,
+                    "items": items,
+                }
+            )
+
+    orders.sort(key=lambda order: (order["date"] or date.min, order["order_number"] or ""), reverse=True)
+    order_numbers_text = " ".join(
+        str(order["order_number"])
+        for order in orders
+        if order.get("order_number") is not None and str(order.get("order_number")).strip()
+    )
+
+    date_querystring = urlencode(
+        {
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "min_discount": min_discount,
+            "max_discount": max_discount,
+        }
+    )
+
+    return render(
+        request,
+        "inventory/sales_assign_referrers.html",
+        {
+            "start_date": start_date,
+            "end_date": end_date,
+            "orders": orders,
+            "orders_count": len(orders),
+            "summary_totals": {
+                "items_count": total_items,
+                "retail_value": total_retail_value,
+                "actual_value": total_actual_value,
+            },
+            "date_querystring": date_querystring,
+            "referrers": Referrer.objects.exclude(name__iexact="no_referrer").order_by(
+                "name"
+            ),
+            "min_discount": min_discount,
+            "max_discount": max_discount,
+            "order_numbers_text": order_numbers_text,
+        },
+    )
+
+
+@require_POST
+def assign_order_referrer_discount_range(request):
+    order_number = (request.POST.get("order_number") or "").strip()
+    if not order_number:
+        raise Http404("Missing order number")
+
+    sales_qs = Sale.objects.filter(order_number=order_number)
+    if not sales_qs.exists():
+        raise Http404("Order not found")
+
+    referrer_id = request.POST.get("referrer_id")
+    referrer = None
+    if referrer_id:
+        referrer = get_object_or_404(Referrer, pk=referrer_id)
+
+    sales_qs.update(referrer=referrer)
+
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    if is_ajax:
+        return JsonResponse(
+            {
+                "ok": True,
+                "order_number": order_number,
+                "referrer_id": referrer.id if referrer else None,
+                "referrer_name": referrer.name if referrer else "",
+            }
+        )
+
+    redirect_url = reverse("sales_assign_referrers")
+    date_querystring = request.POST.get("date_querystring")
+    if date_querystring:
+        redirect_url = f"{redirect_url}?{date_querystring}"
+
+    return redirect(redirect_url)
+
+
+@require_POST
+def ignore_order_referrer_discount_range(request):
+    order_number = (request.POST.get("order_number") or "").strip()
+    if not order_number:
+        return JsonResponse({"ok": False, "error": "Missing order number"}, status=400)
+
+    sales_qs = Sale.objects.filter(order_number=order_number)
+    if not sales_qs.exists():
+        return JsonResponse({"ok": False, "error": "Order not found"}, status=404)
+
+    no_referrer = Referrer.objects.filter(name__iexact="no_referrer").first()
+    if not no_referrer:
+        return JsonResponse(
+            {"ok": False, "error": "Referrer 'no_referrer' not found"},
+            status=400,
+        )
+
+    sales_qs.update(referrer=no_referrer)
+    return JsonResponse({"ok": True, "order_number": order_number})
 
 
 # a small helper to keep (date, change) pairs
