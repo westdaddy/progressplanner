@@ -5570,6 +5570,17 @@ def assign_order_referrer_discount_range(request):
 
     sales_qs.update(referrer=referrer)
 
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    if is_ajax:
+        return JsonResponse(
+            {
+                "ok": True,
+                "order_number": order_number,
+                "referrer_id": referrer.id if referrer else None,
+                "referrer_name": referrer.name if referrer else "",
+            }
+        )
+
     redirect_url = reverse("sales_assign_referrers")
     date_querystring = request.POST.get("date_querystring")
     if date_querystring:
