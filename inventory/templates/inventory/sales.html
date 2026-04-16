@@ -6,47 +6,61 @@
   <div class="section">
     <h3>Sales</h3>
 
+    <div class="filter-divider"></div>
     <div class="card-panel filter-toolbar">
       <form method="get" novalidate class="filter-toolbar__form">
-        <div class="filter-toolbar__field">
-          <label for="start_date" class="active">From</label>
-          <input
-            type="date"
-            id="start_date"
-            name="start_date"
-            value="{{ start_date|date:'Y-m-d' }}"
-            class="browser-default"
-          />
-        </div>
-        <div class="filter-toolbar__field">
-          <label for="end_date" class="active">To</label>
-          <input
-            type="date"
-            id="end_date"
-            name="end_date"
-            value="{{ end_date|date:'Y-m-d' }}"
-            class="browser-default"
-          />
-        </div>
-        <div class="filter-toolbar__actions">
-          <button type="submit" class="btn-tiny waves-effect waves-light">
+        <div class="filter-section-header">
+          <p class="filter-showing">
+            Showing: {{ start_date|date:"M j, Y" }} to {{ end_date|date:"M j, Y" }}
+          </p>
+          <button type="submit" class="btn filter-apply-button waves-effect waves-light">
             Update
           </button>
         </div>
+        <div class="filter-bar">
+          <div class="card-panel filter-card filter-card--compact">
+            <div class="filter-toolbar__field">
+              <label for="start_date" class="active">From</label>
+              <input
+                type="date"
+                id="start_date"
+                name="start_date"
+                value="{{ start_date|date:'Y-m-d' }}"
+                class="browser-default"
+              />
+            </div>
+          </div>
+          <div class="card-panel filter-card filter-card--compact">
+            <div class="filter-toolbar__field">
+              <label for="end_date" class="active">To</label>
+              <input
+                type="date"
+                id="end_date"
+                name="end_date"
+                value="{{ end_date|date:'Y-m-d' }}"
+                class="browser-default"
+              />
+            </div>
+          </div>
+        </div>
       </form>
-      <div class="filter-toolbar__aside">
-        <a
-          href="{% url 'sales_referrers' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
-          class="filter-toolbar__link"
-        >
-          View sales by referrer <span aria-hidden="true">→</span>
-        </a>
-        <a
-          href="{% url 'sales_assign_referrers' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
-          class="filter-toolbar__link"
-        >
-          Assign referrers <span aria-hidden="true">→</span>
-        </a>
+      <div class="filter-bar" style="margin-bottom: 0;">
+        <div class="card-panel filter-card filter-card--compact">
+          <div class="filter-toolbar__aside">
+            <a
+              href="{% url 'sales_referrers' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
+              class="filter-toolbar__link"
+            >
+              View sales by referrer <span aria-hidden="true">→</span>
+            </a>
+            <a
+              href="{% url 'sales_assign_referrers' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
+              class="filter-toolbar__link"
+            >
+              Assign referrers <span aria-hidden="true">→</span>
+            </a>
+          </div>
+        </div>
       </div>
     </div>
 

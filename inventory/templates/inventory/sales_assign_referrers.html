@@ -130,37 +130,49 @@
       </span>
     </h3>
 
+    <div class="filter-divider"></div>
     <div class="card-panel filter-toolbar">
       <form method="get" novalidate class="filter-toolbar__form">
-        <div class="filter-toolbar__field">
-          <label for="start_date" class="active">From</label>
-          <input type="date" id="start_date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="browser-default" />
+        <div class="filter-section-header">
+          <p class="filter-showing">
+            Showing: {{ start_date|date:"M j, Y" }} to {{ end_date|date:"M j, Y" }} · {{ min_discount }}%–{{ max_discount }}%
+          </p>
+          <button type="submit" class="btn filter-apply-button waves-effect waves-light">Update</button>
         </div>
-        <div class="filter-toolbar__field">
-          <label for="end_date" class="active">To</label>
-          <input type="date" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="browser-default" />
-        </div>
-        <div class="filter-toolbar__field" style="min-width: 280px;">
-          <label class="active">Discount range: <strong id="discountRangeLabel">{{ min_discount }}%–{{ max_discount }}%</strong></label>
-          <div class="discount-range-slider">
-            <span>0%</span>
-            <div>
-              <div class="discount-range-track-wrap">
-                <div class="discount-range-track-bg"></div>
-                <div class="discount-range-track-fill" id="discountRangeFill"></div>
-                <input type="range" id="min_discount" name="min_discount" min="0" max="100" value="{{ min_discount }}" />
-                <input type="range" id="max_discount" name="max_discount" min="0" max="100" value="{{ max_discount }}" />
-              </div>
-              <div class="discount-range-values">
-                <span id="discountMinValue">{{ min_discount }}%</span>
-                <span id="discountMaxValue">{{ max_discount }}%</span>
+        <div class="filter-bar">
+          <div class="card-panel filter-card filter-card--compact">
+            <div class="filter-toolbar__field">
+              <label for="start_date" class="active">From</label>
+              <input type="date" id="start_date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="browser-default" />
+            </div>
+          </div>
+          <div class="card-panel filter-card filter-card--compact">
+            <div class="filter-toolbar__field">
+              <label for="end_date" class="active">To</label>
+              <input type="date" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="browser-default" />
+            </div>
+          </div>
+          <div class="card-panel filter-card filter-card--compact" style="min-width: 280px;">
+            <div class="filter-toolbar__field">
+              <label class="active">Discount range: <strong id="discountRangeLabel">{{ min_discount }}%–{{ max_discount }}%</strong></label>
+              <div class="discount-range-slider">
+                <span>0%</span>
+                <div>
+                  <div class="discount-range-track-wrap">
+                    <div class="discount-range-track-bg"></div>
+                    <div class="discount-range-track-fill" id="discountRangeFill"></div>
+                    <input type="range" id="min_discount" name="min_discount" min="0" max="100" value="{{ min_discount }}" />
+                    <input type="range" id="max_discount" name="max_discount" min="0" max="100" value="{{ max_discount }}" />
+                  </div>
+                  <div class="discount-range-values">
+                    <span id="discountMinValue">{{ min_discount }}%</span>
+                    <span id="discountMaxValue">{{ max_discount }}%</span>
+                  </div>
+                </div>
+                <span>100%</span>
               </div>
             </div>
-            <span>100%</span>
           </div>
-        </div>
-        <div class="filter-toolbar__actions">
-          <button type="submit" class="btn-tiny waves-effect waves-light">Update</button>
         </div>
       </form>
     </div>
