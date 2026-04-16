@@ -13,8 +13,8 @@
           <p class="filter-showing">
             Showing: {{ start_date|date:"M j, Y" }} to {{ end_date|date:"M j, Y" }}
           </p>
-          <button type="submit" class="btn filter-apply-button waves-effect waves-light">
-            Update
+          <button type="submit" class="btn filter-apply-button">
+            Apply
           </button>
         </div>
         <div class="filter-bar">
@@ -44,18 +44,20 @@
           <div class="card-panel filter-card filter-card--compact">
             <p class="filter-card__title">Referrer Tools</p>
             <div class="filter-toolbar__aside">
-              <a
+              <ul>
+                <li><a
                 href="{% url 'sales_referrers' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
               class="filter-toolbar__link"
             >
-              View sales by referrer <span aria-hidden="true">→</span>
-            </a>
-            <a
+              View sales by referrer
+            </a></li>
+              <li><a
               href="{% url 'sales_assign_referrers' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
               class="filter-toolbar__link"
             >
-              Assign referrers <span aria-hidden="true">→</span>
-            </a>
+              Assign referrers
+            </a></li>
+            </ul>
             </div>
           </div>
         </div>

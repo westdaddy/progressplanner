@@ -123,6 +123,7 @@
     }
   </style>
   <div class="section">
+
     <h3 class="page-title">
       Assign referrers
       <span class="grey-text small">
@@ -131,16 +132,21 @@
     </h3>
 
     <div class="filter-divider"></div>
+
     <div class="card-panel filter-toolbar">
+
       <form method="get" novalidate class="filter-toolbar__form">
+
         <div class="filter-section-header">
           <p class="filter-showing">
             Showing: {{ start_date|date:"M j, Y" }} to {{ end_date|date:"M j, Y" }} · {{ min_discount }}%–{{ max_discount }}%
           </p>
-          <button type="submit" class="btn filter-apply-button waves-effect waves-light">Update</button>
+          <button type="submit" class="btn filter-apply-button">Apply</button>
         </div>
+
         <div class="filter-bar">
           <div class="card-panel filter-card filter-card--compact filter-card--date-range">
+
             <p class="filter-card__title">Date Range</p>
             <div class="filter-toolbar__field">
               <label for="start_date" class="active">From</label>
