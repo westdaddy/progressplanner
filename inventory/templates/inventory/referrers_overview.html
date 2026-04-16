@@ -4,48 +4,31 @@
 
 {% block content %}
   <div class="section">
-    <h3 class="page-title">
-      Referrers overview
-      <span class="grey-text small">
-        | Data from {{ start_date|date:"F j, Y" }} to {{ end_date|date:"F j, Y" }}
-      </span>
-    </h3>
+    <h3 class="page-title">Referrers overview</h3>
 
-    <!-- STATISTICS SECTION -->
-    <div class="card-panel grey lighten-4 page-summary">
-      <div class="page-summary__primary">
-        <a
-          href="{% url 'sales' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
-          class="page-summary__back-link"
-        >
-          ← Back to sales overview
-        </a>
-      </div>
-      <div class="page-summary__stats">
-        <span class="page-summary__stat">
-          Referrers: <strong>{{ referrers_count }}</strong>
-        </span>
-        <span class="page-summary__stat">
-          Active in range: <strong>{{ totals.with_sales }}</strong>
-        </span>
-        <span class="page-summary__stat">
-          Orders: <strong>{{ totals.orders }}</strong>
-        </span>
-        <span class="page-summary__stat">
-          Items: <strong>{{ totals.items }}</strong>
-        </span>
-        <span class="page-summary__stat">
-          Net sales: ¥{{ totals.sales|floatformat:2 }}
-        </span>
-        <span class="page-summary__stat">
-          Gifted items: <strong>{{ totals.gifted }}</strong>
-        </span>
-      </div>
-    </div>
-    <!-- END STATISTICS SECTION -->
+    <div class="filter-divider"></div>
 
     <div class="card-panel filter-toolbar">
       <form method="get" novalidate class="filter-toolbar__form">
+        <div class="filter-section-header">
+          <p class="filter-showing">
+            Showing: {{ start_date|date:"M j, Y" }} to {{ end_date|date:"M j, Y" }}
+            |
+            <strong>{{ referrers_count }}</strong> referrer{{ referrers_count|pluralize }}
+            |
+            Active: <strong>{{ totals.with_sales }}</strong>
+            |
+            Orders: <strong>{{ totals.orders }}</strong>
+            |
+            Items: <strong>{{ totals.items }}</strong>
+            |
+            Net sales: ¥{{ totals.sales|floatformat:2 }}
+            |
+            Gifted items: <strong>{{ totals.gifted }}</strong>
+          </p>
+          <button type="submit" class="btn filter-apply-button">Apply</button>
+        </div>
+
         <div class="filter-bar">
           <div class="card-panel filter-card filter-card--compact filter-card--date-range">
             <p class="filter-card__title">Date Range</p>
@@ -70,16 +53,22 @@
               />
             </div>
           </div>
-          <div class="card-panel filter-card filter-card--compact filter-card--actions">
-            <div class="filter-toolbar__actions">
-              <button type="submit" class="btn-small waves-effect waves-light">
-                Update
-              </button>
+          <div class="card-panel filter-card filter-card--compact">
+            <p class="filter-card__title">Navigation</p>
+            <div class="filter-toolbar__aside">
+              <a
+                href="{% url 'sales' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
+                class="filter-toolbar__link"
+              >
+                Back to sales overview
+              </a>
             </div>
           </div>
         </div>
       </form>
     </div>
+
+    <div class="filter-divider"></div>
 
     {% if referrer_rows %}
       <div class="card">

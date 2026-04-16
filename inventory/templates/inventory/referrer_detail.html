@@ -4,25 +4,29 @@
 
 {% block content %}
   <div class="section">
-    <h3 class="page-title">
-      Sales
-      <span class="grey-text small">
-        | {{ referrer.name }} from {{ start_date|date:"F j, Y" }} to {{ end_date|date:"F j, Y" }}
-      </span>
-    </h3>
+    <h3 class="page-title">{{ referrer.name }} sales</h3>
 
-    <!-- FILTER ACTION BAR -->
-    <div class="card-panel grey lighten-4 page-summary">
-      <div class="page-summary__primary">
-        <a
-          href="{% url 'sales' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
-          class="page-summary__back-link"
-        >
-          ← Back to sales overview
-        </a>
-      </div>
+    <div class="filter-divider"></div>
 
+    <div class="card-panel filter-toolbar">
       <form method="get" novalidate class="filter-toolbar__form">
+        <div class="filter-section-header">
+          <p class="filter-showing">
+            Showing: {{ start_date|date:"M j, Y" }} to {{ end_date|date:"M j, Y" }}
+            |
+            Total sales: ¥{{ financials.total_sales|floatformat:2 }}
+            |
+            Returns: -¥{{ financials.returns|floatformat:2 }}
+            |
+            COGS: -¥{{ financials.cost_of_goods_sold|floatformat:2 }}
+            |
+            Freebies: -¥{{ financials.freebies_cost|floatformat:2 }} ({{ stats.free_items }} items)
+            |
+            Net profit: ¥{{ financials.net_profit|floatformat:2 }}
+          </p>
+          <button type="submit" class="btn filter-apply-button">Apply</button>
+        </div>
+
         <div class="filter-bar">
           <div class="card-panel filter-card filter-card--compact filter-card--date-range">
             <p class="filter-card__title">Date Range</p>
@@ -47,70 +51,41 @@
               />
             </div>
           </div>
-          <div class="card-panel filter-card filter-card--compact filter-card--actions">
-            <div class="filter-toolbar__actions">
-              <button type="submit" class="btn-small waves-effect waves-light">
-                Update
-              </button>
+          {% if referrers %}
+            <div class="card-panel filter-card filter-card--compact">
+              <p class="filter-card__title">Referrer</p>
+              <div class="filter-toolbar__field">
+                <label for="referrerSwitch" class="active">Switch referrer</label>
+                <select id="referrerSwitch" class="browser-default">
+                  <option value="">Select referrer…</option>
+                  {% for referrer_option in referrers %}
+                    <option
+                      value="{% url 'referrer_detail' referrer_option.id %}"
+                      {% if selected_referrer_id == referrer_option.id|stringformat:'s' %}selected{% endif %}
+                    >
+                      {{ referrer_option.name }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          {% endif %}
+          <div class="card-panel filter-card filter-card--compact">
+            <p class="filter-card__title">Navigation</p>
+            <div class="filter-toolbar__aside">
+              <a
+                href="{% url 'sales' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}"
+                class="filter-toolbar__link"
+              >
+                Back to sales overview
+              </a>
             </div>
           </div>
         </div>
       </form>
-
-      <div class="filter-toolbar__aside">
-        {% if referrers %}
-          <label for="referrerSwitch" class="active">Switch referrer</label>
-          <select id="referrerSwitch" class="browser-default">
-            <option value="">Select referrer…</option>
-            {% for referrer_option in referrers %}
-              <option
-                value="{% url 'referrer_detail' referrer_option.id %}"
-                {% if selected_referrer_id == referrer_option.id|stringformat:'s' %}selected{% endif %}
-              >
-                {{ referrer_option.name }}
-              </option>
-            {% endfor %}
-          </select>
-        {% endif %}
-      </div>
     </div>
 
-
-
-
-
-    </div>
-
-
-    <!-- MAIN STATS SECTION -->
-    <div class="row referrer-summary-cards" id="mainStats">
-      <div class="col s12 m6">
-
-          <div class="row">
-            <div class="col s12 m12 blue lighten-4">
-              <h5 class="blue-text text-darken-2">¥{{ financials.total_sales|floatformat:2 }} total sales</h5>
-            </div>
-
-            <div class="col s12 m12 pink lighten-4">
-              <h5 class="pink-text">- ¥{{ financials.returns|floatformat:2 }} returns</h5>
-            </div>
-
-            <div class="col s12 m12 pink lighten-4">
-              <h5 class="pink-text">- ¥{{ financials.cost_of_goods_sold|floatformat:2 }} COGS</h5>
-            </div>
-
-            <div class="col s12 m12 pink lighten-4">
-              <h5 class="pink-text">- ¥{{ financials.freebies_cost|floatformat:2 }} freebies ({{ stats.free_items }} items)</h5>
-            </div>
-
-            <div class="col s12 m12 green lighten-4">
-              <h5 class="green-text text-darken-3">¥{{ financials.net_profit|floatformat:2 }} net profit</h5>
-            </div>
-          </div>
-      </div>
-
-    </div>
-
+    <div class="filter-divider"></div>
 
 
     {% if has_sales_data %}
