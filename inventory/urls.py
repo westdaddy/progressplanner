@@ -29,6 +29,11 @@ urlpatterns = [
         views.assign_order_referrer_discount_range,
         name='assign_order_referrer_discount_range',
     ),
+    path(
+        'sales/assign-referrers/ignore/',
+        views.ignore_order_referrer_discount_range,
+        name='ignore_order_referrer_discount_range',
+    ),
     path('sales/price-group/<str:bucket_key>/', views.sales_bucket_detail, name='sales_bucket_detail'),
     path(
         'sales/price-group/<str:bucket_key>/assign-referrer/',

@@ -48,7 +48,7 @@
 
     {% if orders %}
       {% for order in orders %}
-        <div class="order-block">
+        <div class="order-block" data-order-number="{{ order.order_number }}">
           <div class="order-header">
             <div class="left">
               <span class="order-number">#{{ order.order_number }}</span>
@@ -69,6 +69,13 @@
                     Assign referrer +
                   </a>
                 {% endif %}
+                <button
+                  type="button"
+                  class="btn-flat red-text text-darken-2 ignore-order-button"
+                  data-order-number="{{ order.order_number }}"
+                >
+                  Ignore
+                </button>
               </div>
             </div>
           </div>
@@ -196,6 +203,15 @@
   {{ block.super }}
   <script>
     document.addEventListener('DOMContentLoaded', function() {
+      var getCookie = function(name) {
+        var value = '; ' + document.cookie;
+        var parts = value.split('; ' + name + '=');
+        if (parts.length === 2) {
+          return parts.pop().split(';').shift();
+        }
+        return '';
+      };
+
       var modalElems = document.querySelectorAll('.modal');
       M.Modal.init(modalElems);
 
@@ -255,6 +271,45 @@
         maxInput.addEventListener('input', updateLabel);
       }
       updateLabel();
+
+      var ignoreButtons = document.querySelectorAll('.ignore-order-button');
+      ignoreButtons.forEach(function(button) {
+        button.addEventListener('click', function() {
+          var orderNumber = button.dataset.orderNumber || '';
+          if (!orderNumber || button.disabled) {
+            return;
+          }
+
+          button.disabled = true;
+          fetch("{% url 'ignore_order_referrer_discount_range' %}", {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+              'X-CSRFToken': getCookie('csrftoken'),
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: new URLSearchParams({ order_number: orderNumber }).toString(),
+          })
+            .then(function(response) {
+              if (!response.ok) {
+                throw new Error('Request failed');
+              }
+              return response.json();
+            })
+            .then(function(data) {
+              if (!data.ok) {
+                throw new Error(data.error || 'Unable to ignore order');
+              }
+              var orderBlock = button.closest('.order-block');
+              if (orderBlock) {
+                orderBlock.remove();
+              }
+            })
+            .catch(function() {
+              button.disabled = false;
+            });
+        });
+      });
     });
   </script>
 {% endblock %}

@@ -5359,6 +5359,12 @@ def sales_assign_referrers(request):
 
     sales_qs = Sale.objects.filter(date__range=(start_date, end_date))
 
+    ignored_order_numbers = set(
+        sales_qs.filter(referrer__name__iexact="no_referrer").values_list(
+            "order_number", flat=True
+        )
+    )
+
     eligible_sales = (
         sales_qs.filter(Q(return_quantity__isnull=True) | Q(return_quantity=0))
         .filter(sold_quantity__gt=0)
@@ -5376,6 +5382,9 @@ def sales_assign_referrers(request):
     max_discount_decimal = Decimal(str(max_discount))
 
     for sale in eligible_sales:
+        if sale.order_number in ignored_order_numbers:
+            continue
+
         discount_percentage = _calculate_sale_discount_percentage(sale)
         if discount_percentage is None:
             continue
@@ -5529,7 +5538,9 @@ def sales_assign_referrers(request):
                 "actual_value": total_actual_value,
             },
             "date_querystring": date_querystring,
-            "referrers": Referrer.objects.order_by("name"),
+            "referrers": Referrer.objects.exclude(name__iexact="no_referrer").order_by(
+                "name"
+            ),
             "min_discount": min_discount,
             "max_discount": max_discount,
         },
@@ -5559,6 +5570,27 @@ def assign_order_referrer_discount_range(request):
         redirect_url = f"{redirect_url}?{date_querystring}"
 
     return redirect(redirect_url)
+
+
+@require_POST
+def ignore_order_referrer_discount_range(request):
+    order_number = (request.POST.get("order_number") or "").strip()
+    if not order_number:
+        return JsonResponse({"ok": False, "error": "Missing order number"}, status=400)
+
+    sales_qs = Sale.objects.filter(order_number=order_number)
+    if not sales_qs.exists():
+        return JsonResponse({"ok": False, "error": "Order not found"}, status=404)
+
+    no_referrer = Referrer.objects.filter(name__iexact="no_referrer").first()
+    if not no_referrer:
+        return JsonResponse(
+            {"ok": False, "error": "Referrer 'no_referrer' not found"},
+            status=400,
+        )
+
+    sales_qs.update(referrer=no_referrer)
+    return JsonResponse({"ok": True, "order_number": order_number})
 
 
 # a small helper to keep (date, change) pairs

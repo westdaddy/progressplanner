@@ -1052,6 +1052,67 @@ class SalesViewTests(TestCase):
         self.assertEqual(first_sale.referrer, referrer)
         self.assertEqual(second_sale.referrer, referrer)
 
+    def test_assign_referrers_view_excludes_orders_marked_no_referrer(self):
+        self.product.retail_price = Decimal("100")
+        self.product.save(update_fields=["retail_price"])
+        no_referrer = Referrer.objects.create(name="no_referrer")
+
+        Sale.objects.create(
+            order_number="VISIBLE",
+            date=date(2024, 4, 7),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("80.00"),
+        )
+        Sale.objects.create(
+            order_number="IGNORED",
+            date=date(2024, 4, 7),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("80.00"),
+            referrer=no_referrer,
+        )
+
+        response = self.client.get(
+            reverse("sales_assign_referrers"),
+            {"start_date": "2024-04-01", "end_date": "2024-04-30"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        order_numbers = [order["order_number"] for order in response.context["orders"]]
+        self.assertEqual(order_numbers, ["VISIBLE"])
+        self.assertEqual(list(response.context["referrers"]), [])
+
+    def test_ignore_order_endpoint_sets_no_referrer(self):
+        no_referrer = Referrer.objects.create(name="no_referrer")
+        sale_one = Sale.objects.create(
+            order_number="IGNORE-1",
+            date=date(2024, 4, 10),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("90.00"),
+        )
+        sale_two = Sale.objects.create(
+            order_number="IGNORE-1",
+            date=date(2024, 4, 11),
+            variant=self.variant,
+            sold_quantity=2,
+            sold_value=Decimal("150.00"),
+        )
+
+        response = self.client.post(
+            reverse("ignore_order_referrer_discount_range"),
+            {"order_number": "IGNORE-1"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["ok"], True)
+
+        sale_one.refresh_from_db()
+        sale_two.refresh_from_db()
+        self.assertEqual(sale_one.referrer, no_referrer)
+        self.assertEqual(sale_two.referrer, no_referrer)
+
 
 class SalesBucketDetailViewTests(TestCase):
     def setUp(self):
