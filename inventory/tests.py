@@ -1172,6 +1172,31 @@ class SalesViewTests(TestCase):
             1,
         )
 
+    def test_discount_slider_renders_single_track_with_endpoints(self):
+        self.product.retail_price = Decimal("100")
+        self.product.save(update_fields=["retail_price"])
+        Sale.objects.create(
+            order_number="SLIDER-ORDER",
+            date=date(2024, 4, 11),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("80.00"),
+        )
+
+        response = self.client.get(
+            reverse("sales_assign_referrers"),
+            {"start_date": "2024-04-01", "end_date": "2024-04-30"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertIn('class="discount-range-slider"', html)
+        self.assertIn('id="discountRangeFill"', html)
+        self.assertIn('id="discountMinValue">10%', html)
+        self.assertIn('id="discountMaxValue">50%', html)
+        self.assertIn(">0%</span>", html)
+        self.assertIn(">100%</span>", html)
+
 
 class SalesBucketDetailViewTests(TestCase):
     def setUp(self):

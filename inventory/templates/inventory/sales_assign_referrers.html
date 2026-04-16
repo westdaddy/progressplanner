@@ -3,6 +3,90 @@
 {% block title %}Assign Referrers{% endblock %}
 
 {% block content %}
+  <style>
+    .discount-range-slider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 340px;
+    }
+
+    .discount-range-track-wrap {
+      position: relative;
+      width: 320px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+    }
+
+    .discount-range-track-bg,
+    .discount-range-track-fill {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 4px;
+      border-radius: 999px;
+      pointer-events: none;
+    }
+
+    .discount-range-track-bg {
+      background: #cfcfd4;
+    }
+
+    .discount-range-track-fill {
+      background: #26a69a;
+    }
+
+    .discount-range-track-wrap input[type="range"] {
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 100%;
+      margin: 0;
+      background: transparent;
+      pointer-events: none;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .discount-range-track-wrap input[type="range"]::-webkit-slider-thumb {
+      pointer-events: auto;
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #26a69a;
+      border: 0;
+      cursor: pointer;
+    }
+
+    .discount-range-track-wrap input[type="range"]::-moz-range-thumb {
+      pointer-events: auto;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #26a69a;
+      border: 0;
+      cursor: pointer;
+    }
+
+    .discount-range-track-wrap input[type="range"]::-webkit-slider-runnable-track {
+      background: transparent;
+    }
+
+    .discount-range-track-wrap input[type="range"]::-moz-range-track {
+      background: transparent;
+    }
+
+    .discount-range-values {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 4px;
+      font-size: 0.85rem;
+      color: #616161;
+    }
+  </style>
   <div class="section">
     <h3>
       Assign referrers
@@ -23,8 +107,22 @@
         </div>
         <div class="filter-toolbar__field" style="min-width: 280px;">
           <label class="active">Discount range: <strong id="discountRangeLabel">{{ min_discount }}%–{{ max_discount }}%</strong></label>
-          <input type="range" id="min_discount" name="min_discount" min="0" max="100" value="{{ min_discount }}" />
-          <input type="range" id="max_discount" name="max_discount" min="0" max="100" value="{{ max_discount }}" />
+          <div class="discount-range-slider">
+            <span>0%</span>
+            <div>
+              <div class="discount-range-track-wrap">
+                <div class="discount-range-track-bg"></div>
+                <div class="discount-range-track-fill" id="discountRangeFill"></div>
+                <input type="range" id="min_discount" name="min_discount" min="0" max="100" value="{{ min_discount }}" />
+                <input type="range" id="max_discount" name="max_discount" min="0" max="100" value="{{ max_discount }}" />
+              </div>
+              <div class="discount-range-values">
+                <span id="discountMinValue">{{ min_discount }}%</span>
+                <span id="discountMaxValue">{{ max_discount }}%</span>
+              </div>
+            </div>
+            <span>100%</span>
+          </div>
         </div>
         <div class="filter-toolbar__actions">
           <button type="submit" class="btn-tiny waves-effect waves-light">Update</button>
@@ -256,8 +354,11 @@
       var minInput = document.getElementById('min_discount');
       var maxInput = document.getElementById('max_discount');
       var label = document.getElementById('discountRangeLabel');
+      var minValueLabel = document.getElementById('discountMinValue');
+      var maxValueLabel = document.getElementById('discountMaxValue');
+      var rangeFill = document.getElementById('discountRangeFill');
 
-      var updateLabel = function() {
+      var updateLabel = function(changedInput) {
         if (!minInput || !maxInput || !label) {
           return;
         }
@@ -265,16 +366,34 @@
         var minVal = parseInt(minInput.value || '0', 10);
         var maxVal = parseInt(maxInput.value || '0', 10);
         if (minVal > maxVal) {
-          var temp = minVal;
-          minVal = maxVal;
-          maxVal = temp;
+          if (changedInput === minInput) {
+            minVal = maxVal;
+            minInput.value = String(minVal);
+          } else {
+            maxVal = minVal;
+            maxInput.value = String(maxVal);
+          }
         }
         label.textContent = minVal + '%–' + maxVal + '%';
+        if (minValueLabel) {
+          minValueLabel.textContent = minVal + '%';
+        }
+        if (maxValueLabel) {
+          maxValueLabel.textContent = maxVal + '%';
+        }
+        if (rangeFill) {
+          rangeFill.style.left = minVal + '%';
+          rangeFill.style.right = (100 - maxVal) + '%';
+        }
       };
 
       if (minInput && maxInput) {
-        minInput.addEventListener('input', updateLabel);
-        maxInput.addEventListener('input', updateLabel);
+        minInput.addEventListener('input', function() {
+          updateLabel(minInput);
+        });
+        maxInput.addEventListener('input', function() {
+          updateLabel(maxInput);
+        });
       }
       updateLabel();
 
