@@ -1168,7 +1168,9 @@ class SalesViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         html = response.content.decode("utf-8")
         self.assertEqual(
-            html.count('class="btn-flat red-text text-darken-2 ignore-order-button"'),
+            html.count(
+                'class="order-topline__action order-topline__action--no-referrer ignore-order-button"'
+            ),
             1,
         )
 
@@ -1196,6 +1198,28 @@ class SalesViewTests(TestCase):
         self.assertIn('id="discountMaxValue">50%', html)
         self.assertIn(">0%</span>", html)
         self.assertIn(">100%</span>", html)
+
+    def test_order_topline_actions_use_add_and_no_referrer_labels(self):
+        self.product.retail_price = Decimal("100")
+        self.product.save(update_fields=["retail_price"])
+        Sale.objects.create(
+            order_number="TOPLINE-ORDER",
+            date=date(2024, 4, 11),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("80.00"),
+        )
+
+        response = self.client.get(
+            reverse("sales_assign_referrers"),
+            {"start_date": "2024-04-01", "end_date": "2024-04-30"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertIn("Add Referrer", html)
+        self.assertIn("No Referrer", html)
+        self.assertIn('class="order-topline__separator">|</span>', html)
 
 
 class SalesBucketDetailViewTests(TestCase):
