@@ -847,9 +847,8 @@ vertical-align: middle;
 }
 
 .sales-summary__net {
-  font-weight: 700;
-  margin-bottom: 0.75rem;
-  font-size: 3.56rem;
+  margin: 0em;
+  font-size: 2rem;
 }
 
 .sales-summary__metric {
