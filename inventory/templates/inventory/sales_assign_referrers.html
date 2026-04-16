@@ -137,9 +137,14 @@
 
       <form method="get" novalidate class="filter-toolbar__form">
 
+        <!--  -->
         <div class="filter-section-header">
           <p class="filter-showing">
-            Showing: {{ start_date|date:"M j, Y" }} to {{ end_date|date:"M j, Y" }} · {{ min_discount }}%–{{ max_discount }}%
+            Showing: {{ start_date|date:"M j Y" }} to {{ end_date|date:"M j Y" }}
+            |
+            {{ min_discount }}%–{{ max_discount }}%
+            |
+            <!-- MOVE DETAILS STATS HERE -->
           </p>
           <button type="submit" class="btn filter-apply-button">Apply</button>
         </div>
@@ -182,6 +187,7 @@
       </form>
     </div>
 
+    <!-- DETAILS SECTION -->
     <div class="card-panel grey lighten-4 page-summary">
       <div class="page-summary__primary">
         <a href="{% url 'sales' %}{% if date_querystring %}?{{ date_querystring }}{% endif %}" class="page-summary__back-link">
@@ -195,6 +201,8 @@
         <span class="page-summary__stat">Actual: ¥{{ summary_totals.actual_value|floatformat:2 }}</span>
       </div>
     </div>
+    <!-- END DETAILS SECTION -->
+
     <div class="card-panel">
       <label for="orderNumbersText" class="active">Order numbers (copy list)</label>
       <textarea id="orderNumbersText" readonly class="materialize-textarea">{{ order_numbers_text }}</textarea>
