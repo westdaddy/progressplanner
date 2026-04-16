@@ -1118,12 +1118,16 @@ vertical-align: middle;
 
 .referrer-chip-group {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0.5rem;
+  align-items: flex-start;
 }
 
 .referrer-chip {
   cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1.4;
+  padding: 0.45rem 0.8rem;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
