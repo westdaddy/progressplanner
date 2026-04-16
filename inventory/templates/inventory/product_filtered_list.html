@@ -406,30 +406,28 @@
     <div class="col s12 m4">
 
       <!-- TOTAL STOCK POSITION -->
+      {% if stock_balance_note %}
       <div class="card-panel">
         <h6 class="grey-text text-darken-1" style="margin-top: 0;">Stock position</h6>
-        {% if stock_balance_note %}
           <p class="teal-text text-darken-2" style="margin-bottom: 0;">{{ stock_balance_note }}</p>
-        {% else %}
-          <p class="grey-text text-darken-1" style="margin-bottom: 0;">Stock balance notes appear when viewing all products or a single product category.</p>
-        {% endif %}
       </div>
+      {% endif %}
 
       <div class="card-panel">
         <ul class="collection" style="margin: 0;">
-          <li class="collection-item">
+          <li class="collection-item" style="border-left: 3px solid #26a69a;">
             <strong>Products in this category</strong>
             <span class="secondary-content teal-text text-darken-2">{{ total_products }}</span>
           </li>
-          <li class="collection-item">
+          <li class="collection-item" style="border-left: 3px solid #26a69a;">
             <strong>Partially out-of-stock</strong>
             <span class="secondary-content teal-text text-darken-2">{{ partial_oos_products }}</span>
           </li>
-          <li class="collection-item">
+          <li class="collection-item" style="border-left: 3px solid #26a69a;">
             <strong>Discounted products</strong>
             <span class="secondary-content teal-text text-darken-2">{{ discounted_products }}</span>
           </li>
-          <li class="collection-item">
+          <li class="collection-item" style="border-left: 3px solid #26a69a;">
             <strong>New products (no orders or sales)</strong>
             <span class="secondary-content teal-text text-darken-2">{{ new_products }}</span>
           </li>
@@ -499,6 +497,31 @@
           </ul>
         </div>
       {% endif %}
+
+      <div class="card-panel">
+        <h6 class="grey-text text-darken-1">Quarterly Sales (last 12 quarters)</h6>
+        {% if has_quarterly_data %}
+          <canvas id="quarterlySalesChart" height="220"></canvas>
+        {% else %}
+          <p class="grey-text text-darken-1" style="margin: 0;">No sales recorded in this period.</p>
+        {% endif %}
+
+        <div class="filter-divider"></div>
+
+        <h6 class="grey-text text-darken-1">Total Sold Year on Year (last 3 years)</h6>
+        <ul class="collection">
+          {% for entry in yearly_sales %}
+            <li class="collection-item" style="border-left: 3px solid #26a69a;">
+              <strong>{{ entry.label }}</strong>
+              <span class="secondary-content teal-text text-darken-2">{{ entry.total }}</span>
+            </li>
+          {% empty %}
+            <li class="collection-item">No sales data available.</li>
+          {% endfor %}
+        </ul>
+
+      </div>
+      
     </div>
   </div>
 
@@ -543,29 +566,6 @@
 
     <div class="col s12 m4">
 
-      <div class="card-panel">
-        <h6 class="grey-text text-darken-1">Quarterly Sales (last 12 quarters)</h6>
-        {% if has_quarterly_data %}
-          <canvas id="quarterlySalesChart" height="220"></canvas>
-        {% else %}
-          <p class="grey-text text-darken-1" style="margin: 0;">No sales recorded in this period.</p>
-        {% endif %}
-
-        <div class="filter-divider"></div>
-
-        <h6 class="grey-text text-darken-1">Total Sold Year on Year (last 3 years)</h6>
-        <ul class="collection">
-          {% for entry in yearly_sales %}
-            <li class="collection-item" style="border-left: 3px solid #26a69a;">
-              <strong>{{ entry.label }}</strong>
-              <span class="secondary-content teal-text text-darken-2">{{ entry.total }}</span>
-            </li>
-          {% empty %}
-            <li class="collection-item">No sales data available.</li>
-          {% endfor %}
-        </ul>
-
-      </div>
     </div>
 
 
