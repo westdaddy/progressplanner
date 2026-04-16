@@ -126,13 +126,11 @@
 
     <h3 class="page-title">
       Assign referrers
-      <span class="grey-text small">
-        | Discounted {{ min_discount }}%–{{ max_discount }}% from {{ start_date|date:"F j, Y" }} to {{ end_date|date:"F j, Y" }}
-      </span>
     </h3>
 
     <div class="filter-divider"></div>
 
+    <!-- FILTER BAR -->
     <div class="card-panel filter-toolbar">
 
       <form method="get" novalidate class="filter-toolbar__form">
@@ -156,8 +154,9 @@
         </div>
 
         <div class="filter-bar">
-          <div class="card-panel filter-card filter-card--compact filter-card--date-range">
 
+          <!-- DATE PICKER -->
+          <div class="card-panel filter-card filter-card--compact filter-card--date-range">
             <p class="filter-card__title">Date Range</p>
             <div class="filter-toolbar__field">
               <label for="start_date" class="active">From</label>
@@ -168,7 +167,10 @@
               <input type="date" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="browser-default" />
             </div>
           </div>
-          <div class="card-panel filter-card filter-card--compact" style="min-width: 280px;">
+          <!-- END DATE PICKER -->
+
+          <!-- DISCOUNT SLIDER -->
+          <div class="card-panel filter-card filter-card--compact" >
             <div class="filter-toolbar__field">
               <label class="active">Discount range: <strong id="discountRangeLabel">{{ min_discount }}%–{{ max_discount }}%</strong></label>
               <div class="discount-range-slider">
@@ -189,9 +191,20 @@
               </div>
             </div>
           </div>
+          <!-- END DISCOUNT SLIDER -->
+
+          <!-- CHECKBOXES -->
+          <div class="card-panel filter-card filter-card--compact" >
+
+          </div>
+          <!-- END CHECKBOXES-->
+
         </div>
       </form>
     </div>
+
+    <div class="filter-divider"></div>
+    <!-- END FILTER BAR -->
 
     <div class="card-panel">
       <label for="orderNumbersText" class="active">Order numbers (copy list)</label>
