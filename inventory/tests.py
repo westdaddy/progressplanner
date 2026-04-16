@@ -978,6 +978,200 @@ class SalesViewTests(TestCase):
         self.assertIsNone(sale_one.referrer)
         self.assertIsNone(sale_two.referrer)
 
+    def test_assign_referrers_view_defaults_to_ten_to_fifty_discount(self):
+        self.product.retail_price = Decimal("100")
+        self.product.save(update_fields=["retail_price"])
+
+        Sale.objects.create(
+            order_number="IN-RANGE",
+            date=date(2024, 4, 5),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("80.00"),  # 20%
+        )
+        Sale.objects.create(
+            order_number="OUT-LOW",
+            date=date(2024, 4, 5),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("95.00"),  # 5%
+        )
+        Sale.objects.create(
+            order_number="OUT-HIGH",
+            date=date(2024, 4, 5),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("40.00"),  # 60%
+        )
+
+        response = self.client.get(
+            reverse("sales_assign_referrers"),
+            {"start_date": "2024-04-01", "end_date": "2024-04-30"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["min_discount"], 10)
+        self.assertEqual(response.context["max_discount"], 50)
+        self.assertEqual(response.context["orders_count"], 1)
+        self.assertEqual(response.context["orders"][0]["order_number"], "IN-RANGE")
+
+    def test_assign_referrer_discount_range_updates_all_sales(self):
+        referrer = Referrer.objects.create(name="Referrer A")
+        first_sale = Sale.objects.create(
+            order_number="ASSIGN-RANGE",
+            date=date(2024, 4, 5),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("90.00"),
+        )
+        second_sale = Sale.objects.create(
+            order_number="ASSIGN-RANGE",
+            date=date(2024, 4, 6),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("80.00"),
+        )
+
+        response = self.client.post(
+            reverse("assign_order_referrer_discount_range"),
+            {
+                "order_number": "ASSIGN-RANGE",
+                "referrer_id": str(referrer.id),
+                "date_querystring": "start_date=2024-04-01&end_date=2024-04-30&min_discount=10&max_discount=50",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response["Location"],
+            f"{reverse('sales_assign_referrers')}?start_date=2024-04-01&end_date=2024-04-30&min_discount=10&max_discount=50",
+        )
+
+        first_sale.refresh_from_db()
+        second_sale.refresh_from_db()
+        self.assertEqual(first_sale.referrer, referrer)
+        self.assertEqual(second_sale.referrer, referrer)
+
+    def test_assign_referrers_view_excludes_orders_marked_no_referrer(self):
+        self.product.retail_price = Decimal("100")
+        self.product.save(update_fields=["retail_price"])
+        no_referrer = Referrer.objects.create(name="no_referrer")
+
+        Sale.objects.create(
+            order_number="VISIBLE",
+            date=date(2024, 4, 7),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("80.00"),
+        )
+        Sale.objects.create(
+            order_number="IGNORED",
+            date=date(2024, 4, 7),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("80.00"),
+            referrer=no_referrer,
+        )
+
+        response = self.client.get(
+            reverse("sales_assign_referrers"),
+            {"start_date": "2024-04-01", "end_date": "2024-04-30"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        order_numbers = [order["order_number"] for order in response.context["orders"]]
+        self.assertEqual(order_numbers, ["VISIBLE"])
+        self.assertEqual(list(response.context["referrers"]), [])
+
+    def test_ignore_order_endpoint_sets_no_referrer(self):
+        no_referrer = Referrer.objects.create(name="no_referrer")
+        sale_one = Sale.objects.create(
+            order_number="IGNORE-1",
+            date=date(2024, 4, 10),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("90.00"),
+        )
+        sale_two = Sale.objects.create(
+            order_number="IGNORE-1",
+            date=date(2024, 4, 11),
+            variant=self.variant,
+            sold_quantity=2,
+            sold_value=Decimal("150.00"),
+        )
+
+        response = self.client.post(
+            reverse("ignore_order_referrer_discount_range"),
+            {"order_number": "IGNORE-1"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["ok"], True)
+
+        sale_one.refresh_from_db()
+        sale_two.refresh_from_db()
+        self.assertEqual(sale_one.referrer, no_referrer)
+        self.assertEqual(sale_two.referrer, no_referrer)
+
+    def test_assign_referrers_view_provides_space_separated_order_number_list(self):
+        self.product.retail_price = Decimal("100")
+        self.product.save(update_fields=["retail_price"])
+        Sale.objects.create(
+            order_number="ORDER-A",
+            date=date(2024, 4, 10),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("80.00"),
+        )
+        Sale.objects.create(
+            order_number="ORDER-B",
+            date=date(2024, 4, 11),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("75.00"),
+        )
+
+        response = self.client.get(
+            reverse("sales_assign_referrers"),
+            {"start_date": "2024-04-01", "end_date": "2024-04-30"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["order_numbers_text"], "ORDER-B ORDER-A")
+
+    def test_ignore_button_hidden_when_order_has_referrer(self):
+        self.product.retail_price = Decimal("100")
+        self.product.save(update_fields=["retail_price"])
+        referrer = Referrer.objects.create(name="Coach")
+
+        Sale.objects.create(
+            order_number="ORDER-WITH-REF",
+            date=date(2024, 4, 10),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("80.00"),
+            referrer=referrer,
+        )
+        Sale.objects.create(
+            order_number="ORDER-NO-REF",
+            date=date(2024, 4, 11),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("80.00"),
+        )
+
+        response = self.client.get(
+            reverse("sales_assign_referrers"),
+            {"start_date": "2024-04-01", "end_date": "2024-04-30"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertEqual(
+            html.count('class="btn-flat red-text text-darken-2 ignore-order-button"'),
+            1,
+        )
+
 
 class SalesBucketDetailViewTests(TestCase):
     def setUp(self):
