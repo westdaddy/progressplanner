@@ -190,10 +190,14 @@
           <div class="order-topline">
             <span>#{{ order.order_number }} · {{ order.date|date:"F j, Y" }}</span>
             <span class="order-topline__actions">
-              <a href="#referrer-modal-{{ forloop.counter }}" class="modal-trigger order-topline__action">
-                Add Referrer
-              </a>
-              {% if not order.referrer %}
+              {% if order.referrer %}
+                <a href="#referrer-modal-{{ forloop.counter }}" class="modal-trigger order-topline__action">
+                  Referrer: {{ order.referrer.name }}
+                </a>
+              {% else %}
+                <a href="#referrer-modal-{{ forloop.counter }}" class="modal-trigger order-topline__action">
+                  Add Referrer
+                </a>
                 <span class="order-topline__separator">|</span>
                 <button
                   type="button"
