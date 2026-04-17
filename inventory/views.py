@@ -5382,16 +5382,19 @@ def sales_assign_referrers(request):
     start_date, end_date = _get_sales_date_range(request)
     min_discount = _parse_discount_percent(request.GET.get("min_discount"), default=10)
     max_discount = _parse_discount_percent(request.GET.get("max_discount"), default=50)
+    exclude_no_referrer = request.GET.get("exclude_no_referrer", "1") != "0"
     if min_discount > max_discount:
         min_discount, max_discount = max_discount, min_discount
 
     sales_qs = Sale.objects.filter(date__range=(start_date, end_date))
 
-    ignored_order_numbers = set(
-        sales_qs.filter(referrer__name__iexact="no_referrer").values_list(
-            "order_number", flat=True
+    ignored_order_numbers = set()
+    if exclude_no_referrer:
+        ignored_order_numbers = set(
+            sales_qs.filter(referrer__name__iexact="no_referrer").values_list(
+                "order_number", flat=True
+            )
         )
-    )
 
     eligible_sales = (
         sales_qs.filter(Q(return_quantity__isnull=True) | Q(return_quantity=0))
@@ -5554,6 +5557,7 @@ def sales_assign_referrers(request):
             "end_date": end_date.isoformat(),
             "min_discount": min_discount,
             "max_discount": max_discount,
+            "exclude_no_referrer": "1" if exclude_no_referrer else "0",
         }
     )
 
@@ -5577,6 +5581,7 @@ def sales_assign_referrers(request):
             "min_discount": min_discount,
             "max_discount": max_discount,
             "order_numbers_text": order_numbers_text,
+            "exclude_no_referrer": exclude_no_referrer,
         },
     )
 

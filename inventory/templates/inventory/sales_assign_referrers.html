@@ -195,7 +195,20 @@
 
           <!-- CHECKBOXES -->
           <div class="card-panel filter-card filter-card--compact" >
-
+            <p class="filter-card__title">Checkboxes</p>
+            <p>
+              <input type="hidden" name="exclude_no_referrer" value="0" />
+              <label>
+                <input
+                  type="checkbox"
+                  class="filled-in"
+                  name="exclude_no_referrer"
+                  value="1"
+                  {% if exclude_no_referrer %}checked{% endif %}
+                />
+                <span>Exclude no referrer</span>
+              </label>
+            </p>
           </div>
           <!-- END CHECKBOXES-->
 
