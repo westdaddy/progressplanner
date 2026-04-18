@@ -323,6 +323,7 @@ class SaleAdmin(admin.ModelAdmin):
         "date",
         "variant",
         "sold_quantity",
+        "list_price",
         "return_quantity",
         "sold_value",
         "list_price",

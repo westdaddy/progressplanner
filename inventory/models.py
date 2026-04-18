@@ -320,6 +320,17 @@ class Sale(models.Model):
     sold_quantity = models.IntegerField()
     return_quantity = models.IntegerField(blank=True, null=True)
     sold_value = models.DecimalField(max_digits=10, decimal_places=2)
+    list_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    discount_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, blank=True, null=True
+    )
+    is_discounted = models.BooleanField(default=False, db_index=True)
+    discount_reasons = models.JSONField(default=list, blank=True)
+    coupon_name_raw = models.TextField(blank=True, null=True)
+    seller_note = models.TextField(blank=True, null=True)
+    product_short_name = models.CharField(max_length=255, blank=True, null=True)
+    manual_discount_flag = models.BooleanField(default=False)
+    discount_notes = models.TextField(blank=True, null=True)
     return_value = models.DecimalField(
         max_digits=10, decimal_places=2, blank=True, null=True
     )
