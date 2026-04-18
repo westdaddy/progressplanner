@@ -52,10 +52,9 @@
 
           <!-- DISCOUNT SLIDER -->
           <div class="card-panel filter-card filter-card--compact" >
+            <p class="filter-card__title">Discount Range <strong id="discountRangeLabel">{{ min_discount }}%–{{ max_discount }}%</strong></p>
             <div class="filter-toolbar__field">
-              <label class="active">Discount range: <strong id="discountRangeLabel">{{ min_discount }}%–{{ max_discount }}%</strong></label>
               <div class="discount-range-slider">
-                <span>0%</span>
                 <div>
                   <div class="discount-range-track-wrap">
                     <div class="discount-range-track-bg"></div>
@@ -68,7 +67,6 @@
                     <span id="discountMaxValue">{{ max_discount }}%</span>
                   </div>
                 </div>
-                <span>100%</span>
               </div>
             </div>
           </div>
@@ -76,7 +74,7 @@
 
           <!-- CHECKBOXES -->
           <div class="card-panel filter-card filter-card--compact" >
-            <p class="filter-card__title">Checkboxes</p>
+            <p class="filter-card__title">Options</p>
             <p>
               <input type="hidden" name="exclude_no_referrer" value="0" />
               <label>
