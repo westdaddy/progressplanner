@@ -1345,12 +1345,6 @@ vertical-align: middle;
   padding: 0.25rem 0.5rem;
 }
 
-.discount-reason-chip-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-}
-
 .sale-discount-chip-list {
   display: flex;
   flex-wrap: wrap;
@@ -1395,51 +1389,6 @@ vertical-align: middle;
 }
 
 .sale-discount-chip.tone-5 {
-  background: #f3e8ff;
-  color: #7a3ec8;
-}
-
-.discount-reason-chip-list--subtle {
-  opacity: 0.8;
-}
-
-.discount-reason-chip {
-  border-radius: 999px;
-  display: inline-flex;
-  font-size: 0.74rem;
-  font-weight: 700;
-  line-height: 1.1;
-  margin: 0;
-  padding: 0.28rem 0.58rem;
-  white-space: nowrap;
-}
-
-.discount-reason-chip.tone-0 {
-  background: #ede9fe;
-  color: #5b4ad8;
-}
-
-.discount-reason-chip.tone-1 {
-  background: #fff7d6;
-  color: #b77a00;
-}
-
-.discount-reason-chip.tone-2 {
-  background: #ffe8ef;
-  color: #d64f79;
-}
-
-.discount-reason-chip.tone-3 {
-  background: #e6f8ed;
-  color: #1a9b5f;
-}
-
-.discount-reason-chip.tone-4 {
-  background: #e8f7ff;
-  color: #177bb7;
-}
-
-.discount-reason-chip.tone-5 {
   background: #f3e8ff;
   color: #7a3ec8;
 }

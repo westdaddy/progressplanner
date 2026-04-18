@@ -314,39 +314,23 @@ def _parse_discount_percent(param: Optional[str], default: int) -> int:
     return min(100, max(0, value))
 
 
-def _get_sale_discount_reason_chips(sale) -> list[dict[str, str]]:
-    raw_reasons = sale.discount_reasons
-    if not raw_reasons:
-        return []
-
-    if isinstance(raw_reasons, str):
-        reasons = [raw_reasons]
-    elif isinstance(raw_reasons, (list, tuple, set)):
-        reasons = list(raw_reasons)
-    else:
-        return []
-
+def _get_sale_discount_chips(sale) -> list[dict[str, str]]:
     chips = []
     seen_labels = set()
-    for index, reason in enumerate(reasons):
-        if reason is None:
-            continue
-        label = str(reason).strip()
+
+    for index, discount in enumerate(sale.discounts.all()):
+        label = str(discount.name).strip()
         if not label:
             continue
 
-        normalized_label = " ".join(label.replace("_", " ").replace("-", " ").split())
-        if not normalized_label:
-            continue
-
-        normalized_key = normalized_label.casefold()
+        normalized_key = label.casefold()
         if normalized_key in seen_labels:
             continue
         seen_labels.add(normalized_key)
 
         chips.append(
             {
-                "label": normalized_label.title(),
+                "label": label,
                 "tone": f"tone-{index % 6}",
             }
         )
@@ -5599,7 +5583,6 @@ def sales_assign_referrers(request):
                         "is_filtered_item": sale.pk in filtered_sale_ids,
                         "discount_percentage": _calculate_sale_discount_percentage(sale),
                         "discount_chips": _get_sale_discount_chips(sale),
-                        "discount_reason_chips": _get_sale_discount_reason_chips(sale),
                     }
                 )
 

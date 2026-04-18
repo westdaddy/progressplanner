@@ -206,13 +206,6 @@
                         {% endfor %}
                       </div>
                     {% endif %}
-                    {% if item.discount_reason_chips %}
-                      <div class="discount-reason-chip-list discount-reason-chip-list--subtle">
-                        {% for reason in item.discount_reason_chips %}
-                          <span class="discount-reason-chip {{ reason.tone }}">{{ reason.label }}</span>
-                        {% endfor %}
-                      </div>
-                    {% endif %}
                   </td>
                   <td>
                     {% if item.return_value %}
