@@ -28,6 +28,7 @@ from .models import (
     Group,
     RestockSetting,
     Referrer,
+    Discount,
 )
 from django.urls import reverse
 from .admin import SaleAdmin, SaleDateEqualsFilter
@@ -2207,3 +2208,29 @@ class ProductCanvasImageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         with Image.open(BytesIO(response.content)) as img:
             self.assertEqual(img.size, (PRODUCT_CANVAS_MAX_DIMENSION, PRODUCT_CANVAS_MAX_DIMENSION))
+
+
+class SaleDiscountRelationshipTests(TestCase):
+    def test_sale_can_store_multiple_discounts(self):
+        product = Product.objects.create(product_id="P-DIS", product_name="Discounted Product")
+        variant = ProductVariant.objects.create(
+            product=product,
+            variant_code="V-DIS",
+            primary_color="#000000",
+        )
+        sale = Sale.objects.create(
+            order_number="ORD-DIS-1",
+            date=date.today(),
+            variant=variant,
+            sold_quantity=1,
+            sold_value=Decimal("100.00"),
+        )
+        discount_one = Discount.objects.create(name="Tao Jin Bi", code="taojinbi")
+        discount_two = Discount.objects.create(name="Tmall Red Packet", code="天猫红包优惠")
+
+        sale.discounts.add(discount_one, discount_two)
+
+        self.assertCountEqual(
+            sale.discounts.values_list("code", flat=True),
+            ["taojinbi", "天猫红包优惠"],
+        )
