@@ -284,13 +284,17 @@ class SaleAdmin(admin.ModelAdmin):
         "date",
         "variant",
         "sold_quantity",
+        "list_price",
         "return_quantity",
         "sold_value",
+        "discount_amount",
+        "is_discounted",
+        "manual_discount_flag",
         "return_value",
         "referrer",
     )
-    list_filter = (SaleDateEqualsFilter, "referrer")
-    search_fields = ("order_number",)
+    list_filter = (SaleDateEqualsFilter, "referrer", "is_discounted", "manual_discount_flag")
+    search_fields = ("order_number", "coupon_name_raw", "seller_note", "product_short_name")
     actions = ["assign_referrer"]
 
     def get_search_results(self, request, queryset, search_term):
