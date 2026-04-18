@@ -136,7 +136,6 @@
               <tr>
                 <th>Item</th>
                 <th></th>
-                <th>Original price</th>
                 <th>Actual price</th>
                 <th>Total paid</th>
                 <th>Refunded</th>
@@ -146,7 +145,8 @@
             <tbody>
               {% for item in order.items %}
                 <tr class="{% if not item.is_filtered_item %}grey-text text-lighten-1{% endif %}">
-                  <td style="width: 200px;">
+
+                  <td>
                     <div class="order-item-product">
                       {% if item.sale.variant.product.product_photo %}
                         <img src="{{ item.sale.variant.product.product_photo.url }}" alt="{{ item.sale.variant.product.product_name }}" />
@@ -167,6 +167,7 @@
                             <i class="material-icons tiny">edit</i>
                           </a>
                         </div>
+                        <span class="grey-text">¥{{ item.retail_price|floatformat:2 }}</span>
                         {% if item.sale.coupon_name_raw %}
                           <div class="grey-text text-darken-1">
                             Coupon: {{ item.sale.coupon_name_raw }}
@@ -180,8 +181,9 @@
                       </div>
                     </div>
                   </td>
+
                   <td>x{{ item.sold_quantity }}</td>
-                  <td>¥{{ item.retail_price|floatformat:2 }}</td>
+
                   <td>
                     <div class="price-with-discount">
                       <span class="actual-price">¥{{ item.actual_unit_price|floatformat:2 }}</span>
@@ -205,10 +207,10 @@
                       &mdash;
                     {% endif %}
                   </td>
+
                 </tr>
               {% endfor %}
               <tr>
-                <td></td>
                 <td></td>
                 <td></td>
                 <td><strong>TOTAL</strong></td>

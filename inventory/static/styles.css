@@ -1069,9 +1069,8 @@ vertical-align: middle;
 .order-block {
   background-color: #ffffff;
   border: 1px solid #e1e1e1;
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
-  padding: 1.25rem;
+  border-bottom: 0;
+  padding: 1.5rem;
 }
 
 .order-header {
