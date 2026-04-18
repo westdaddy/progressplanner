@@ -198,7 +198,17 @@
                     </div>
                   </td>
                   <td>¥{{ item.actual_total|floatformat:2 }}</td>
-                  <td></td>
+                  <td>
+                    {% if item.discount_reason_chips %}
+                      <div class="discount-reason-chip-list">
+                        {% for reason in item.discount_reason_chips %}
+                          <span class="discount-reason-chip {{ reason.tone }}">{{ reason.label }}</span>
+                        {% endfor %}
+                      </div>
+                    {% else %}
+                      &mdash;
+                    {% endif %}
+                  </td>
                   <td>
                     {% if item.return_value %}
                       <span class="red-text text-darken-2">¥{{ item.return_value|floatformat:2 }} (x{{ item.return_quantity }})</span>
