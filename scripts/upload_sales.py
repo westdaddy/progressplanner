@@ -16,7 +16,7 @@ from datetime import datetime, date
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from django.db import transaction
 from django.conf import settings
-from inventory.models import Sale, ProductVariant
+from inventory.models import Discount, Sale, ProductVariant
 
 logger = logging.getLogger(__name__)
 
@@ -150,6 +150,14 @@ def _calculate_discount_fields(list_price, sold_value, coupon_name):
     return discount_amount, is_discounted, reasons, manual_discount_flag, discount_notes
 
 
+def _parse_coupon_codes(coupon_name_raw):
+    if coupon_name_raw is None:
+        return []
+
+    normalized_raw = str(coupon_name_raw).replace("；", ";")
+    return [code.strip() for code in normalized_raw.split(";") if code.strip()]
+
+
 
 def _parse_order_date(raw_value):
     if pd.isnull(raw_value):
@@ -191,6 +199,10 @@ def upload_sales(test=False, diff=False):
     should_save = not test and not diff
 
     try:
+        discount_by_code = {
+            discount.code: discount for discount in Discount.objects.all()
+        }
+
         for index, row in df.iterrows():
             try:
                 # ---- parse fields from each row ----
@@ -228,7 +240,7 @@ def upload_sales(test=False, diff=False):
 
                 # ---- create the Sale record ----
                 if should_save:
-                    Sale.objects.create(
+                    sale = Sale.objects.create(
                         order_number   = order_number,
                         date           = order_date,
                         variant        = variant,
@@ -246,6 +258,13 @@ def upload_sales(test=False, diff=False):
                         discount_notes = discount_notes,
                         return_value   = return_value,
                     )
+                    matched_discounts = [
+                        discount_by_code[code]
+                        for code in _parse_coupon_codes(coupon_name_raw)
+                        if code in discount_by_code
+                    ]
+                    if matched_discounts:
+                        sale.discounts.add(*matched_discounts)
 
                 if diff and order_number and order_date and variant:
                     exists = Sale.objects.filter(
