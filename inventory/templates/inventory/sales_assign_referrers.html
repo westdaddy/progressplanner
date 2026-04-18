@@ -265,7 +265,7 @@
             <tbody>
               {% for item in order.items %}
                 <tr class="{% if not item.is_filtered_item %}grey-text text-lighten-1{% endif %}">
-                  <td>
+                  <td style="width: 200px;">
                     <div class="order-item-product">
                       {% if item.sale.variant.product.product_photo %}
                         <img src="{{ item.sale.variant.product.product_photo.url }}" alt="{{ item.sale.variant.product.product_name }}" />
