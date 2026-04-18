@@ -338,6 +338,30 @@ def _get_sale_discount_chips(sale) -> list[dict[str, str]]:
     return chips
 
 
+def _get_sale_discount_chips(sale) -> list[dict[str, str]]:
+    chips = []
+    seen_labels = set()
+
+    for index, discount in enumerate(sale.discounts.all()):
+        label = str(discount.name).strip()
+        if not label:
+            continue
+
+        normalized_key = label.casefold()
+        if normalized_key in seen_labels:
+            continue
+        seen_labels.add(normalized_key)
+
+        chips.append(
+            {
+                "label": label,
+                "tone": f"tone-{index % 6}",
+            }
+        )
+
+    return chips
+
+
 # — Helper to bucket types into our four categories —
 def _simplify_type(type_code):
     tc = (type_code or "").lower()

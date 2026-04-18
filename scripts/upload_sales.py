@@ -115,6 +115,14 @@ def _parse_coupon_codes(coupon_name_raw):
     return [code.strip() for code in normalized_raw.split(";") if code.strip()]
 
 
+def _parse_coupon_codes(coupon_name_raw):
+    if coupon_name_raw is None:
+        return []
+
+    normalized_raw = str(coupon_name_raw).replace("；", ";")
+    return [code.strip() for code in normalized_raw.split(";") if code.strip()]
+
+
 
 def _parse_order_date(raw_value):
     if pd.isnull(raw_value):
