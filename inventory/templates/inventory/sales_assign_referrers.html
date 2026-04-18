@@ -286,6 +286,16 @@
                             <i class="material-icons tiny">edit</i>
                           </a>
                         </div>
+                        {% if item.sale.coupon_name_raw %}
+                          <div class="grey-text text-darken-1">
+                            Coupon: {{ item.sale.coupon_name_raw }}
+                          </div>
+                        {% endif %}
+                        {% if item.sale.seller_note %}
+                          <div class="grey-text text-darken-1">
+                            Seller note: {{ item.sale.seller_note }}
+                          </div>
+                        {% endif %}
                       </div>
                     </div>
                   </td>
