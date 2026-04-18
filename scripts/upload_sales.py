@@ -146,10 +146,6 @@ def _calculate_discount_fields(list_price, sold_value, coupon_name):
 
     if is_discounted:
         reasons = _classify_discount_reasons(coupon_name)
-        if not reasons:
-            manual_discount_flag = True
-            reasons = ["manual_price_adjustment"]
-            discount_notes = "Discount detected from list price vs sold value without matched coupon rule."
 
     return discount_amount, is_discounted, reasons, manual_discount_flag, discount_notes
 
