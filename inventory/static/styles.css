@@ -1244,12 +1244,30 @@ vertical-align: middle;
   line-height: 1.2;
 }
 
+.order-topline__action--edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .order-topline__action--no-referrer {
   color: #e53935;
 }
 
 .order-topline__separator {
   color: #9e9e9e;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .order-items-table th,
