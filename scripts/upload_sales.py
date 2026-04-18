@@ -13,10 +13,9 @@ django.setup()
 
 import pandas as pd
 from datetime import datetime, date
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from decimal import Decimal, InvalidOperation
 from django.db import transaction
-from django.conf import settings
-from inventory.models import Sale, ProductVariant
+from inventory.models import Discount, Sale, ProductVariant
 
 logger = logging.getLogger(__name__)
 
@@ -108,46 +107,12 @@ def _to_decimal(value):
     return None
 
 
-def _normalize_text(value):
-    if value is None:
-        return ""
-    text = str(value).strip().lower()
-    return " ".join(text.split())
-
-
-def _classify_discount_reasons(coupon_name):
-    normalized_coupon = _normalize_text(coupon_name)
-    if not normalized_coupon:
+def _parse_coupon_codes(coupon_name_raw):
+    if coupon_name_raw is None:
         return []
 
-    keyword_config = getattr(settings, "SALES_DISCOUNT_REASON_KEYWORDS", {})
-    matched_reasons = []
-    for reason, keywords in keyword_config.items():
-        for keyword in keywords:
-            normalized_keyword = _normalize_text(keyword)
-            if normalized_keyword and normalized_keyword in normalized_coupon:
-                matched_reasons.append(reason)
-                break
-
-    return sorted(set(matched_reasons))
-
-
-def _calculate_discount_fields(list_price, sold_value, coupon_name):
-    if list_price is None or sold_value is None:
-        return None, False, [], False, None
-
-    discount_amount = (list_price - sold_value).quantize(
-        Decimal("0.01"), rounding=ROUND_HALF_UP
-    )
-    is_discounted = discount_amount > Decimal("0.01")
-    reasons = []
-    manual_discount_flag = False
-    discount_notes = None
-
-    if is_discounted:
-        reasons = _classify_discount_reasons(coupon_name)
-
-    return discount_amount, is_discounted, reasons, manual_discount_flag, discount_notes
+    normalized_raw = str(coupon_name_raw).replace("；", ";")
+    return [code.strip() for code in normalized_raw.split(";") if code.strip()]
 
 
 
@@ -191,6 +156,10 @@ def upload_sales(test=False, diff=False):
     should_save = not test and not diff
 
     try:
+        discount_by_code = {
+            discount.code: discount for discount in Discount.objects.all()
+        }
+
         for index, row in df.iterrows():
             try:
                 # ---- parse fields from each row ----
@@ -202,21 +171,9 @@ def upload_sales(test=False, diff=False):
                 return_quantity= int(row['实退数量'])   if not pd.isnull(row['实退数量']) else 0
                 return_value   = float(row['退货金额'])   if not pd.isnull(row['退货金额'])   else 0.00
                 list_price = _to_decimal(_get_row_value(row, "基本售价"))
-                sold_value_decimal = _to_decimal(sold_value)
                 coupon_name_raw = _get_row_value(row, "优惠券名称")
                 seller_note = _get_row_value(row, "卖家备注")
                 product_short_name = _get_row_value(row, "商品简称")
-                (
-                    discount_amount,
-                    is_discounted,
-                    discount_reasons,
-                    manual_discount_flag,
-                    discount_notes,
-                ) = _calculate_discount_fields(
-                    list_price=list_price,
-                    sold_value=sold_value_decimal,
-                    coupon_name=coupon_name_raw,
-                )
 
                 # ---- look up the variant ----
                 variant = ProductVariant.objects.filter(variant_code=variant_code).first()
@@ -228,7 +185,7 @@ def upload_sales(test=False, diff=False):
 
                 # ---- create the Sale record ----
                 if should_save:
-                    Sale.objects.create(
+                    sale = Sale.objects.create(
                         order_number   = order_number,
                         date           = order_date,
                         variant        = variant,
@@ -236,16 +193,18 @@ def upload_sales(test=False, diff=False):
                         return_quantity= return_quantity,
                         sold_value     = sold_value,
                         list_price     = list_price,
-                        discount_amount= discount_amount,
-                        is_discounted  = is_discounted,
-                        discount_reasons= discount_reasons,
                         coupon_name_raw= str(coupon_name_raw) if coupon_name_raw is not None else None,
                         seller_note    = str(seller_note) if seller_note is not None else None,
                         product_short_name= str(product_short_name) if product_short_name is not None else None,
-                        manual_discount_flag=manual_discount_flag,
-                        discount_notes = discount_notes,
                         return_value   = return_value,
                     )
+                    matched_discounts = [
+                        discount_by_code[code]
+                        for code in _parse_coupon_codes(coupon_name_raw)
+                        if code in discount_by_code
+                    ]
+                    if matched_discounts:
+                        sale.discounts.add(*matched_discounts)
 
                 if diff and order_number and order_date and variant:
                     exists = Sale.objects.filter(

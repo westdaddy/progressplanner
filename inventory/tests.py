@@ -28,6 +28,7 @@ from .models import (
     Group,
     RestockSetting,
     Referrer,
+    Discount,
 )
 from django.urls import reverse
 from .admin import SaleAdmin, SaleDateEqualsFilter
@@ -1221,6 +1222,31 @@ class SalesViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["order_numbers_text"], "ORDER-B ORDER-A")
 
+    def test_assign_referrers_view_renders_sale_discount_chips(self):
+        self.product.retail_price = Decimal("100")
+        self.product.save(update_fields=["retail_price"])
+        discount_one = Discount.objects.create(name="Tao Jin Bi", code="taojinbi")
+        discount_two = Discount.objects.create(name="Tmall Red Packet", code="天猫红包优惠")
+        sale = Sale.objects.create(
+            order_number="ORDER-CHIPS",
+            date=date(2024, 4, 10),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("80.00"),
+        )
+        sale.discounts.add(discount_one, discount_two)
+
+        response = self.client.get(
+            reverse("sales_assign_referrers"),
+            {"start_date": "2024-04-01", "end_date": "2024-04-30"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertIn("sale-discount-chip-list", html)
+        self.assertIn("Tao Jin Bi", html)
+        self.assertIn("Tmall Red Packet", html)
+
     def test_ignore_button_hidden_when_order_has_referrer(self):
         self.product.retail_price = Decimal("100")
         self.product.save(update_fields=["retail_price"])
@@ -2207,3 +2233,29 @@ class ProductCanvasImageTests(TestCase):
         self.assertEqual(response.status_code, 200)
         with Image.open(BytesIO(response.content)) as img:
             self.assertEqual(img.size, (PRODUCT_CANVAS_MAX_DIMENSION, PRODUCT_CANVAS_MAX_DIMENSION))
+
+
+class SaleDiscountRelationshipTests(TestCase):
+    def test_sale_can_store_multiple_discounts(self):
+        product = Product.objects.create(product_id="P-DIS", product_name="Discounted Product")
+        variant = ProductVariant.objects.create(
+            product=product,
+            variant_code="V-DIS",
+            primary_color="#000000",
+        )
+        sale = Sale.objects.create(
+            order_number="ORD-DIS-1",
+            date=date.today(),
+            variant=variant,
+            sold_quantity=1,
+            sold_value=Decimal("100.00"),
+        )
+        discount_one = Discount.objects.create(name="Tao Jin Bi", code="taojinbi")
+        discount_two = Discount.objects.create(name="Tmall Red Packet", code="天猫红包优惠")
+
+        sale.discounts.add(discount_one, discount_two)
+
+        self.assertCountEqual(
+            sale.discounts.values_list("code", flat=True),
+            ["taojinbi", "天猫红包优惠"],
+        )

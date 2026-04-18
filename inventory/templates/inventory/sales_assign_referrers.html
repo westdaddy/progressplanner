@@ -199,10 +199,10 @@
                   <td>x{{ item.sold_quantity }}</td>
                   <td>¥{{ item.actual_total|floatformat:2 }}</td>
                   <td>
-                    {% if item.discount_reason_chips %}
-                      <div class="discount-reason-chip-list">
-                        {% for reason in item.discount_reason_chips %}
-                          <span class="discount-reason-chip {{ reason.tone }}">{{ reason.label }}</span>
+                    {% if item.discount_chips %}
+                      <div class="sale-discount-chip-list">
+                        {% for discount in item.discount_chips %}
+                          <span class="sale-discount-chip {{ discount.tone }}">{{ discount.label }}</span>
                         {% endfor %}
                       </div>
                     {% endif %}

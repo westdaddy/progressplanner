@@ -310,6 +310,17 @@ class Referrer(models.Model):
         return self.name
 
 
+class Discount(models.Model):
+    name = models.CharField(max_length=255)
+    code = models.CharField(max_length=255, unique=True, db_index=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class Sale(models.Model):
     sale_id = models.AutoField(primary_key=True)
     order_number = models.CharField(max_length=50, db_index=True)  # the 内部订单号
@@ -321,16 +332,14 @@ class Sale(models.Model):
     return_quantity = models.IntegerField(blank=True, null=True)
     sold_value = models.DecimalField(max_digits=10, decimal_places=2)
     list_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    discount_amount = models.DecimalField(
-        max_digits=10, decimal_places=2, blank=True, null=True
-    )
-    is_discounted = models.BooleanField(default=False)
-    discount_reasons = models.JSONField(default=list, blank=True)
     seller_note = models.TextField(blank=True, null=True)
     coupon_name_raw = models.CharField(max_length=255, blank=True, null=True)
+    discounts = models.ManyToManyField(
+        Discount,
+        blank=True,
+        related_name="sales",
+    )
     product_short_name = models.CharField(max_length=255, blank=True, null=True)
-    manual_discount_flag = models.BooleanField(blank=True, null=True)
-    discount_notes = models.TextField(blank=True, null=True)
     return_value = models.DecimalField(
         max_digits=10, decimal_places=2, blank=True, null=True
     )

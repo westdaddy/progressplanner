@@ -10,6 +10,7 @@ from .models import (
     Series,
     RestockSetting,
     Referrer,
+    Discount,
 )
 
 from datetime import datetime, timedelta, date
@@ -95,25 +96,6 @@ class SaleDateEqualsFilter(admin.SimpleListFilter):
             "display": _("Clear"),
             "reset": True,
         }
-
-
-class SaleHasDiscountReasonsFilter(admin.SimpleListFilter):
-    title = _("discount reasons")
-    parameter_name = "discount_reasons_state"
-
-    def lookups(self, request, model_admin):
-        return (
-            ("has_values", _("Has discount reasons")),
-            ("empty", _("No discount reasons")),
-        )
-
-    def queryset(self, request, queryset):
-        value = self.value()
-        if value == "has_values":
-            return queryset.exclude(discount_reasons=[])
-        if value == "empty":
-            return queryset.filter(discount_reasons=[])
-        return queryset
 
 
 class SaleHasSellerNoteFilter(admin.SimpleListFilter):
@@ -326,26 +308,17 @@ class SaleAdmin(admin.ModelAdmin):
         "list_price",
         "return_quantity",
         "sold_value",
-        "list_price",
-        "discount_amount",
-        "is_discounted",
-        "discount_reasons",
         "coupon_name_raw",
         "product_short_name",
         "seller_note",
-        "manual_discount_flag",
-        "discount_notes",
         "return_value",
         "referrer",
     )
     list_filter = (
         SaleDateEqualsFilter,
-        "is_discounted",
-        SaleHasDiscountReasonsFilter,
         "coupon_name_raw",
         "product_short_name",
         SaleHasSellerNoteFilter,
-        "manual_discount_flag",
         "referrer",
     )
     search_fields = ("order_number",)
@@ -430,6 +403,12 @@ class RestockSettingAdmin(admin.ModelAdmin):
 class ReferrerAdmin(admin.ModelAdmin):
     list_display = ("name",)
     search_fields = ("name",)
+
+
+@admin.register(Discount)
+class DiscountAdmin(admin.ModelAdmin):
+    list_display = ("name", "code")
+    search_fields = ("name", "code")
 
 
 class OrderItemInline(admin.TabularInline):
