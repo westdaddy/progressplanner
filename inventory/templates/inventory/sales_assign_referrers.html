@@ -91,8 +91,43 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 16px;
       font-weight: 600;
       margin-bottom: 16px;
+    }
+
+    .order-topline__meta {
+      flex: 0 0 auto;
+    }
+
+    .order-topline__discount-reasons {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-left: auto;
+      margin-right: 12px;
+      font-weight: 500;
+    }
+
+    .order-topline__discount-link {
+      font-size: 0.95rem;
+      color: #00897b;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    .discount-reason-chip {
+      border: 1px solid #b2dfdb;
+      background: #ffffff;
+      color: #00695c;
+      cursor: pointer;
+      user-select: none;
+      margin: 0;
+    }
+
+    .discount-reason-chip.selected {
+      background: #e0f2f1;
     }
 
     .order-topline__actions {
@@ -114,12 +149,53 @@
       line-height: 1.2;
     }
 
-    .order-topline__action--no-referrer {
-      color: #e53935;
+    .order-topline__referrer-muted {
+      color: #616161;
+      font-weight: 500;
     }
 
-    .order-topline__separator {
-      color: #9e9e9e;
+    .order-topline__referrer-name {
+      color: #00695c;
+      font-weight: 600;
+    }
+
+    .discount-reason-cell {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      min-height: 32px;
+    }
+
+    .discount-reason-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #e0f2f1;
+      color: #00695c;
+      border-radius: 16px;
+      padding: 4px 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .discount-reason-pill__remove {
+      border: 0;
+      background: transparent;
+      color: #00695c;
+      cursor: pointer;
+      font-size: 0.9rem;
+      line-height: 1;
+      padding: 0;
+      font-weight: 700;
+    }
+
+    .discount-reason-add {
+      color: #00897b;
+      background: transparent;
+      border: 0;
+      cursor: pointer;
+      padding: 0 4px;
     }
   </style>
   <div class="section">
@@ -228,24 +304,24 @@
       {% for order in orders %}
         <div class="order-block" data-order-number="{{ order.order_number }}">
           <div class="order-topline">
-            <span>#{{ order.order_number }} · {{ order.date|date:"F j, Y" }}</span>
+            <span class="order-topline__meta">#{{ order.order_number }} · {{ order.date|date:"F j, Y" }}</span>
+            <span class="order-topline__discount-reasons" data-order-discount-reasons>
+              <a href="#!" class="order-topline__discount-link" data-add-discount-reason>Add reason for discount</a>
+              <button type="button" class="chip discount-reason-chip" data-discount-reason="淘金币">淘金币</button>
+              <button type="button" class="chip discount-reason-chip" data-discount-reason="Gift">Gift</button>
+              <button type="button" class="chip discount-reason-chip" data-discount-reason="Coupon">Coupon</button>
+            </span>
             <span class="order-topline__actions">
               {% if order.referrer %}
-                <a href="#referrer-modal-{{ forloop.counter }}" class="modal-trigger order-topline__action">
-                  Referrer: {{ order.referrer.name }}
+                <span class="order-topline__referrer-name">{{ order.referrer.name }}</span>
+                <a href="#referrer-modal-{{ forloop.counter }}" class="modal-trigger order-topline__action" title="Edit referrer">
+                  <i class="material-icons tiny">edit</i>
                 </a>
               {% else %}
-                <a href="#referrer-modal-{{ forloop.counter }}" class="modal-trigger order-topline__action">
-                  Add Referrer
+                <span class="order-topline__referrer-muted">No referrer</span>
+                <a href="#referrer-modal-{{ forloop.counter }}" class="modal-trigger order-topline__action" title="Add referrer">
+                  <i class="material-icons tiny">add</i>
                 </a>
-                <span class="order-topline__separator">|</span>
-                <button
-                  type="button"
-                  class="order-topline__action order-topline__action--no-referrer ignore-order-button"
-                  data-order-number="{{ order.order_number }}"
-                >
-                  No Referrer
-                </button>
               {% endif %}
             </span>
           </div>
@@ -259,12 +335,13 @@
                 <th>Actual price</th>
                 <th>Total paid</th>
                 <th>Refunded</th>
+                <th>Discount reason</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody>
               {% for item in order.items %}
-                <tr class="{% if not item.is_filtered_item %}grey-text text-lighten-1{% endif %}">
+                <tr class="{% if not item.is_filtered_item %}grey-text text-lighten-1{% endif %}" data-sale-id="{{ item.sale.id }}">
                   <td>
                     <div class="order-item-product">
                       {% if item.sale.variant.product.product_photo %}
@@ -318,6 +395,19 @@
                     {% endif %}
                   </td>
                   <td>
+                    <div class="discount-reason-cell" data-item-discount-reason-cell>
+                      <button
+                        type="button"
+                        class="discount-reason-add"
+                        data-add-item-reason
+                        title="Add discount reason for this item"
+                        aria-label="Add discount reason for this item"
+                      >
+                        <i class="material-icons tiny">add</i>
+                      </button>
+                    </div>
+                  </td>
+                  <td>
                     {% if item.returned %}
                       <span class="chip return-chip red lighten-5 red-text text-darken-2">Returned</span>
                     {% else %}
@@ -337,6 +427,7 @@
                     <span class="order-returns red-text text-darken-1">-¥{{ order.returns_value|floatformat:2 }}</span>
                   {% endif %}
                 </td>
+                <td></td>
                 <td></td>
               </tr>
             </tbody>
@@ -394,48 +485,6 @@
 
       var modalElems = document.querySelectorAll('.modal');
       M.Modal.init(modalElems);
-
-      var bindIgnoreButton = function(button) {
-        if (!button || button.dataset.ignoreBound === '1') {
-          return;
-        }
-        button.dataset.ignoreBound = '1';
-        button.addEventListener('click', function() {
-          var orderNumber = button.dataset.orderNumber || '';
-          if (!orderNumber || button.disabled) {
-            return;
-          }
-
-          button.disabled = true;
-          fetch("{% url 'ignore_order_referrer_discount_range' %}", {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-              'X-CSRFToken': getCookie('csrftoken'),
-              'X-Requested-With': 'XMLHttpRequest',
-            },
-            body: new URLSearchParams({ order_number: orderNumber }).toString(),
-          })
-            .then(function(response) {
-              if (!response.ok) {
-                throw new Error('Request failed');
-              }
-              return response.json();
-            })
-            .then(function(data) {
-              if (!data.ok) {
-                throw new Error(data.error || 'Unable to ignore order');
-              }
-              var orderBlock = button.closest('.order-block');
-              if (orderBlock) {
-                orderBlock.remove();
-              }
-            })
-            .catch(function() {
-              button.disabled = false;
-            });
-        });
-      };
 
       var chipGroups = document.querySelectorAll('.referrer-chip-group');
       chipGroups.forEach(function(group) {
@@ -512,16 +561,14 @@
                 if (actionsContainer) {
                   if (data.referrer_name) {
                     actionsContainer.innerHTML =
-                      '<a href="' + escapeHtml(modalHref) + '" class="modal-trigger order-topline__action">Referrer: '
-                      + escapeHtml(data.referrer_name) + '</a>';
+                      '<span class="order-topline__referrer-name">' + escapeHtml(data.referrer_name) + '</span>'
+                      + '<a href="' + escapeHtml(modalHref) + '" class="modal-trigger order-topline__action" title="Edit referrer">'
+                      + '<i class="material-icons tiny">edit</i></a>';
                   } else {
-                    var orderNumber = orderBlock.dataset.orderNumber || '';
                     actionsContainer.innerHTML =
-                      '<a href="' + escapeHtml(modalHref) + '" class="modal-trigger order-topline__action">Add Referrer</a>'
-                      + '<span class="order-topline__separator">|</span>'
-                      + '<button type="button" class="order-topline__action order-topline__action--no-referrer ignore-order-button" data-order-number="'
-                      + escapeHtml(orderNumber) + '">No Referrer</button>';
-                    bindIgnoreButton(actionsContainer.querySelector('.ignore-order-button'));
+                      '<span class="order-topline__referrer-muted">No referrer</span>'
+                      + '<a href="' + escapeHtml(modalHref) + '" class="modal-trigger order-topline__action" title="Add referrer">'
+                      + '<i class="material-icons tiny">add</i></a>';
                   }
                 }
               }
@@ -590,9 +637,163 @@
       }
       updateLabel();
 
-      var ignoreButtons = document.querySelectorAll('.ignore-order-button');
-      ignoreButtons.forEach(function(button) {
-        bindIgnoreButton(button);
+      var bindOrderReasonGroup = function(orderBlock) {
+        if (!orderBlock) {
+          return;
+        }
+
+        var orderReasonChips = orderBlock.querySelectorAll('.discount-reason-chip');
+        var addReasonLink = orderBlock.querySelector('[data-add-discount-reason]');
+        var itemRows = orderBlock.querySelectorAll('tr[data-sale-id]');
+        var saleReasonMap = new Map();
+        var availableReasons = ['淘金币', 'Gift', 'Coupon'];
+
+        var createReasonPill = function(reason, cell) {
+          var pill = document.createElement('span');
+          pill.className = 'discount-reason-pill';
+          pill.dataset.reason = reason;
+          pill.innerHTML = escapeHtml(reason) + '<button type="button" class="discount-reason-pill__remove" title="Remove reason" aria-label="Remove reason">×</button>';
+          cell.insertBefore(pill, cell.querySelector('[data-add-item-reason]'));
+        };
+
+        var renderReasonsForRow = function(row) {
+          var saleId = row.dataset.saleId || '';
+          var selectedReasons = saleReasonMap.get(saleId) || new Set();
+          var cell = row.querySelector('[data-item-discount-reason-cell]');
+          if (!cell) {
+            return;
+          }
+          cell.querySelectorAll('.discount-reason-pill').forEach(function(pill) {
+            pill.remove();
+          });
+          Array.from(selectedReasons).sort().forEach(function(reason) {
+            createReasonPill(reason, cell);
+          });
+        };
+
+        var renderAllRows = function() {
+          itemRows.forEach(function(row) {
+            renderReasonsForRow(row);
+          });
+        };
+
+        var setReasonOnAllRows = function(reason, selected) {
+          itemRows.forEach(function(row) {
+            var saleId = row.dataset.saleId || '';
+            if (!saleId) {
+              return;
+            }
+            var selectedReasons = saleReasonMap.get(saleId) || new Set();
+            if (selected) {
+              selectedReasons.add(reason);
+            } else {
+              selectedReasons.delete(reason);
+            }
+            saleReasonMap.set(saleId, selectedReasons);
+          });
+          renderAllRows();
+        };
+
+        orderReasonChips.forEach(function(chip) {
+          chip.addEventListener('click', function() {
+            var reason = chip.dataset.discountReason || '';
+            if (!reason) {
+              return;
+            }
+
+            var isSelected = !chip.classList.contains('selected');
+            chip.classList.toggle('selected', isSelected);
+            setReasonOnAllRows(reason, isSelected);
+          });
+        });
+
+        if (addReasonLink) {
+          addReasonLink.addEventListener('click', function(event) {
+            event.preventDefault();
+            var reason = window.prompt('Add a discount reason chip (e.g. 淘金币):');
+            if (!reason) {
+              return;
+            }
+            var trimmedReason = reason.trim();
+            if (!trimmedReason) {
+              return;
+            }
+
+            if (availableReasons.indexOf(trimmedReason) === -1) {
+              availableReasons.push(trimmedReason);
+            }
+
+            var existingOrderChip = orderBlock.querySelector('[data-discount-reason="' + trimmedReason + '"]');
+            if (existingOrderChip) {
+              return;
+            }
+
+            var orderChip = document.createElement('button');
+            orderChip.type = 'button';
+            orderChip.className = 'chip discount-reason-chip';
+            orderChip.dataset.discountReason = trimmedReason;
+            orderChip.textContent = trimmedReason;
+            addReasonLink.insertAdjacentElement('afterend', orderChip);
+
+            orderChip.addEventListener('click', function() {
+              var isSelected = !orderChip.classList.contains('selected');
+              orderChip.classList.toggle('selected', isSelected);
+              setReasonOnAllRows(trimmedReason, isSelected);
+            });
+          });
+        }
+
+        orderBlock.addEventListener('click', function(event) {
+          var removeButton = event.target.closest('.discount-reason-pill__remove');
+          if (removeButton) {
+            var pill = removeButton.closest('.discount-reason-pill');
+            var row = removeButton.closest('tr[data-sale-id]');
+            var reason = pill ? (pill.dataset.reason || '') : '';
+            var saleId = row ? (row.dataset.saleId || '') : '';
+            if (!reason || !saleId) {
+              return;
+            }
+            var selectedReasons = saleReasonMap.get(saleId) || new Set();
+            selectedReasons.delete(reason);
+            saleReasonMap.set(saleId, selectedReasons);
+            renderReasonsForRow(row);
+            return;
+          }
+
+          var addItemReasonButton = event.target.closest('[data-add-item-reason]');
+          if (!addItemReasonButton) {
+            return;
+          }
+          var row = addItemReasonButton.closest('tr[data-sale-id]');
+          var saleId = row ? (row.dataset.saleId || '') : '';
+          if (!saleId) {
+            return;
+          }
+
+          var suggestionText = availableReasons.join(', ');
+          var reason = window.prompt('Add reason for this item. Available: ' + suggestionText, availableReasons[0] || '');
+          if (!reason) {
+            return;
+          }
+          var trimmedReason = reason.trim();
+          if (!trimmedReason) {
+            return;
+          }
+
+          if (availableReasons.indexOf(trimmedReason) === -1) {
+            availableReasons.push(trimmedReason);
+          }
+          var selectedReasons = saleReasonMap.get(saleId) || new Set();
+          selectedReasons.add(trimmedReason);
+          saleReasonMap.set(saleId, selectedReasons);
+          renderReasonsForRow(row);
+        });
+
+        renderAllRows();
+      };
+
+      document.querySelectorAll('.order-block').forEach(function(orderBlock) {
+        bindOrderReasonGroup(orderBlock);
       });
     });
   </script>

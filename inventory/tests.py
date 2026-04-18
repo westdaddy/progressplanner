@@ -1221,7 +1221,7 @@ class SalesViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["order_numbers_text"], "ORDER-B ORDER-A")
 
-    def test_ignore_button_hidden_when_order_has_referrer(self):
+    def test_no_ignore_button_rendered(self):
         self.product.retail_price = Decimal("100")
         self.product.save(update_fields=["retail_price"])
         referrer = Referrer.objects.create(name="Coach")
@@ -1249,12 +1249,7 @@ class SalesViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         html = response.content.decode("utf-8")
-        self.assertEqual(
-            html.count(
-                'class="order-topline__action order-topline__action--no-referrer ignore-order-button"'
-            ),
-            1,
-        )
+        self.assertNotIn("ignore-order-button", html)
 
     def test_discount_slider_renders_single_track_with_endpoints(self):
         self.product.retail_price = Decimal("100")
@@ -1281,7 +1276,7 @@ class SalesViewTests(TestCase):
         self.assertIn(">0%</span>", html)
         self.assertIn(">100%</span>", html)
 
-    def test_order_topline_actions_use_add_and_no_referrer_labels(self):
+    def test_order_topline_actions_use_no_referrer_text_and_add_icon(self):
         self.product.retail_price = Decimal("100")
         self.product.save(update_fields=["retail_price"])
         Sale.objects.create(
@@ -1299,9 +1294,9 @@ class SalesViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         html = response.content.decode("utf-8")
-        self.assertIn("Add Referrer", html)
-        self.assertIn("No Referrer", html)
-        self.assertIn('class="order-topline__separator">|</span>', html)
+        self.assertIn("No referrer", html)
+        self.assertIn('title="Add referrer"', html)
+        self.assertNotIn("Add Referrer", html)
 
     def test_order_topline_shows_assigned_referrer_name(self):
         self.product.retail_price = Decimal("100")
@@ -1323,9 +1318,35 @@ class SalesViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         html = response.content.decode("utf-8")
-        self.assertIn("Referrer: Coach Sora", html)
+        self.assertIn("Coach Sora", html)
+        self.assertIn('title="Edit referrer"', html)
         self.assertNotIn("Add Referrer", html)
         self.assertNotIn("No Referrer", html)
+
+    def test_discount_reason_controls_render_on_order_and_items(self):
+        self.product.retail_price = Decimal("100")
+        self.product.save(update_fields=["retail_price"])
+        Sale.objects.create(
+            order_number="DISCOUNT-REASON-ORDER",
+            date=date(2024, 4, 11),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("80.00"),
+        )
+
+        response = self.client.get(
+            reverse("sales_assign_referrers"),
+            {"start_date": "2024-04-01", "end_date": "2024-04-30"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertIn("Add reason for discount", html)
+        self.assertIn("<th>Discount reason</th>", html)
+        self.assertIn('data-discount-reason="淘金币"', html)
+        self.assertIn('data-item-discount-reason-cell', html)
+        self.assertIn('data-add-item-reason', html)
+        self.assertNotIn("discount-reason-pill", html)
 
 
 class SalesBucketDetailViewTests(TestCase):
