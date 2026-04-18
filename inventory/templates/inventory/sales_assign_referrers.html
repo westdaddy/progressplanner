@@ -137,19 +137,18 @@
             <thead>
               <tr>
                 <th>Item</th>
-                <th></th>
                 <th>Actual price</th>
+                <th></th>
                 <th>Total paid</th>
-                <th>Discount reason</th>
+                <th>Discounts</th>
                 <th>Refunded</th>
-                <th>Status</th>
               </tr>
             </thead>
             <tbody>
               {% for item in order.items %}
                 <tr class="{% if not item.is_filtered_item %}grey-text text-lighten-1{% endif %}">
 
-                  <td>
+                  <td style="width:300px">
                     <div class="order-item-product">
                       {% if item.sale.variant.product.product_photo %}
                         <img src="{{ item.sale.variant.product.product_photo.url }}" alt="{{ item.sale.variant.product.product_name }}" />
@@ -185,7 +184,7 @@
                     </div>
                   </td>
 
-                  <td>x{{ item.sold_quantity }}</td>
+
 
                   <td>
                     <div class="price-with-discount">
@@ -197,6 +196,7 @@
                       {% endif %}
                     </div>
                   </td>
+                  <td>x{{ item.sold_quantity }}</td>
                   <td>¥{{ item.actual_total|floatformat:2 }}</td>
                   <td>
                     {% if item.discount_reason_chips %}
@@ -205,20 +205,11 @@
                           <span class="discount-reason-chip {{ reason.tone }}">{{ reason.label }}</span>
                         {% endfor %}
                       </div>
-                    {% else %}
-                      &mdash;
                     {% endif %}
                   </td>
                   <td>
                     {% if item.return_value %}
                       <span class="red-text text-darken-2">¥{{ item.return_value|floatformat:2 }} (x{{ item.return_quantity }})</span>
-                    {% endif %}
-                  </td>
-                  <td>
-                    {% if item.returned %}
-                      <span class="chip return-chip red lighten-5 red-text text-darken-2">Returned</span>
-                    {% else %}
-                      &mdash;
                     {% endif %}
                   </td>
 
@@ -229,12 +220,12 @@
                 <td></td>
                 <td><strong>TOTAL</strong></td>
                 <td><span class="order-total">¥{{ order.total_value|floatformat:2 }}</span></td>
-                <td>
-                  {% if order.returns_value %}
-                    <span class="order-returns red-text text-darken-1">-¥{{ order.returns_value|floatformat:2 }}</span>
-                  {% endif %}
-                </td>
                 <td></td>
+                <td>
+                      {% if order.returns_value %}
+                        <span class="order-returns red-text text-darken-1">-¥{{ order.returns_value|floatformat:2 }}</span>
+                      {% endif %}
+                </td>
               </tr>
             </tbody>
           </table>
