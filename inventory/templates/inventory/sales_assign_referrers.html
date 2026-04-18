@@ -105,6 +105,7 @@
 
     {% if orders %}
       {% for order in orders %}
+        <!-- SALES TABLE -->
         <div class="order-block" data-order-number="{{ order.order_number }}">
           <div class="order-topline">
             <span>#{{ order.order_number }} · {{ order.date|date:"F j, Y" }}</span>
@@ -131,6 +132,7 @@
             </span>
           </div>
 
+          <!-- SALE ITEMS TABLE -->
           <table class="highlight order-items-table sales-table">
             <thead>
               <tr>
@@ -138,6 +140,7 @@
                 <th></th>
                 <th>Actual price</th>
                 <th>Total paid</th>
+                <th>Discount reason</th>
                 <th>Refunded</th>
                 <th>Status</th>
               </tr>
@@ -195,6 +198,7 @@
                     </div>
                   </td>
                   <td>¥{{ item.actual_total|floatformat:2 }}</td>
+                  <td></td>
                   <td>
                     {% if item.return_value %}
                       <span class="red-text text-darken-2">¥{{ item.return_value|floatformat:2 }} (x{{ item.return_quantity }})</span>
@@ -224,7 +228,9 @@
               </tr>
             </tbody>
           </table>
+          <!-- END SALE ITEMS TABLE -->
 
+          <!-- REFERRER MODAL -->
           <div id="referrer-modal-{{ forloop.counter }}" class="modal">
             <form method="post" action="{% url 'assign_order_referrer_discount_range' %}">
               {% csrf_token %}
@@ -252,7 +258,11 @@
               </div>
             </form>
           </div>
+          <!-- END REFERRER MODAL -->
+
         </div>
+        <!-- END SALE -->
+
       {% endfor %}
     {% else %}
       <p class="grey-text text-darken-1 no-data-message">
