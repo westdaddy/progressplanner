@@ -11,13 +11,16 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="sale",
             name="coupon_name_raw",
-            field=models.TextField(blank=True, null=True),
+            field=models.CharField(blank=True, max_length=255, null=True),
         ),
         migrations.AddField(
             model_name="sale",
             name="discount_amount",
             field=models.DecimalField(
-                blank=True, decimal_places=2, max_digits=10, null=True
+                blank=True,
+                decimal_places=2,
+                max_digits=10,
+                null=True,
             ),
         ),
         migrations.AddField(
@@ -33,19 +36,22 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="sale",
             name="is_discounted",
-            field=models.BooleanField(db_index=True, default=False),
+            field=models.BooleanField(default=False),
         ),
         migrations.AddField(
             model_name="sale",
             name="list_price",
             field=models.DecimalField(
-                blank=True, decimal_places=2, max_digits=10, null=True
+                blank=True,
+                decimal_places=2,
+                max_digits=10,
+                null=True,
             ),
         ),
         migrations.AddField(
             model_name="sale",
             name="manual_discount_flag",
-            field=models.BooleanField(default=False),
+            field=models.BooleanField(blank=True, null=True),
         ),
         migrations.AddField(
             model_name="sale",
