@@ -132,3 +132,28 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Directory to store media files
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+SALES_DISCOUNT_REASON_KEYWORDS = {
+    "platform_coupon": [
+        "淘金币",
+        "taojinbi",
+        "天猫红包",
+        "红包优惠",
+    ],
+    "shop_coupon": [
+        "店铺优惠券",
+        "店铺券",
+        "关注店铺",
+        "粉丝券",
+        "优惠券",
+    ],
+    "bundle_deal": [
+        "套装",
+        "组合优惠",
+        "第二件",
+        "2件",
+        "满减",
+        "5%",
+    ],
+}
