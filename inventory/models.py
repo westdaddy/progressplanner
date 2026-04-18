@@ -323,6 +323,19 @@ class Sale(models.Model):
     return_value = models.DecimalField(
         max_digits=10, decimal_places=2, blank=True, null=True
     )
+    seller_note = models.TextField(blank=True, null=True)
+    coupon_name_raw = models.CharField(max_length=255, blank=True, null=True)
+    product_short_name = models.CharField(max_length=255, blank=True, null=True)
+    list_price = models.DecimalField(
+        max_digits=10, decimal_places=2, blank=True, null=True
+    )
+    discount_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, blank=True, null=True
+    )
+    is_discounted = models.BooleanField(default=False)
+    discount_reasons = models.JSONField(default=list, blank=True)
+    manual_discount_flag = models.BooleanField(blank=True, null=True)
+    discount_notes = models.TextField(blank=True, null=True)
     referrer = models.ForeignKey(
         Referrer,
         on_delete=models.SET_NULL,
