@@ -354,6 +354,30 @@ def _get_sale_discount_reason_chips(sale) -> list[dict[str, str]]:
     return chips
 
 
+def _get_sale_discount_chips(sale) -> list[dict[str, str]]:
+    chips = []
+    seen_labels = set()
+
+    for index, discount in enumerate(sale.discounts.all()):
+        label = str(discount.name).strip()
+        if not label:
+            continue
+
+        normalized_key = label.casefold()
+        if normalized_key in seen_labels:
+            continue
+        seen_labels.add(normalized_key)
+
+        chips.append(
+            {
+                "label": label,
+                "tone": f"tone-{index % 6}",
+            }
+        )
+
+    return chips
+
+
 # — Helper to bucket types into our four categories —
 def _simplify_type(type_code):
     tc = (type_code or "").lower()
@@ -5440,6 +5464,7 @@ def sales_assign_referrers(request):
         sales_qs.filter(Q(return_quantity__isnull=True) | Q(return_quantity=0))
         .filter(sold_quantity__gt=0)
         .select_related("variant__product", "referrer")
+        .prefetch_related("discounts")
     )
 
     filtered_sales = []
@@ -5504,7 +5529,11 @@ def sales_assign_referrers(request):
             order_filter = filters[0]
             for clause in filters[1:]:
                 order_filter |= clause
-            all_order_sales = list(sales_qs.filter(order_filter).select_related("variant__product", "referrer"))
+            all_order_sales = list(
+                sales_qs.filter(order_filter)
+                .select_related("variant__product", "referrer")
+                .prefetch_related("discounts")
+            )
 
         sales_by_order = defaultdict(list)
         for sale in all_order_sales:
@@ -5569,6 +5598,7 @@ def sales_assign_referrers(request):
                         "return_value": return_value,
                         "is_filtered_item": sale.pk in filtered_sale_ids,
                         "discount_percentage": _calculate_sale_discount_percentage(sale),
+                        "discount_chips": _get_sale_discount_chips(sale),
                         "discount_reason_chips": _get_sale_discount_reason_chips(sale),
                     }
                 )

@@ -10,6 +10,7 @@ from .models import (
     Series,
     RestockSetting,
     Referrer,
+    Discount,
 )
 
 from datetime import datetime, timedelta, date
@@ -430,6 +431,12 @@ class RestockSettingAdmin(admin.ModelAdmin):
 class ReferrerAdmin(admin.ModelAdmin):
     list_display = ("name",)
     search_fields = ("name",)
+
+
+@admin.register(Discount)
+class DiscountAdmin(admin.ModelAdmin):
+    list_display = ("name", "code")
+    search_fields = ("name", "code")
 
 
 class OrderItemInline(admin.TabularInline):
