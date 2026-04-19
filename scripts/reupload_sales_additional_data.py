@@ -21,6 +21,24 @@ from inventory.models import Discount, ProductVariant, Sale  # noqa: E402
 logger = logging.getLogger(__name__)
 
 
+def _resolve_columns(df: pd.DataFrame) -> dict[str, str]:
+    """Map normalized column names to actual DataFrame column labels."""
+    resolved = {}
+    for column in df.columns:
+        normalized = str(column).strip().replace("\ufeff", "")
+        if normalized not in resolved:
+            resolved[normalized] = column
+    return resolved
+
+
+def _get_row_value(row, columns: dict[str, str], *aliases):
+    for alias in aliases:
+        real_key = columns.get(alias)
+        if real_key is not None:
+            return row.get(real_key)
+    return None
+
+
 def _load_dataframe(file_path: str) -> pd.DataFrame:
     """Load a spreadsheet (CSV or XLSX) into a DataFrame."""
     if file_path.lower().endswith(".csv"):
@@ -78,12 +96,18 @@ def _parse_coupon_codes(coupon_name_raw):
         return []
 
     normalized_raw = str(coupon_name_raw).replace("；", ";")
-    return [code.strip() for code in normalized_raw.split(";") if code.strip()]
+    codes = []
+    for raw_code in normalized_raw.split(";"):
+        cleaned = raw_code.strip().strip('"').strip("'").strip()
+        if cleaned:
+            codes.append(cleaned)
+    return codes
 
 
 @transaction.atomic
 def reupload_sales_additional_data(file_path: str, test: bool = False):
     df = _load_dataframe(file_path)
+    columns = _resolve_columns(df)
 
     errors = []
     stats = {
@@ -106,9 +130,9 @@ def reupload_sales_additional_data(file_path: str, test: bool = False):
             stats["processed"] += 1
 
             try:
-                order_number = _normalize_string(row.get("内部订单号"))
-                variant_code = _normalize_string(row.get("商品编码"))
-                order_date = _parse_order_date(row.get("订单日期"))
+                order_number = _normalize_string(_get_row_value(row, columns, "内部订单号"))
+                variant_code = _normalize_string(_get_row_value(row, columns, "商品编码"))
+                order_date = _parse_order_date(_get_row_value(row, columns, "订单日期"))
 
                 if not order_number or not variant_code or not order_date:
                     errors.append(
@@ -123,71 +147,78 @@ def reupload_sales_additional_data(file_path: str, test: bool = False):
                     errors.append(f"Row {index}: No ProductVariant found for code {variant_code}")
                     continue
 
-                sale = (
+                sales = list(
                     Sale.objects.filter(
                         order_number=order_number,
                         date=order_date,
                         variant=variant,
-                    )
-                    .select_for_update()
-                    .first()
+                    ).select_for_update()
                 )
 
-                if sale is None:
+                if not sales:
                     stats["skipped_no_match"] += 1
                     continue
 
-                stats["matched_sales"] += 1
+                stats["matched_sales"] += len(sales)
 
-                incoming_list_price = _parse_decimal_or_none(row.get("基本售价"))
-                incoming_seller_note = _normalize_string(row.get("卖家备注"))
-                incoming_coupon_name_raw = _normalize_string(row.get("优惠券名称"))
-
-                update_fields = []
-
-                if not _has_existing_value(sale.list_price) and incoming_list_price is not None:
-                    sale.list_price = incoming_list_price
-                    update_fields.append("list_price")
-                    stats["list_price_set"] += 1
-
-                if not _has_existing_value(sale.seller_note) and incoming_seller_note is not None:
-                    sale.seller_note = incoming_seller_note
-                    update_fields.append("seller_note")
-                    stats["seller_note_set"] += 1
-
-                if (
-                    not _has_existing_value(sale.coupon_name_raw)
-                    and incoming_coupon_name_raw is not None
-                ):
-                    sale.coupon_name_raw = incoming_coupon_name_raw
-                    update_fields.append("coupon_name_raw")
-                    stats["coupon_name_raw_set"] += 1
-
-                if update_fields:
-                    sale.save(update_fields=update_fields)
-
-                sale_changed = bool(update_fields)
+                incoming_list_price = _parse_decimal_or_none(
+                    _get_row_value(row, columns, "基本售价")
+                )
+                incoming_seller_note = _normalize_string(
+                    _get_row_value(row, columns, "卖家备注")
+                )
+                incoming_coupon_raw_value = _get_row_value(row, columns, "优惠券名称")
+                incoming_coupon_codes = _parse_coupon_codes(incoming_coupon_raw_value)
+                incoming_coupon_name_raw = _normalize_string(incoming_coupon_raw_value)
+                if incoming_coupon_name_raw is None and incoming_coupon_codes:
+                    incoming_coupon_name_raw = ";".join(incoming_coupon_codes)
 
                 matched_discounts = [
                     discount_by_code[code]
-                    for code in _parse_coupon_codes(incoming_coupon_name_raw)
+                    for code in incoming_coupon_codes
                     if code in discount_by_code
                 ]
 
-                if matched_discounts:
-                    existing_discount_ids = set(
-                        sale.discounts.values_list("id", flat=True)
-                    )
-                    discounts_to_add = [
-                        discount for discount in matched_discounts if discount.id not in existing_discount_ids
-                    ]
-                    if discounts_to_add:
-                        sale.discounts.add(*discounts_to_add)
-                        stats["discounts_added"] += len(discounts_to_add)
-                        sale_changed = True
+                for sale in sales:
+                    update_fields = []
 
-                if sale_changed:
-                    stats["updated_sales"] += 1
+                    if not _has_existing_value(sale.list_price) and incoming_list_price is not None:
+                        sale.list_price = incoming_list_price
+                        update_fields.append("list_price")
+                        stats["list_price_set"] += 1
+
+                    if not _has_existing_value(sale.seller_note) and incoming_seller_note is not None:
+                        sale.seller_note = incoming_seller_note
+                        update_fields.append("seller_note")
+                        stats["seller_note_set"] += 1
+
+                    if (
+                        not _has_existing_value(sale.coupon_name_raw)
+                        and incoming_coupon_name_raw is not None
+                    ):
+                        sale.coupon_name_raw = incoming_coupon_name_raw
+                        update_fields.append("coupon_name_raw")
+                        stats["coupon_name_raw_set"] += 1
+
+                    if update_fields:
+                        sale.save(update_fields=update_fields)
+
+                    sale_changed = bool(update_fields)
+
+                    if matched_discounts:
+                        existing_discount_ids = set(
+                            sale.discounts.values_list("id", flat=True)
+                        )
+                        discounts_to_add = [
+                            discount for discount in matched_discounts if discount.id not in existing_discount_ids
+                        ]
+                        if discounts_to_add:
+                            sale.discounts.add(*discounts_to_add)
+                            stats["discounts_added"] += len(discounts_to_add)
+                            sale_changed = True
+
+                    if sale_changed:
+                        stats["updated_sales"] += 1
 
             except Exception as exc:
                 error_message = f"Error on row {index}: {exc}"
