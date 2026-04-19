@@ -96,13 +96,14 @@ def _has_existing_value(value) -> bool:
 
 
 def _parse_coupon_codes(coupon_name_raw):
-    if coupon_name_raw is None:
+    normalized_input = _normalize_string(coupon_name_raw)
+    if normalized_input is None:
         return []
 
-    normalized_raw = str(coupon_name_raw).replace("；", ";")
+    normalized_raw = normalized_input.replace("；", ";")
     codes = []
     for raw_code in normalized_raw.split(";"):
-        cleaned = raw_code.strip().strip('"').strip("'").strip()
+        cleaned = _normalize_string(raw_code)
         if cleaned:
             codes.append(cleaned)
     return codes
@@ -190,10 +191,8 @@ def reupload_sales_additional_data(file_path: str, test: bool = False):
                     _get_row_value(row, columns, "卖家备注")
                 )
                 incoming_coupon_raw_value = _get_row_value(row, columns, "优惠券名称")
-                incoming_coupon_codes = _parse_coupon_codes(incoming_coupon_raw_value)
                 incoming_coupon_name_raw = _normalize_string(incoming_coupon_raw_value)
-                if incoming_coupon_name_raw is None and incoming_coupon_codes:
-                    incoming_coupon_name_raw = ";".join(incoming_coupon_codes)
+                incoming_coupon_codes = _parse_coupon_codes(incoming_coupon_raw_value)
 
                 matched_discounts = [
                     discount_by_code[code]
