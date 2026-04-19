@@ -64,6 +64,8 @@ def _normalize_string(value):
     if pd.isnull(value):
         return None
     text = str(value).strip()
+    if len(text) >= 2 and text[0] == text[-1] and text[0] in {'"', "'"}:
+        text = text[1:-1].strip()
     if text.lower() in {"nan", "none", "null", "nat"}:
         return None
     return text or None
@@ -106,6 +108,18 @@ def _parse_coupon_codes(coupon_name_raw):
     return codes
 
 
+def _cleanup_coupon_name_raw_placeholders() -> int:
+    cleaned_sales = []
+    for sale in Sale.objects.exclude(coupon_name_raw__isnull=True).only("sale_id", "coupon_name_raw").iterator():
+        if _normalize_string(sale.coupon_name_raw) is None:
+            sale.coupon_name_raw = None
+            cleaned_sales.append(sale)
+
+    if cleaned_sales:
+        Sale.objects.bulk_update(cleaned_sales, ["coupon_name_raw"])
+    return len(cleaned_sales)
+
+
 @transaction.atomic
 def reupload_sales_additional_data(file_path: str, test: bool = False):
     df = _load_dataframe(file_path)
@@ -131,9 +145,7 @@ def reupload_sales_additional_data(file_path: str, test: bool = False):
     try:
         # Cleanup pass required before processing new data:
         # remove legacy literal "nan" values from coupon_name_raw.
-        cleaned_count = Sale.objects.filter(coupon_name_raw__iexact="nan").update(
-            coupon_name_raw=None
-        )
+        cleaned_count = _cleanup_coupon_name_raw_placeholders()
         stats["coupon_name_raw_cleaned"] = cleaned_count
 
         for index, row in df.iterrows():
