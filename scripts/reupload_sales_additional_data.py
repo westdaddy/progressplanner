@@ -117,6 +117,7 @@ def reupload_sales_additional_data(file_path: str, test: bool = False):
         "matched_sales": 0,
         "updated_sales": 0,
         "skipped_no_match": 0,
+        "coupon_name_raw_cleaned": 0,
         "list_price_set": 0,
         "seller_note_set": 0,
         "coupon_name_raw_set": 0,
@@ -128,6 +129,13 @@ def reupload_sales_additional_data(file_path: str, test: bool = False):
     discount_by_code = {discount.code: discount for discount in Discount.objects.all()}
 
     try:
+        # Cleanup pass required before processing new data:
+        # remove legacy literal "nan" values from coupon_name_raw.
+        cleaned_count = Sale.objects.filter(coupon_name_raw__iexact="nan").update(
+            coupon_name_raw=None
+        )
+        stats["coupon_name_raw_cleaned"] = cleaned_count
+
         for index, row in df.iterrows():
             stats["processed"] += 1
 
@@ -259,7 +267,8 @@ if __name__ == "__main__":
     )
     logger.info(
         "Fields set: list_price=%(list_price_set)s, seller_note=%(seller_note_set)s, "
-        "coupon_name_raw=%(coupon_name_raw_set)s. Discounts added=%(discounts_added)s.",
+        "coupon_name_raw=%(coupon_name_raw_set)s. Discounts added=%(discounts_added)s. "
+        "Pre-cleaned coupon_name_raw='nan': %(coupon_name_raw_cleaned)s.",
         stats,
     )
 
