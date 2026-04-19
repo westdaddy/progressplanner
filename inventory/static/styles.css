@@ -1478,6 +1478,28 @@ vertical-align: middle;
   outline-offset: 2px;
 }
 
+.discount-reason-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.discount-reason-chip {
+  border: 0;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+}
+
+.discount-reason-chip.selected {
+  background-color: #00897b;
+  color: #ffffff;
+}
+
+.discount-reason-chip:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
 @media (max-width: 600px) {
   .filter-toolbar,
   .page-summary {

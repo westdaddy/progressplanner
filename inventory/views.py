@@ -54,6 +54,7 @@ from django.views.decorators.http import require_GET, require_POST, require_http
 from PIL import Image, ImageOps
 
 from .models import (
+    Discount,
     Group,
     InventorySnapshot,
     Order,
@@ -5545,6 +5546,8 @@ def sales_assign_referrers(request):
             latest_date = meta["date"]
             referrer = meta.get("referrer")
             items = []
+            order_available_discount_ids = set()
+            initialized_available_discounts = False
 
             for sale in order_sales:
                 if sale.date and latest_date:
@@ -5586,6 +5589,13 @@ def sales_assign_referrers(request):
                     }
                 )
 
+                sale_discount_ids = set(sale.discounts.values_list("id", flat=True))
+                if not initialized_available_discounts:
+                    order_available_discount_ids = sale_discount_ids
+                    initialized_available_discounts = True
+                else:
+                    order_available_discount_ids &= sale_discount_ids
+
             orders.append(
                 {
                     "order_number": order_number,
@@ -5595,6 +5605,7 @@ def sales_assign_referrers(request):
                     "retail_total": retail_total,
                     "referrer": referrer,
                     "items": items,
+                    "available_discount_ids": sorted(order_available_discount_ids),
                 }
             )
 
@@ -5632,6 +5643,7 @@ def sales_assign_referrers(request):
             "referrers": Referrer.objects.exclude(name__iexact="no_referrer").order_by(
                 "name"
             ),
+            "discount_reasons": Discount.objects.order_by("name"),
             "min_discount": min_discount,
             "max_discount": max_discount,
             "order_numbers_text": order_numbers_text,
@@ -5695,6 +5707,53 @@ def ignore_order_referrer_discount_range(request):
 
     sales_qs.update(referrer=no_referrer)
     return JsonResponse({"ok": True, "order_number": order_number})
+
+
+@require_POST
+def assign_order_discount_reason(request):
+    order_number = (request.POST.get("order_number") or "").strip()
+    if not order_number:
+        return JsonResponse({"ok": False, "error": "Missing order number"}, status=400)
+
+    discount_id = request.POST.get("discount_id")
+    if not discount_id:
+        return JsonResponse({"ok": False, "error": "Missing discount id"}, status=400)
+
+    selected_value = str(request.POST.get("selected", "")).strip().lower()
+    if selected_value not in {"1", "0", "true", "false"}:
+        return JsonResponse({"ok": False, "error": "Missing selected value"}, status=400)
+    should_select = selected_value in {"1", "true"}
+
+    discount = get_object_or_404(Discount, pk=discount_id)
+    sales_qs = Sale.objects.filter(order_number=order_number)
+    if not sales_qs.exists():
+        return JsonResponse({"ok": False, "error": "Order not found"}, status=404)
+
+    with transaction.atomic():
+        for sale in sales_qs:
+            if should_select:
+                sale.discounts.add(discount)
+            else:
+                sale.discounts.remove(discount)
+
+    refreshed_sales = (
+        Sale.objects.filter(order_number=order_number)
+        .prefetch_related("discounts")
+        .order_by("pk")
+    )
+    sale_discounts = {
+        str(sale.pk): _get_sale_discount_chips(sale) for sale in refreshed_sales
+    }
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "order_number": order_number,
+            "discount_id": discount.id,
+            "selected": should_select,
+            "sale_discounts": sale_discounts,
+        }
+    )
 
 
 # a small helper to keep (date, change) pairs

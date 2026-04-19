@@ -1246,6 +1246,115 @@ class SalesViewTests(TestCase):
         self.assertIn("sale-discount-chip-list", html)
         self.assertIn("Tao Jin Bi", html)
         self.assertIn("Tmall Red Packet", html)
+        self.assertIn("discount-reason-chip-group", html)
+
+    def test_assign_referrers_view_marks_only_shared_order_discounts_selected(self):
+        self.product.retail_price = Decimal("100")
+        self.product.save(update_fields=["retail_price"])
+        discount_one = Discount.objects.create(name="Shared", code="shared")
+        discount_two = Discount.objects.create(name="Not Shared", code="not-shared")
+        sale_one = Sale.objects.create(
+            order_number="ORDER-SHARED",
+            date=date(2024, 4, 10),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("80.00"),
+        )
+        sale_two = Sale.objects.create(
+            order_number="ORDER-SHARED",
+            date=date(2024, 4, 11),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("80.00"),
+        )
+        sale_one.discounts.add(discount_one, discount_two)
+        sale_two.discounts.add(discount_one)
+
+        response = self.client.get(
+            reverse("sales_assign_referrers"),
+            {"start_date": "2024-04-01", "end_date": "2024-04-30"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        orders = response.context["orders"]
+        self.assertEqual(len(orders), 1)
+        self.assertEqual(orders[0]["available_discount_ids"], [discount_one.id])
+
+    def test_assign_order_discount_reason_adds_discount_to_all_sales(self):
+        discount = Discount.objects.create(name="Flash Coupon", code="flash-coupon")
+        sale_one = Sale.objects.create(
+            order_number="ORDER-DISC-ADD",
+            date=date(2024, 4, 10),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("90.00"),
+        )
+        sale_two = Sale.objects.create(
+            order_number="ORDER-DISC-ADD",
+            date=date(2024, 4, 11),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("85.00"),
+        )
+
+        response = self.client.post(
+            reverse("assign_order_discount_reason"),
+            {
+                "order_number": "ORDER-DISC-ADD",
+                "discount_id": str(discount.id),
+                "selected": "1",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertTrue(payload["selected"])
+
+        sale_one.refresh_from_db()
+        sale_two.refresh_from_db()
+        self.assertIn(discount.id, sale_one.discounts.values_list("id", flat=True))
+        self.assertIn(discount.id, sale_two.discounts.values_list("id", flat=True))
+
+    def test_assign_order_discount_reason_removes_discount_from_all_sales(self):
+        discount = Discount.objects.create(name="Flash Coupon", code="flash-coupon")
+        sale_one = Sale.objects.create(
+            order_number="ORDER-DISC-REMOVE",
+            date=date(2024, 4, 10),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("90.00"),
+        )
+        sale_two = Sale.objects.create(
+            order_number="ORDER-DISC-REMOVE",
+            date=date(2024, 4, 11),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("85.00"),
+        )
+        sale_one.discounts.add(discount)
+        sale_two.discounts.add(discount)
+
+        response = self.client.post(
+            reverse("assign_order_discount_reason"),
+            {
+                "order_number": "ORDER-DISC-REMOVE",
+                "discount_id": str(discount.id),
+                "selected": "0",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertFalse(payload["selected"])
+
+        sale_one.refresh_from_db()
+        sale_two.refresh_from_db()
+        self.assertNotIn(discount.id, sale_one.discounts.values_list("id", flat=True))
+        self.assertNotIn(discount.id, sale_two.discounts.values_list("id", flat=True))
 
     def test_ignore_button_hidden_when_order_has_referrer(self):
         self.product.retail_price = Decimal("100")

@@ -34,6 +34,11 @@ urlpatterns = [
         views.ignore_order_referrer_discount_range,
         name='ignore_order_referrer_discount_range',
     ),
+    path(
+        'sales/assign-referrers/discount/',
+        views.assign_order_discount_reason,
+        name='assign_order_discount_reason',
+    ),
     path('sales/price-group/<str:bucket_key>/', views.sales_bucket_detail, name='sales_bucket_detail'),
     path(
         'sales/price-group/<str:bucket_key>/assign-referrer/',
