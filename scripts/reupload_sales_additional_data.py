@@ -64,6 +64,8 @@ def _normalize_string(value):
     if pd.isnull(value):
         return None
     text = str(value).strip()
+    if text.lower() in {"nan", "none", "null", "nat"}:
+        return None
     return text or None
 
 
