@@ -109,6 +109,7 @@
         <div class="order-block" data-order-number="{{ order.order_number }}">
           <div class="order-topline">
             <span>#{{ order.order_number }} · {{ order.date|date:"F j, Y" }}</span>
+            <!-- ACTIONS -->
             <span class="order-topline__actions">
               {% if order.referrer %}
                 <a href="#referrer-modal-{{ forloop.counter }}" class="modal-trigger order-topline__action order-topline__action--edit">
@@ -118,18 +119,14 @@
                 </a>
               {% else %}
                 <a href="#referrer-modal-{{ forloop.counter }}" class="modal-trigger order-topline__action">
-                  Referrer: Add
+                  Add referrer
                 </a>
                 <span class="order-topline__separator">|</span>
-                <button
-                  type="button"
-                  class="order-topline__action order-topline__action--no-referrer ignore-order-button"
-                  data-order-number="{{ order.order_number }}"
-                >
-                  None
-                </button>
+                <a href="">Add Discounts</a>
               {% endif %}
             </span>
+            <!-- END ACTIONS -->
+
           </div>
 
           <!-- SALE ITEMS TABLE -->
