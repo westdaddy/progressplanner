@@ -72,25 +72,6 @@
           </div>
           <!-- END DISCOUNT SLIDER -->
 
-          <!-- CHECKBOXES -->
-          <div class="card-panel filter-card filter-card--compact" >
-            <p class="filter-card__title">Options</p>
-            <p>
-              <input type="hidden" name="exclude_no_referrer" value="0" />
-              <label>
-                <input
-                  type="checkbox"
-                  class="filled-in"
-                  name="exclude_no_referrer"
-                  value="1"
-                  {% if exclude_no_referrer %}checked{% endif %}
-                />
-                <span>Exclude no referrer</span>
-              </label>
-            </p>
-          </div>
-          <!-- END CHECKBOXES-->
-
         </div>
       </form>
     </div>
@@ -119,11 +100,7 @@
                 </a>
               {% else %}
                 <a href="#referrer-modal-{{ forloop.counter }}" class="modal-trigger order-topline__action">
-                  Add referrer
-                </a>
-                <span class="order-topline__separator">|</span>
-                <a href="#discount-modal-{{ forloop.counter }}" class="modal-trigger order-topline__action">
-                  Add discounts
+                  Add Referrer
                 </a>
               {% endif %}
             </span>
@@ -311,48 +288,6 @@
       var modalElems = document.querySelectorAll('.modal');
       M.Modal.init(modalElems);
 
-      var bindIgnoreButton = function(button) {
-        if (!button || button.dataset.ignoreBound === '1') {
-          return;
-        }
-        button.dataset.ignoreBound = '1';
-        button.addEventListener('click', function() {
-          var orderNumber = button.dataset.orderNumber || '';
-          if (!orderNumber || button.disabled) {
-            return;
-          }
-
-          button.disabled = true;
-          fetch("{% url 'ignore_order_referrer_discount_range' %}", {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-              'X-CSRFToken': getCookie('csrftoken'),
-              'X-Requested-With': 'XMLHttpRequest',
-            },
-            body: new URLSearchParams({ order_number: orderNumber }).toString(),
-          })
-            .then(function(response) {
-              if (!response.ok) {
-                throw new Error('Request failed');
-              }
-              return response.json();
-            })
-            .then(function(data) {
-              if (!data.ok) {
-                throw new Error(data.error || 'Unable to ignore order');
-              }
-              var orderBlock = button.closest('.order-block');
-              if (orderBlock) {
-                orderBlock.remove();
-              }
-            })
-            .catch(function() {
-              button.disabled = false;
-            });
-        });
-      };
-
       var chipGroups = document.querySelectorAll('.referrer-chip-group');
       chipGroups.forEach(function(group) {
         var chips = group.querySelectorAll('.referrer-chip');
@@ -434,13 +369,8 @@
                       + '<span class="sr-only">Edit referrer</span>'
                       + '</a>';
                   } else {
-                    var orderNumber = orderBlock.dataset.orderNumber || '';
                     actionsContainer.innerHTML =
-                      '<a href="' + escapeHtml(modalHref) + '" class="modal-trigger order-topline__action">Referrer: Add</a>'
-                      + '<span class="order-topline__separator">|</span>'
-                      + '<button type="button" class="order-topline__action order-topline__action--no-referrer ignore-order-button" data-order-number="'
-                      + escapeHtml(orderNumber) + '">None</button>';
-                    bindIgnoreButton(actionsContainer.querySelector('.ignore-order-button'));
+                      '<a href="' + escapeHtml(modalHref) + '" class="modal-trigger order-topline__action">Add Referrer</a>';
                   }
                 }
               }
