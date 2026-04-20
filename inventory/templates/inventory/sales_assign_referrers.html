@@ -101,15 +101,10 @@
                 <span class="order-topline__separator">|</span>
               {% else %}
                 <a href="#referrer-modal-{{ forloop.counter }}" class="modal-trigger order-topline__action">
-<<<<<<< HEAD
                   Add referrer
                 </a>
                 <span class="order-topline__separator">|</span>
 
-=======
-                  Add Referrer
-                </a>
->>>>>>> de85abee597d52d12f821d3d1c9e8632c47241b2
               {% endif %}
               <a href="#discount-modal-{{ forloop.counter }}" class="modal-trigger order-topline__action">
                 Add discounts
@@ -189,7 +184,7 @@
                     {% if item.discount_chips %}
                       <div class="sale-discount-chip-list">
                         {% for discount in item.discount_chips %}
-                          <span class="sale-discount-chip" style="--discount-chip-color: {{ discount.color|default:'#9E9E9E' }};">{{ discount.label }}</span>
+                          <span class="sale-discount-chip {{ discount.tone }}">{{ discount.label }}</span>
                         {% endfor %}
                       </div>
                     {% endif %}
@@ -414,7 +409,7 @@
         }
         var html = '<div class="sale-discount-chip-list">';
         chips.forEach(function(chip) {
-          html += '<span class="sale-discount-chip" style="--discount-chip-color: ' + escapeHtml(chip.color || '#9E9E9E') + ';">'
+          html += '<span class="sale-discount-chip ' + escapeHtml(chip.tone || '') + '">'
             + escapeHtml(chip.label || '')
             + '</span>';
         });
