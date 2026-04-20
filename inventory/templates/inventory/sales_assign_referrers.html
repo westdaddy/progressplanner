@@ -22,6 +22,13 @@
             Showing: {{ start_date|date:"M j Y" }} to {{ end_date|date:"M j Y" }}
             |
             {{ min_discount }}%–{{ max_discount }}%
+            {% if selected_discount_types %}
+              |
+              Types:
+              {% for code in selected_discount_types %}
+                <span class="chip">{{ code }}</span>
+              {% endfor %}
+            {% endif %}
             |
             <strong>{{ orders_count }}</strong> order{{ orders_count|pluralize }}
             |
@@ -71,6 +78,25 @@
             </div>
           </div>
           <!-- END DISCOUNT SLIDER -->
+          <div class="card-panel filter-card filter-card--compact">
+            <p class="filter-card__title">Discount type</p>
+            <div class="filter-toolbar__field">
+              {% for code, label in discount_type_filters %}
+                <p style="margin:4px 0;">
+                  <label>
+                    <input type="checkbox" name="discount_type" value="{{ code }}" {% if code in selected_discount_types %}checked{% endif %} />
+                    <span>{{ label }}</span>
+                  </label>
+                </p>
+              {% endfor %}
+            </div>
+            <div class="filter-toolbar__field">
+              <span class="grey-text text-darken-1">Presets:</span>
+              <button type="button" class="btn-flat js-discount-preset" data-min="10" data-max="50">Default</button>
+              <button type="button" class="btn-flat js-discount-preset" data-min="25" data-max="50">Wholesale</button>
+              <button type="button" class="btn-flat js-discount-preset" data-min="0" data-max="100">All</button>
+            </div>
+          </div>
 
         </div>
       </form>
@@ -78,6 +104,20 @@
 
     <div class="filter-divider"></div>
     <!-- END FILTER BAR -->
+    <div class="card-panel blue lighten-5">
+      <h6 class="grey-text text-darken-2" style="margin-top: 0;">Discount scope summary</h6>
+      <p>Total orders in current scope: <strong>{{ discount_scope_summary.total_orders }}</strong></p>
+      <table class="striped">
+        <thead><tr><th>Discount type</th><th>Orders</th><th>Percent</th></tr></thead>
+        <tbody>
+          {% for row in discount_scope_summary.rows %}
+            <tr><td>{{ row.label }}</td><td>{{ row.order_count }}</td><td>{{ row.percentage|floatformat:2 }}%</td></tr>
+          {% empty %}
+            <tr><td colspan="3" class="grey-text">No rows in current filter scope.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
 
     <div class="card-panel">
       <label for="orderNumbersText" class="active">Order numbers (copy list)</label>
@@ -558,6 +598,16 @@
           updateLabel(maxInput);
         });
       }
+      document.querySelectorAll('.js-discount-preset').forEach(function(button) {
+        button.addEventListener('click', function() {
+          if (!minInput || !maxInput) {
+            return;
+          }
+          minInput.value = button.dataset.min || minInput.value;
+          maxInput.value = button.dataset.max || maxInput.value;
+          updateLabel(maxInput);
+        });
+      });
       updateLabel();
 
       var ignoreButtons = document.querySelectorAll('.ignore-order-button');
