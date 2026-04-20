@@ -11,6 +11,7 @@ from .models import (
     RestockSetting,
     Referrer,
     Discount,
+    DiscountChipSetting,
 )
 
 from datetime import datetime, timedelta, date
@@ -397,6 +398,21 @@ class SeriesAdmin(admin.ModelAdmin):
 @admin.register(RestockSetting)
 class RestockSettingAdmin(admin.ModelAdmin):
     filter_horizontal = ("groups",)
+
+
+
+
+@admin.register(DiscountChipSetting)
+class DiscountChipSettingAdmin(admin.ModelAdmin):
+    list_display = ("id", "updated_at")
+    fields = ("palette", "discount_color_map", "updated_at")
+    readonly_fields = ("updated_at",)
+
+    def has_add_permission(self, request):
+        return not DiscountChipSetting.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(Referrer)

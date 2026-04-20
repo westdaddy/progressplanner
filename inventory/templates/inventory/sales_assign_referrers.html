@@ -201,7 +201,7 @@
                     {% if item.discount_chips %}
                       <div class="sale-discount-chip-list">
                         {% for discount in item.discount_chips %}
-                          <span class="sale-discount-chip {{ discount.tone }}">{{ discount.label }}</span>
+                          <span class="sale-discount-chip" style="--discount-chip-color: {{ discount.color|default:'#9E9E9E' }};">{{ discount.label }}</span>
                         {% endfor %}
                       </div>
                     {% endif %}
@@ -473,7 +473,7 @@
         }
         var html = '<div class="sale-discount-chip-list">';
         chips.forEach(function(chip) {
-          html += '<span class="sale-discount-chip ' + escapeHtml(chip.tone || '') + '">'
+          html += '<span class="sale-discount-chip" style="--discount-chip-color: ' + escapeHtml(chip.color || '#9E9E9E') + ';">'
             + escapeHtml(chip.label || '')
             + '</span>';
         });
