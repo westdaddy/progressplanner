@@ -1249,10 +1249,6 @@ vertical-align: middle;
   gap: 6px;
 }
 
-.order-topline__action--no-referrer {
-  color: #e53935;
-}
-
 .order-topline__separator {
   color: #9e9e9e;
 }

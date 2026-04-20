@@ -4365,7 +4365,6 @@ def sales(request):
 
     top_referrers = list(
         sales_qs.filter(referrer__isnull=False)
-        .exclude(referrer__name__iexact="no_referrer")
         .values("referrer_id", "referrer__name")
         .annotate(
             total_sales=Coalesce(
@@ -4785,9 +4784,7 @@ def referrers_overview(request):
 
     start_date, end_date = _get_sales_date_range(request)
 
-    referrers = list(
-        Referrer.objects.exclude(name__iexact="no_referrer").order_by("name")
-    )
+    referrers = list(Referrer.objects.order_by("name"))
 
     net_sales_expression = ExpressionWrapper(
         Coalesce("sold_value", Value(Decimal("0")))
@@ -5431,19 +5428,10 @@ def sales_assign_referrers(request):
     start_date, end_date = _get_sales_date_range(request)
     min_discount = _parse_discount_percent(request.GET.get("min_discount"), default=10)
     max_discount = _parse_discount_percent(request.GET.get("max_discount"), default=50)
-    exclude_no_referrer = request.GET.get("exclude_no_referrer", "1") != "0"
     if min_discount > max_discount:
         min_discount, max_discount = max_discount, min_discount
 
     sales_qs = Sale.objects.filter(date__range=(start_date, end_date))
-
-    ignored_order_numbers = set()
-    if exclude_no_referrer:
-        ignored_order_numbers = set(
-            sales_qs.filter(referrer__name__iexact="no_referrer").values_list(
-                "order_number", flat=True
-            )
-        )
 
     eligible_sales = (
         sales_qs.filter(Q(return_quantity__isnull=True) | Q(return_quantity=0))
@@ -5463,9 +5451,6 @@ def sales_assign_referrers(request):
     max_discount_decimal = Decimal(str(max_discount))
 
     for sale in eligible_sales:
-        if sale.order_number in ignored_order_numbers:
-            continue
-
         discount_percentage = _calculate_sale_discount_percentage(sale)
         if discount_percentage is None:
             continue
@@ -5622,7 +5607,6 @@ def sales_assign_referrers(request):
             "end_date": end_date.isoformat(),
             "min_discount": min_discount,
             "max_discount": max_discount,
-            "exclude_no_referrer": "1" if exclude_no_referrer else "0",
         }
     )
 
@@ -5640,14 +5624,11 @@ def sales_assign_referrers(request):
                 "actual_value": total_actual_value,
             },
             "date_querystring": date_querystring,
-            "referrers": Referrer.objects.exclude(name__iexact="no_referrer").order_by(
-                "name"
-            ),
+            "referrers": Referrer.objects.order_by("name"),
             "discount_reasons": Discount.objects.order_by("name"),
             "min_discount": min_discount,
             "max_discount": max_discount,
             "order_numbers_text": order_numbers_text,
-            "exclude_no_referrer": exclude_no_referrer,
         },
     )
 
@@ -5698,14 +5679,7 @@ def ignore_order_referrer_discount_range(request):
     if not sales_qs.exists():
         return JsonResponse({"ok": False, "error": "Order not found"}, status=404)
 
-    no_referrer = Referrer.objects.filter(name__iexact="no_referrer").first()
-    if not no_referrer:
-        return JsonResponse(
-            {"ok": False, "error": "Referrer 'no_referrer' not found"},
-            status=400,
-        )
-
-    sales_qs.update(referrer=no_referrer)
+    sales_qs.update(referrer=None)
     return JsonResponse({"ok": True, "order_number": order_number})
 
 
