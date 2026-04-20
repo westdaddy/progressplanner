@@ -117,15 +117,17 @@
                   <i class="material-icons tiny" aria-hidden="true">edit</i>
                   <span class="sr-only">Edit referrer</span>
                 </a>
+                <span class="order-topline__separator">|</span>
               {% else %}
                 <a href="#referrer-modal-{{ forloop.counter }}" class="modal-trigger order-topline__action">
                   Add referrer
                 </a>
                 <span class="order-topline__separator">|</span>
-                <a href="#discount-modal-{{ forloop.counter }}" class="modal-trigger order-topline__action">
-                  Add discounts
-                </a>
+
               {% endif %}
+              <a href="#discount-modal-{{ forloop.counter }}" class="modal-trigger order-topline__action">
+                Add discounts
+              </a>
             </span>
             <!-- END ACTIONS -->
 
