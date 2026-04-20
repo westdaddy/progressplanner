@@ -316,6 +316,115 @@ def _parse_discount_percent(param: Optional[str], default: int) -> int:
     return min(100, max(0, value))
 
 
+NO_REFERRER_FILTER_VALUE = "no_referrer"
+
+
+def _available_discount_type_filters() -> list[tuple[str, str]]:
+    return [
+        *Referrer.CATEGORY_CHOICES,
+        (NO_REFERRER_FILTER_VALUE, "No referrer"),
+    ]
+
+
+def _parse_discount_type_filters(request) -> list[str]:
+    allowed = {code for code, _label in _available_discount_type_filters()}
+    selected = []
+    for code in request.GET.getlist("discount_type"):
+        normalized = (code or "").strip()
+        if normalized in allowed and normalized not in selected:
+            selected.append(normalized)
+    return selected
+
+
+def _apply_discount_filters_to_sales_queryset(
+    sales_qs,
+    *,
+    min_discount: Optional[int] = None,
+    max_discount: Optional[int] = None,
+    selected_discount_types: Optional[list[str]] = None,
+):
+    selected_discount_types = selected_discount_types or []
+    filtered_qs = sales_qs
+
+    if selected_discount_types:
+        referrer_categories = [
+            discount_type
+            for discount_type in selected_discount_types
+            if discount_type != NO_REFERRER_FILTER_VALUE
+        ]
+        include_no_referrer = NO_REFERRER_FILTER_VALUE in selected_discount_types
+
+        type_filters = Q()
+        if referrer_categories:
+            type_filters |= Q(referrer__category__in=referrer_categories)
+        if include_no_referrer:
+            type_filters |= Q(referrer__isnull=True)
+        if type_filters:
+            filtered_qs = filtered_qs.filter(type_filters)
+
+    if min_discount is None and max_discount is None:
+        return filtered_qs
+
+    min_discount = 0 if min_discount is None else min_discount
+    max_discount = 100 if max_discount is None else max_discount
+    if min_discount > max_discount:
+        min_discount, max_discount = max_discount, min_discount
+
+    retail_total_expression = ExpressionWrapper(
+        F("variant__product__retail_price") * F("sold_quantity"),
+        output_field=DecimalField(max_digits=14, decimal_places=2),
+    )
+    discount_percentage_expression = ExpressionWrapper(
+        (
+            retail_total_expression
+            - Coalesce(F("sold_value"), Value(Decimal("0.00"), output_field=DecimalField()))
+        )
+        * Value(Decimal("100.00"), output_field=DecimalField())
+        / retail_total_expression,
+        output_field=DecimalField(max_digits=8, decimal_places=2),
+    )
+
+    filtered_qs = (
+        filtered_qs.filter(sold_quantity__gt=0, variant__product__retail_price__gt=0)
+        .annotate(discount_percentage_value=discount_percentage_expression)
+        .filter(
+            discount_percentage_value__gte=Decimal(str(min_discount)),
+            discount_percentage_value__lte=Decimal(str(max_discount)),
+        )
+    )
+    return filtered_qs
+
+
+def _get_discount_type_summary_rows(filtered_sales_qs) -> tuple[int, list[dict[str, Any]]]:
+    discount_type_expression = Case(
+        When(referrer__isnull=True, then=Value(NO_REFERRER_FILTER_VALUE)),
+        default=Coalesce(F("referrer__category"), Value(NO_REFERRER_FILTER_VALUE)),
+    )
+    summary_rows = list(
+        filtered_sales_qs.annotate(discount_type=discount_type_expression)
+        .values("discount_type")
+        .annotate(order_count=Count("order_number", distinct=True))
+        .order_by("discount_type")
+    )
+    total_orders = sum(row["order_count"] for row in summary_rows)
+
+    label_map = {code: label for code, label in _available_discount_type_filters()}
+    rows = []
+    for row in summary_rows:
+        order_count = row["order_count"] or 0
+        percentage = (Decimal(order_count) / Decimal(total_orders) * Decimal("100")) if total_orders else Decimal("0")
+        rows.append(
+            {
+                "type": row["discount_type"],
+                "label": label_map.get(row["discount_type"], row["discount_type"]),
+                "order_count": order_count,
+                "percentage": percentage.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
+            }
+        )
+    rows.sort(key=lambda summary: summary["order_count"], reverse=True)
+    return total_orders, rows
+
+
 def _get_sale_discount_chips(sale) -> list[dict[str, str]]:
     return [
         {"label": chip.label, "color": chip.color}
@@ -4258,10 +4367,21 @@ def sales(request):
     """Render the sales page with basic order metrics for a date range."""
 
     start_date, end_date = _get_sales_date_range(request)
+    selected_discount_types = _parse_discount_type_filters(request)
+    min_discount = _parse_discount_percent(request.GET.get("min_discount"), default=0)
+    max_discount = _parse_discount_percent(request.GET.get("max_discount"), default=100)
+    if min_discount > max_discount:
+        min_discount, max_discount = max_discount, min_discount
 
     sales_qs = Sale.objects.filter(date__range=(start_date, end_date))
+    filtered_sales_qs = _apply_discount_filters_to_sales_queryset(
+        sales_qs,
+        min_discount=min_discount,
+        max_discount=max_discount,
+        selected_discount_types=selected_discount_types,
+    )
 
-    orders_count = sales_qs.values("order_number").distinct().count()
+    orders_count = filtered_sales_qs.values("order_number").distinct().count()
 
     net_quantity_expr = ExpressionWrapper(
         F("sold_quantity")
@@ -4269,7 +4389,7 @@ def sales(request):
         output_field=IntegerField(),
     )
     total_items = (
-        sales_qs.aggregate(
+        filtered_sales_qs.aggregate(
             total_items=Coalesce(
                 Sum(net_quantity_expr), Value(0, output_field=IntegerField())
             )
@@ -4289,7 +4409,7 @@ def sales(request):
     }
 
     eligible_sales = (
-        sales_qs.filter(Q(return_quantity__isnull=True) | Q(return_quantity=0))
+        filtered_sales_qs.filter(Q(return_quantity__isnull=True) | Q(return_quantity=0))
         .filter(sold_quantity__gt=0)
         .select_related("variant__product")
     )
@@ -4315,7 +4435,7 @@ def sales(request):
         bucket["actual_value"] for bucket in price_breakdown
     )
 
-    value_aggregates = sales_qs.aggregate(
+    value_aggregates = filtered_sales_qs.aggregate(
         gross_sales=Sum("sold_value"),
         returns_total=Sum("return_value"),
     )
@@ -4325,6 +4445,7 @@ def sales(request):
 
     top_referrers = list(
         sales_qs.filter(referrer__isnull=False)
+        .filter(pk__in=filtered_sales_qs.values("pk"))
         .values("referrer_id", "referrer__name")
         .annotate(
             total_sales=Coalesce(
@@ -4361,12 +4482,14 @@ def sales(request):
         for bucket in price_breakdown:
             bucket["actual_percentage"] = Decimal("0")
 
-    date_querystring = urlencode(
-        {
-            "start_date": start_date.isoformat(),
-            "end_date": end_date.isoformat(),
-        }
-    )
+    date_query_items = [
+        ("start_date", start_date.isoformat()),
+        ("end_date", end_date.isoformat()),
+        ("min_discount", min_discount),
+        ("max_discount", max_discount),
+    ]
+    date_query_items.extend(("discount_type", discount_type) for discount_type in selected_discount_types)
+    date_querystring = urlencode(date_query_items, doseq=True)
 
     has_custom_range = bool(
         _parse_sales_date(request.GET.get("start_date"))
@@ -4381,6 +4504,12 @@ def sales(request):
         )
     insights_sales = Sale.objects.filter(
         date__range=(insights_start, insights_end)
+    )
+    insights_sales = _apply_discount_filters_to_sales_queryset(
+        insights_sales,
+        min_discount=min_discount,
+        max_discount=max_discount,
+        selected_discount_types=selected_discount_types,
     ).select_related("variant__product")
     insights_has_data = insights_sales.exists()
 
@@ -4546,6 +4675,9 @@ def sales(request):
         "#c0ca33",
         "#f06292",
     ]
+    total_orders_in_scope, discount_type_summary = _get_discount_type_summary_rows(
+        filtered_sales_qs
+    )
 
     context = {
         "start_date": start_date,
@@ -4577,6 +4709,14 @@ def sales(request):
         "group_chart_labels": json.dumps(group_labels),
         "group_chart_values": json.dumps(group_values),
         "group_chart_colors": json.dumps(group_palette),
+        "discount_type_filters": _available_discount_type_filters(),
+        "selected_discount_types": selected_discount_types,
+        "min_discount": min_discount,
+        "max_discount": max_discount,
+        "discount_scope_summary": {
+            "total_orders": total_orders_in_scope,
+            "rows": discount_type_summary,
+        },
     }
 
     return render(request, "inventory/sales.html", context)
@@ -5399,12 +5539,17 @@ def sales_assign_referrers(request):
     max_discount = _parse_discount_percent(request.GET.get("max_discount"), default=50)
     if min_discount > max_discount:
         min_discount, max_discount = max_discount, min_discount
+    selected_discount_types = _parse_discount_type_filters(request)
 
     sales_qs = Sale.objects.filter(date__range=(start_date, end_date))
-
+    eligible_sales = _apply_discount_filters_to_sales_queryset(
+        sales_qs.filter(Q(return_quantity__isnull=True) | Q(return_quantity=0)),
+        min_discount=min_discount,
+        max_discount=max_discount,
+        selected_discount_types=selected_discount_types,
+    ).filter(sold_quantity__gt=0)
     eligible_sales = (
-        sales_qs.filter(Q(return_quantity__isnull=True) | Q(return_quantity=0))
-        .filter(sold_quantity__gt=0)
+        eligible_sales
         .select_related("variant__product", "referrer")
         .prefetch_related("discounts")
     )
@@ -5416,16 +5561,7 @@ def sales_assign_referrers(request):
     total_retail_value = Decimal("0")
     total_actual_value = Decimal("0")
 
-    min_discount_decimal = Decimal(str(min_discount))
-    max_discount_decimal = Decimal(str(max_discount))
-
     for sale in eligible_sales:
-        discount_percentage = _calculate_sale_discount_percentage(sale)
-        if discount_percentage is None:
-            continue
-        if discount_percentage < min_discount_decimal or discount_percentage > max_discount_decimal:
-            continue
-
         filtered_sales.append(sale)
         filtered_sale_ids.add(sale.pk)
 
@@ -5570,13 +5706,16 @@ def sales_assign_referrers(request):
         if order.get("order_number") is not None and str(order.get("order_number")).strip()
     )
 
-    date_querystring = urlencode(
-        {
-            "start_date": start_date.isoformat(),
-            "end_date": end_date.isoformat(),
-            "min_discount": min_discount,
-            "max_discount": max_discount,
-        }
+    date_query_items = [
+        ("start_date", start_date.isoformat()),
+        ("end_date", end_date.isoformat()),
+        ("min_discount", min_discount),
+        ("max_discount", max_discount),
+    ]
+    date_query_items.extend(("discount_type", discount_type) for discount_type in selected_discount_types)
+    date_querystring = urlencode(date_query_items, doseq=True)
+    total_orders_in_scope, discount_type_summary = _get_discount_type_summary_rows(
+        eligible_sales
     )
 
     return render(
@@ -5598,6 +5737,12 @@ def sales_assign_referrers(request):
             "min_discount": min_discount,
             "max_discount": max_discount,
             "order_numbers_text": order_numbers_text,
+            "discount_type_filters": _available_discount_type_filters(),
+            "selected_discount_types": selected_discount_types,
+            "discount_scope_summary": {
+                "total_orders": total_orders_in_scope,
+                "rows": discount_type_summary,
+            },
         },
     )
 

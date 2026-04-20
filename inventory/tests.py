@@ -771,6 +771,101 @@ class SalesViewTests(TestCase):
         self.assertEqual(response.context["net_sales_value"], Decimal("75"))
         self.assertTrue(response.context["has_sales_data"])
 
+    def test_sales_discount_filters_support_type_and_percentage_ranges(self):
+        self.product.retail_price = Decimal("100")
+        self.product.save(update_fields=["retail_price"])
+        gym_referrer = Referrer.objects.create(
+            name="Gym Partner", category=Referrer.CATEGORY_GYM_CODE
+        )
+        wholesale_referrer = Referrer.objects.create(
+            name="Wholesale Partner", category=Referrer.CATEGORY_WHOLESALE
+        )
+        Sale.objects.create(
+            order_number="GYM-20",
+            date=date(2024, 4, 10),
+            variant=self.variant,
+            referrer=gym_referrer,
+            sold_quantity=1,
+            sold_value=Decimal("80.00"),  # 20%
+        )
+        Sale.objects.create(
+            order_number="WHOLE-30",
+            date=date(2024, 4, 10),
+            variant=self.variant,
+            referrer=wholesale_referrer,
+            sold_quantity=1,
+            sold_value=Decimal("70.00"),  # 30%
+        )
+
+        response = self.client.get(
+            reverse("sales"),
+            {
+                "start_date": "2024-04-01",
+                "end_date": "2024-04-30",
+                "min_discount": "15",
+                "max_discount": "25",
+                "discount_type": [Referrer.CATEGORY_GYM_CODE],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["orders_count"], 1)
+        self.assertEqual(response.context["discount_scope_summary"]["total_orders"], 1)
+        self.assertEqual(
+            response.context["discount_scope_summary"]["rows"][0]["type"],
+            Referrer.CATEGORY_GYM_CODE,
+        )
+
+    def test_sales_discount_summary_percentages_use_active_filters(self):
+        self.product.retail_price = Decimal("100")
+        self.product.save(update_fields=["retail_price"])
+        gym_referrer = Referrer.objects.create(
+            name="Gym 1", category=Referrer.CATEGORY_GYM_CODE
+        )
+        wholesale_referrer = Referrer.objects.create(
+            name="Wholesale 1", category=Referrer.CATEGORY_WHOLESALE
+        )
+        Sale.objects.create(
+            order_number="GYM-A",
+            date=date(2024, 4, 11),
+            variant=self.variant,
+            referrer=gym_referrer,
+            sold_quantity=1,
+            sold_value=Decimal("90.00"),
+        )
+        Sale.objects.create(
+            order_number="WHOLE-A",
+            date=date(2024, 4, 11),
+            variant=self.variant,
+            referrer=wholesale_referrer,
+            sold_quantity=1,
+            sold_value=Decimal("70.00"),
+        )
+        Sale.objects.create(
+            order_number="WHOLE-B",
+            date=date(2024, 4, 12),
+            variant=self.variant,
+            referrer=wholesale_referrer,
+            sold_quantity=1,
+            sold_value=Decimal("75.00"),
+        )
+
+        response = self.client.get(
+            reverse("sales"),
+            {"start_date": "2024-04-01", "end_date": "2024-04-30"},
+        )
+        self.assertEqual(response.status_code, 200)
+        summary_rows = {
+            row["type"]: row for row in response.context["discount_scope_summary"]["rows"]
+        }
+        self.assertEqual(response.context["discount_scope_summary"]["total_orders"], 3)
+        self.assertEqual(summary_rows[Referrer.CATEGORY_GYM_CODE]["order_count"], 1)
+        self.assertEqual(summary_rows[Referrer.CATEGORY_WHOLESALE]["order_count"], 2)
+        self.assertEqual(
+            summary_rows[Referrer.CATEGORY_WHOLESALE]["percentage"],
+            Decimal("66.67"),
+        )
+
     def test_sales_includes_top_five_referrers_by_value(self):
         referrers = [
             Referrer.objects.create(name="Alpha"),
@@ -1062,6 +1157,52 @@ class SalesViewTests(TestCase):
         self.assertEqual(response.context["max_discount"], 50)
         self.assertEqual(response.context["orders_count"], 1)
         self.assertEqual(response.context["orders"][0]["order_number"], "IN-RANGE")
+
+    def test_assign_referrers_view_filters_by_discount_type_and_updates_summary(self):
+        self.product.retail_price = Decimal("100")
+        self.product.save(update_fields=["retail_price"])
+        gym_referrer = Referrer.objects.create(
+            name="Gym Assign", category=Referrer.CATEGORY_GYM_CODE
+        )
+        wholesale_referrer = Referrer.objects.create(
+            name="Wholesale Assign", category=Referrer.CATEGORY_WHOLESALE
+        )
+        Sale.objects.create(
+            order_number="ASSIGN-GYM",
+            date=date(2024, 4, 5),
+            variant=self.variant,
+            referrer=gym_referrer,
+            sold_quantity=1,
+            sold_value=Decimal("80.00"),
+        )
+        Sale.objects.create(
+            order_number="ASSIGN-WHOLE",
+            date=date(2024, 4, 6),
+            variant=self.variant,
+            referrer=wholesale_referrer,
+            sold_quantity=1,
+            sold_value=Decimal("70.00"),
+        )
+
+        response = self.client.get(
+            reverse("sales_assign_referrers"),
+            {
+                "start_date": "2024-04-01",
+                "end_date": "2024-04-30",
+                "min_discount": "15",
+                "max_discount": "35",
+                "discount_type": [Referrer.CATEGORY_GYM_CODE],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["orders_count"], 1)
+        self.assertEqual(response.context["orders"][0]["order_number"], "ASSIGN-GYM")
+        self.assertEqual(response.context["discount_scope_summary"]["total_orders"], 1)
+        self.assertEqual(
+            response.context["discount_scope_summary"]["rows"][0]["percentage"],
+            Decimal("100.00"),
+        )
 
     def test_assign_referrer_discount_range_updates_all_sales(self):
         referrer = Referrer.objects.create(
