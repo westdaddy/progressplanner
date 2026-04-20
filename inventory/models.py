@@ -1,7 +1,9 @@
 from datetime import date
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Iterable, Optional
 
 from django.db import models
+from django.core.exceptions import ValidationError
 
 # ---------------------------------------------------------------------------
 # Choice constants shared by Product and ProductVariant
@@ -301,7 +303,22 @@ class ProductVariant(models.Model):
 
 
 class Referrer(models.Model):
+    CATEGORY_OTHER = "other"
+    CATEGORY_GYM_CODE = "gym_code"
+    CATEGORY_WHOLESALE = "wholesale"
+    CATEGORY_CHOICES = [
+        (CATEGORY_OTHER, "Other"),
+        (CATEGORY_GYM_CODE, "Gym code"),
+        (CATEGORY_WHOLESALE, "Wholesale"),
+    ]
+
     name = models.CharField(max_length=255, unique=True)
+    category = models.CharField(
+        max_length=32,
+        choices=CATEGORY_CHOICES,
+        default=CATEGORY_OTHER,
+        db_index=True,
+    )
 
     class Meta:
         ordering = ["name"]
@@ -386,11 +403,130 @@ class Sale(models.Model):
         blank=True,
         null=True,
     )
+    manual_discount_locked = models.BooleanField(
+        default=False,
+        help_text="Keep existing sale pricing when assigning/changing referrer discount rules.",
+    )
+
+    REFERRER_DISCOUNT_RULES = {
+        Referrer.CATEGORY_GYM_CODE: {
+            "default_percent": Decimal("10"),
+            "minimum_percent": Decimal("10"),
+            "enforce_exact_default": True,
+        },
+        Referrer.CATEGORY_WHOLESALE: {
+            "default_percent": Decimal("25"),
+            "minimum_percent": Decimal("25"),
+            "enforce_exact_default": False,
+        },
+    }
 
     def __str__(self):
         return (
             f"Sale {self.sale_id} - Variant {self.variant.variant_code} on {self.date}"
         )
+
+    def calculate_discount_percentage(self) -> Optional[Decimal]:
+        sold_quantity = self.sold_quantity or 0
+        if sold_quantity <= 0:
+            return None
+
+        retail_price = self.variant.product.retail_price or Decimal("0")
+        if retail_price <= 0:
+            return None
+
+        actual_total = self.sold_value or Decimal("0")
+        actual_unit_price = actual_total / sold_quantity
+        discount_percentage = ((retail_price - actual_unit_price) / retail_price) * Decimal("100")
+        return discount_percentage.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+    def get_referrer_discount_rule(self, referrer: Optional["Referrer"] = None) -> Optional[dict]:
+        active_referrer = referrer if referrer is not None else self.referrer
+        if not active_referrer:
+            return None
+        return self.REFERRER_DISCOUNT_RULES.get(active_referrer.category)
+
+    def apply_referrer_discount_policy(
+        self,
+        *,
+        referrer: Optional["Referrer"] = None,
+        clear_referrer: bool = False,
+        manual_discount_locked: Optional[bool] = None,
+        save: bool = True,
+    ) -> bool:
+        if manual_discount_locked is not None:
+            self.manual_discount_locked = bool(manual_discount_locked)
+        if clear_referrer:
+            self.referrer = None
+        elif referrer is not None:
+            self.referrer = referrer
+
+        if self.manual_discount_locked:
+            if save:
+                self.full_clean()
+                self.save(update_fields=["referrer", "manual_discount_locked"])
+            return False
+
+        rule = self.get_referrer_discount_rule()
+        if not rule:
+            if save:
+                self.full_clean()
+                self.save(update_fields=["referrer", "manual_discount_locked"])
+            return False
+
+        sold_quantity = self.sold_quantity or 0
+        retail_price = self.variant.product.retail_price or Decimal("0")
+        if sold_quantity <= 0 or retail_price <= 0:
+            if save:
+                self.full_clean()
+                self.save(update_fields=["referrer", "manual_discount_locked"])
+            return False
+
+        current_discount = self.calculate_discount_percentage() or Decimal("0")
+        default_percent = rule["default_percent"]
+        minimum_percent = rule["minimum_percent"]
+        if rule.get("enforce_exact_default"):
+            target_discount = default_percent
+        else:
+            target_discount = max(current_discount, default_percent, minimum_percent)
+
+        multiplier = (Decimal("100") - target_discount) / Decimal("100")
+        target_total = (retail_price * sold_quantity * multiplier).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+
+        updated = (self.sold_value != target_total) or (referrer is not None)
+        self.sold_value = target_total
+        if save:
+            self.full_clean()
+            self.save(update_fields=["referrer", "sold_value", "manual_discount_locked"])
+        return updated
+
+    def clean(self):
+        super().clean()
+        if not self.referrer or self.manual_discount_locked:
+            return
+
+        rule = self.get_referrer_discount_rule()
+        if not rule:
+            return
+
+        discount_percentage = self.calculate_discount_percentage()
+        if discount_percentage is None:
+            return
+
+        minimum = rule["minimum_percent"]
+        if discount_percentage < minimum:
+            raise ValidationError(
+                {"sold_value": f"{self.referrer.get_category_display()} referrer requires at least {minimum}% discount."}
+            )
+
+        if rule.get("enforce_exact_default"):
+            default_percent = rule["default_percent"]
+            if discount_percentage != default_percent:
+                raise ValidationError(
+                    {"sold_value": f"{self.referrer.get_category_display()} referrer requires exactly {default_percent}% discount unless manually locked."}
+                )
 
 
 class InventorySnapshot(models.Model):

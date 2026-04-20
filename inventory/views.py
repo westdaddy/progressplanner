@@ -5373,8 +5373,17 @@ def assign_order_referrer(request, bucket_key: str):
     referrer = None
     if referrer_id:
         referrer = get_object_or_404(Referrer, pk=referrer_id)
+    manual_discount_locked = str(request.POST.get("manual_discount_locked", "")).strip().lower() in {
+        "1",
+        "true",
+        "on",
+    }
 
-    sales_qs.update(referrer=referrer)
+    for sale in sales_qs.select_related("variant__product", "referrer"):
+        sale.apply_referrer_discount_policy(
+            referrer=referrer,
+            manual_discount_locked=manual_discount_locked,
+        )
 
     redirect_url = reverse("sales_bucket_detail", args=[bucket_key])
     date_querystring = request.POST.get("date_querystring")
@@ -5607,8 +5616,17 @@ def assign_order_referrer_discount_range(request):
     referrer = None
     if referrer_id:
         referrer = get_object_or_404(Referrer, pk=referrer_id)
+    manual_discount_locked = str(request.POST.get("manual_discount_locked", "")).strip().lower() in {
+        "1",
+        "true",
+        "on",
+    }
 
-    sales_qs.update(referrer=referrer)
+    for sale in sales_qs.select_related("variant__product", "referrer"):
+        sale.apply_referrer_discount_policy(
+            referrer=referrer,
+            manual_discount_locked=manual_discount_locked,
+        )
 
     is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     if is_ajax:
@@ -5618,6 +5636,7 @@ def assign_order_referrer_discount_range(request):
                 "order_number": order_number,
                 "referrer_id": referrer.id if referrer else None,
                 "referrer_name": referrer.name if referrer else "",
+                "manual_discount_locked": manual_discount_locked,
             }
         )
 
@@ -5639,7 +5658,8 @@ def ignore_order_referrer_discount_range(request):
     if not sales_qs.exists():
         return JsonResponse({"ok": False, "error": "Order not found"}, status=404)
 
-    sales_qs.update(referrer=None)
+    for sale in sales_qs.select_related("variant__product", "referrer"):
+        sale.apply_referrer_discount_policy(clear_referrer=True, manual_discount_locked=False)
     return JsonResponse({"ok": True, "order_number": order_number})
 
 
