@@ -175,7 +175,7 @@
                 />
                 {% if referrers %}
                   <p class="grey-text text-darken-1 modal-helper-text">
-                    Select a referrer below.
+                    Select a referrer below. Gym code defaults to 10% discount, wholesale enforces minimum 25%.
                   </p>
                 {% else %}
                   <p class="grey-text text-darken-1 modal-helper-text">
@@ -186,6 +186,7 @@
                   <div
                     class="chip referrer-chip {% if not order.referrer %}selected{% endif %}"
                     data-referrer-id=""
+                    data-referrer-category=""
                     tabindex="0"
                   >
                     No referrer
@@ -194,12 +195,19 @@
                     <div
                       class="chip referrer-chip {% if order.referrer and order.referrer.id == referrer.id %}selected{% endif %}"
                       data-referrer-id="{{ referrer.id }}"
+                      data-referrer-category="{{ referrer.category }}"
                       tabindex="0"
                     >
                       {{ referrer.name }}
                     </div>
                   {% endfor %}
                 </div>
+                <p>
+                  <label>
+                    <input type="checkbox" name="manual_discount_locked" value="1" />
+                    <span>Keep existing custom discount (lock discount for this assignment)</span>
+                  </label>
+                </p>
               </div>
               <div class="modal-footer">
                 <button
