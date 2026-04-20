@@ -345,7 +345,13 @@ class SaleAdmin(admin.ModelAdmin):
             form = AssignReferrerForm(request.POST)
             if form.is_valid():
                 referrer = form.cleaned_data["referrer"]
-                updated = queryset.update(referrer=referrer)
+                updated = 0
+                for sale in queryset.select_related("variant__product", "referrer"):
+                    sale.apply_referrer_discount_policy(
+                        referrer=referrer,
+                        manual_discount_locked=False,
+                    )
+                    updated += 1
                 self.message_user(
                     request,
                     f"Successfully assigned {referrer} to {updated} sale(s).",

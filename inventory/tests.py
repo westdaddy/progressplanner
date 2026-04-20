@@ -15,6 +15,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.exceptions import ValidationError
 
 from PIL import Image
 
@@ -1063,7 +1064,11 @@ class SalesViewTests(TestCase):
         self.assertEqual(response.context["orders"][0]["order_number"], "IN-RANGE")
 
     def test_assign_referrer_discount_range_updates_all_sales(self):
-        referrer = Referrer.objects.create(name="Referrer A")
+        referrer = Referrer.objects.create(
+            name="Referrer A", category=Referrer.CATEGORY_GYM_CODE
+        )
+        self.product.retail_price = Decimal("100")
+        self.product.save(update_fields=["retail_price"])
         first_sale = Sale.objects.create(
             order_number="ASSIGN-RANGE",
             date=date(2024, 4, 5),
@@ -1098,6 +1103,109 @@ class SalesViewTests(TestCase):
         second_sale.refresh_from_db()
         self.assertEqual(first_sale.referrer, referrer)
         self.assertEqual(second_sale.referrer, referrer)
+        self.assertEqual(first_sale.sold_value, Decimal("90.00"))
+        self.assertEqual(second_sale.sold_value, Decimal("90.00"))
+
+    def test_wholesale_referrer_enforces_minimum_discount(self):
+        wholesale_referrer = Referrer.objects.create(
+            name="Wholesale Partner", category=Referrer.CATEGORY_WHOLESALE
+        )
+        self.product.retail_price = Decimal("100")
+        self.product.save(update_fields=["retail_price"])
+        sale = Sale.objects.create(
+            order_number="WHOLESALE-MIN",
+            date=date(2024, 4, 5),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("90.00"),  # 10%, below wholesale minimum.
+        )
+
+        response = self.client.post(
+            reverse("assign_order_referrer_discount_range"),
+            {"order_number": "WHOLESALE-MIN", "referrer_id": str(wholesale_referrer.id)},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        sale.refresh_from_db()
+        self.assertEqual(sale.referrer, wholesale_referrer)
+        self.assertEqual(sale.sold_value, Decimal("75.00"))
+
+    def test_editing_referrer_reapplies_discount_policy(self):
+        gym_referrer = Referrer.objects.create(
+            name="Gym Affiliate", category=Referrer.CATEGORY_GYM_CODE
+        )
+        wholesale_referrer = Referrer.objects.create(
+            name="Wholesale Partner 2", category=Referrer.CATEGORY_WHOLESALE
+        )
+        self.product.retail_price = Decimal("100")
+        self.product.save(update_fields=["retail_price"])
+        sale = Sale.objects.create(
+            order_number="EDIT-REFERRER",
+            date=date(2024, 4, 8),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("100.00"),
+        )
+
+        self.client.post(
+            reverse("assign_order_referrer_discount_range"),
+            {"order_number": "EDIT-REFERRER", "referrer_id": str(gym_referrer.id)},
+        )
+        sale.refresh_from_db()
+        self.assertEqual(sale.sold_value, Decimal("90.00"))
+
+        self.client.post(
+            reverse("assign_order_referrer_discount_range"),
+            {"order_number": "EDIT-REFERRER", "referrer_id": str(wholesale_referrer.id)},
+        )
+        sale.refresh_from_db()
+        self.assertEqual(sale.referrer, wholesale_referrer)
+        self.assertEqual(sale.sold_value, Decimal("75.00"))
+
+    def test_locked_discount_is_not_overridden_by_referrer_policy(self):
+        gym_referrer = Referrer.objects.create(
+            name="Gym Lock Test", category=Referrer.CATEGORY_GYM_CODE
+        )
+        self.product.retail_price = Decimal("100")
+        self.product.save(update_fields=["retail_price"])
+        sale = Sale.objects.create(
+            order_number="LOCK-ORDER",
+            date=date(2024, 4, 12),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("80.00"),
+        )
+
+        self.client.post(
+            reverse("assign_order_referrer_discount_range"),
+            {
+                "order_number": "LOCK-ORDER",
+                "referrer_id": str(gym_referrer.id),
+                "manual_discount_locked": "1",
+            },
+        )
+        sale.refresh_from_db()
+        self.assertEqual(sale.referrer, gym_referrer)
+        self.assertTrue(sale.manual_discount_locked)
+        self.assertEqual(sale.sold_value, Decimal("80.00"))
+
+    def test_server_side_validation_rejects_wholesale_discount_below_minimum(self):
+        wholesale_referrer = Referrer.objects.create(
+            name="Wholesale Validation", category=Referrer.CATEGORY_WHOLESALE
+        )
+        self.product.retail_price = Decimal("100")
+        self.product.save(update_fields=["retail_price"])
+        sale = Sale(
+            order_number="VALIDATION-ORDER",
+            date=date(2024, 4, 12),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("90.00"),  # 10% only
+            referrer=wholesale_referrer,
+        )
+
+        with self.assertRaises(ValidationError):
+            sale.full_clean()
 
     def test_assign_referrer_discount_range_ajax_returns_json(self):
         referrer = Referrer.objects.create(name="Referrer Ajax")
