@@ -769,7 +769,6 @@ class SalesViewTests(TestCase):
         self.assertTrue(response.context["has_sales_data"])
 
     def test_sales_includes_top_five_referrers_by_value(self):
-        no_referrer = Referrer.objects.create(name="no_referrer")
         referrers = [
             Referrer.objects.create(name="Alpha"),
             Referrer.objects.create(name="Beta"),
@@ -779,22 +778,13 @@ class SalesViewTests(TestCase):
             Referrer.objects.create(name="Zeta"),
         ]
 
-        Sale.objects.create(
-            order_number="NO-REF",
-            date=date(2024, 4, 9),
-            variant=self.variant,
-            referrer=no_referrer,
-            sold_quantity=1,
-            sold_value=Decimal("999"),
-        )
-
         totals = [
+            Decimal("999"),
             Decimal("500"),
             Decimal("420"),
             Decimal("300"),
             Decimal("200"),
             Decimal("100"),
-            Decimal("50"),
         ]
         for index, referrer in enumerate(referrers):
             Sale.objects.create(
@@ -819,7 +809,7 @@ class SalesViewTests(TestCase):
         )
         self.assertEqual(
             [row["total_sales"] for row in top_referrers],
-            [Decimal("500"), Decimal("420"), Decimal("300"), Decimal("200"), Decimal("100")],
+            [Decimal("999"), Decimal("500"), Decimal("420"), Decimal("300"), Decimal("200")],
         )
 
     def test_price_breakdown_categorises_sales(self):
@@ -1135,10 +1125,10 @@ class SalesViewTests(TestCase):
         sale.refresh_from_db()
         self.assertEqual(sale.referrer, referrer)
 
-    def test_assign_referrers_view_excludes_orders_marked_no_referrer(self):
+    def test_assign_referrers_view_keeps_orders_with_assigned_referrers(self):
         self.product.retail_price = Decimal("100")
         self.product.save(update_fields=["retail_price"])
-        no_referrer = Referrer.objects.create(name="no_referrer")
+        assigned_referrer = Referrer.objects.create(name="Assigned")
 
         Sale.objects.create(
             order_number="VISIBLE",
@@ -1148,12 +1138,12 @@ class SalesViewTests(TestCase):
             sold_value=Decimal("80.00"),
         )
         Sale.objects.create(
-            order_number="IGNORED",
+            order_number="ASSIGNED",
             date=date(2024, 4, 7),
             variant=self.variant,
             sold_quantity=1,
             sold_value=Decimal("80.00"),
-            referrer=no_referrer,
+            referrer=assigned_referrer,
         )
 
         response = self.client.get(
@@ -1163,17 +1153,18 @@ class SalesViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         order_numbers = [order["order_number"] for order in response.context["orders"]]
-        self.assertEqual(order_numbers, ["VISIBLE"])
-        self.assertEqual(list(response.context["referrers"]), [])
+        self.assertEqual(order_numbers, ["ASSIGNED", "VISIBLE"])
+        self.assertEqual(list(response.context["referrers"]), [assigned_referrer])
 
-    def test_ignore_order_endpoint_sets_no_referrer(self):
-        no_referrer = Referrer.objects.create(name="no_referrer")
+    def test_ignore_order_endpoint_clears_referrer(self):
+        assigned_referrer = Referrer.objects.create(name="Assigned")
         sale_one = Sale.objects.create(
             order_number="IGNORE-1",
             date=date(2024, 4, 10),
             variant=self.variant,
             sold_quantity=1,
             sold_value=Decimal("90.00"),
+            referrer=assigned_referrer,
         )
         sale_two = Sale.objects.create(
             order_number="IGNORE-1",
@@ -1181,6 +1172,7 @@ class SalesViewTests(TestCase):
             variant=self.variant,
             sold_quantity=2,
             sold_value=Decimal("150.00"),
+            referrer=assigned_referrer,
         )
 
         response = self.client.post(
@@ -1193,8 +1185,8 @@ class SalesViewTests(TestCase):
 
         sale_one.refresh_from_db()
         sale_two.refresh_from_db()
-        self.assertEqual(sale_one.referrer, no_referrer)
-        self.assertEqual(sale_two.referrer, no_referrer)
+        self.assertIsNone(sale_one.referrer)
+        self.assertIsNone(sale_two.referrer)
 
     def test_assign_referrers_view_provides_space_separated_order_number_list(self):
         self.product.retail_price = Decimal("100")
@@ -1356,41 +1348,6 @@ class SalesViewTests(TestCase):
         self.assertNotIn(discount.id, sale_one.discounts.values_list("id", flat=True))
         self.assertNotIn(discount.id, sale_two.discounts.values_list("id", flat=True))
 
-    def test_ignore_button_hidden_when_order_has_referrer(self):
-        self.product.retail_price = Decimal("100")
-        self.product.save(update_fields=["retail_price"])
-        referrer = Referrer.objects.create(name="Coach")
-
-        Sale.objects.create(
-            order_number="ORDER-WITH-REF",
-            date=date(2024, 4, 10),
-            variant=self.variant,
-            sold_quantity=1,
-            sold_value=Decimal("80.00"),
-            referrer=referrer,
-        )
-        Sale.objects.create(
-            order_number="ORDER-NO-REF",
-            date=date(2024, 4, 11),
-            variant=self.variant,
-            sold_quantity=1,
-            sold_value=Decimal("80.00"),
-        )
-
-        response = self.client.get(
-            reverse("sales_assign_referrers"),
-            {"start_date": "2024-04-01", "end_date": "2024-04-30"},
-        )
-
-        self.assertEqual(response.status_code, 200)
-        html = response.content.decode("utf-8")
-        self.assertEqual(
-            html.count(
-                'class="order-topline__action order-topline__action--no-referrer ignore-order-button"'
-            ),
-            1,
-        )
-
     def test_discount_slider_renders_single_track_with_endpoints(self):
         self.product.retail_price = Decimal("100")
         self.product.save(update_fields=["retail_price"])
@@ -1416,7 +1373,7 @@ class SalesViewTests(TestCase):
         self.assertIn(">0%</span>", html)
         self.assertIn(">100%</span>", html)
 
-    def test_order_topline_actions_use_add_and_no_referrer_labels(self):
+    def test_order_topline_actions_use_add_referrer_label(self):
         self.product.retail_price = Decimal("100")
         self.product.save(update_fields=["retail_price"])
         Sale.objects.create(
@@ -1435,8 +1392,7 @@ class SalesViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         html = response.content.decode("utf-8")
         self.assertIn("Add Referrer", html)
-        self.assertIn("No Referrer", html)
-        self.assertIn('class="order-topline__separator">|</span>', html)
+        self.assertNotIn("No Referrer", html)
 
     def test_order_topline_shows_assigned_referrer_name(self):
         self.product.retail_price = Decimal("100")
@@ -1458,7 +1414,7 @@ class SalesViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         html = response.content.decode("utf-8")
-        self.assertIn("Referrer: Coach Sora", html)
+        self.assertIn("Coach Sora", html)
         self.assertNotIn("Add Referrer", html)
         self.assertNotIn("No Referrer", html)
 
@@ -1813,15 +1769,15 @@ class ReferrersOverviewViewTests(TestCase):
         self.assertEqual(rows[0]["total_items"], 2)
         self.assertEqual(rows[0]["total_sales"], Decimal("160.00"))
 
-    def test_overview_excludes_no_referrer_row(self):
-        no_referrer = Referrer.objects.create(name="no_referrer")
+    def test_overview_includes_all_named_referrers(self):
+        legacy_named_referrer = Referrer.objects.create(name="Legacy Placeholder")
         Sale.objects.create(
             order_number="NO-REF-100",
             date=date(2024, 4, 3),
             variant=self.variant,
             sold_quantity=4,
             sold_value=Decimal("400.00"),
-            referrer=no_referrer,
+            referrer=legacy_named_referrer,
         )
         Sale.objects.create(
             order_number="ALPHA-100",
@@ -1839,8 +1795,11 @@ class ReferrersOverviewViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         rows = response.context["referrer_rows"]
-        self.assertEqual([row["referrer"] for row in rows], [self.alpha, self.beta])
-        self.assertEqual(response.context["totals"]["sales"], Decimal("180.00"))
+        self.assertEqual(
+            [row["referrer"] for row in rows],
+            [legacy_named_referrer, self.alpha, self.beta],
+        )
+        self.assertEqual(response.context["totals"]["sales"], Decimal("580.00"))
 
 
 class ReferrerDetailViewTests(TestCase):
