@@ -321,6 +321,42 @@ class Discount(models.Model):
         return self.name
 
 
+class DiscountChipSetting(models.Model):
+    """Singleton-ish settings for discount chip color mapping."""
+
+    palette = models.JSONField(default=list, blank=True)
+    discount_color_map = models.JSONField(default=dict, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Discount Chip Setting"
+        verbose_name_plural = "Settings"
+
+    def save(self, *args, **kwargs):
+        if not self.palette:
+            self.palette = [
+                "#1E88E5",
+                "#43A047",
+                "#FB8C00",
+                "#8E24AA",
+                "#E53935",
+                "#00897B",
+                "#5E35B1",
+                "#3949AB",
+                "#6D4C41",
+                "#039BE5",
+                "#7CB342",
+                "#F4511E",
+                "#546E7A",
+                "#C2185B",
+                "#FDD835",
+            ]
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return "Discount chip colors"
+
+
 class Sale(models.Model):
     sale_id = models.AutoField(primary_key=True)
     order_number = models.CharField(max_length=50, db_index=True)  # the 内部订单号

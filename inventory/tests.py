@@ -29,6 +29,7 @@ from .models import (
     RestockSetting,
     Referrer,
     Discount,
+    DiscountChipSetting,
 )
 from django.urls import reverse
 from .admin import SaleAdmin, SaleDateEqualsFilter
@@ -38,6 +39,7 @@ from .utils import (
     calculate_variant_sales_speed,
     get_category_speed_stats,
 )
+from .discount_chip_colors import resolve_discount_chip_colors
 from .views import (
     PRODUCT_CANVAS_MAX_DIMENSION,
     DEFAULT_PRODUCT_IMAGE,
@@ -2327,3 +2329,40 @@ class SaleDiscountRelationshipTests(TestCase):
             sale.discounts.values_list("code", flat=True),
             ["taojinbi", "天猫红包优惠"],
         )
+
+
+class DiscountChipColorResolverTests(TestCase):
+    def test_color_resolution_is_deterministic_by_discount_code(self):
+        first = Discount.objects.create(name="A Discount", code="code_a")
+        second = Discount.objects.create(name="B Discount", code="code_b")
+
+        first_pass = resolve_discount_chip_colors([second, first])
+        second_pass = resolve_discount_chip_colors([first, second])
+
+        first_lookup = {chip.label: chip.color for chip in first_pass}
+        second_lookup = {chip.label: chip.color for chip in second_pass}
+
+        self.assertEqual(first_lookup["A Discount"], second_lookup["A Discount"])
+        self.assertEqual(first_lookup["B Discount"], second_lookup["B Discount"])
+
+    def test_mapping_is_persisted_for_future_sessions(self):
+        discount = Discount.objects.create(name="VIP", code="vip")
+
+        resolve_discount_chip_colors([discount])
+        setting = DiscountChipSetting.objects.get()
+        self.assertIn("vip", setting.discount_color_map)
+
+        stored_color = setting.discount_color_map["vip"]
+        chips = resolve_discount_chip_colors([discount])
+
+        self.assertEqual(chips[0].color, stored_color)
+
+    def test_unknown_or_blank_discount_code_uses_neutral_color(self):
+        class AnonymousDiscount:
+            name = "Unknown"
+            code = ""
+
+        chips = resolve_discount_chip_colors([AnonymousDiscount()])
+
+        self.assertEqual(len(chips), 1)
+        self.assertEqual(chips[0].color, "#9E9E9E")

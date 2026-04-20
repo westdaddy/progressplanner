@@ -77,6 +77,7 @@ from .models import (
     get_type_choices_for_styles,
     get_subtype_choices_for_types,
 )
+from .discount_chip_colors import resolve_discount_chip_colors
 from .utils import (
     calculate_size_order_mix,
     compute_safe_stock,
@@ -316,51 +317,10 @@ def _parse_discount_percent(param: Optional[str], default: int) -> int:
 
 
 def _get_sale_discount_chips(sale) -> list[dict[str, str]]:
-    chips = []
-    seen_labels = set()
-
-    for index, discount in enumerate(sale.discounts.all()):
-        label = str(discount.name).strip()
-        if not label:
-            continue
-
-        normalized_key = label.casefold()
-        if normalized_key in seen_labels:
-            continue
-        seen_labels.add(normalized_key)
-
-        chips.append(
-            {
-                "label": label,
-                "tone": f"tone-{index % 6}",
-            }
-        )
-
-    return chips
-
-
-def _get_sale_discount_chips(sale) -> list[dict[str, str]]:
-    chips = []
-    seen_labels = set()
-
-    for index, discount in enumerate(sale.discounts.all()):
-        label = str(discount.name).strip()
-        if not label:
-            continue
-
-        normalized_key = label.casefold()
-        if normalized_key in seen_labels:
-            continue
-        seen_labels.add(normalized_key)
-
-        chips.append(
-            {
-                "label": label,
-                "tone": f"tone-{index % 6}",
-            }
-        )
-
-    return chips
+    return [
+        {"label": chip.label, "color": chip.color}
+        for chip in resolve_discount_chip_colors(sale.discounts.all())
+    ]
 
 
 # — Helper to bucket types into our four categories —
