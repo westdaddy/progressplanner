@@ -213,6 +213,11 @@ main {
   color: #c62828;
 }
 
+.signal-badge--no-restock {
+  background: #f3e5f5;
+  color: #6a1b9a;
+}
+
 .signal-card__body {
   display: none;
 }
@@ -227,6 +232,8 @@ main {
 .signal-card__status-row {
   display: flex;
   justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
   margin-bottom: 8px;
 }
 
