@@ -2909,6 +2909,15 @@ def product_toggle_no_restock(request, product_id: int):
 
     product.save(update_fields=["no_restock"])
 
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse(
+            {
+                "no_restock": product.no_restock,
+                "next_no_restock": "0" if product.no_restock else "1",
+                "label": "Undo no restock" if product.no_restock else "No restock",
+            }
+        )
+
     redirect_querystring = request.POST.get("redirect_querystring", "").strip()
     redirect_url = reverse("product_filtered")
     if redirect_querystring:

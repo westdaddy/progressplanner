@@ -110,16 +110,20 @@
           </div>
           <div class="row" style="margin-bottom: 0;">
             <div class="col s12" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-              {% if product.no_restock %}
-                <span class="signal-badge signal-badge--no-restock">No restock</span>
-              {% endif %}
-              <form method="post" action="{% url 'product_toggle_no_restock' product.id %}">
+              <span
+                class="signal-badge signal-badge--no-restock"
+                data-no-restock-badge
+                {% if not product.no_restock %}hidden{% endif %}
+              >
+                No restock
+              </span>
+              <form method="post" action="{% url 'product_toggle_no_restock' product.id %}" data-no-restock-form>
                 {% csrf_token %}
                 {% if request.GET.urlencode %}
                   <input type="hidden" name="redirect_querystring" value="{{ request.GET.urlencode }}">
                 {% endif %}
                 <input type="hidden" name="no_restock" value="{% if product.no_restock %}0{% else %}1{% endif %}">
-                <button type="submit" class="btn-small {% if product.no_restock %}grey lighten-1{% else %}orange lighten-1{% endif %}">
+                <button type="submit" class="btn-small {% if product.no_restock %}grey lighten-1{% else %}orange lighten-1{% endif %}" data-no-restock-submit>
                   {% if product.no_restock %}Undo no restock{% else %}No restock{% endif %}
                 </button>
               </form>

@@ -98,21 +98,25 @@
                   <span class="signal-badge signal-badge--{{ product.status_signal|default:'monitor'|slugify }}">
                     {{ product.status_signal|default:"Monitor" }}
                   </span>
-                  {% if product.no_restock %}
-                    <span class="signal-badge signal-badge--no-restock">No restock</span>
-                  {% endif %}
+                  <span
+                    class="signal-badge signal-badge--no-restock"
+                    data-no-restock-badge
+                    {% if not product.no_restock %}hidden{% endif %}
+                  >
+                    No restock
+                  </span>
                 </div>
 
                 <div class="signal-splits">
                   <p class="signal-line"><span class="signal-label">Quality</span> <strong>{{ product.stock_quality_signal|default:"Mixed" }}</strong></p>
                 </div>
-                <form method="post" action="{% url 'product_toggle_no_restock' product.id %}" style="margin-top: 12px;">
+                <form method="post" action="{% url 'product_toggle_no_restock' product.id %}" style="margin-top: 12px;" data-no-restock-form>
                   {% csrf_token %}
                   {% if request.GET.urlencode %}
                     <input type="hidden" name="redirect_querystring" value="{{ request.GET.urlencode }}">
                   {% endif %}
                   <input type="hidden" name="no_restock" value="{% if product.no_restock %}0{% else %}1{% endif %}">
-                  <button type="submit" class="btn-small {% if product.no_restock %}grey lighten-1{% else %}orange lighten-1{% endif %}">
+                  <button type="submit" class="btn-small {% if product.no_restock %}grey lighten-1{% else %}orange lighten-1{% endif %}" data-no-restock-submit>
                     {% if product.no_restock %}Undo no restock{% else %}No restock{% endif %}
                   </button>
                 </form>
