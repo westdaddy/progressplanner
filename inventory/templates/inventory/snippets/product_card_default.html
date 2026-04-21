@@ -108,6 +108,23 @@
               <p class="metric-value">¥{{ product.average_cost_price|floatformat:2|default_if_none:"-" }}</p>
             </div>
           </div>
+          <div class="row" style="margin-bottom: 0;">
+            <div class="col s12" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              {% if product.no_restock %}
+                <span class="signal-badge signal-badge--no-restock">No restock</span>
+              {% endif %}
+              <form method="post" action="{% url 'product_toggle_no_restock' product.id %}">
+                {% csrf_token %}
+                {% if request.GET.urlencode %}
+                  <input type="hidden" name="redirect_querystring" value="{{ request.GET.urlencode }}">
+                {% endif %}
+                <input type="hidden" name="no_restock" value="{% if product.no_restock %}0{% else %}1{% endif %}">
+                <button type="submit" class="btn-small {% if product.no_restock %}grey lighten-1{% else %}orange lighten-1{% endif %}">
+                  {% if product.no_restock %}Undo no restock{% else %}No restock{% endif %}
+                </button>
+              </form>
+            </div>
+          </div>
         </div>
       </div>
     </li>
