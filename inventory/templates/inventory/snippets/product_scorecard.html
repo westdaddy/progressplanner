@@ -120,6 +120,52 @@
                     {% if product.no_restock %}Undo no restock{% else %}No restock{% endif %}
                   </button>
                 </form>
+
+                <form method="post" action="{% url 'product_decommission' product.id %}" style="margin-top: 8px;">
+                  {% csrf_token %}
+                  {% if request.GET.urlencode %}
+                    <input type="hidden" name="redirect_querystring" value="{{ request.GET.urlencode }}">
+                  {% endif %}
+                  <input type="hidden" name="decommissioned" value="{% if product.decommissioned %}0{% else %}1{% endif %}">
+                  <button type="submit" class="btn-small {% if product.decommissioned %}blue-grey lighten-1{% else %}red lighten-1{% endif %}">
+                    {% if product.decommissioned %}Undo decommission{% else %}Decommission{% endif %}
+                  </button>
+                </form>
+
+                {% if not product.decommissioned and product.total_inventory|default:0 > 0 %}
+                  <form method="post" action="{% url 'product_decommission' product.id %}" style="margin-top: 6px;">
+                    {% csrf_token %}
+                    {% if request.GET.urlencode %}
+                      <input type="hidden" name="redirect_querystring" value="{{ request.GET.urlencode }}">
+                    {% endif %}
+                    <input type="hidden" name="decommissioned" value="1">
+                    <input type="hidden" name="force" value="true">
+                    <button type="submit" class="btn-small red darken-2">
+                      Force decommission ({{ product.total_inventory|default:0 }} in stock)
+                    </button>
+                  </form>
+                {% endif %}
+
+                {% if request.GET.decommission_product == product.id|stringformat:"s" %}
+                  {% if request.GET.decommission_notice == "blocked_stock" %}
+                    <p class="orange-text text-darken-3" style="margin-top: 8px;">
+                      Blocked: {{ request.GET.decommission_stock|default:"0" }} units in stock. Use force decommission to continue.
+                    </p>
+                  {% elif request.GET.decommission_notice == "retired" %}
+                    <p class="green-text text-darken-2" style="margin-top: 8px;">Product marked as decommissioned.</p>
+                  {% elif request.GET.decommission_notice == "reinstated" %}
+                    <p class="green-text text-darken-2" style="margin-top: 8px;">Product restored from decommissioned state.</p>
+                  {% endif %}
+                {% endif %}
+
+                <div style="margin-top: 8px;">
+                  <a
+                    class="btn-flat teal-text text-darken-2"
+                    href="{% url 'product_filtered' %}?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}show_retired=true"
+                  >
+                    Show retired
+                  </a>
+                </div>
               </div>
           </div>
           <!-- END ACTIONS SECTION -->

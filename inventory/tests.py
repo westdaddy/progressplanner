@@ -2615,3 +2615,82 @@ class DiscountChipColorResolverTests(TestCase):
 
         self.assertEqual(len(chips), 1)
         self.assertEqual(chips[0].color, "#9E9E9E")
+
+
+class ProductDecommissionWorkflowTests(TestCase):
+    def setUp(self):
+        self.product = Product.objects.create(product_id="P-DEC", product_name="Decom Product")
+        self.variant = ProductVariant.objects.create(
+            product=self.product,
+            variant_code="P-DEC-S",
+            primary_color="#111111",
+        )
+        self.url = reverse("product_decommission", args=[self.product.id])
+
+    def test_decommission_blocks_when_stock_exists_without_force(self):
+        InventorySnapshot.objects.create(
+            product_variant=self.variant,
+            date=date.today(),
+            inventory_count=7,
+        )
+
+        response = self.client.post(
+            self.url,
+            {"decommissioned": "1", "redirect_querystring": "style_filter=ng"},
+        )
+
+        self.product.refresh_from_db()
+        self.assertFalse(self.product.decommissioned)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("style_filter=ng", response["Location"])
+        self.assertIn("decommission_notice=blocked_stock", response["Location"])
+        self.assertIn("decommission_stock=7", response["Location"])
+
+    def test_decommission_allows_force_when_stock_exists(self):
+        InventorySnapshot.objects.create(
+            product_variant=self.variant,
+            date=date.today(),
+            inventory_count=3,
+        )
+
+        response = self.client.post(
+            self.url,
+            {"decommissioned": "1", "force": "true", "redirect_querystring": "style_filter=ng"},
+        )
+
+        self.product.refresh_from_db()
+        self.assertTrue(self.product.decommissioned)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("style_filter=ng", response["Location"])
+        self.assertIn("decommission_notice=retired", response["Location"])
+
+    def test_decommission_allows_when_latest_inventory_is_zero(self):
+        old_date = date.today() - timedelta(days=30)
+        InventorySnapshot.objects.create(
+            product_variant=self.variant,
+            date=old_date,
+            inventory_count=5,
+        )
+        InventorySnapshot.objects.create(
+            product_variant=self.variant,
+            date=date.today(),
+            inventory_count=0,
+        )
+
+        response = self.client.post(self.url, {"decommissioned": "1"})
+
+        self.product.refresh_from_db()
+        self.assertTrue(self.product.decommissioned)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("decommission_notice=retired", response["Location"])
+
+    def test_undo_decommission_restores_product(self):
+        self.product.decommissioned = True
+        self.product.save(update_fields=["decommissioned"])
+
+        response = self.client.post(self.url, {"decommissioned": "0"})
+
+        self.product.refresh_from_db()
+        self.assertFalse(self.product.decommissioned)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("decommission_notice=reinstated", response["Location"])

@@ -7,7 +7,7 @@ from collections import defaultdict, namedtuple, OrderedDict
 import calendar
 import statistics
 import math
-from urllib.parse import urlencode
+from urllib.parse import urlencode, parse_qsl
 import logging
 from io import BytesIO
 import os
@@ -2924,6 +2924,68 @@ def product_toggle_no_restock(request, product_id: int):
         redirect_url = f"{redirect_url}?{redirect_querystring}"
 
     return redirect(redirect_url)
+
+
+def _redirect_to_product_filtered_with_query(redirect_querystring: str, **extra_params):
+    redirect_url = reverse("product_filtered")
+    query_items = []
+
+    if redirect_querystring:
+        query_items.extend(parse_qsl(redirect_querystring, keep_blank_values=True))
+
+    for key, value in extra_params.items():
+        if value is not None:
+            query_items.append((key, str(value)))
+
+    if query_items:
+        redirect_url = f"{redirect_url}?{urlencode(query_items, doseq=True)}"
+
+    return redirect(redirect_url)
+
+
+@require_POST
+def product_decommission(request, product_id: int):
+    product = get_object_or_404(Product, pk=product_id)
+    redirect_querystring = request.POST.get("redirect_querystring", "").strip()
+
+    explicit_state = request.POST.get("decommissioned")
+    if explicit_state is None:
+        should_decommission = not product.decommissioned
+    else:
+        should_decommission = explicit_state.lower() in {"1", "true", "yes", "on"}
+
+    if should_decommission:
+        latest_snapshot = (
+            InventorySnapshot.objects.filter(product_variant=OuterRef("pk"))
+            .order_by("-date")
+            .values("inventory_count")[:1]
+        )
+        total_inventory = (
+            ProductVariant.objects.filter(product=product)
+            .annotate(latest_inventory=Coalesce(Subquery(latest_snapshot), 0))
+            .aggregate(total=Coalesce(Sum("latest_inventory"), 0))
+            .get("total", 0)
+            or 0
+        )
+
+        force_requested = str(request.POST.get("force", "")).lower() == "true"
+        if total_inventory > 0 and not force_requested:
+            return _redirect_to_product_filtered_with_query(
+                redirect_querystring,
+                decommission_notice="blocked_stock",
+                decommission_product=product.id,
+                decommission_stock=total_inventory,
+            )
+
+    product.decommissioned = should_decommission
+    product.save(update_fields=["decommissioned"])
+
+    notice = "retired" if should_decommission else "reinstated"
+    return _redirect_to_product_filtered_with_query(
+        redirect_querystring,
+        decommission_notice=notice,
+        decommission_product=product.id,
+    )
 
 
 def product_type_list(request, type_code: str):
