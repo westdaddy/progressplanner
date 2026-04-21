@@ -1,5 +1,6 @@
 {% extends 'inventory/base.html' %}
 {% load inventory_extras %}
+{% load static %}
 
 {% block title %}Product List{% endblock %}
 
@@ -92,6 +93,7 @@
 {% endblock %}
 
 {% block extrajs %}
+<script src="{% static 'no-restock-toggle.js' %}"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     var elems = document.querySelectorAll('select');

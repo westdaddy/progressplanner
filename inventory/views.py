@@ -2897,6 +2897,35 @@ def product_filtered(request):
     return _render_filtered_products(request, category=primary_category)
 
 
+@require_POST
+def product_toggle_no_restock(request, product_id: int):
+    product = get_object_or_404(Product, pk=product_id)
+
+    explicit_state = request.POST.get("no_restock")
+    if explicit_state is None:
+        product.no_restock = not product.no_restock
+    else:
+        product.no_restock = explicit_state.lower() in {"1", "true", "yes", "on"}
+
+    product.save(update_fields=["no_restock"])
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse(
+            {
+                "no_restock": product.no_restock,
+                "next_no_restock": "0" if product.no_restock else "1",
+                "label": "Undo no restock" if product.no_restock else "No restock",
+            }
+        )
+
+    redirect_querystring = request.POST.get("redirect_querystring", "").strip()
+    redirect_url = reverse("product_filtered")
+    if redirect_querystring:
+        redirect_url = f"{redirect_url}?{redirect_querystring}"
+
+    return redirect(redirect_url)
+
+
 def product_type_list(request, type_code: str):
     label = _choice_label(PRODUCT_TYPE_CHOICES, type_code)
     if not label:

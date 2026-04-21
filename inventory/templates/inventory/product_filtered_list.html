@@ -1,4 +1,5 @@
 {% extends 'inventory/base.html' %}
+{% load static %}
 {% block title %}Products{% endblock %}
 
 {% block content %}
@@ -552,6 +553,7 @@
 
 {% block extrajs %}
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="{% static 'no-restock-toggle.js' %}"></script>
   <script>
     (function() {
       const filterControllers = [];
