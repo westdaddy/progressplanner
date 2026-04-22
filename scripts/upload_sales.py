@@ -115,6 +115,22 @@ def _parse_coupon_codes(coupon_name_raw):
     return [code.strip() for code in normalized_raw.split(";") if code.strip()]
 
 
+def _resolve_discount_codes(coupon_name_raw):
+    parsed_codes = _parse_coupon_codes(coupon_name_raw)
+    resolved_codes = []
+
+    for code in parsed_codes:
+        resolved_codes.append(code)
+
+        if code.startswith("套装"):
+            resolved_codes.append("taozhuang")
+
+        if code.startswith("清仓"):
+            resolved_codes.append("clearance")
+
+    return resolved_codes
+
+
 def _parse_coupon_codes(coupon_name_raw):
     if coupon_name_raw is None:
         return []
@@ -210,7 +226,7 @@ def upload_sales(test=False, diff=False):
                     )
                     matched_discounts = [
                         discount_by_code[code]
-                        for code in _parse_coupon_codes(coupon_name_raw)
+                        for code in dict.fromkeys(_resolve_discount_codes(coupon_name_raw))
                         if code in discount_by_code
                     ]
                     if matched_discounts:
