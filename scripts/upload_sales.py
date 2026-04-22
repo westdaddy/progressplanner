@@ -178,6 +178,8 @@ def upload_sales(test=False, diff=False):
                 sold_value     = float(row['实发金额'])   if not pd.isnull(row['实发金额'])   else 0.00
                 return_quantity= int(row['实退数量'])   if not pd.isnull(row['实退数量']) else 0
                 return_value   = float(row['退货金额'])   if not pd.isnull(row['退货金额'])   else 0.00
+                if sold_value == 0.0 and return_value != 0.0:
+                    sold_value = return_value
                 list_price = _to_decimal(_get_row_value(row, "基本售价"))
                 coupon_name_raw = _get_row_value(row, "优惠券名称")
                 seller_note = _get_row_value(row, "卖家备注")
