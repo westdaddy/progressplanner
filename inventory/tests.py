@@ -1489,6 +1489,7 @@ class SalesViewTests(TestCase):
         self.assertIn("sale-discount-chip-list", html)
         self.assertIn("Tao Jin Bi", html)
         self.assertIn("Tmall Red Packet", html)
+        self.assertIn("sale-discount-chip-remove", html)
         self.assertIn("discount-reason-chip-group", html)
 
     def test_assign_referrers_view_marks_only_shared_order_discounts_selected(self):
@@ -1598,6 +1599,46 @@ class SalesViewTests(TestCase):
         sale_two.refresh_from_db()
         self.assertNotIn(discount.id, sale_one.discounts.values_list("id", flat=True))
         self.assertNotIn(discount.id, sale_two.discounts.values_list("id", flat=True))
+
+    def test_assign_order_discount_reason_removes_discount_from_single_sale(self):
+        discount = Discount.objects.create(name="Flash Coupon", code="flash-coupon")
+        sale_one = Sale.objects.create(
+            order_number="ORDER-DISC-SINGLE-REMOVE",
+            date=date(2024, 4, 10),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("90.00"),
+        )
+        sale_two = Sale.objects.create(
+            order_number="ORDER-DISC-SINGLE-REMOVE",
+            date=date(2024, 4, 11),
+            variant=self.variant,
+            sold_quantity=1,
+            sold_value=Decimal("85.00"),
+        )
+        sale_one.discounts.add(discount)
+        sale_two.discounts.add(discount)
+
+        response = self.client.post(
+            reverse("assign_order_discount_reason"),
+            {
+                "order_number": "ORDER-DISC-SINGLE-REMOVE",
+                "sale_id": str(sale_one.id),
+                "discount_id": str(discount.id),
+                "selected": "0",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ok"])
+        self.assertFalse(payload["selected"])
+
+        sale_one.refresh_from_db()
+        sale_two.refresh_from_db()
+        self.assertNotIn(discount.id, sale_one.discounts.values_list("id", flat=True))
+        self.assertIn(discount.id, sale_two.discounts.values_list("id", flat=True))
 
     def test_discount_slider_renders_single_track_with_endpoints(self):
         self.product.retail_price = Decimal("100")
