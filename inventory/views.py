@@ -426,9 +426,11 @@ def _get_discount_type_summary_rows(filtered_sales_qs) -> tuple[int, list[dict[s
 
 
 def _get_sale_discount_chips(sale) -> list[dict[str, str]]:
+    discounts = list(sale.discounts.all())
+    chips = resolve_discount_chip_colors(discounts)
     return [
-        {"label": chip.label, "color": chip.color}
-        for chip in resolve_discount_chip_colors(sale.discounts.all())
+        {"id": discount.id, "label": chip.label, "color": chip.color}
+        for discount, chip in zip(discounts, chips)
     ]
 
 
@@ -5913,14 +5915,24 @@ def assign_order_discount_reason(request):
     if selected_value not in {"1", "0", "true", "false"}:
         return JsonResponse({"ok": False, "error": "Missing selected value"}, status=400)
     should_select = selected_value in {"1", "true"}
+    sale_id = (request.POST.get("sale_id") or "").strip()
 
     discount = get_object_or_404(Discount, pk=discount_id)
     sales_qs = Sale.objects.filter(order_number=order_number)
     if not sales_qs.exists():
         return JsonResponse({"ok": False, "error": "Order not found"}, status=404)
 
+    target_sales = sales_qs
+    if sale_id:
+        target_sales = sales_qs.filter(pk=sale_id)
+        if not target_sales.exists():
+            return JsonResponse(
+                {"ok": False, "error": "Sale item not found for this order"},
+                status=404,
+            )
+
     with transaction.atomic():
-        for sale in sales_qs:
+        for sale in target_sales:
             if should_select:
                 sale.discounts.add(discount)
             else:

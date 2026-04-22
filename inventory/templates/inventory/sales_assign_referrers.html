@@ -224,7 +224,19 @@
                     {% if item.discount_chips %}
                       <div class="sale-discount-chip-list">
                         {% for discount in item.discount_chips %}
-                          <span class="sale-discount-chip {{ discount.tone }}">{{ discount.label }}</span>
+                          <span
+                            class="sale-discount-chip {{ discount.tone }}"
+                            data-discount-id="{{ discount.id }}"
+                            {% if discount.color %}style="--discount-chip-color: {{ discount.color }};"{% endif %}
+                          >
+                            <span>{{ discount.label }}</span>
+                            <button
+                              type="button"
+                              class="sale-discount-chip-remove"
+                              aria-label="Remove {{ discount.label }} from this sale item"
+                              title="Remove discount"
+                            >&times;</button>
+                          </span>
                         {% endfor %}
                       </div>
                     {% endif %}
@@ -482,13 +494,72 @@
         }
         var html = '<div class="sale-discount-chip-list">';
         chips.forEach(function(chip) {
-          html += '<span class="sale-discount-chip ' + escapeHtml(chip.tone || '') + '">'
-            + escapeHtml(chip.label || '')
+          var colorStyle = chip.color ? ' style="--discount-chip-color: ' + escapeHtml(chip.color) + ';"' : '';
+          html += '<span class="sale-discount-chip ' + escapeHtml(chip.tone || '') + '" data-discount-id="' + escapeHtml(String(chip.id || '')) + '"' + colorStyle + '>'
+            + '<span>' + escapeHtml(chip.label || '') + '</span>'
+            + '<button type="button" class="sale-discount-chip-remove" aria-label="Remove ' + escapeHtml(chip.label || 'discount') + ' from this sale item" title="Remove discount">&times;</button>'
             + '</span>';
         });
         html += '</div>';
         container.innerHTML = html;
       };
+
+      document.querySelectorAll('.order-block').forEach(function(orderBlock) {
+        orderBlock.addEventListener('click', function(event) {
+          var removeButton = event.target.closest('.sale-discount-chip-remove');
+          if (!removeButton || removeButton.disabled) {
+            return;
+          }
+
+          var saleCell = removeButton.closest('.sale-discount-cell');
+          var chip = removeButton.closest('.sale-discount-chip');
+          var saleId = saleCell ? (saleCell.dataset.saleId || '') : '';
+          var discountId = chip ? (chip.dataset.discountId || '') : '';
+          var orderNumber = orderBlock.dataset.orderNumber || '';
+          if (!orderNumber || !saleId || !discountId) {
+            return;
+          }
+
+          removeButton.disabled = true;
+          fetch("{% url 'assign_order_discount_reason' %}", {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+              'X-CSRFToken': getCookie('csrftoken'),
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: new URLSearchParams({
+              order_number: orderNumber,
+              sale_id: saleId,
+              discount_id: discountId,
+              selected: '0',
+            }).toString(),
+          })
+            .then(function(response) {
+              if (!response.ok) {
+                throw new Error('Request failed');
+              }
+              return response.json();
+            })
+            .then(function(data) {
+              if (!data.ok) {
+                throw new Error(data.error || 'Unable to remove discount');
+              }
+              if (data.sale_discounts) {
+                Object.keys(data.sale_discounts).forEach(function(updatedSaleId) {
+                  var cell = orderBlock.querySelector('.sale-discount-cell[data-sale-id="' + updatedSaleId + '"]');
+                  renderDiscountChips(cell, data.sale_discounts[updatedSaleId]);
+                });
+              }
+            })
+            .catch(function() {
+              // noop: keep previous state on failure
+            })
+            .finally(function() {
+              removeButton.disabled = false;
+            });
+        });
+      });
 
       var discountGroups = document.querySelectorAll('.discount-reason-chip-group');
       discountGroups.forEach(function(group) {
