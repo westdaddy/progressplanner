@@ -298,7 +298,7 @@
           {% endwith %}
         {% endfor %}
 
-        <div class="card-panel filter-card" data-static-options>
+        <div class="card-panel filter-card">
           <div class="filter-card__header">
             <div style="flex: 1; min-width: 0;">
               <p class="filter-card__title">Options</p>
@@ -310,9 +310,12 @@
                 {% endif %}
               </div>
             </div>
+            <button type="button" class="btn-flat filter-card__toggle" aria-expanded="false" aria-controls="filter-options-static">
+              <span class="filter-card__toggle-symbol blue">+</span>
+            </button>
           </div>
 
-          <div class="filter-card__options" style="display: block;">
+          <div id="filter-options-static" class="filter-card__options" hidden>
             {% if show_retired %}
               <p class="grey-text text-darken-1" style="margin: 0;">
                 Retired products are currently included in this list.
