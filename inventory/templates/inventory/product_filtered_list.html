@@ -1068,6 +1068,7 @@
 
       document.querySelectorAll('.filter-card').forEach((card) => {
         if (card.hasAttribute('data-category-filter-card')) return;
+        if (card.hasAttribute('data-static-options')) return;
         const controller = initFilterCard(card);
         filterControllers.push(controller);
       });
