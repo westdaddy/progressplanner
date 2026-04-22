@@ -297,6 +297,36 @@
             </div>
           {% endwith %}
         {% endfor %}
+
+        <div class="card-panel filter-card" data-static-options>
+          <div class="filter-card__header">
+            <div style="flex: 1; min-width: 0;">
+              <p class="filter-card__title">Options</p>
+              <div class="chip-set">
+                {% if show_retired %}
+                  <span class="chip chip--selected">Retired visible</span>
+                {% else %}
+                  <span class="chip__placeholder">Retired hidden</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="filter-card__options" style="display: block;">
+            {% if show_retired %}
+              <p class="grey-text text-darken-1" style="margin: 0;">
+                Retired products are currently included in this list.
+              </p>
+            {% else %}
+              <a
+                class="filter-option"
+                href="{% url 'product_filtered' %}?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}show_retired=true"
+              >
+                Show retired products
+              </a>
+            {% endif %}
+          </div>
+        </div>
       </div>
       <div class="filter-divider"></div>
     </form>
@@ -1035,6 +1065,7 @@
 
       document.querySelectorAll('.filter-card').forEach((card) => {
         if (card.hasAttribute('data-category-filter-card')) return;
+        if (card.hasAttribute('data-static-options')) return;
         const controller = initFilterCard(card);
         filterControllers.push(controller);
       });
