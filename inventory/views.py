@@ -6118,6 +6118,230 @@ def inventory_snapshots(request):
         sale_qs = sale_qs.filter(variant__product__type__in=selected_types)
         order_qs = order_qs.filter(product_variant__product__type__in=selected_types)
 
+    def _normalize_group_name(name: str) -> str:
+        return "".join(ch.lower() for ch in (name or "") if ch.isalnum())
+
+    def _resolve_tier(group_names: list[str]) -> Optional[str]:
+        normalized = {_normalize_group_name(name) for name in group_names}
+        if any("core" in name for name in normalized):
+            return "core"
+        if any("midrange" in name for name in normalized):
+            return "midrange"
+        if any("premium" in name for name in normalized):
+            return "premium"
+        return None
+
+    tier_labels = OrderedDict(
+        [
+            ("core", "Core"),
+            ("midrange", "Midrange"),
+            ("premium", "Premium"),
+        ]
+    )
+    style_labels = OrderedDict(PRODUCT_STYLE_CHOICES)
+    age_labels = OrderedDict(PRODUCT_AGE_CHOICES)
+
+    products_qs = Product.objects.prefetch_related("groups")
+    if selected_types:
+        products_qs = products_qs.filter(type__in=selected_types)
+    products = list(products_qs.only("id", "age", "style"))
+    product_meta = {}
+    for product in products:
+        if product.id in product_meta:
+            continue
+        product_meta[product.id] = {
+            "age": product.age or "",
+            "style": product.style or "",
+            "tier": _resolve_tier([group.name for group in product.groups.all()]),
+        }
+
+    product_ids = list(product_meta.keys())
+
+    sales_rows = (
+        sale_qs.values("variant__product_id")
+        .annotate(
+            sold_qty=Coalesce(Sum("sold_quantity"), Value(0)),
+            return_qty=Coalesce(Sum("return_quantity"), Value(0)),
+            sold_value=Coalesce(
+                Sum("sold_value"),
+                Value(Decimal("0.00")),
+                output_field=DecimalField(max_digits=12, decimal_places=2),
+            ),
+            return_value=Coalesce(
+                Sum("return_value"),
+                Value(Decimal("0.00")),
+                output_field=DecimalField(max_digits=12, decimal_places=2),
+            ),
+        )
+        .order_by()
+    )
+    sales_by_product = {
+        row["variant__product_id"]: {
+            "sold_qty": int(row["sold_qty"] or 0) - int(row["return_qty"] or 0),
+            "sold_value": (row["sold_value"] or Decimal("0"))
+            - (row["return_value"] or Decimal("0")),
+        }
+        for row in sales_rows
+    }
+
+    latest_snapshot = (
+        InventorySnapshot.objects.filter(
+            product_variant=OuterRef("pk"),
+            date__lte=today,
+        )
+        .order_by("-date")
+        .values("inventory_count")[:1]
+    )
+    stock_rows = (
+        ProductVariant.objects.filter(product_id__in=product_ids)
+        .annotate(
+            latest_inventory=Coalesce(
+                Subquery(latest_snapshot),
+                Value(0),
+                output_field=IntegerField(),
+            )
+        )
+        .values("product_id")
+        .annotate(stock_qty=Coalesce(Sum("latest_inventory"), Value(0)))
+        .order_by()
+    )
+    stock_by_product = {
+        row["product_id"]: int(row["stock_qty"] or 0)
+        for row in stock_rows
+    }
+
+    def _empty_metrics():
+        return {"sold_value": Decimal("0"), "sold_qty": 0, "stock_qty": 0}
+
+    tree = {
+        "all": _empty_metrics(),
+        "ages": {
+            age_code: {
+                **_empty_metrics(),
+                "styles": {
+                    style_code: {
+                        **_empty_metrics(),
+                        "tiers": {
+                            tier_code: _empty_metrics() for tier_code in tier_labels.keys()
+                        },
+                    }
+                    for style_code in style_labels.keys()
+                },
+            }
+            for age_code in age_labels.keys()
+        },
+    }
+
+    for product_id, meta in product_meta.items():
+        age_code = meta["age"]
+        style_code = meta["style"]
+        if age_code not in tree["ages"] or style_code not in style_labels:
+            continue
+
+        sales_metrics = sales_by_product.get(product_id, {})
+        sold_qty = max(int(sales_metrics.get("sold_qty", 0) or 0), 0)
+        sold_value = max(
+            sales_metrics.get("sold_value", Decimal("0")) or Decimal("0"),
+            Decimal("0"),
+        )
+        stock_qty = int(stock_by_product.get(product_id, 0) or 0)
+        tier_code = meta["tier"]
+
+        for node in (
+            tree["all"],
+            tree["ages"][age_code],
+            tree["ages"][age_code]["styles"][style_code],
+        ):
+            node["sold_qty"] += sold_qty
+            node["sold_value"] += sold_value
+            node["stock_qty"] += stock_qty
+
+        if tier_code in tier_labels:
+            tier_node = tree["ages"][age_code]["styles"][style_code]["tiers"][tier_code]
+            tier_node["sold_qty"] += sold_qty
+            tier_node["sold_value"] += sold_value
+            tier_node["stock_qty"] += stock_qty
+
+    def _as_percent(part, whole):
+        if not whole:
+            return 0
+        return round((part / whole) * 100, 1)
+
+    all_sold_qty = tree["all"]["sold_qty"]
+    hierarchy_rows = []
+
+    def _append_row(
+        *,
+        row_id,
+        parent_id,
+        level,
+        label,
+        metrics,
+        percent=None,
+        has_children=False,
+    ):
+        hierarchy_rows.append(
+            {
+                "id": row_id,
+                "parent_id": parent_id,
+                "level": level,
+                "label": label,
+                "sold_value": metrics["sold_value"],
+                "sold_qty": metrics["sold_qty"],
+                "stock_qty": metrics["stock_qty"],
+                "percent": percent,
+                "has_children": has_children,
+            }
+        )
+
+    _append_row(
+        row_id="all",
+        parent_id=None,
+        level=0,
+        label="All sales",
+        metrics=tree["all"],
+        percent=None,
+        has_children=True,
+    )
+
+    for age_code, age_label in age_labels.items():
+        age_row_id = f"age-{age_code}"
+        age_node = tree["ages"][age_code]
+        _append_row(
+            row_id=age_row_id,
+            parent_id="all",
+            level=1,
+            label=age_label,
+            metrics=age_node,
+            percent=_as_percent(age_node["sold_qty"], all_sold_qty),
+            has_children=True,
+        )
+
+        for style_code, style_label in style_labels.items():
+            style_row_id = f"{age_row_id}-style-{style_code}"
+            style_node = age_node["styles"][style_code]
+            _append_row(
+                row_id=style_row_id,
+                parent_id=age_row_id,
+                level=2,
+                label=style_label,
+                metrics=style_node,
+                percent=_as_percent(style_node["sold_qty"], age_node["sold_qty"]),
+                has_children=True,
+            )
+
+            for tier_code, tier_label in tier_labels.items():
+                tier_node = style_node["tiers"][tier_code]
+                _append_row(
+                    row_id=f"{style_row_id}-tier-{tier_code}",
+                    parent_id=style_row_id,
+                    level=3,
+                    label=tier_label,
+                    metrics=tier_node,
+                    percent=_as_percent(tier_node["sold_qty"], style_node["sold_qty"]),
+                    has_children=False,
+                )
+
     # ——— 1) Build actual_data from snapshots ————————————————————————
     snaps = (
         snap_qs.values("date").annotate(total=Sum("inventory_count")).order_by("date")
@@ -6193,6 +6417,7 @@ def inventory_snapshots(request):
             "actual_data": json.dumps(actual_data),
             "forecast_data": json.dumps(forecast_data),
             "sales_last_12_months": sales_last_12_months,
+            "sales_hierarchy_rows": hierarchy_rows,
         },
     )
 
