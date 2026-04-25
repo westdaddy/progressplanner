@@ -347,38 +347,15 @@
   <!-- CATEGORY STATISTICS SECTION -->
   <div class="row">
 
-    <!-- SALES SECTION -->
+    <!-- STOCK SUMMARY SECTION -->
     <div class="col s12 m4">
       <div class="card-panel">
-        <h4 class="teal-text text-darken-2" style="margin-top: 0;">{{ sales_last_year_total }}</h4>
-        <p class="grey-text text-darken-1" style="margin-bottom: 0;">Items sold in the last 12 months</p>
-        <div class="filter-divider"></div>
-        {% if sales_category_values %}
-          <canvas id="salesCategoryChart"></canvas>
-          <p class="grey-text text-darken-1" style="margin-bottom: 0;">{{ sales_category_description|default:"Sales split by product category" }}</p>
-        {% else %}
-          <p class="grey-text text-darken-1" style="margin: 0;">No sales data available.</p>
-        {% endif %}
-      </div>
+        <h4 class="teal-text text-darken-2" style="margin-top: 0; margin-bottom: 4px;">{{ filtered_inventory_total }}</h4>
+        <p class="grey-text text-darken-1" style="margin: 0;">Total in stock across all matching products</p>
 
-      <div class="card-panel">
-        <h4 class="teal-text text-darken-2" style="margin-top: 0;">¥{{ sales_last_year_value_total|floatformat:"0g" }}</h4>
-        <p class="grey-text text-darken-1" style="margin-bottom: 0;">Sales value in the last 12 months (RMB)</p>
-        <div class="filter-divider"></div>
-        {% if sales_value_category_values %}
-          <canvas id="salesValueChart"></canvas>
-          <p class="grey-text text-darken-1" style="margin-bottom: 0;">Sales value split by product category</p>
-        {% else %}
-          <p class="grey-text text-darken-1" style="margin: 0;">No sales value data available.</p>
-        {% endif %}
-      </div>
-    </div>
+        <h4 class="teal-text text-darken-2" style="margin-top: 20px; margin-bottom: 4px;">¥{{ inventory_value_total|floatformat:"0g" }}</h4>
+        <p class="grey-text text-darken-1" style="margin-bottom: 0;">Estimated value of stock (RMB)</p>
 
-    <!-- STOCK SECTION -->
-    <div class="col s12 m4">
-      <div class="card-panel">
-        <h4 class="teal-text text-darken-2" style="margin-top: 0;">{{ filtered_inventory_total }}</h4>
-        <p class="grey-text text-darken-1" style="margin-bottom: 0;">Total in stock across all matching products</p>
         <div class="filter-divider"></div>
         {% if category_breakdown_values %}
           <canvas id="categoryBreakdownChart"></canvas>
@@ -387,19 +364,25 @@
           <p class="grey-text text-darken-1" style="margin: 0;">No category data available.</p>
         {% endif %}
       </div>
+    </div>
 
+    <!-- SALES SUMMARY SECTION -->
+    <div class="col s12 m4">
       <div class="card-panel">
-        <h4 class="teal-text text-darken-2" style="margin-top: 0;">¥{{ inventory_value_total|floatformat:"0g" }}</h4>
-        <p class="grey-text text-darken-1" style="margin-bottom: 0;">Estimated value of stock (RMB)</p>
+        <h4 class="teal-text text-darken-2" style="margin-top: 0; margin-bottom: 4px;">¥{{ inventory_value_total|floatformat:"0g" }}</h4>
+        <p class="grey-text text-darken-1" style="margin: 0;">Estimated value of stock (RMB)</p>
+
+        <h4 class="teal-text text-darken-2" style="margin-top: 20px; margin-bottom: 4px;">¥{{ sales_last_year_value_total|floatformat:"0g" }}</h4>
+        <p class="grey-text text-darken-1" style="margin-bottom: 0;">Sales value in the last 12 months (RMB)</p>
+
         <div class="filter-divider"></div>
-        {% if inventory_value_category_values %}
-          <canvas id="inventoryValueChart"></canvas>
-          <p class="grey-text text-darken-1" style="margin-bottom: 0;">Inventory value split by product category</p>
+        {% if sales_category_values %}
+          <canvas id="salesCategoryChart"></canvas>
+          <p class="grey-text text-darken-1" style="margin-bottom: 0;">{{ sales_category_description|default:"Sales split by product category" }}</p>
         {% else %}
-          <p class="grey-text text-darken-1" style="margin: 0;">No value data available.</p>
+          <p class="grey-text text-darken-1" style="margin: 0;">No sales data available.</p>
         {% endif %}
       </div>
-
     </div>
 
     <!-- NOTES COLUMN -->
