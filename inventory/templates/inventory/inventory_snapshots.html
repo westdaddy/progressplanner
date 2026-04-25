@@ -321,9 +321,9 @@
                             type="button"
                             class="toggle-btn btn-flat"
                             data-toggle-id="{{ row.id }}"
-                            aria-expanded="{% if row.level < 2 %}true{% else %}false{% endif %}"
+                            aria-expanded="{% if row.level == 0 %}true{% else %}false{% endif %}"
                           >
-                            <span class="toggle-icon">{% if row.level < 2 %}−{% else %}+{% endif %}</span>
+                            <span class="toggle-icon">{% if row.level == 0 %}−{% else %}+{% endif %}</span>
                           </button>
                         {% else %}
                           <span class="toggle-spacer"></span>

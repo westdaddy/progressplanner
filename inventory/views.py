@@ -6145,8 +6145,17 @@ def inventory_snapshots(request):
     if selected_types:
         products_qs = products_qs.filter(type__in=selected_types)
     products = list(products_qs.only("id", "age", "style"))
+    product_meta = {}
+    for product in products:
+        if product.id in product_meta:
+            continue
+        product_meta[product.id] = {
+            "age": product.age or "",
+            "style": product.style or "",
+            "tier": _resolve_tier([group.name for group in product.groups.all()]),
+        }
 
-    product_ids = [product.id for product in products]
+    product_ids = list(product_meta.keys())
 
     sales_rows = (
         sale_qs.values("variant__product_id")
@@ -6216,17 +6225,17 @@ def inventory_snapshots(request):
         },
     }
 
-    for product in products:
-        age_code = product.age or ""
-        style_code = product.style or ""
+    for product_id, meta in product_meta.items():
+        age_code = meta["age"]
+        style_code = meta["style"]
         if age_code not in tree["ages"] or style_code not in style_labels:
             continue
 
-        sales_metrics = sales_by_product.get(product.id, {})
+        sales_metrics = sales_by_product.get(product_id, {})
         sold_qty = int(sales_metrics.get("sold_qty", 0) or 0)
         sold_value = sales_metrics.get("sold_value", Decimal("0")) or Decimal("0")
-        stock_qty = int(stock_by_product.get(product.id, 0) or 0)
-        tier_code = _resolve_tier([group.name for group in product.groups.all()])
+        stock_qty = int(stock_by_product.get(product_id, 0) or 0)
+        tier_code = meta["tier"]
 
         for node in (
             tree["all"],
