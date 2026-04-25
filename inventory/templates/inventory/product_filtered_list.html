@@ -697,21 +697,6 @@
   <!-- CATEGORY STATISTICS SECTION -->
   <div class="row">
 
-    <!-- STOCK SUMMARY SECTION -->
-    <div class="col s12 m4">
-      <div class="card-panel">
-        <h4 class="teal-text text-darken-2" style="margin-top: 0; margin-bottom: 4px;">{{ filtered_inventory_total }} <span class="grey-text">/</span> ¥{{ inventory_value_total|floatformat:"0g" }}</h4>
-        <p class="grey-text text-darken-1" style="margin: 0;">Items in stock / Retail value</p>
-
-        <div class="filter-divider"></div>
-        {% if category_breakdown_values %}
-          <canvas id="categoryBreakdownChart"></canvas>
-          <p class="grey-text text-darken-1" style="margin-bottom: 0;">{{ category_breakdown_description|default:"Inventory split by product category" }}</p>
-        {% else %}
-          <p class="grey-text text-darken-1" style="margin: 0;">No category data available.</p>
-        {% endif %}
-      </div>
-    </div>
 
     <!-- SALES SUMMARY SECTION -->
     <div class="col s12 m4">
@@ -728,6 +713,25 @@
         {% endif %}
       </div>
     </div>
+
+
+    <!-- STOCK SUMMARY SECTION -->
+    <div class="col s12 m4">
+      <div class="card-panel">
+        <h4 class="teal-text text-darken-2" style="margin-top: 0; margin-bottom: 4px;">{{ filtered_inventory_total }} <span class="grey-text">/</span> ¥{{ inventory_value_total|floatformat:"0g" }}</h4>
+        <p class="grey-text text-darken-1" style="margin: 0;">Items in stock / Retail value</p>
+
+        <div class="filter-divider"></div>
+        {% if category_breakdown_values %}
+          <canvas id="categoryBreakdownChart"></canvas>
+          <p class="grey-text text-darken-1" style="margin-bottom: 0;">{{ category_breakdown_description|default:"Inventory split by product category" }}</p>
+        {% else %}
+          <p class="grey-text text-darken-1" style="margin: 0;">No category data available.</p>
+        {% endif %}
+      </div>
+    </div>
+
+
 
     <!-- NOTES COLUMN -->
     <div class="col s12 m4">
