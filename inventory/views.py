@@ -1093,6 +1093,12 @@ def _build_product_list_context(request, preset_filters=None):
 
     zero_inventory = _get_filter("zero_inventory", "false")
     zero_inventory = zero_inventory if isinstance(zero_inventory, bool) else str(zero_inventory).lower() == "true"
+    clearance_only = _get_filter("clearance_only", "false")
+    clearance_only = (
+        clearance_only
+        if isinstance(clearance_only, bool)
+        else str(clearance_only).lower() == "true"
+    )
     search_query = request.GET.get("product_search", "").strip()
 
     # ─── Date ranges ────────────────────────────────────────────────────────────
@@ -1160,6 +1166,9 @@ def _build_product_list_context(request, preset_filters=None):
 
     if series_filters:
         products_qs = products_qs.filter(series__id__in=series_filters).distinct()
+
+    if clearance_only:
+        products_qs = products_qs.filter(discounted=True)
 
     if search_query:
         products_qs = products_qs.filter(
@@ -1565,6 +1574,7 @@ def _build_product_list_context(request, preset_filters=None):
         "group_filters": group_filters,
         "series_filters": series_filters,
         "zero_inventory": zero_inventory,
+        "clearance_only": clearance_only,
         "search_query": search_query,
         "type_choices": available_type_choices,
         "subtype_choices": available_subtype_choices,

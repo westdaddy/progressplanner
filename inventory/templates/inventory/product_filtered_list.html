@@ -681,6 +681,9 @@
                 {% else %}
                   <span class="chip__placeholder">Retired hidden</span>
                 {% endif %}
+                {% if clearance_only %}
+                  <span class="chip chip--selected">Clearance only</span>
+                {% endif %}
               </div>
             </div>
             <button type="button" class="btn-flat filter-card__toggle" aria-expanded="false" aria-controls="filter-options-static">
@@ -699,6 +702,18 @@
                 href="{% url 'product_filtered' %}?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}show_retired=true"
               >
                 Show retired products
+              </a>
+            {% endif %}
+            {% if clearance_only %}
+              <p class="grey-text text-darken-1" style="margin: 8px 0 0;">
+                Showing only clearance products (discounted items).
+              </p>
+            {% else %}
+              <a
+                class="filter-option"
+                href="{% url 'product_filtered' %}?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}clearance_only=true"
+              >
+                Show clearance products
               </a>
             {% endif %}
           </div>
