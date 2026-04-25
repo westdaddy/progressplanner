@@ -527,6 +527,29 @@
         padding-left: 0;
       }
     }
+
+    .profitability-summary {
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #fafafa;
+      margin-top: -2px;
+    }
+
+    .profitability-summary__row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px 12px;
+      margin: 0;
+    }
+
+    .profitability-summary__meta {
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: #78909c;
+    }
   </style>
   {% if filter_controls %}
 
@@ -728,6 +751,27 @@
         {% else %}
           <p class="grey-text text-darken-1" style="margin: 0;">No category data available.</p>
         {% endif %}
+      </div>
+    </div>
+
+    <div class="col s12 m8">
+      <div class="profitability-summary">
+        <p class="profitability-summary__row">
+          <span>
+            <strong>Profitability (sales period)</strong>
+            <span class="grey-text text-darken-1">{{ profitability_summary.category_profit_percent|floatformat:1 }}%</span>
+            {% if profitability_summary.profitability_delta_percent >= 0 %}
+              <span class="teal-text text-darken-2">(+{{ profitability_summary.profitability_delta_percent|floatformat:1 }}% vs shop avg)</span>
+            {% else %}
+              <span class="red-text text-darken-1">({{ profitability_summary.profitability_delta_percent|floatformat:1 }}% vs shop avg)</span>
+            {% endif %}
+          </span>
+          <span class="teal-text text-darken-2">¥{{ profitability_summary.category_profit_amount|floatformat:2 }}</span>
+        </p>
+        <p class="profitability-summary__meta">
+          Shop-wide average profitability: {{ profitability_summary.shop_profit_percent|floatformat:1 }}%
+          ({{ profitability_summary.period_start|date:"M j, Y" }} - {{ profitability_summary.period_end|date:"M j, Y" }})
+        </p>
       </div>
     </div>
 

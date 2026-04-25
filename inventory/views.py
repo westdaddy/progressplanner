@@ -2066,6 +2066,27 @@ def _render_filtered_products(
     sales_qs = []
     last_year_start = today - relativedelta(years=1)
 
+    latest_unit_cost = Subquery(
+        OrderItem.objects.filter(
+            product_variant=OuterRef("variant_id"),
+            date_arrived__isnull=False,
+        )
+        .order_by("-date_arrived")
+        .values("item_cost_price")[:1],
+        output_field=DecimalField(max_digits=10, decimal_places=2),
+    )
+    average_unit_cost = Subquery(
+        OrderItem.objects.filter(product_variant=OuterRef("variant_id"))
+        .values("product_variant")
+        .annotate(avg_price=Avg("item_cost_price"))
+        .values("avg_price")[:1],
+        output_field=DecimalField(max_digits=10, decimal_places=2),
+    )
+    half_retail_cost = ExpressionWrapper(
+        F("variant__product__retail_price") * Value(Decimal("0.5")),
+        output_field=DecimalField(max_digits=10, decimal_places=2),
+    )
+
     if variant_ids:
         sales_qs = Sale.objects.filter(
             variant_id__in=variant_ids,
@@ -2184,6 +2205,12 @@ def _render_filtered_products(
     sales_value_style_totals: dict[str, Decimal] = {}
     sales_value_type_totals_by_style: dict[str, dict[str, Decimal]] = {}
     last_year_sales_value_total = Decimal("0")
+    profitability_summary = {
+        "category_profit_amount": Decimal("0"),
+        "category_profit_percent": Decimal("0"),
+        "shop_profit_percent": Decimal("0"),
+        "profitability_delta_percent": Decimal("0"),
+    }
 
     for sale in sales_qs:
         sale_date = sale["date"]
@@ -2239,6 +2266,74 @@ def _render_filtered_products(
             if period["start"] <= sale_date < period["end"]:
                 period["total"] += net_sold
                 break
+
+    profitability_period_start = last_year_start
+    profitability_period_end = today
+    profitability_sales_base = (
+        Sale.objects.filter(date__gte=profitability_period_start, date__lte=profitability_period_end)
+        .annotate(
+            unit_cost=Coalesce(
+                latest_unit_cost,
+                average_unit_cost,
+                half_retail_cost,
+                output_field=DecimalField(max_digits=10, decimal_places=2),
+            )
+        )
+        .values(
+            "variant_id",
+            "sold_quantity",
+            "return_quantity",
+            "sold_value",
+            "return_value",
+            "unit_cost",
+        )
+    )
+
+    category_net_revenue = Decimal("0")
+    category_net_cost = Decimal("0")
+    shop_net_revenue = Decimal("0")
+    shop_net_cost = Decimal("0")
+    variant_id_set = set(variant_ids)
+
+    for sale in profitability_sales_base:
+        sold_quantity = sale["sold_quantity"] or 0
+        return_quantity = sale["return_quantity"] or 0
+        net_quantity = Decimal(sold_quantity - return_quantity)
+        net_revenue = Decimal(sale["sold_value"] or 0) - Decimal(sale["return_value"] or 0)
+        unit_cost = Decimal(sale["unit_cost"] or 0)
+        net_cost = unit_cost * net_quantity
+
+        shop_net_revenue += net_revenue
+        shop_net_cost += net_cost
+
+        if sale["variant_id"] in variant_id_set:
+            category_net_revenue += net_revenue
+            category_net_cost += net_cost
+
+    category_profit_amount = category_net_revenue - category_net_cost
+    shop_profit_amount = shop_net_revenue - shop_net_cost
+
+    category_profit_percent = (
+        (category_profit_amount / category_net_revenue) * Decimal("100")
+        if category_net_revenue
+        else Decimal("0")
+    )
+    shop_profit_percent = (
+        (shop_profit_amount / shop_net_revenue) * Decimal("100")
+        if shop_net_revenue
+        else Decimal("0")
+    )
+
+    profitability_summary = {
+        "category_profit_amount": category_profit_amount.quantize(Decimal("0.01")),
+        "category_profit_percent": category_profit_percent.quantize(Decimal("0.1")),
+        "shop_profit_percent": shop_profit_percent.quantize(Decimal("0.1")),
+        "profitability_delta_percent": (category_profit_percent - shop_profit_percent).quantize(
+            Decimal("0.1")
+        ),
+        "period_start": profitability_period_start,
+        "period_end": profitability_period_end,
+    }
 
     quarterly_values = list(quarter_totals.values())
     yearly_sales = [
@@ -2853,6 +2948,7 @@ def _render_filtered_products(
             "stock_balance_categories": stock_balance_categories,
             "stock_balance_groups": stock_balance_groups,
             "stock_age_breakdown": stock_age_breakdown,
+            "profitability_summary": profitability_summary,
             "has_quarterly_data": bool(variant_ids),
             "filter_controls": filter_controls,
             "showing_summary": " | ".join(selected_labels_flat)
