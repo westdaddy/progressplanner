@@ -6161,8 +6161,14 @@ def inventory_snapshots(request):
         sale_qs.values("variant__product_id")
         .annotate(
             sold_qty=Coalesce(Sum("sold_quantity"), Value(0)),
+            return_qty=Coalesce(Sum("return_quantity"), Value(0)),
             sold_value=Coalesce(
                 Sum("sold_value"),
+                Value(Decimal("0.00")),
+                output_field=DecimalField(max_digits=12, decimal_places=2),
+            ),
+            return_value=Coalesce(
+                Sum("return_value"),
                 Value(Decimal("0.00")),
                 output_field=DecimalField(max_digits=12, decimal_places=2),
             ),
@@ -6171,8 +6177,9 @@ def inventory_snapshots(request):
     )
     sales_by_product = {
         row["variant__product_id"]: {
-            "sold_qty": int(row["sold_qty"] or 0),
-            "sold_value": row["sold_value"] or Decimal("0"),
+            "sold_qty": int(row["sold_qty"] or 0) - int(row["return_qty"] or 0),
+            "sold_value": (row["sold_value"] or Decimal("0"))
+            - (row["return_value"] or Decimal("0")),
         }
         for row in sales_rows
     }
@@ -6232,8 +6239,11 @@ def inventory_snapshots(request):
             continue
 
         sales_metrics = sales_by_product.get(product_id, {})
-        sold_qty = int(sales_metrics.get("sold_qty", 0) or 0)
-        sold_value = sales_metrics.get("sold_value", Decimal("0")) or Decimal("0")
+        sold_qty = max(int(sales_metrics.get("sold_qty", 0) or 0), 0)
+        sold_value = max(
+            sales_metrics.get("sold_value", Decimal("0")) or Decimal("0"),
+            Decimal("0"),
+        )
         stock_qty = int(stock_by_product.get(product_id, 0) or 0)
         tier_code = meta["tier"]
 
