@@ -177,6 +177,176 @@
       width: auto;
       margin-right: 10px;
     }
+
+    .size-snapshot {
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .size-snapshot__top {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 16px;
+      align-items: start;
+      margin-bottom: 12px;
+    }
+
+    .size-snapshot__kpis {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      gap: 10px;
+    }
+
+    .size-snapshot__kpi {
+      border: 1px solid #eceff1;
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+      background: #fafafa;
+    }
+
+    .size-snapshot__kpi-value {
+      font-size: 34px;
+      line-height: 1;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .size-snapshot__kpi-label {
+      margin: 4px 0 0;
+      color: #616161;
+      font-size: 13px;
+    }
+
+    .size-snapshot__status--under {
+      color: #e53935;
+    }
+
+    .size-snapshot__status--over {
+      color: #00897b;
+    }
+
+    .size-snapshot__legend {
+      padding-top: 8px;
+    }
+
+    .size-snapshot__legend-bar {
+      height: 8px;
+      border-radius: 999px;
+      background: linear-gradient(
+        to right,
+        #e53935 0%,
+        #e53935 20%,
+        #ffb300 20%,
+        #ffb300 50%,
+        #8bc34a 50%,
+        #8bc34a 75%,
+        #00897b 75%,
+        #00897b 100%
+      );
+      margin: 10px 0 8px;
+    }
+
+    .size-snapshot__legend-labels {
+      display: flex;
+      justify-content: space-between;
+      color: #757575;
+      font-size: 12px;
+    }
+
+    .size-group {
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+
+    .size-group__row {
+      display: grid;
+      grid-template-columns: 250px 220px 1fr;
+      border-top: 1px solid #eeeeee;
+    }
+
+    .size-group__row:first-child {
+      border-top: none;
+    }
+
+    .size-group__summary,
+    .size-group__totals {
+      padding: 12px;
+      background: #fafafa;
+    }
+
+    .size-group__sizes {
+      padding: 12px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+    }
+
+    .size-pill {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-top: 8px;
+      background: #eceff1;
+      color: #455a64;
+    }
+
+    .size-pill--under { background: #ffebee; color: #c62828; }
+    .size-pill--over { background: #e0f2f1; color: #00695c; }
+
+    .size-tile {
+      border-left: 1px solid #eeeeee;
+      padding-left: 10px;
+    }
+
+    .size-tile__code {
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .size-tile__months {
+      font-weight: 700;
+      margin: 0 0 6px;
+    }
+
+    .size-tile__bar {
+      height: 8px;
+      border-radius: 999px;
+      background: #e0e0e0;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+
+    .size-tile__bar-fill {
+      height: 100%;
+      border-radius: 999px;
+    }
+
+    .size-tile__meta {
+      font-size: 12px;
+      color: #616161;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1200px) {
+      .size-snapshot__top {
+        grid-template-columns: 1fr;
+      }
+      .size-group__row {
+        grid-template-columns: 1fr;
+      }
+      .size-tile {
+        border-left: none;
+        border-top: 1px solid #eeeeee;
+        padding-top: 8px;
+        padding-left: 0;
+      }
+    }
   </style>
   {% if filter_controls %}
 
@@ -504,48 +674,101 @@
 
   <div class="row">
 
-    <div class="col s12 m4">
-      <div class="card-panel" style="margin-top: 16px;">
-        <h6 class="grey-text text-darken-1">Size Variant Stock Snapshot</h6>
-        <table class="striped" style="font-size: 13px; margin-bottom: 0;">
-          <thead>
-            <tr>
-              <th>Size</th>
-              <th>Status</th>
-              <th>In stock</th>
-              <th>Net sales (12 mo)</th>
-              <th>OOS variants</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in size_stock_rows %}
-              <tr>
-                <td><strong>{{ row.label }}</strong></td>
-                <td>{{ row.status }}</td>
-                <td>{{ row.inventory }}</td>
-                <td>{{ row.sales }}</td>
-                <td>{{ row.oos_variants }}</td>
-              </tr>
-            {% empty %}
-              <tr>
-                <td colspan="5" class="grey-text text-darken-1">
-                  No size data available.
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        <p class="grey-text text-darken-1" style="margin: 8px 0 0;">
-          Net sales are calculated over the last 12 months after returns.
+    <div class="col s12 m8">
+      <div class="card-panel size-snapshot" style="margin-top: 16px;">
+        <div class="size-snapshot__top">
+          <div>
+            <h5 style="margin: 0 0 4px;">Size Variant Stock Snapshot</h5>
+            <p class="grey-text text-darken-1" style="margin: 0 0 12px;">
+              Net sales over last 12 months after returns
+            </p>
+            <div class="size-snapshot__kpis">
+              <div class="size-snapshot__kpi">
+                <p class="size-snapshot__kpi-value">{{ size_snapshot_category_count }}</p>
+                <p class="size-snapshot__kpi-label">Categories</p>
+              </div>
+              <div class="size-snapshot__kpi">
+                <p class="size-snapshot__kpi-value">{{ size_snapshot_inventory_total }}</p>
+                <p class="size-snapshot__kpi-label">In stock</p>
+              </div>
+              <div class="size-snapshot__kpi">
+                <p class="size-snapshot__kpi-value">{{ size_snapshot_sales_total }}</p>
+                <p class="size-snapshot__kpi-label">Net sales (12 mo)</p>
+              </div>
+              <div class="size-snapshot__kpi">
+                <p class="size-snapshot__kpi-value {% if 'Understocked' in size_snapshot_status %}size-snapshot__status--under{% elif 'Overstocked' in size_snapshot_status %}size-snapshot__status--over{% endif %}">
+                  {{ size_snapshot_status }}
+                </p>
+                <p class="size-snapshot__kpi-label">{{ size_snapshot_delta|floatformat:1 }}% vs target</p>
+              </div>
+            </div>
+          </div>
+          <div class="size-snapshot__legend">
+            <strong>Months of stock</strong>
+            <div class="size-snapshot__legend-bar"></div>
+            <div class="size-snapshot__legend-labels">
+              <span>&lt; 1 mo</span>
+              <span>1 - 3 mo</span>
+              <span>3 - 6 mo</span>
+              <span>&gt; 6 mo</span>
+            </div>
+          </div>
+        </div>
+
+        {% for row in size_stock_rows %}
+          <div class="size-group">
+            <div class="size-group__row">
+              <div class="size-group__summary">
+                <h6 style="margin: 0 0 6px;">{{ row.label }}</h6>
+                <div>In stock: {{ row.inventory }}</div>
+                <div>Net sales (12 mo): {{ row.sales }}</div>
+                <div>OOS variants: {{ row.oos_variants }}</div>
+                <span class="size-pill {% if 'Understocked' in row.status %}size-pill--under{% elif 'Overstocked' in row.status %}size-pill--over{% endif %}">
+                  {{ row.status }}
+                </span>
+              </div>
+              <div class="size-group__totals">
+                <div><strong>Group totals</strong></div>
+                <div style="margin-top: 8px;">In stock</div>
+                <div>Net sales (12 mo)</div>
+                <div>OOS variants</div>
+              </div>
+              <div class="size-group__sizes">
+                {% for size_row in row.size_breakdown %}
+                  <div class="size-tile">
+                    <div class="size-tile__code">{{ size_row.label }}</div>
+                    <p class="size-tile__months">
+                      {% if size_row.has_months_of_stock %}
+                        {{ size_row.months_of_stock|floatformat:1 }} mo
+                      {% else %}
+                        —
+                      {% endif %}
+                    </p>
+                    <div class="size-tile__bar">
+                      <div
+                        class="size-tile__bar-fill"
+                        style="width: {{ size_row.bar_percent|floatformat:0 }}%; background: {{ size_row.bar_color }};"
+                      ></div>
+                    </div>
+                    <div class="size-tile__meta">
+                      {{ size_row.inventory }} in stock<br>
+                      {{ size_row.sales }} sales<br>
+                      {{ size_row.oos_variants }} OOS
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        {% empty %}
+          <p class="grey-text text-darken-1" style="margin: 0;">No size data available.</p>
+        {% endfor %}
+
+        <p class="grey-text text-darken-1" style="margin: 12px 0 0;">
+          Months of stock = In stock ÷ Net sales (last 12 months).
         </p>
       </div>
     </div>
-
-    <div class="col s12 m4">
-
-    </div>
-
-
   </div>
 
   <div class="filter-divider"></div>
