@@ -1832,6 +1832,7 @@ def _render_filtered_products(
 
     size_totals: dict[str, int] = {}
     size_oos_counts: dict[str, int] = {}
+    size_variant_counts: dict[str, int] = {}
     size_label_map = dict(ProductVariant.SIZE_CHOICES)
     age_totals: dict[str, int] = {}
     style_totals: dict[str, int] = {}
@@ -1855,6 +1856,7 @@ def _render_filtered_products(
         for variant in getattr(product, "variants_with_inventory", []):
             if not variant.size:
                 continue
+            size_variant_counts[variant.size] = size_variant_counts.get(variant.size, 0) + 1
             inventory_count = getattr(variant, "latest_inventory", 0) or 0
             if inventory_count <= 0:
                 size_oos_counts[variant.size] = size_oos_counts.get(variant.size, 0) + 1
@@ -2248,7 +2250,15 @@ def _render_filtered_products(
         set(size_totals.keys())
         | set(size_sales_totals.keys())
         | set(size_oos_counts.keys())
+        | set(size_variant_counts.keys())
     )
+
+    def _interpolate_rgb(start: tuple[int, int, int], end: tuple[int, int, int], t: float) -> str:
+        t = max(0.0, min(1.0, t))
+        r = int(round(start[0] + ((end[0] - start[0]) * t)))
+        g = int(round(start[1] + ((end[1] - start[1]) * t)))
+        b = int(round(start[2] + ((end[2] - start[2]) * t)))
+        return f"rgb({r}, {g}, {b})"
 
     size_groups = [
         {
@@ -2297,28 +2307,38 @@ def _render_filtered_products(
         inventory_qty = sum(size_totals.get(code, 0) for code in present_sizes)
         sales_qty = sum(size_sales_totals.get(code, 0) for code in present_sizes)
         oos_variants = sum(size_oos_counts.get(code, 0) for code in present_sizes)
+        total_variants = sum(size_variant_counts.get(code, 0) for code in present_sizes)
         size_breakdown = []
         for size_code in present_sizes:
             size_inventory_qty = size_totals.get(size_code, 0)
             size_sales_qty = size_sales_totals.get(size_code, 0)
             size_oos_variants = size_oos_counts.get(size_code, 0)
+            size_total_variants = size_variant_counts.get(size_code, 0)
             months_of_stock = (
                 (size_inventory_qty / size_sales_qty) if size_sales_qty > 0 else None
             )
-            if months_of_stock is None:
+            if size_sales_qty <= 0:
                 bar_percent = 100 if size_inventory_qty > 0 else 0
-                bar_color = "#00897b" if size_inventory_qty > 0 else "#b0bec5"
+                bar_color = "#2e7d32" if size_inventory_qty > 0 else "#b0bec5"
             else:
-                capped_months = min(months_of_stock, 6)
-                bar_percent = (capped_months / 6) * 100
-                if months_of_stock < 1:
+                stock_vs_sales_ratio = size_inventory_qty / size_sales_qty
+                bar_percent = min(stock_vs_sales_ratio, 1) * 100
+                if stock_vs_sales_ratio >= 1:
+                    bar_color = "#2e7d32"
+                elif stock_vs_sales_ratio < 0.25:
                     bar_color = "#e53935"
-                elif months_of_stock < 3:
-                    bar_color = "#ffb300"
-                elif months_of_stock < 6:
-                    bar_color = "#8bc34a"
                 else:
-                    bar_color = "#00897b"
+                    bar_color = _interpolate_rgb((251, 140, 0), (46, 125, 50), (stock_vs_sales_ratio - 0.25) / 0.75)
+
+            oos_ratio = (
+                (size_oos_variants / size_total_variants) if size_total_variants > 0 else 0
+            )
+            if size_oos_variants <= 0:
+                oos_level = "none"
+            elif oos_ratio > 0.5:
+                oos_level = "high"
+            else:
+                oos_level = "some"
 
             size_breakdown.append(
                 {
@@ -2329,8 +2349,12 @@ def _render_filtered_products(
                     "oos_variants": size_oos_variants,
                     "has_months_of_stock": months_of_stock is not None,
                     "months_of_stock": months_of_stock,
+                    "sales_speed_monthly": (size_sales_qty / 12) if size_sales_qty > 0 else 0,
                     "bar_percent": bar_percent,
                     "bar_color": bar_color,
+                    "oos_ratio": oos_ratio,
+                    "oos_level": oos_level,
+                    "variant_count": size_total_variants,
                 }
             )
 
@@ -2353,6 +2377,7 @@ def _render_filtered_products(
                 "inventory": inventory_qty,
                 "sales": sales_qty,
                 "oos_variants": oos_variants,
+                "variant_count": total_variants,
                 "status": status_note,
             }
         )

@@ -396,11 +396,26 @@
     }
 
     .size-tile__months {
+      font-weight: 600;
+      margin: 8px 0 8px;
+      font-size: 13px;
+      line-height: 1.3;
+      white-space: nowrap;
+      color: #4b5563;
+    }
+
+    .size-tile__headline {
       font-weight: 700;
       margin: 0 0 8px;
       font-size: 14px;
-      line-height: 1;
+      line-height: 1.2;
       white-space: nowrap;
+      color: #1f2937;
+    }
+
+    .size-tile__months-divider {
+      color: #9ca3af;
+      margin: 0 6px;
     }
 
     .size-tile__bar {
@@ -443,6 +458,18 @@
     .size-tile__meta-divider {
       color: #bdbdbd;
       margin: 0 6px;
+    }
+
+    .size-tile__meta-item--oos {
+      font-weight: 600;
+    }
+
+    .size-tile__meta-item--oos-some {
+      color: #ef6c00;
+    }
+
+    .size-tile__meta-item--oos-high {
+      color: #c62828;
     }
 
     .size-snapshot__footnote {
@@ -873,7 +900,7 @@
                 <h6 style="margin: 0 0 8px;">{{ row.label }}</h6>
                 <div>In stock: {{ row.inventory }}</div>
                 <div>Net sales (12 mo): {{ row.sales }}</div>
-                <div>OOS variants: {{ row.oos_variants }}</div>
+                <div>OOS variants: {{ row.oos_variants }} / {{ row.variant_count }}</div>
                 <span class="size-pill {% if 'Understocked' in row.status %}size-pill--under{% elif 'Overstocked' in row.status %}size-pill--over{% endif %}">
                   {{ row.status }}
                 </span>
@@ -881,25 +908,26 @@
               <div class="size-group__sizes">
                 {% for size_row in row.size_breakdown %}
                   <div class="size-tile">
-                    <p class="size-tile__months">
-                      {% if size_row.has_months_of_stock %}
-                        {{ size_row.months_of_stock|floatformat:1 }} mo
-                      {% else %}
-                        —
-                      {% endif %}
-                    </p>
+                    <p class="size-tile__headline">{{ size_row.inventory }} in stock | {{ size_row.sales }} sales</p>
                     <div class="size-tile__bar">
                       <div
                         class="size-tile__bar-fill"
                         style="width: {{ size_row.bar_percent|floatformat:0 }}%; background: {{ size_row.bar_color }};"
                       ></div>
                     </div>
+                    <p class="size-tile__months">
+                      {% if size_row.has_months_of_stock %}
+                        {{ size_row.months_of_stock|floatformat:1 }} mo stock
+                      {% else %}
+                        —
+                      {% endif %}
+                      <span class="size-tile__months-divider">·</span>
+                      {{ size_row.sales_speed_monthly|floatformat:1 }} / mo sales
+                    </p>
                     <div class="size-tile__meta">
-                      <span class="size-tile__meta-item">{{ size_row.inventory }} in stock</span>
-                      <span class="size-tile__meta-divider">|</span>
-                      <span class="size-tile__meta-item">{{ size_row.sales }} sales</span>
-                      <span class="size-tile__meta-divider">|</span>
-                      <span class="size-tile__meta-item">{{ size_row.oos_variants }} OOS</span>
+                      <span class="size-tile__meta-item size-tile__meta-item--oos {% if size_row.oos_level == 'some' %}size-tile__meta-item--oos-some{% elif size_row.oos_level == 'high' %}size-tile__meta-item--oos-high{% endif %}">
+                        {{ size_row.oos_variants }} OOS / {{ size_row.variant_count }} variants
+                      </span>
                     </div>
                   </div>
                 {% endfor %}
