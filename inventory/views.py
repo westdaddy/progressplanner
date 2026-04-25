@@ -2244,17 +2244,71 @@ def _render_filtered_products(
         for period in yearly_periods
     ]
 
-    size_keys = set(size_totals.keys()) | set(size_sales_totals.keys()) | set(
-        size_oos_counts.keys()
+    size_keys = (
+        set(size_totals.keys())
+        | set(size_sales_totals.keys())
+        | set(size_oos_counts.keys())
     )
-    ordered_size_keys = sorted(
-        size_keys, key=lambda code: SIZE_ORDER.get(code, 9999)
-    )
+
+    size_groups = [
+        {
+            "label": "Nogi (Adults)",
+            "sizes": ["XXS", "XS", "S", "M", "L", "XL", "XXL"],
+        },
+        {
+            "label": "Nogi (Kids)",
+            "sizes": ["KXS", "KS", "KM", "KL", "KXL"],
+        },
+        {
+            "label": "Gi (Men)",
+            "sizes": [
+                code
+                for code, _ in ProductVariant.SIZE_CHOICES
+                if code.startswith("A")
+            ],
+        },
+        {
+            "label": "Gi (Women)",
+            "sizes": [
+                code
+                for code, _ in ProductVariant.SIZE_CHOICES
+                if code.startswith("F")
+            ],
+        },
+        {
+            "label": "Gi (Kids)",
+            "sizes": [
+                code
+                for code, _ in ProductVariant.SIZE_CHOICES
+                if code.startswith("M")
+            ],
+        },
+    ]
+
     size_stock_rows = []
-    for size_code in ordered_size_keys:
-        inventory_qty = size_totals.get(size_code, 0)
-        sales_qty = size_sales_totals.get(size_code, 0)
-        oos_variants = size_oos_counts.get(size_code, 0)
+    for size_group in size_groups:
+        present_sizes = [code for code in size_group["sizes"] if code in size_keys]
+        if not present_sizes:
+            continue
+
+        inventory_qty = sum(size_totals.get(code, 0) for code in present_sizes)
+        sales_qty = sum(size_sales_totals.get(code, 0) for code in present_sizes)
+        oos_variants = sum(size_oos_counts.get(code, 0) for code in present_sizes)
+        size_breakdown = []
+        for size_code in present_sizes:
+            size_inventory_qty = size_totals.get(size_code, 0)
+            size_sales_qty = size_sales_totals.get(size_code, 0)
+            size_oos_variants = size_oos_counts.get(size_code, 0)
+            size_breakdown.append(
+                {
+                    "code": size_code,
+                    "label": size_label_map.get(size_code, size_code),
+                    "inventory": size_inventory_qty,
+                    "sales": size_sales_qty,
+                    "oos_variants": size_oos_variants,
+                }
+            )
+
         if sales_qty > 0:
             delta = (inventory_qty - sales_qty) / sales_qty * 100
             status = "Overstocked" if delta > 0 else "Understocked"
@@ -2268,7 +2322,9 @@ def _render_filtered_products(
 
         size_stock_rows.append(
             {
-                "label": size_label_map.get(size_code, size_code),
+                "label": size_group["label"],
+                "sizes": ", ".join(present_sizes),
+                "size_breakdown": size_breakdown,
                 "inventory": inventory_qty,
                 "sales": sales_qty,
                 "oos_variants": oos_variants,
