@@ -167,6 +167,71 @@
       opacity: 1;
       cursor: pointer;
     }
+
+    .sales-breakdown-card {
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .sales-breakdown-title {
+      margin: 0 0 16px;
+      font-size: 1.45rem;
+      font-weight: 600;
+    }
+
+    .sales-breakdown-table {
+      border: 1px solid #e3e8ee;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 0;
+    }
+
+    .sales-breakdown-table thead th {
+      background: #f7f9fc;
+      font-weight: 600;
+      color: #2f3a4a;
+      border-bottom: 1px solid #e3e8ee;
+    }
+
+    .sales-breakdown-table td {
+      border-bottom: 1px solid #edf1f6;
+    }
+
+    .sales-tree-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-left: calc(var(--indent-level, 0) * 26px);
+    }
+
+    .toggle-btn {
+      min-width: 24px;
+      height: 24px;
+      line-height: 24px;
+      padding: 0;
+      border: 1px solid #90a4ae;
+      border-radius: 999px;
+      color: #1976d2;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .toggle-icon {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .toggle-spacer {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+    }
+
+    .category-label {
+      font-weight: 500;
+      color: #253247;
+    }
   </style>
 
   <div class="filter-divider"></div>
@@ -224,6 +289,73 @@
     </div>
     <div class="filter-divider"></div>
   </form>
+
+  <div class="row">
+    <div class="col s12">
+      <div class="card z-depth-1 sales-breakdown-card">
+        <div class="card-content">
+          <h5 class="sales-breakdown-title">Sales and Stock Breakdown</h5>
+          <div class="table-responsive">
+            <table class="striped sales-breakdown-table">
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th class="right-align">Sales value</th>
+                  <th class="right-align">Items sold</th>
+                  <th class="right-align">% of parent</th>
+                  <th class="right-align">In stock now</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in sales_hierarchy_rows %}
+                  <tr
+                    class="sales-tree-row"
+                    data-row-id="{{ row.id }}"
+                    {% if row.parent_id %}data-parent-id="{{ row.parent_id }}"{% endif %}
+                    {% if row.level > 1 %}hidden{% endif %}
+                  >
+                    <td>
+                      <div class="sales-tree-label" style="--indent-level: {{ row.level }};">
+                        {% if row.has_children %}
+                          <button
+                            type="button"
+                            class="toggle-btn btn-flat"
+                            data-toggle-id="{{ row.id }}"
+                            aria-expanded="{% if row.level == 0 %}true{% else %}false{% endif %}"
+                          >
+                            <span class="toggle-icon">{% if row.level == 0 %}−{% else %}+{% endif %}</span>
+                          </button>
+                        {% else %}
+                          <span class="toggle-spacer"></span>
+                        {% endif %}
+                        <span class="category-label">{{ row.label }}</span>
+                      </div>
+                    </td>
+                    <td class="right-align">£{{ row.sold_value|floatformat:2 }}</td>
+                    <td class="right-align">{{ row.sold_qty }}</td>
+                    <td class="right-align">
+                      {% if row.percent is not None %}
+                        {{ row.percent|floatformat:1 }}%
+                      {% else %}
+                        —
+                      {% endif %}
+                    </td>
+                    <td class="right-align">{{ row.stock_qty }}</td>
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td colspan="5" class="center-align grey-text text-darken-1">
+                      No inventory sales data available.
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
@@ -521,6 +653,52 @@
           const allExpanded = filterControllers.every((c) => c.isExpanded());
           const newState = !allExpanded;
           setAllExpanded(newState);
+        });
+      });
+    });
+  })();
+</script>
+
+<script>
+  (function() {
+    const rows = Array.from(document.querySelectorAll('.sales-tree-row'));
+
+    function getChildren(rowId) {
+      return rows.filter((row) => row.dataset.parentId === rowId);
+    }
+
+    function setToggleState(toggleButton, expanded) {
+      toggleButton.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      const icon = toggleButton.querySelector('.toggle-icon');
+      if (icon) {
+        icon.textContent = expanded ? '−' : '+';
+      }
+    }
+
+    function collapseDescendants(rowId) {
+      getChildren(rowId).forEach((child) => {
+        child.hidden = true;
+        const childToggle = child.querySelector('.toggle-btn[data-toggle-id]');
+        if (childToggle) {
+          setToggleState(childToggle, false);
+        }
+        collapseDescendants(child.dataset.rowId);
+      });
+    }
+
+    document.querySelectorAll('.toggle-btn[data-toggle-id]').forEach((button) => {
+      button.addEventListener('click', function() {
+        const rowId = this.dataset.toggleId;
+        const currentlyExpanded = this.getAttribute('aria-expanded') === 'true';
+        const nextExpanded = !currentlyExpanded;
+
+        setToggleState(this, nextExpanded);
+
+        getChildren(rowId).forEach((child) => {
+          child.hidden = !nextExpanded;
+          if (!nextExpanded) {
+            collapseDescendants(child.dataset.rowId);
+          }
         });
       });
     });
