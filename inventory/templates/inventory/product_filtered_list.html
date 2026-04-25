@@ -511,10 +511,8 @@
           <thead>
             <tr>
               <th>Size group</th>
-              <th>Status</th>
-              <th>In stock</th>
-              <th>Net sales (12 mo)</th>
-              <th>OOS variants</th>
+              <th>Group totals</th>
+              <th>Per-size stock / sales / OOS variants</th>
             </tr>
           </thead>
           <tbody>
@@ -524,14 +522,38 @@
                   <strong>{{ row.label }}</strong><br>
                   <span class="grey-text text-darken-1">{{ row.sizes }}</span>
                 </td>
-                <td>{{ row.status }}</td>
-                <td>{{ row.inventory }}</td>
-                <td>{{ row.sales }}</td>
-                <td>{{ row.oos_variants }}</td>
+                <td>
+                  <div><strong>Status:</strong> {{ row.status }}</div>
+                  <div><strong>In stock:</strong> {{ row.inventory }}</div>
+                  <div><strong>Net sales (12 mo):</strong> {{ row.sales }}</div>
+                  <div><strong>OOS variants:</strong> {{ row.oos_variants }}</div>
+                </td>
+                <td>
+                  <table style="margin: 0; width: 100%;">
+                    <thead>
+                      <tr>
+                        <th style="padding: 4px 6px;">Size</th>
+                        <th style="padding: 4px 6px;">In stock</th>
+                        <th style="padding: 4px 6px;">Net sales</th>
+                        <th style="padding: 4px 6px;">OOS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for size_row in row.size_breakdown %}
+                        <tr>
+                          <td style="padding: 4px 6px;"><strong>{{ size_row.label }}</strong></td>
+                          <td style="padding: 4px 6px;">{{ size_row.inventory }}</td>
+                          <td style="padding: 4px 6px;">{{ size_row.sales }}</td>
+                          <td style="padding: 4px 6px;">{{ size_row.oos_variants }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </td>
               </tr>
             {% empty %}
               <tr>
-                <td colspan="5" class="grey-text text-darken-1">
+                <td colspan="3" class="grey-text text-darken-1">
                   No size data available.
                 </td>
               </tr>

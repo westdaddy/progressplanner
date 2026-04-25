@@ -2294,6 +2294,20 @@ def _render_filtered_products(
         inventory_qty = sum(size_totals.get(code, 0) for code in present_sizes)
         sales_qty = sum(size_sales_totals.get(code, 0) for code in present_sizes)
         oos_variants = sum(size_oos_counts.get(code, 0) for code in present_sizes)
+        size_breakdown = []
+        for size_code in present_sizes:
+            size_inventory_qty = size_totals.get(size_code, 0)
+            size_sales_qty = size_sales_totals.get(size_code, 0)
+            size_oos_variants = size_oos_counts.get(size_code, 0)
+            size_breakdown.append(
+                {
+                    "code": size_code,
+                    "label": size_label_map.get(size_code, size_code),
+                    "inventory": size_inventory_qty,
+                    "sales": size_sales_qty,
+                    "oos_variants": size_oos_variants,
+                }
+            )
 
         if sales_qty > 0:
             delta = (inventory_qty - sales_qty) / sales_qty * 100
@@ -2310,6 +2324,7 @@ def _render_filtered_products(
             {
                 "label": size_group["label"],
                 "sizes": ", ".join(present_sizes),
+                "size_breakdown": size_breakdown,
                 "inventory": inventory_qty,
                 "sales": sales_qty,
                 "oos_variants": oos_variants,
