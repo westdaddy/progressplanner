@@ -1011,9 +1011,21 @@ def _build_product_list_context(request, preset_filters=None):
 
         return default
 
+    raw_option_filters = _get_filter("option_filter", None)
+    if raw_option_filters is None:
+        raw_option_filters = request.GET.getlist("option_filter")
+        if not raw_option_filters:
+            first_option = request.GET.get("option_filter")
+            raw_option_filters = [first_option] if first_option else []
+    elif not isinstance(raw_option_filters, (list, tuple, set)):
+        raw_option_filters = [raw_option_filters]
+    option_filters = [str(val) for val in raw_option_filters if val]
+
     # ─── Filter flags ───────────────────────────────────────────────────────────
     show_retired = _get_filter("show_retired", "false")
     show_retired = show_retired if isinstance(show_retired, bool) else str(show_retired).lower() == "true"
+    if "show_retired" in option_filters:
+        show_retired = True
 
     raw_type_filters = _get_filter("type_filter", None)
     if raw_type_filters is None:
@@ -1099,6 +1111,8 @@ def _build_product_list_context(request, preset_filters=None):
         if isinstance(clearance_only, bool)
         else str(clearance_only).lower() == "true"
     )
+    if "clearance" in option_filters:
+        clearance_only = True
     search_query = request.GET.get("product_search", "").strip()
 
     # ─── Date ranges ────────────────────────────────────────────────────────────
@@ -1573,6 +1587,7 @@ def _build_product_list_context(request, preset_filters=None):
         "age_filters": age_filters,
         "group_filters": group_filters,
         "series_filters": series_filters,
+        "option_filters": option_filters,
         "zero_inventory": zero_inventory,
         "clearance_only": clearance_only,
         "search_query": search_query,
@@ -1680,6 +1695,7 @@ def _render_filtered_products(
     age_selected = set(context.get("age_filters", []))
     group_selected = set(context.get("group_filters", []))
     series_selected = set(context.get("series_filters", []))
+    option_selected = set(context.get("option_filters", []))
 
     category_filter_control = {
         "styles": [
@@ -1746,6 +1762,25 @@ def _render_filtered_products(
                 }
                 for series in (context.get("series_choices") or Series.objects.all())
             ],
+        ),
+        build_control(
+            "options",
+            "option_filter",
+            [
+                {
+                    "value": "show_retired",
+                    "label": "Retired visible",
+                    "checked": "show_retired" in option_selected
+                    or bool(context.get("show_retired")),
+                },
+                {
+                    "value": "clearance",
+                    "label": "Clearance only",
+                    "checked": "clearance" in option_selected
+                    or bool(context.get("clearance_only")),
+                },
+            ],
+            display_label="Options",
         ),
     ]
 
@@ -3127,6 +3162,9 @@ def product_filtered(request):
         ("age_filter", "age"),
         ("group_filter", "group"),
         ("series_filter", "series"),
+        ("option_filter", "options"),
+        ("show_retired", "options"),
+        ("clearance_only", "options"),
     ):
         if request.GET.getlist(query_name) or request.GET.get(query_name):
             primary_category = label

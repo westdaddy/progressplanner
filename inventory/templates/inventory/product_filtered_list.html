@@ -671,53 +671,6 @@
           {% endwith %}
         {% endfor %}
 
-        <div class="card-panel filter-card">
-          <div class="filter-card__header">
-            <div style="flex: 1; min-width: 0;">
-              <p class="filter-card__title">Options</p>
-              <div class="chip-set">
-                {% if show_retired %}
-                  <span class="chip chip--selected">Retired visible</span>
-                {% else %}
-                  <span class="chip__placeholder">Retired hidden</span>
-                {% endif %}
-                {% if clearance_only %}
-                  <span class="chip chip--selected">Clearance only</span>
-                {% endif %}
-              </div>
-            </div>
-            <button type="button" class="btn-flat filter-card__toggle" aria-expanded="false" aria-controls="filter-options-static">
-              <span class="filter-card__toggle-symbol blue">+</span>
-            </button>
-          </div>
-
-          <div id="filter-options-static" class="filter-card__options" hidden>
-            {% if show_retired %}
-              <p class="grey-text text-darken-1" style="margin: 0;">
-                Retired products are currently included in this list.
-              </p>
-            {% else %}
-              <a
-                class="filter-option"
-                href="{% url 'product_filtered' %}?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}show_retired=true"
-              >
-                Show retired products
-              </a>
-            {% endif %}
-            {% if clearance_only %}
-              <p class="grey-text text-darken-1" style="margin: 8px 0 0;">
-                Showing only clearance products (discounted items).
-              </p>
-            {% else %}
-              <a
-                class="filter-option"
-                href="{% url 'product_filtered' %}?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}clearance_only=true"
-              >
-                Show clearance products
-              </a>
-            {% endif %}
-          </div>
-        </div>
       </div>
       <div class="filter-divider"></div>
     </form>
