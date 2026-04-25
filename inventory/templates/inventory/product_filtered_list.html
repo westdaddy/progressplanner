@@ -504,13 +504,13 @@
 
   <div class="row">
 
-    <div class="col s12 m4">
+    <div class="col s12 m8">
       <div class="card-panel" style="margin-top: 16px;">
         <h6 class="grey-text text-darken-1">Size Variant Stock Snapshot</h6>
         <table class="striped" style="font-size: 13px; margin-bottom: 0;">
           <thead>
             <tr>
-              <th>Size</th>
+              <th>Size group</th>
               <th>Status</th>
               <th>In stock</th>
               <th>Net sales (12 mo)</th>
@@ -520,7 +520,10 @@
           <tbody>
             {% for row in size_stock_rows %}
               <tr>
-                <td><strong>{{ row.label }}</strong></td>
+                <td>
+                  <strong>{{ row.label }}</strong><br>
+                  <span class="grey-text text-darken-1">{{ row.sizes }}</span>
+                </td>
                 <td>{{ row.status }}</td>
                 <td>{{ row.inventory }}</td>
                 <td>{{ row.sales }}</td>
@@ -540,12 +543,6 @@
         </p>
       </div>
     </div>
-
-    <div class="col s12 m4">
-
-    </div>
-
-
   </div>
 
   <div class="filter-divider"></div>
