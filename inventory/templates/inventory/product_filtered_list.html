@@ -196,7 +196,7 @@
 
     .size-snapshot__title {
       margin: 0;
-      font-size: 48px;
+      font-size: 18px;
       font-weight: 700;
       color: #111827;
       line-height: 1.05;
@@ -205,9 +205,13 @@
     .size-snapshot__subtitle {
       margin: 8px 0 0;
       color: #6b7280;
-      font-size: 16px;
+      font-size: 14px;
       line-height: 1.3;
       font-weight: 500;
+    }
+
+    .size-snapshot_title {
+      padding: 10px 0 0 10px;
     }
 
     .size-snapshot__header {
@@ -215,6 +219,7 @@
       align-items: flex-start;
       gap: 14px;
       justify-content: space-between;
+      margin-bottom:20px;
     }
 
     .size-snapshot__kpis {
@@ -245,7 +250,7 @@
     }
 
     .size-snapshot__kpi-value {
-      font-size: 58px;
+      font-size: 16px;
       line-height: 1;
       font-weight: 700;
       margin: 0;
@@ -303,7 +308,7 @@
 
     .size-snapshot__column-head {
       display: grid;
-      grid-template-columns: 390px 270px 1fr;
+      grid-template-columns: 250px 1fr;
       border: 1px solid #e5e7eb;
       border-bottom: none;
       background: #f9fafb;
@@ -313,7 +318,7 @@
     .size-snapshot__column-head-main,
     .size-snapshot__column-head-secondary {
       padding: 10px 14px;
-      font-size: 18px;
+      font-size: 12px;
       font-weight: 700;
       border-right: 1px solid #e5e7eb;
     }
@@ -329,7 +334,7 @@
       text-align: center;
       font-weight: 700;
       color: #111827;
-      font-size: 16px;
+      font-size: 12px;
     }
 
     .size-snapshot__column-head-size:last-child {
@@ -346,7 +351,7 @@
 
     .size-group__row {
       display: grid;
-      grid-template-columns: 390px 270px 1fr;
+      grid-template-columns: 250px 1fr;
     }
 
     .size-group__summary,
@@ -393,7 +398,7 @@
     .size-tile__months {
       font-weight: 700;
       margin: 0 0 8px;
-      font-size: 22px;
+      font-size: 14px;
       line-height: 1;
       white-space: nowrap;
     }
@@ -825,49 +830,37 @@
     <!-- STOCK POSITION BY SIZES SECTION -->
     <div class="col s12 m12">
       <div class="card-panel size-snapshot" style="margin-top: 16px;">
-        <div class="size-snapshot__top">
-          <div>
-            <h5 class="size-snapshot__title">Size Variant Stock Snapshot</h5>
+        <div class="size-snapshot__header">
+          <div class="size-snapshot_title"</div>
+            <h6 class="size-snapshot__title">Size Variant Stock Snapshot</h6>
             <p class="size-snapshot__subtitle">Net sales over last 12 months after returns</p>
-            <div class="size-snapshot__header">
-              <div class="size-snapshot__kpis">
-                <div class="size-snapshot__kpi">
-                  <p class="size-snapshot__kpi-value">{{ size_snapshot_category_count }}</p>
-                  <p class="size-snapshot__kpi-label">Categories</p>
-                </div>
-                <div class="size-snapshot__kpi">
-                  <p class="size-snapshot__kpi-value">{{ size_snapshot_inventory_total }}</p>
-                  <p class="size-snapshot__kpi-label">In stock</p>
-                </div>
-                <div class="size-snapshot__kpi">
-                  <p class="size-snapshot__kpi-value">{{ size_snapshot_sales_total }}</p>
-                  <p class="size-snapshot__kpi-label">Net sales (12 mo)</p>
-                </div>
-                <div class="size-snapshot__kpi size-snapshot__kpi--status">
-                  <p class="size-snapshot__kpi-value size-snapshot__kpi-value--status {% if 'Understocked' in size_snapshot_status %}size-snapshot__status--under{% elif 'Overstocked' in size_snapshot_status %}size-snapshot__status--over{% endif %}">
-                    {{ size_snapshot_status }}
-                  </p>
-                  <p class="size-snapshot__kpi-label">{{ size_snapshot_delta|floatformat:1 }}% vs target</p>
-                </div>
+          </div>
+
+            <div class="size-snapshot__kpis">
+              <div class="size-snapshot__kpi">
+                <p class="size-snapshot__kpi-value">{{ size_snapshot_category_count }}</p>
+                <p class="size-snapshot__kpi-label">Categories</p>
+              </div>
+              <div class="size-snapshot__kpi">
+                <p class="size-snapshot__kpi-value">{{ size_snapshot_inventory_total }}</p>
+                <p class="size-snapshot__kpi-label">In stock</p>
+              </div>
+              <div class="size-snapshot__kpi">
+                <p class="size-snapshot__kpi-value">{{ size_snapshot_sales_total }}</p>
+                <p class="size-snapshot__kpi-label">Net sales (12 mo)</p>
+              </div>
+              <div class="size-snapshot__kpi size-snapshot__kpi--status">
+                <p class="size-snapshot__kpi-value size-snapshot__kpi-value--status {% if 'Understocked' in size_snapshot_status %}size-snapshot__status--under{% elif 'Overstocked' in size_snapshot_status %}size-snapshot__status--over{% endif %}">
+                  {{ size_snapshot_status }}
+                </p>
+                <p class="size-snapshot__kpi-label">{{ size_snapshot_delta|floatformat:1 }}% vs target</p>
               </div>
             </div>
           </div>
-          <div class="size-snapshot__legend">
-            <strong>Months of stock</strong>
-            <div class="size-snapshot__legend-bar"></div>
-            <div class="size-snapshot__legend-labels">
-              <span>&lt; 1 mo</span>
-              <span>1 - 3 mo</span>
-              <span>3 - 6 mo</span>
-              <span>&gt; 6 mo</span>
-            </div>
-          </div>
-        </div>
 
         {% for row in size_stock_rows %}
           <div class="size-snapshot__column-head" style="--size-count: {{ row.size_breakdown|length }};">
             <div class="size-snapshot__column-head-main">Stock Category</div>
-            <div class="size-snapshot__column-head-secondary">Group totals</div>
             <div class="size-snapshot__column-head-sizes">
               {% for size_row in row.size_breakdown %}
                 <div class="size-snapshot__column-head-size">{{ size_row.label }}</div>
@@ -884,11 +877,6 @@
                 <span class="size-pill {% if 'Understocked' in row.status %}size-pill--under{% elif 'Overstocked' in row.status %}size-pill--over{% endif %}">
                   {{ row.status }}
                 </span>
-              </div>
-              <div class="size-group__totals">
-                <div style="margin-top: 8px;">In stock</div>
-                <div>Net sales (12 mo)</div>
-                <div>OOS variants</div>
               </div>
               <div class="size-group__sizes">
                 {% for size_row in row.size_breakdown %}
