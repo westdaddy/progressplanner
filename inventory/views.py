@@ -6152,7 +6152,11 @@ def inventory_snapshots(request):
         sale_qs.values("variant__product_id")
         .annotate(
             sold_qty=Coalesce(Sum("sold_quantity"), Value(0)),
-            sold_value=Coalesce(Sum("sold_value"), Value(0)),
+            sold_value=Coalesce(
+                Sum("sold_value"),
+                Value(Decimal("0.00")),
+                output_field=DecimalField(max_digits=12, decimal_places=2),
+            ),
         )
         .order_by()
     )
