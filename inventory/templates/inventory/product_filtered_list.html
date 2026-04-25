@@ -196,15 +196,18 @@
 
     .size-snapshot__title {
       margin: 0;
-      font-size: 36px;
+      font-size: 56px;
       font-weight: 700;
       color: #111827;
+      line-height: 1.05;
     }
 
     .size-snapshot__subtitle {
-      margin: 2px 0 0;
+      margin: 8px 0 0;
       color: #6b7280;
       font-size: 16px;
+      line-height: 1.3;
+      font-weight: 500;
     }
 
     .size-snapshot__header {
@@ -242,7 +245,7 @@
     }
 
     .size-snapshot__kpi-value {
-      font-size: 42px;
+      font-size: 68px;
       line-height: 1;
       font-weight: 700;
       margin: 0;
@@ -300,7 +303,7 @@
 
     .size-snapshot__column-head {
       display: grid;
-      grid-template-columns: 260px 180px 1fr;
+      grid-template-columns: 390px 270px 1fr;
       border: 1px solid #e5e7eb;
       border-bottom: none;
       background: #f9fafb;
@@ -317,7 +320,7 @@
 
     .size-snapshot__column-head-sizes {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      grid-template-columns: repeat(var(--size-count, 1), minmax(0, 1fr));
     }
 
     .size-snapshot__column-head-size {
@@ -326,6 +329,7 @@
       text-align: center;
       font-weight: 700;
       color: #111827;
+      font-size: 16px;
     }
 
     .size-snapshot__column-head-size:last-child {
@@ -342,7 +346,7 @@
 
     .size-group__row {
       display: grid;
-      grid-template-columns: 260px 180px 1fr;
+      grid-template-columns: 390px 270px 1fr;
     }
 
     .size-group__summary,
@@ -355,7 +359,7 @@
     .size-group__sizes {
       padding: 0;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      grid-template-columns: repeat(var(--size-count, 1), minmax(0, 1fr));
       gap: 0;
     }
 
@@ -376,6 +380,7 @@
     .size-tile {
       border-left: 1px solid #eeeeee;
       padding: 12px;
+      min-width: 0;
     }
 
     .size-tile__code {
@@ -388,7 +393,7 @@
     .size-tile__months {
       font-weight: 700;
       margin: 0 0 8px;
-      font-size: 30px;
+      font-size: 28px;
       line-height: 1;
     }
 
@@ -410,6 +415,19 @@
       color: #616161;
       line-height: 1.8;
       white-space: nowrap;
+    }
+
+    .size-tile__meta-divider {
+      color: #bdbdbd;
+      margin: 0 6px;
+    }
+
+    .size-snapshot__footnote {
+      margin: 14px 2px 2px;
+      color: #616161;
+      line-height: 1.6;
+      white-space: normal;
+      overflow-wrap: anywhere;
     }
 
     .size-tile__meta-divider {
@@ -842,7 +860,7 @@
         </div>
 
         {% for row in size_stock_rows %}
-          <div class="size-snapshot__column-head">
+          <div class="size-snapshot__column-head" style="--size-count: {{ row.size_breakdown|length }};">
             <div class="size-snapshot__column-head-main">Stock Category</div>
             <div class="size-snapshot__column-head-secondary">Group totals</div>
             <div class="size-snapshot__column-head-sizes">
@@ -851,7 +869,7 @@
               {% endfor %}
             </div>
           </div>
-          <div class="size-group">
+          <div class="size-group" style="--size-count: {{ row.size_breakdown|length }};">
             <div class="size-group__row">
               <div class="size-group__summary">
                 <h6 style="margin: 0 0 8px;">{{ row.label }}</h6>
