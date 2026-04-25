@@ -196,7 +196,7 @@
 
     .size-snapshot__title {
       margin: 0;
-      font-size: 56px;
+      font-size: 48px;
       font-weight: 700;
       color: #111827;
       line-height: 1.05;
@@ -245,7 +245,7 @@
     }
 
     .size-snapshot__kpi-value {
-      font-size: 68px;
+      font-size: 58px;
       line-height: 1;
       font-weight: 700;
       margin: 0;
@@ -379,7 +379,7 @@
 
     .size-tile {
       border-left: 1px solid #eeeeee;
-      padding: 12px;
+      padding: 10px;
       min-width: 0;
     }
 
@@ -393,8 +393,9 @@
     .size-tile__months {
       font-weight: 700;
       margin: 0 0 8px;
-      font-size: 28px;
+      font-size: 22px;
       line-height: 1;
+      white-space: nowrap;
     }
 
     .size-tile__bar {
@@ -413,21 +414,25 @@
     .size-tile__meta {
       font-size: 13px;
       color: #616161;
-      line-height: 1.8;
-      white-space: nowrap;
-    }
-
-    .size-tile__meta-divider {
-      color: #bdbdbd;
-      margin: 0 6px;
-    }
-
-    .size-snapshot__footnote {
-      margin: 14px 2px 2px;
-      color: #616161;
       line-height: 1.6;
       white-space: normal;
       overflow-wrap: anywhere;
+    }
+
+    .size-group--dense .size-tile__meta {
+      line-height: 1.35;
+    }
+
+    .size-group--dense .size-tile__meta-divider {
+      display: none;
+    }
+
+    .size-tile__meta-item {
+      display: inline;
+    }
+
+    .size-group--dense .size-tile__meta-item {
+      display: block;
     }
 
     .size-tile__meta-divider {
@@ -869,7 +874,7 @@
               {% endfor %}
             </div>
           </div>
-          <div class="size-group" style="--size-count: {{ row.size_breakdown|length }};">
+          <div class="size-group {% if row.size_breakdown|length > 6 %}size-group--dense{% endif %}" style="--size-count: {{ row.size_breakdown|length }};">
             <div class="size-group__row">
               <div class="size-group__summary">
                 <h6 style="margin: 0 0 8px;">{{ row.label }}</h6>
@@ -902,11 +907,11 @@
                       ></div>
                     </div>
                     <div class="size-tile__meta">
-                      {{ size_row.inventory }} in stock
+                      <span class="size-tile__meta-item">{{ size_row.inventory }} in stock</span>
                       <span class="size-tile__meta-divider">|</span>
-                      {{ size_row.sales }} sales
+                      <span class="size-tile__meta-item">{{ size_row.sales }} sales</span>
                       <span class="size-tile__meta-divider">|</span>
-                      {{ size_row.oos_variants }} OOS
+                      <span class="size-tile__meta-item">{{ size_row.oos_variants }} OOS</span>
                     </div>
                   </div>
                 {% endfor %}
