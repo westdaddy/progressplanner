@@ -350,8 +350,8 @@
     <!-- STOCK SUMMARY SECTION -->
     <div class="col s12 m4">
       <div class="card-panel">
-        <h4 class="teal-text text-darken-2" style="margin-top: 0; margin-bottom: 4px;">{{ filtered_inventory_total }} / ¥{{ inventory_value_total|floatformat:"0g" }}</h4>
-        <p class="grey-text text-darken-1" style="margin: 0;">Total in stock across all matching products</p>
+        <h4 class="teal-text text-darken-2" style="margin-top: 0; margin-bottom: 4px;">{{ filtered_inventory_total }} <span class="grey-text">/</span> ¥{{ inventory_value_total|floatformat:"0g" }}</h4>
+        <p class="grey-text text-darken-1" style="margin: 0;">Items in stock / Retail value</p>
 
         <div class="filter-divider"></div>
         {% if category_breakdown_values %}
@@ -366,8 +366,8 @@
     <!-- SALES SUMMARY SECTION -->
     <div class="col s12 m4">
       <div class="card-panel">
-        <h4 class="teal-text text-darken-2" style="margin-top: 0; margin-bottom: 4px;">¥{{ inventory_value_total|floatformat:"0g" }} / ¥{{ sales_last_year_value_total|floatformat:"0g" }}</h4>
-        <p class="grey-text text-darken-1" style="margin: 0;">Estimated value of stock (RMB)</p>
+        <h4 class="teal-text text-darken-2" style="margin-top: 0; margin-bottom: 4px;">{{ sales_last_year_total }} <span class="grey-text">/</span> ¥{{ sales_last_year_value_total|floatformat:"0g" }}</h4>
+        <p class="grey-text text-darken-1" style="margin: 0;">Items sold last year / Sales value </p>
 
         <div class="filter-divider"></div>
         {% if sales_category_values %}
