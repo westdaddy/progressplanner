@@ -587,6 +587,14 @@
     .category-split-list__value {
       color: #00695c;
       font-weight: 700;
+      text-align: right;
+    }
+
+    .category-split-list__count {
+      display: block;
+      color: #607d8b;
+      font-weight: 500;
+      font-size: 12px;
     }
   </style>
   {% if filter_controls %}
@@ -1594,7 +1602,7 @@
         values,
         codes,
         mode,
-        tooltipSuffix,
+        countSuffix,
       }) => {
         const listElement = document.getElementById(elementId);
         if (!listElement || !Array.isArray(labels) || !labels.length || !Array.isArray(values) || !values.length) {
@@ -1615,9 +1623,11 @@
           item.className = `category-split-list__item${isClickable ? ' is-clickable' : ''}`;
           item.innerHTML = `
             <span class="category-split-list__label">${label}</span>
-            <span class="category-split-list__value">${percentage}%</span>
+            <span class="category-split-list__value">
+              ${percentage}%
+              <span class="category-split-list__count">${value} ${countSuffix}</span>
+            </span>
           `;
-          item.title = `${label}: ${value} ${tooltipSuffix}`;
 
           if (isClickable) {
             item.addEventListener('click', () => applyTypeFilter(code));
@@ -1635,7 +1645,7 @@
         values: categoryValues,
         codes: categoryCodes,
         mode: categoryBreakdownMode,
-        tooltipSuffix: 'items in stock',
+        countSuffix: 'in stock',
       });
 
       const inventoryValueChartElement = document.getElementById('inventoryValueChart');
@@ -1727,7 +1737,7 @@
         values: salesCategoryValues,
         codes: salesCategoryCodes,
         mode: salesMode,
-        tooltipSuffix: 'items sold',
+        countSuffix: 'sold',
       });
 
       const salesValueChartElement = document.getElementById('salesValueChart');
