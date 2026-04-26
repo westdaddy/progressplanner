@@ -550,6 +550,52 @@
       font-size: 12px;
       color: #78909c;
     }
+
+    .category-split-list {
+      list-style: none;
+      margin: 0 0 10px;
+      padding: 0;
+    }
+
+    .category-split-list__item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+      border: none;
+      background: transparent;
+      border-bottom: 1px solid #eceff1;
+      padding: 8px 0;
+      text-align: left;
+    }
+
+    .category-split-list__item.is-clickable {
+      cursor: pointer;
+    }
+
+    .category-split-list__item.is-clickable:hover .category-split-list__label {
+      text-decoration: underline;
+      color: #0277bd;
+    }
+
+    .category-split-list__label {
+      color: #37474f;
+      font-weight: 600;
+    }
+
+    .category-split-list__value {
+      color: #00695c;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .category-split-list__count {
+      display: block;
+      color: #607d8b;
+      font-weight: 500;
+      font-size: 12px;
+    }
   </style>
   {% if filter_controls %}
 
@@ -697,7 +743,7 @@
 
         <div class="filter-divider"></div>
         {% if sales_category_values %}
-          <canvas id="salesCategoryChart"></canvas>
+          <ul id="salesCategorySplitList" class="category-split-list"></ul>
           <p class="grey-text text-darken-1" style="margin-bottom: 0;">{{ sales_category_description|default:"Sales split by product category" }}</p>
         {% else %}
           <p class="grey-text text-darken-1" style="margin: 0;">No sales data available.</p>
@@ -714,7 +760,7 @@
 
         <div class="filter-divider"></div>
         {% if category_breakdown_values %}
-          <canvas id="categoryBreakdownChart"></canvas>
+          <ul id="categoryBreakdownList" class="category-split-list"></ul>
           <p class="grey-text text-darken-1" style="margin-bottom: 0;">{{ category_breakdown_description|default:"Inventory split by product category" }}</p>
         {% else %}
           <p class="grey-text text-darken-1" style="margin: 0;">No category data available.</p>
@@ -1541,81 +1587,66 @@
         ? new Set(selectedStyles)
         : new Set();
 
-      const categoryChartElement = document.getElementById('categoryBreakdownChart');
-      if (
-        categoryChartElement &&
-        categoryLabels &&
-        categoryLabels.length &&
-        categoryValues &&
-        categoryValues.length
-      ) {
-        const hasSelection =
-          categoryBreakdownMode === 'style' && selectedStyleSet.size > 0;
-        const totalCategoryUnits = categoryValues.reduce(
-          (sum, value) => sum + value,
-          0
-        );
+      const applyTypeFilter = (typeCode) => {
+        if (!typeCode) return;
+        const nextParams = new URLSearchParams(window.location.search || '');
+        nextParams.delete('type_filter');
+        nextParams.delete('subtype_filter');
+        nextParams.append('type_filter', String(typeCode));
+        window.location.search = nextParams.toString();
+      };
 
-        const categoryDisplayLabels = categoryLabels;
+      const renderCategorySplitList = ({
+        elementId,
+        labels,
+        values,
+        codes,
+        mode,
+        countSuffix,
+      }) => {
+        const listElement = document.getElementById(elementId);
+        if (!listElement || !Array.isArray(labels) || !labels.length || !Array.isArray(values) || !values.length) {
+          return;
+        }
 
-        const backgroundColors = categoryCodes.map((code, index) => {
-          if (categoryBreakdownMode === 'style') {
-            const baseColor = STYLE_CATEGORY_COLORS[code] || '#26a69a';
-            if (!hasSelection) return baseColor;
-            return selectedStyleSet.has(code)
-              ? baseColor
-              : 'rgba(189, 189, 189, 0.5)';
+        const total = values.reduce((sum, value) => sum + Number(value || 0), 0);
+        listElement.innerHTML = '';
+
+        labels.forEach((label, index) => {
+          const value = Number(values[index] || 0);
+          const code = Array.isArray(codes) ? codes[index] : null;
+          const percentage = total ? ((value / total) * 100).toFixed(1) : '0.0';
+          const isClickable = mode === 'type' && Boolean(code);
+
+          const item = document.createElement('button');
+          item.type = 'button';
+          item.className = `category-split-list__item${isClickable ? ' is-clickable' : ''}`;
+          item.innerHTML = `
+            <span class="category-split-list__label">${label}</span>
+            <span class="category-split-list__value">
+              ${percentage}%
+              <span class="category-split-list__count">${value} ${countSuffix}</span>
+            </span>
+          `;
+
+          if (isClickable) {
+            item.addEventListener('click', () => applyTypeFilter(code));
           }
 
-          const paletteColor = TYPE_COLORS[index % TYPE_COLORS.length];
-          return paletteColor;
+          const li = document.createElement('li');
+          li.appendChild(item);
+          listElement.appendChild(li);
         });
+      };
 
-        const borderColors = categoryCodes.map((code, index) => {
-          if (categoryBreakdownMode === 'style') {
-            const baseColor = STYLE_CATEGORY_COLORS[code] || '#26a69a';
-            if (!hasSelection) return baseColor;
-            return selectedStyleSet.has(code)
-              ? baseColor
-              : 'rgba(176, 190, 197, 0.8)';
-          }
-
-          const paletteColor = TYPE_COLORS[index % TYPE_COLORS.length];
-          return paletteColor;
-        });
-
-        new Chart(categoryChartElement.getContext('2d'), {
-          type: 'pie',
-          data: {
-            labels: categoryDisplayLabels,
-            datasets: [
-              {
-                data: categoryValues,
-                backgroundColor: backgroundColors,
-                borderColor: borderColors,
-                borderWidth: 1.5,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: { position: 'bottom' },
-              tooltip: {
-                callbacks: {
-                  label: (context) => {
-                    const value = context.parsed;
-                    const percentage = totalCategoryUnits
-                      ? ((value / totalCategoryUnits) * 100).toFixed(1)
-                      : '0.0';
-                    return `${context.label}: ${value} (${percentage}%)`;
-                  },
-                },
-              },
-            },
-          },
-        });
-      }
+      renderCategorySplitList({
+        elementId: 'categoryBreakdownList',
+        labels: categoryLabels,
+        values: categoryValues,
+        codes: categoryCodes,
+        mode: categoryBreakdownMode,
+        countSuffix: 'in stock',
+      });
 
       const inventoryValueChartElement = document.getElementById('inventoryValueChart');
       if (
@@ -1693,86 +1724,21 @@
         });
       }
 
-      const salesCategoryChartElement = document.getElementById('salesCategoryChart');
-      if (
-        salesCategoryChartElement &&
-        salesCategoryLabels &&
-        salesCategoryLabels.length &&
-        salesCategoryValues &&
-        salesCategoryValues.length
-      ) {
-        const totalSalesUnits = salesCategoryValues.reduce(
-          (sum, value) => sum + value,
-          0
-        );
-        const salesMode =
-          salesCategoryMode === 'type'
-            ? 'type'
-            : salesCategoryMode === 'group'
-              ? 'group'
-              : 'style';
-        const hasSalesSelection = salesMode === 'style' && selectedStyleSet.size > 0;
+      const salesMode =
+        salesCategoryMode === 'type'
+          ? 'type'
+          : salesCategoryMode === 'group'
+            ? 'group'
+            : 'style';
 
-        const salesCategoryDisplayLabels = salesCategoryLabels;
-
-        const salesBackgroundColors = (salesCategoryCodes || []).map((code, index) => {
-          if (salesMode === 'style') {
-            const baseColor = STYLE_CATEGORY_COLORS[code] || '#26a69a';
-            if (!hasSalesSelection) return baseColor;
-            return selectedStyleSet.has(code)
-              ? baseColor
-              : 'rgba(189, 189, 189, 0.5)';
-          }
-
-          const paletteColor = TYPE_COLORS[index % TYPE_COLORS.length];
-          return paletteColor;
-        });
-
-        const salesBorderColors = (salesCategoryCodes || []).map((code, index) => {
-          if (salesMode === 'style') {
-            const baseColor = STYLE_CATEGORY_COLORS[code] || '#26a69a';
-            if (!hasSalesSelection) return baseColor;
-            return selectedStyleSet.has(code)
-              ? baseColor
-              : 'rgba(176, 190, 197, 0.8)';
-          }
-
-          const paletteColor = TYPE_COLORS[index % TYPE_COLORS.length];
-          return paletteColor;
-        });
-
-        new Chart(salesCategoryChartElement.getContext('2d'), {
-          type: 'pie',
-          data: {
-            labels: salesCategoryDisplayLabels,
-            datasets: [
-              {
-                data: salesCategoryValues,
-                backgroundColor: salesBackgroundColors,
-                borderColor: salesBorderColors,
-                borderWidth: 1.5,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: { position: 'bottom' },
-              tooltip: {
-                callbacks: {
-                  label: (context) => {
-                    const value = context.parsed;
-                    const percentage = totalSalesUnits
-                      ? ((value / totalSalesUnits) * 100).toFixed(1)
-                      : 0;
-                    return `${context.label}: ${value} units (${percentage}%)`;
-                  },
-                },
-              },
-            },
-          },
-        });
-      }
+      renderCategorySplitList({
+        elementId: 'salesCategorySplitList',
+        labels: salesCategoryLabels,
+        values: salesCategoryValues,
+        codes: salesCategoryCodes,
+        mode: salesMode,
+        countSuffix: 'sold',
+      });
 
       const salesValueChartElement = document.getElementById('salesValueChart');
       if (
