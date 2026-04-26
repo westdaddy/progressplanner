@@ -3202,6 +3202,26 @@ def product_toggle_no_restock(request, product_id: int):
     return redirect(redirect_url)
 
 
+@require_POST
+def product_toggle_clearance(request, product_id: int):
+    product = get_object_or_404(Product, pk=product_id)
+    explicit_state = request.POST.get("discounted")
+
+    if explicit_state is None:
+        product.discounted = not product.discounted
+    else:
+        product.discounted = explicit_state.lower() in {"1", "true", "yes", "on"}
+
+    product.save(update_fields=["discounted"])
+
+    redirect_querystring = request.POST.get("redirect_querystring", "").strip()
+    redirect_url = reverse("product_filtered")
+    if redirect_querystring:
+        redirect_url = f"{redirect_url}?{redirect_querystring}"
+
+    return redirect(redirect_url)
+
+
 def _redirect_to_product_filtered_with_query(redirect_querystring: str, **extra_params):
     redirect_url = reverse("product_filtered")
     query_items = []
