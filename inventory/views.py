@@ -1348,44 +1348,6 @@ def _build_product_list_context(request, preset_filters=None):
             product.sold_through_pct = None
             product.stock_remaining_pct = None
 
-        months_to_sell_out = getattr(product, "months_to_sell_out", None)
-        if months_to_sell_out is None:
-            product.speed_signal = "Unknown"
-        elif months_to_sell_out <= Decimal("6"):
-            product.speed_signal = "Fast"
-        elif months_to_sell_out <= Decimal("12"):
-            product.speed_signal = "Average"
-        else:
-            product.speed_signal = "Slow"
-
-        if in_stock_core_count == len(core_sizes):
-            product.stock_quality_signal = "Good"
-        elif in_stock_core_count == 0:
-            product.stock_quality_signal = "Poor"
-        else:
-            product.stock_quality_signal = "Mixed"
-
-        clearance_triggered = (
-            product.speed_signal == "Slow"
-            and product.stock_remaining_pct is not None
-            and product.stock_remaining_pct >= Decimal("60")
-        )
-        reorder_triggered = (
-            product.total_inventory == 0
-            or (
-                in_stock_core_count < len(core_sizes)
-                and product.speed_signal in {"Fast", "Average"}
-            )
-        )
-        if clearance_triggered:
-            product.status_signal = "Clearance"
-        elif reorder_triggered:
-            product.status_signal = "Reorder Soon"
-        elif product.stock_quality_signal == "Good" and product.speed_signal in {"Fast", "Average"}:
-            product.status_signal = "Healthy"
-        else:
-            product.status_signal = "Monitor"
-
     sitewide_average_discount = (
         ((sitewide_retail_total - sitewide_actual_total) / sitewide_retail_total)
         * Decimal("100")
@@ -3188,9 +3150,45 @@ def product_toggle_no_restock(request, product_id: int):
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         return JsonResponse(
             {
+                "field": "no_restock",
+                "state": product.no_restock,
+                "next_state": "0" if product.no_restock else "1",
+                "off_label": "Restock",
+                "on_label": "No Restock",
                 "no_restock": product.no_restock,
                 "next_no_restock": "0" if product.no_restock else "1",
                 "label": "Undo no restock" if product.no_restock else "No restock",
+            }
+        )
+
+    redirect_querystring = request.POST.get("redirect_querystring", "").strip()
+    redirect_url = reverse("product_filtered")
+    if redirect_querystring:
+        redirect_url = f"{redirect_url}?{redirect_querystring}"
+
+    return redirect(redirect_url)
+
+
+@require_POST
+def product_toggle_clearance(request, product_id: int):
+    product = get_object_or_404(Product, pk=product_id)
+    explicit_state = request.POST.get("discounted")
+
+    if explicit_state is None:
+        product.discounted = not product.discounted
+    else:
+        product.discounted = explicit_state.lower() in {"1", "true", "yes", "on"}
+
+    product.save(update_fields=["discounted"])
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse(
+            {
+                "field": "discounted",
+                "state": product.discounted,
+                "next_state": "0" if product.discounted else "1",
+                "off_label": "Regular",
+                "on_label": "Clearance",
             }
         )
 
@@ -3246,6 +3244,18 @@ def product_decommission(request, product_id: int):
 
         force_requested = str(request.POST.get("force", "")).lower() == "true"
         if total_inventory > 0 and not force_requested:
+            if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                return JsonResponse(
+                    {
+                        "field": "decommissioned",
+                        "state": product.decommissioned,
+                        "next_state": "1",
+                        "off_label": "Active",
+                        "on_label": "Decommissioned",
+                        "blocked_stock": total_inventory,
+                    },
+                    status=409,
+                )
             return _redirect_to_product_filtered_with_query(
                 redirect_querystring,
                 decommission_notice="blocked_stock",
@@ -3255,6 +3265,17 @@ def product_decommission(request, product_id: int):
 
     product.decommissioned = should_decommission
     product.save(update_fields=["decommissioned"])
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse(
+            {
+                "field": "decommissioned",
+                "state": product.decommissioned,
+                "next_state": "0" if product.decommissioned else "1",
+                "off_label": "Active",
+                "on_label": "Decommissioned",
+            }
+        )
 
     notice = "retired" if should_decommission else "reinstated"
     return _redirect_to_product_filtered_with_query(
