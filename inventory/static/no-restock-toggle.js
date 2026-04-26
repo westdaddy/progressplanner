@@ -35,15 +35,6 @@
       const isOn = Boolean(payload.state);
       stateInput.value = payload.next_state || (isOn ? "0" : "1");
       setToggleVisualState(button, isOn);
-
-      if ((payload.field || form.dataset.toggleField) === "no_restock") {
-        const badge = form
-          .closest(".card-panel, .content")
-          ?.querySelector("[data-no-restock-badge]");
-        if (badge) {
-          badge.hidden = !isOn;
-        }
-      }
     } catch (error) {
       form.submit();
     } finally {

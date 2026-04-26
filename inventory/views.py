@@ -1348,44 +1348,6 @@ def _build_product_list_context(request, preset_filters=None):
             product.sold_through_pct = None
             product.stock_remaining_pct = None
 
-        months_to_sell_out = getattr(product, "months_to_sell_out", None)
-        if months_to_sell_out is None:
-            product.speed_signal = "Unknown"
-        elif months_to_sell_out <= Decimal("6"):
-            product.speed_signal = "Fast"
-        elif months_to_sell_out <= Decimal("12"):
-            product.speed_signal = "Average"
-        else:
-            product.speed_signal = "Slow"
-
-        if in_stock_core_count == len(core_sizes):
-            product.stock_quality_signal = "Good"
-        elif in_stock_core_count == 0:
-            product.stock_quality_signal = "Poor"
-        else:
-            product.stock_quality_signal = "Mixed"
-
-        clearance_triggered = (
-            product.speed_signal == "Slow"
-            and product.stock_remaining_pct is not None
-            and product.stock_remaining_pct >= Decimal("60")
-        )
-        reorder_triggered = (
-            product.total_inventory == 0
-            or (
-                in_stock_core_count < len(core_sizes)
-                and product.speed_signal in {"Fast", "Average"}
-            )
-        )
-        if clearance_triggered:
-            product.status_signal = "Clearance"
-        elif reorder_triggered:
-            product.status_signal = "Reorder Soon"
-        elif product.stock_quality_signal == "Good" and product.speed_signal in {"Fast", "Average"}:
-            product.status_signal = "Healthy"
-        else:
-            product.status_signal = "Monitor"
-
     sitewide_average_discount = (
         ((sitewide_retail_total - sitewide_actual_total) / sitewide_retail_total)
         * Decimal("100")

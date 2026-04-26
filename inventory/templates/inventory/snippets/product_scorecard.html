@@ -94,22 +94,6 @@
           <!-- ACTIONS SECTION -->
           <div class="col s12 m6 l3">
               <div class="card-panel scorecard-box">
-                <div class="signal-card__status-row">
-                  <span class="signal-badge signal-badge--{{ product.status_signal|default:'monitor'|slugify }}">
-                    {{ product.status_signal|default:"Monitor" }}
-                  </span>
-                  <span
-                    class="signal-badge signal-badge--no-restock"
-                    data-no-restock-badge
-                    {% if not product.no_restock %}hidden{% endif %}
-                  >
-                    No restock
-                  </span>
-                </div>
-
-                <div class="signal-splits">
-                  <p class="signal-line"><span class="signal-label">Quality</span> <strong>{{ product.stock_quality_signal|default:"Mixed" }}</strong></p>
-                </div>
                 <div class="product-action-toggles">
                   <form method="post" action="{% url 'product_toggle_no_restock' product.id %}" data-product-toggle-form data-toggle-field="no_restock" style="margin-top: 12px;">
                     {% csrf_token %}
