@@ -110,53 +110,65 @@
                 <div class="signal-splits">
                   <p class="signal-line"><span class="signal-label">Quality</span> <strong>{{ product.stock_quality_signal|default:"Mixed" }}</strong></p>
                 </div>
-                <form method="post" action="{% url 'product_toggle_no_restock' product.id %}" style="margin-top: 12px;" data-no-restock-form>
-                  {% csrf_token %}
-                  {% if request.GET.urlencode %}
-                    <input type="hidden" name="redirect_querystring" value="{{ request.GET.urlencode }}">
-                  {% endif %}
-                  <input type="hidden" name="no_restock" value="{% if product.no_restock %}0{% else %}1{% endif %}">
-                  <button type="submit" class="btn-small {% if product.no_restock %}grey lighten-1{% else %}orange lighten-1{% endif %}" data-no-restock-submit>
-                    {% if product.no_restock %}Undo no restock{% else %}No restock{% endif %}
-                  </button>
-                </form>
-
-                <form method="post" action="{% url 'product_decommission' product.id %}" style="margin-top: 8px;">
-                  {% csrf_token %}
-                  {% if request.GET.urlencode %}
-                    <input type="hidden" name="redirect_querystring" value="{{ request.GET.urlencode }}">
-                  {% endif %}
-                  <input type="hidden" name="decommissioned" value="{% if product.decommissioned %}0{% else %}1{% endif %}">
-                  <button type="submit" class="btn-small {% if product.decommissioned %}blue-grey lighten-1{% else %}red lighten-1{% endif %}">
-                    {% if product.decommissioned %}Undo decommission{% else %}Decommission{% endif %}
-                  </button>
-                </form>
-
-                {% if not product.decommissioned and product.total_inventory|default:0 > 0 %}
-                  <form method="post" action="{% url 'product_decommission' product.id %}" style="margin-top: 6px;">
+                <div class="product-action-toggles">
+                  <form method="post" action="{% url 'product_toggle_no_restock' product.id %}" data-product-toggle-form data-toggle-field="no_restock" style="margin-top: 12px;">
                     {% csrf_token %}
                     {% if request.GET.urlencode %}
                       <input type="hidden" name="redirect_querystring" value="{{ request.GET.urlencode }}">
                     {% endif %}
-                    <input type="hidden" name="decommissioned" value="1">
-                    <input type="hidden" name="force" value="true">
-                    <button type="submit" class="btn-small red darken-2">
-                      Force decommission ({{ product.total_inventory|default:0 }} in stock)
+                    <input type="hidden" name="no_restock" value="{% if product.no_restock %}0{% else %}1{% endif %}" data-toggle-state-input>
+                    <button
+                      type="submit"
+                      class="product-action-toggle {% if product.no_restock %}is-on{% endif %}"
+                      data-toggle-button
+                      data-off-label="Restock"
+                      data-on-label="No Restock"
+                      aria-pressed="{% if product.no_restock %}true{% else %}false{% endif %}"
+                    >
+                      <span class="product-action-toggle__label product-action-toggle__label--off">Restock</span>
+                      <span class="product-action-toggle__label product-action-toggle__label--on">No Restock</span>
                     </button>
                   </form>
-                {% endif %}
 
-                {% if request.GET.decommission_product == product.id|stringformat:"s" %}
-                  {% if request.GET.decommission_notice == "blocked_stock" %}
-                    <p class="orange-text text-darken-3" style="margin-top: 8px;">
-                      Blocked: {{ request.GET.decommission_stock|default:"0" }} units in stock. Use force decommission to continue.
-                    </p>
-                  {% elif request.GET.decommission_notice == "retired" %}
-                    <p class="green-text text-darken-2" style="margin-top: 8px;">Product marked as decommissioned.</p>
-                  {% elif request.GET.decommission_notice == "reinstated" %}
-                    <p class="green-text text-darken-2" style="margin-top: 8px;">Product restored from decommissioned state.</p>
-                  {% endif %}
-                {% endif %}
+                  <form method="post" action="{% url 'product_toggle_clearance' product.id %}" data-product-toggle-form data-toggle-field="discounted" style="margin-top: 8px;">
+                    {% csrf_token %}
+                    {% if request.GET.urlencode %}
+                      <input type="hidden" name="redirect_querystring" value="{{ request.GET.urlencode }}">
+                    {% endif %}
+                    <input type="hidden" name="discounted" value="{% if product.discounted %}0{% else %}1{% endif %}" data-toggle-state-input>
+                    <button
+                      type="submit"
+                      class="product-action-toggle {% if product.discounted %}is-on{% endif %}"
+                      data-toggle-button
+                      data-off-label="Regular"
+                      data-on-label="Clearance"
+                      aria-pressed="{% if product.discounted %}true{% else %}false{% endif %}"
+                    >
+                      <span class="product-action-toggle__label product-action-toggle__label--off">Regular</span>
+                      <span class="product-action-toggle__label product-action-toggle__label--on">Clearance</span>
+                    </button>
+                  </form>
+
+                  <form method="post" action="{% url 'product_decommission' product.id %}" data-product-toggle-form data-toggle-field="decommissioned" style="margin-top: 8px;">
+                    {% csrf_token %}
+                    {% if request.GET.urlencode %}
+                      <input type="hidden" name="redirect_querystring" value="{{ request.GET.urlencode }}">
+                    {% endif %}
+                    <input type="hidden" name="decommissioned" value="{% if product.decommissioned %}0{% else %}1{% endif %}" data-toggle-state-input>
+                    <input type="hidden" name="force" value="true">
+                    <button
+                      type="submit"
+                      class="product-action-toggle {% if product.decommissioned %}is-on{% endif %}"
+                      data-toggle-button
+                      data-off-label="Active"
+                      data-on-label="Decommissioned"
+                      aria-pressed="{% if product.decommissioned %}true{% else %}false{% endif %}"
+                    >
+                      <span class="product-action-toggle__label product-action-toggle__label--off">Active</span>
+                      <span class="product-action-toggle__label product-action-toggle__label--on">Decommissioned</span>
+                    </button>
+                  </form>
+                </div>
               </div>
           </div>
           <!-- END ACTIONS SECTION -->
