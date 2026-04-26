@@ -132,6 +132,17 @@
                   </button>
                 </form>
 
+                <form method="post" action="{% url 'product_toggle_clearance' product.id %}" style="margin-top: 8px;">
+                  {% csrf_token %}
+                  {% if request.GET.urlencode %}
+                    <input type="hidden" name="redirect_querystring" value="{{ request.GET.urlencode }}">
+                  {% endif %}
+                  <input type="hidden" name="discounted" value="{% if product.discounted %}0{% else %}1{% endif %}">
+                  <button type="submit" class="btn-small {% if product.discounted %}green lighten-1{% else %}amber lighten-1{% endif %}">
+                    {% if product.discounted %}Undo clearance{% else %}Mark clearance{% endif %}
+                  </button>
+                </form>
+
                 {% if not product.decommissioned and product.total_inventory|default:0 > 0 %}
                   <form method="post" action="{% url 'product_decommission' product.id %}" style="margin-top: 6px;">
                     {% csrf_token %}
