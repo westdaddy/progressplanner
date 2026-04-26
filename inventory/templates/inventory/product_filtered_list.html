@@ -744,7 +744,6 @@
         <div class="filter-divider"></div>
         {% if sales_category_values %}
           <ul id="salesCategorySplitList" class="category-split-list"></ul>
-          <p class="grey-text text-darken-1" style="margin-bottom: 0;">{{ sales_category_description|default:"Sales split by product category" }}</p>
         {% else %}
           <p class="grey-text text-darken-1" style="margin: 0;">No sales data available.</p>
         {% endif %}
@@ -761,7 +760,6 @@
         <div class="filter-divider"></div>
         {% if category_breakdown_values %}
           <ul id="categoryBreakdownList" class="category-split-list"></ul>
-          <p class="grey-text text-darken-1" style="margin-bottom: 0;">{{ category_breakdown_description|default:"Inventory split by product category" }}</p>
         {% else %}
           <p class="grey-text text-darken-1" style="margin: 0;">No category data available.</p>
         {% endif %}
