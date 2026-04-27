@@ -16,9 +16,19 @@
           <label for="product_name">Product name</label>
         </div>
 
-        <div class="file-field input-field">
-          <div class="btn"><span>Image</span><input type="file" name="product_photo" accept="image/*"></div>
-          <div class="file-path-wrapper"><input class="file-path validate" type="text" placeholder="Upload product image"></div>
+        <div class="input-field">
+          <input type="file" name="product_photo" id="product_photo_input" accept="image/*" hidden>
+          <div
+            id="product-photo-dropzone"
+            class="add-product-dropzone"
+            tabindex="0"
+            role="button"
+            aria-label="Drag and drop product image"
+          >
+            <p class="add-product-dropzone__title">Drag &amp; drop product image</p>
+            <p class="add-product-dropzone__hint">Drop an image here, or click to browse your local files.</p>
+            <p class="add-product-dropzone__filename" id="product-photo-filename">No file selected</p>
+          </div>
         </div>
 
         <p>

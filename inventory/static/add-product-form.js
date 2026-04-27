@@ -22,6 +22,9 @@ document.addEventListener('DOMContentLoaded', function () {
   const addVariantBtn = document.getElementById('add_custom_variant_btn');
   const variantsHiddenInput = document.getElementById('variant_sizes_input');
   const summaryList = document.getElementById('add-product-summary');
+  const photoInput = document.getElementById('product_photo_input');
+  const photoDropzone = document.getElementById('product-photo-dropzone');
+  const photoFilename = document.getElementById('product-photo-filename');
 
   let step = 1;
 
@@ -46,6 +49,23 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   const randomProductId = () => String(Math.floor(100000 + Math.random() * 900000));
+
+  const updatePhotoFilename = () => {
+    const selectedFile = photoInput?.files?.[0];
+    photoFilename.textContent = selectedFile ? selectedFile.name : 'No file selected';
+  };
+
+  const applyDroppedFile = (file) => {
+    if (!file || !photoInput) return;
+    if (!file.type.startsWith('image/')) {
+      M.toast({ html: 'Please drop an image file.' });
+      return;
+    }
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    photoInput.files = transfer.files;
+    updatePhotoFilename();
+  };
 
   const setStep = (nextStep) => {
     step = Math.max(1, Math.min(3, nextStep));
@@ -173,6 +193,37 @@ document.addEventListener('DOMContentLoaded', function () {
   form.addEventListener('submit', function () {
     variantsHiddenInput.value = addVariantsToggle.checked ? selectedVariants().join(',') : '';
   });
+
+  if (photoDropzone && photoInput) {
+    photoDropzone.addEventListener('click', () => photoInput.click());
+    photoDropzone.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        photoInput.click();
+      }
+    });
+
+    ['dragenter', 'dragover'].forEach((eventName) => {
+      photoDropzone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        photoDropzone.classList.add('is-drag-active');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach((eventName) => {
+      photoDropzone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        photoDropzone.classList.remove('is-drag-active');
+      });
+    });
+
+    photoDropzone.addEventListener('drop', (event) => {
+      const droppedFile = event.dataTransfer?.files?.[0];
+      applyDroppedFile(droppedFile);
+    });
+
+    photoInput.addEventListener('change', updatePhotoFilename);
+  }
 
   setStep(1);
 });

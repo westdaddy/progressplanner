@@ -2006,3 +2006,37 @@ label.hide {
   gap: 8px;
   align-items: center;
 }
+
+.add-product-dropzone {
+  border: 2px dashed #90a4ae;
+  border-radius: 12px;
+  padding: 18px 14px;
+  text-align: center;
+  cursor: pointer;
+  background: #fafcfd;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.add-product-dropzone:hover,
+.add-product-dropzone:focus,
+.add-product-dropzone.is-drag-active {
+  border-color: #26a69a;
+  background: #f1fbf9;
+  outline: none;
+}
+
+.add-product-dropzone__title {
+  margin: 0;
+  font-weight: 700;
+}
+
+.add-product-dropzone__hint {
+  margin: 8px 0 0;
+  color: #546e7a;
+}
+
+.add-product-dropzone__filename {
+  margin: 10px 0 0;
+  color: #00897b;
+  font-weight: 600;
+}
