@@ -1897,6 +1897,12 @@ def _render_filtered_products(
     product_ids = [product.id for product in products]
     total_products = len(products)
     discounted_products = sum(1 for product in products if product.discounted)
+    discounted_items = sum(
+        (getattr(variant, "latest_inventory", 0) or 0)
+        for product in products
+        if product.discounted
+        for variant in getattr(product, "variants_with_inventory", [])
+    )
     partial_oos_products = 0
     for product in products:
         variants = getattr(product, "variants_with_inventory", [])
@@ -2449,6 +2455,43 @@ def _render_filtered_products(
         {"label": period["label"], "total": period["total"]}
         for period in yearly_periods
     ]
+
+    stock_delta_quantity = filtered_inventory_total - last_year_sales_total
+    stock_delta_percent = (
+        (stock_delta_quantity / last_year_sales_total) * 100
+        if last_year_sales_total > 0
+        else Decimal("0")
+    )
+    stock_delta_percent_abs = abs(stock_delta_percent)
+    is_understocked = stock_delta_quantity < 0
+
+    base_replenishment_low = int(round(last_year_sales_total * Decimal("0.30")))
+    base_replenishment_high = int(round(last_year_sales_total * Decimal("0.45")))
+    stock_gap_adjustment = abs(stock_delta_quantity)
+    if is_understocked:
+        replenishment_low = base_replenishment_low + stock_gap_adjustment
+        replenishment_high = base_replenishment_high + stock_gap_adjustment
+    else:
+        replenishment_low = max(0, base_replenishment_low - stock_gap_adjustment)
+        replenishment_high = max(0, base_replenishment_high - stock_gap_adjustment)
+
+    six_months_ago = today - relativedelta(months=6)
+    mature_product_ids = set()
+    if product_ids:
+        mature_from_arrivals = set(
+            OrderItem.objects.filter(
+                product_variant__product_id__in=product_ids,
+                date_arrived__isnull=False,
+                date_arrived__lte=six_months_ago,
+            ).values_list("product_variant__product_id", flat=True)
+        )
+        mature_from_sales = set(
+            Sale.objects.filter(
+                variant__product_id__in=product_ids,
+                date__lte=six_months_ago,
+            ).values_list("variant__product_id", flat=True)
+        )
+        mature_product_ids = mature_from_arrivals | mature_from_sales
 
     size_keys = (
         set(size_totals.keys())
@@ -3058,6 +3101,13 @@ def _render_filtered_products(
             "stock_balance_groups": stock_balance_groups,
             "stock_age_breakdown": stock_age_breakdown,
             "profitability_summary": profitability_summary,
+            "replenishment_low": replenishment_low,
+            "replenishment_high": replenishment_high,
+            "stock_delta_percent": stock_delta_percent,
+            "stock_delta_percent_abs": stock_delta_percent_abs,
+            "is_understocked": is_understocked,
+            "discounted_items": discounted_items,
+            "mature_products_over_six_months": len(mature_product_ids),
             "has_quarterly_data": bool(variant_ids),
             "filter_controls": filter_controls,
             "showing_summary": " | ".join(selected_labels_flat)
