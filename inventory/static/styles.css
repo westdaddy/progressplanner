@@ -49,6 +49,15 @@ main {
   transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
 }
 
+.btn.btn-compact,
+.btn-small.btn-compact,
+.btn-large.btn-compact {
+  border-radius: 12px;
+  font-size: 0.95rem;
+  height: 36px;
+  padding: 0 14px;
+}
+
 .btn:hover,
 .btn-small:hover,
 .btn-large:hover {
@@ -878,14 +887,15 @@ div.metadata {
 .filter-apply-button {
   background: #f5f5f5;
   border: 1px solid #dcdcdc;
-  border-radius: 10px;
+  border-radius: 12px;
   box-shadow: none;
   color: #455a64;
   cursor: pointer;
   font-size: 12px;
-  line-height: 18px;
+  height: 36px;
+  line-height: 1;
   opacity: 1;
-  padding: 8px 8px;
+  padding: 0 14px;
   text-transform: none;
 }
 
@@ -961,7 +971,7 @@ div.metadata {
 
 .filter-toolbar__actions .btn-tiny,
 .filter-toolbar__actions .btn-small {
-  border-radius: 10px;
+  border-radius: 12px;
   box-shadow: none;
   font-size: 12px;
   height: auto;
@@ -2044,6 +2054,10 @@ label.hide {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.products-page-header .add-product-trigger {
+  min-width: 0;
 }
 
 .add-product-modal {
