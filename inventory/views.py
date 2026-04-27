@@ -9,6 +9,7 @@ import statistics
 import math
 from urllib.parse import urlencode, parse_qsl
 import logging
+import re
 from io import BytesIO
 import os
 from pathlib import Path
@@ -1192,8 +1193,16 @@ def _build_product_list_context(request, preset_filters=None):
 
     products = list(products_qs)
 
-    # Default ordering: by product ID (e.g. PG001, PG002, ...)
-    products.sort(key=lambda p: p.product_id)
+    # Default ordering:
+    # 1) standard products by product_id
+    # 2) TEMP products at the end by creation order
+    products.sort(
+        key=lambda product: (
+            1 if _is_temporary_product_id(product.product_id) else 0,
+            product.product_id if not _is_temporary_product_id(product.product_id) else "",
+            product.id if _is_temporary_product_id(product.product_id) else 0,
+        )
+    )
 
     pending_variant_totals: dict[int, int] = {}
     if products:
@@ -1608,6 +1617,99 @@ def _build_product_list_context(request, preset_filters=None):
 
     return context
 
+
+
+
+def _generate_temporary_product_id() -> str:
+    temp_prefix = "TEMP"
+    highest_sequence = 0
+
+    for existing_product_id in Product.objects.filter(
+        product_id__startswith=temp_prefix
+    ).values_list("product_id", flat=True):
+        suffix = existing_product_id[len(temp_prefix) :]
+        if suffix.isdigit():
+            highest_sequence = max(highest_sequence, int(suffix))
+
+    next_sequence = highest_sequence + 1
+    return f"{temp_prefix}{next_sequence:04d}"
+
+
+def _is_temporary_product_id(product_id: str) -> bool:
+    return bool(re.match(r"^TEMP\\d+$", product_id or ""))
+
+
+def _build_unique_variant_code(base_code: str) -> str:
+    candidate = base_code
+    counter = 2
+
+    while ProductVariant.objects.filter(variant_code=candidate).exists():
+        candidate = f"{base_code}-{counter}"
+        counter += 1
+
+    return candidate
+
+
+@require_POST
+def add_product(request):
+    next_url = request.POST.get("next") or reverse("product_filtered")
+
+    product_name = (request.POST.get("product_name") or "").strip()
+    submitted_product_id = (request.POST.get("product_id") or "").strip()
+    use_temporary_id = request.POST.get("use_temporary_id") in {"1", "true", "on", "yes"}
+
+    product_id = _generate_temporary_product_id() if use_temporary_id else submitted_product_id
+
+    if not product_name:
+        return redirect(f"{next_url}{'&' if '?' in next_url else '?'}add_product_error=missing_name")
+
+    if not product_id:
+        return redirect(f"{next_url}{'&' if '?' in next_url else '?'}add_product_error=missing_product_id")
+
+    if Product.objects.filter(product_id=product_id).exists():
+        return redirect(f"{next_url}{'&' if '?' in next_url else '?'}add_product_error=duplicate_product_id")
+
+    style = (request.POST.get("style") or "").strip() or None
+    type_code = (request.POST.get("type") or "").strip() or None
+    subtype = (request.POST.get("subtype") or "").strip() or None
+    age = (request.POST.get("age") or "").strip() or None
+
+    restock_raw = (request.POST.get("restock_time") or "").strip()
+    restock_time = int(restock_raw) if restock_raw.isdigit() else None
+
+    variant_sizes_raw = (request.POST.get("variant_sizes") or "").strip()
+    variant_sizes = [size.strip() for size in variant_sizes_raw.split(",") if size.strip()]
+
+    with transaction.atomic():
+        product = Product.objects.create(
+            product_id=product_id,
+            product_name=product_name,
+            product_photo=request.FILES.get("product_photo"),
+            style=style,
+            type=type_code,
+            subtype=subtype,
+            age=age,
+            restock_time=restock_time,
+        )
+
+        group_ids = request.POST.getlist("groups")
+        if group_ids:
+            product.groups.set(Group.objects.filter(id__in=group_ids))
+
+        series_ids = request.POST.getlist("series")
+        if series_ids:
+            product.series.set(Series.objects.filter(id__in=series_ids))
+
+        for index, size in enumerate(variant_sizes, start=1):
+            base_code = f"{product_id}-{size}" if size else f"{product_id}-VAR{index}"
+            ProductVariant.objects.create(
+                product=product,
+                variant_code=_build_unique_variant_code(base_code),
+                size=size if size.lower() != "no size" else None,
+                primary_color=None,
+            )
+
+    return redirect(f"{next_url}{'&' if '?' in next_url else '?'}add_product_success=1")
 
 def product_list(request):
     context = _build_product_list_context(request)

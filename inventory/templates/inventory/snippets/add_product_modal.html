@@ -1,0 +1,136 @@
+<div id="add-product-modal" class="modal add-product-modal">
+  <div class="modal-content">
+    <div class="add-product-modal__header">
+      <h4>Add Product</h4>
+      <span class="grey-text text-darken-1" data-step-label>Step 1 of 3</span>
+    </div>
+
+    <form id="add-product-form" method="post" action="{% url 'add_product' %}" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <input type="hidden" name="variant_sizes" id="variant_sizes_input">
+
+      <section data-step="1" class="add-product-step is-active">
+        <div class="input-field">
+          <input id="product_name" name="product_name" type="text" required>
+          <label for="product_name">Product name</label>
+        </div>
+
+        <div class="input-field">
+          <input type="file" name="product_photo" id="product_photo_input" accept="image/*" hidden>
+          <div
+            id="product-photo-dropzone"
+            class="add-product-dropzone"
+            tabindex="0"
+            role="button"
+            aria-label="Drag and drop product image"
+          >
+            <p class="add-product-dropzone__title">Drag &amp; drop product image</p>
+            <p class="add-product-dropzone__hint">Drop an image here, or click to browse your local files.</p>
+            <p class="add-product-dropzone__filename" id="product-photo-filename">No file selected</p>
+          </div>
+        </div>
+
+        <p>
+          <label>
+            <input type="checkbox" class="filled-in" id="use_temporary_id" name="use_temporary_id" value="1">
+            <span>Use temporary Product ID (random)</span>
+          </label>
+        </p>
+
+        <div class="input-field">
+          <input id="product_id" name="product_id" type="text">
+          <label for="product_id">Product ID</label>
+        </div>
+      </section>
+
+      <section data-step="2" class="add-product-step">
+        <div class="row">
+          <div class="input-field col s12 m6">
+            <select id="style" name="style" required>
+              <option value="" selected disabled>Choose category</option>
+              {% for value, label in style_choices %}
+                <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+            <label for="style">Category / Style</label>
+          </div>
+          <div class="input-field col s12 m6">
+            <select id="type" name="type">
+              <option value="" selected>Choose type</option>
+              {% for value, label in type_choices %}
+                <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+            <label for="type">Type</label>
+          </div>
+          <div class="input-field col s12 m6">
+            <select id="subtype" name="subtype">
+              <option value="" selected>Choose subtype</option>
+              {% for value, label in subtype_choices %}
+                <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+            <label for="subtype">Subtype</label>
+          </div>
+          <div class="input-field col s12 m6">
+            <select id="age" name="age">
+              <option value="" selected>Choose age</option>
+              {% for value, label in age_choices %}
+                <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+            <label for="age">Age</label>
+          </div>
+          <div class="input-field col s12 m6">
+            <select id="groups" name="groups" multiple>
+              {% for group in group_choices %}
+                <option value="{{ group.id }}">{{ group.name }}</option>
+              {% endfor %}
+            </select>
+            <label for="groups">Groups</label>
+          </div>
+          <div class="input-field col s12 m6">
+            <select id="series" name="series" multiple>
+              {% for item in series_choices %}
+                <option value="{{ item.id }}">{{ item.name }}</option>
+              {% endfor %}
+            </select>
+            <label for="series">Series</label>
+          </div>
+          <div class="input-field col s12 m6">
+            <input id="restock_time" name="restock_time" type="number" min="0">
+            <label for="restock_time">Restock time (months, optional)</label>
+          </div>
+        </div>
+
+        <p>
+          <label>
+            <input type="checkbox" class="filled-in" id="add_variants_toggle">
+            <span>Add variants?</span>
+          </label>
+        </p>
+
+        <div id="variant-builder" class="add-product-variants" hidden>
+          <p class="grey-text text-darken-1" id="variant-hint"></p>
+          <div id="variant-checkboxes" class="variant-checkboxes"></div>
+          <div class="add-product-custom-variant">
+            <input type="text" id="custom_variant_input" placeholder="Add custom variant">
+            <button type="button" class="btn-flat" id="add_custom_variant_btn">+</button>
+          </div>
+        </div>
+      </section>
+
+      <section data-step="3" class="add-product-step">
+        <h6>Confirm product details</h6>
+        <ul class="collection" id="add-product-summary"></ul>
+      </section>
+
+      <div class="add-product-modal__actions">
+        <button type="button" class="btn-flat" id="add-product-back" disabled>Back</button>
+        <button type="button" class="btn" id="add-product-next">Continue</button>
+        <button type="submit" class="btn green" id="add-product-save" hidden>Save</button>
+      </div>
+    </form>
+  </div>
+</div>
