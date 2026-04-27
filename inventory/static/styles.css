@@ -14,6 +14,88 @@ main {
     flex: 1 0 auto;
   }
 
+:root {
+  --button-height: 44px;
+  --button-padding-x: 22px;
+  --button-radius: 20px;
+  --button-border: #d7d7db;
+  --button-bg: #f3f3f4;
+  --button-text: #1a1a1a;
+  --button-primary-bg: #2f6df6;
+  --button-primary-bg-hover: #235ee4;
+  --button-primary-border: #2259d9;
+  --button-primary-text: #ffffff;
+}
+
+/* Reusable global button system */
+.btn,
+.btn-small,
+.btn-large {
+  align-items: center;
+  background: var(--button-bg) !important;
+  border: 1px solid var(--button-border) !important;
+  border-radius: var(--button-radius);
+  box-shadow: 0 1px 2px rgba(18, 18, 23, 0.08);
+  color: var(--button-text) !important;
+  display: inline-flex;
+  font-size: 1rem;
+  font-weight: 600;
+  gap: 8px;
+  height: var(--button-height);
+  justify-content: center;
+  line-height: 1;
+  padding: 0 var(--button-padding-x);
+  text-transform: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
+}
+
+.btn:hover,
+.btn-small:hover,
+.btn-large:hover {
+  background: #ececef !important;
+  box-shadow: 0 2px 6px rgba(18, 18, 23, 0.12);
+}
+
+.btn:focus,
+.btn-small:focus,
+.btn-large:focus {
+  background: #ececef !important;
+}
+
+.btn:active,
+.btn-small:active,
+.btn-large:active {
+  transform: translateY(1px);
+}
+
+.btn.btn-primary,
+.btn-small.btn-primary,
+.btn-large.btn-primary {
+  background: var(--button-primary-bg) !important;
+  border-color: var(--button-primary-border) !important;
+  color: var(--button-primary-text) !important;
+}
+
+.btn.btn-primary:hover,
+.btn-small.btn-primary:hover,
+.btn-large.btn-primary:hover,
+.btn.btn-primary:focus,
+.btn-small.btn-primary:focus,
+.btn-large.btn-primary:focus {
+  background: var(--button-primary-bg-hover) !important;
+}
+
+.btn.disabled,
+.btn-small.disabled,
+.btn-large.disabled,
+.btn:disabled,
+.btn-small:disabled,
+.btn-large:disabled {
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 /* Global card styling overrides */
 .card,
 .card-panel {
