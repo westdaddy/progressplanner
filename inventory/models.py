@@ -192,7 +192,8 @@ class Product(models.Model):
         default=False, help_text="Check if this product is currently discounted."
     )
     restock_time = models.PositiveIntegerField(
-        default=0,
+        blank=True,
+        null=True,
         help_text="Number of months required to restock this product.",
     )
     no_restock = models.BooleanField(
@@ -261,6 +262,7 @@ class ProductVariant(models.Model):
         ("A3", "A3"),
         ("A3L", "A3L"),
         ("A4", "A4"),
+        ("A5", "A5"),
         ("F0", "F0"),
         ("F1", "F1"),
         ("F2", "F2"),
@@ -273,6 +275,11 @@ class ProductVariant(models.Model):
         ("M2", "M2"),
         ("M3", "M3"),
         ("M4", "M4"),
+        ("KXS", "KXS"),
+        ("KS", "KS"),
+        ("KM", "KM"),
+        ("KL", "KL"),
+        ("KXL", "KXL"),
     ]
 
     TYPE_CHOICES = PRODUCT_TYPE_CHOICES
@@ -284,7 +291,11 @@ class ProductVariant(models.Model):
         "Product", on_delete=models.CASCADE, related_name="variants"
     )
     variant_code = models.CharField(max_length=50, unique=True)  # Text/number code
-    primary_color = models.CharField(max_length=7)  # Hex code (e.g., #FFFFFF)
+    primary_color = models.CharField(
+        max_length=7,
+        blank=True,
+        null=True,
+    )  # Optional hex code (e.g., #FFFFFF)
     secondary_color = models.CharField(
         max_length=7, blank=True, null=True
     )  # Optional hex code

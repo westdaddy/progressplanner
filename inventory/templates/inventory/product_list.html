@@ -7,7 +7,16 @@
 {% block content %}
 <div class="section">
 
-  <h3 class="page-title">Products</h3>
+  <div class="products-page-header">
+    <h3 class="page-title">Products</h3>
+    <a class="btn add-product-trigger modal-trigger" href="#add-product-modal">Add Product</a>
+  </div>
+
+  {% if request.GET.add_product_success %}
+    <div class="card-panel green lighten-5 green-text text-darken-3">Product saved successfully.</div>
+  {% elif request.GET.add_product_error %}
+    <div class="card-panel red lighten-5 red-text text-darken-3">Could not save product. Please check the required fields and Product ID.</div>
+  {% endif %}
 
   <div id="controls" class="row grey lighten-3">
     <form id="productFilterForm" method="get">
@@ -90,10 +99,12 @@
 
   {% include 'inventory/snippets/product_card_default.html' %}
 </div>
+{% include 'inventory/snippets/add_product_modal.html' %}
 {% endblock %}
 
 {% block extrajs %}
 <script src="{% static 'no-restock-toggle.js' %}"></script>
+<script src="{% static 'add-product-form.js' %}"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     var elems = document.querySelectorAll('select');
