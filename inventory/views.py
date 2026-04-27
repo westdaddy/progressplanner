@@ -9,7 +9,7 @@ import statistics
 import math
 from urllib.parse import urlencode, parse_qsl
 import logging
-import random
+import re
 from io import BytesIO
 import os
 from pathlib import Path
@@ -1193,8 +1193,16 @@ def _build_product_list_context(request, preset_filters=None):
 
     products = list(products_qs)
 
-    # Default ordering: by product ID (e.g. PG001, PG002, ...)
-    products.sort(key=lambda p: p.product_id)
+    # Default ordering:
+    # 1) standard products by product_id
+    # 2) TEMP products at the end by creation order
+    products.sort(
+        key=lambda product: (
+            1 if _is_temporary_product_id(product.product_id) else 0,
+            product.product_id if not _is_temporary_product_id(product.product_id) else "",
+            product.id if _is_temporary_product_id(product.product_id) else 0,
+        )
+    )
 
     pending_variant_totals: dict[int, int] = {}
     if products:
@@ -1613,10 +1621,22 @@ def _build_product_list_context(request, preset_filters=None):
 
 
 def _generate_temporary_product_id() -> str:
-    while True:
-        generated = str(random.randint(100000, 999999))
-        if not Product.objects.filter(product_id=generated).exists():
-            return generated
+    temp_prefix = "TEMP"
+    highest_sequence = 0
+
+    for existing_product_id in Product.objects.filter(
+        product_id__startswith=temp_prefix
+    ).values_list("product_id", flat=True):
+        suffix = existing_product_id[len(temp_prefix) :]
+        if suffix.isdigit():
+            highest_sequence = max(highest_sequence, int(suffix))
+
+    next_sequence = highest_sequence + 1
+    return f"{temp_prefix}{next_sequence:04d}"
+
+
+def _is_temporary_product_id(product_id: str) -> bool:
+    return bool(re.match(r"^TEMP\\d+$", product_id or ""))
 
 
 def _build_unique_variant_code(base_code: str) -> str:

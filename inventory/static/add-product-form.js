@@ -48,8 +48,6 @@ document.addEventListener('DOMContentLoaded', function () {
     },
   };
 
-  const randomProductId = () => String(Math.floor(100000 + Math.random() * 900000));
-
   const updatePhotoFilename = () => {
     const selectedFile = photoInput?.files?.[0];
     photoFilename.textContent = selectedFile ? selectedFile.name : 'No file selected';
@@ -141,7 +139,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   tempIdToggle.addEventListener('change', function () {
     if (tempIdToggle.checked) {
-      productIdField.value = randomProductId();
+      productIdField.value = 'TEMP (auto-assigned)';
       productIdField.readOnly = true;
       M.updateTextFields();
     } else {
