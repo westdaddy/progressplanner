@@ -599,7 +599,16 @@
   </style>
   {% if filter_controls %}
 
-  <h3 class="page-title">Products</h3>
+  <div class="products-page-header">
+    <h3 class="page-title">Products</h3>
+    <a class="btn add-product-trigger modal-trigger" href="#add-product-modal">Add Product</a>
+  </div>
+
+  {% if request.GET.add_product_success %}
+    <div class="card-panel green lighten-5 green-text text-darken-3">Product saved successfully.</div>
+  {% elif request.GET.add_product_error %}
+    <div class="card-panel red lighten-5 red-text text-darken-3">Could not save product. Please check the required fields and Product ID.</div>
+  {% endif %}
 
   <div class="filter-divider"></div>
 
@@ -1008,8 +1017,6 @@
 
   </div>
 
-  <div class="filter-divider"></div>
-
   <!-- END CATEGORY STATISTICS SECTION -->
 
   <!-- PRODUCT LIST SECTION -->
@@ -1019,11 +1026,13 @@
   <!-- END PRODUCT LIST SECTION -->
 
 </div>
+{% include 'inventory/snippets/add_product_modal.html' %}
 {% endblock %}
 
 {% block extrajs %}
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="{% static 'no-restock-toggle.js' %}"></script>
+  <script src="{% static 'add-product-form.js' %}"></script>
   <script>
     (function() {
       const filterControllers = [];
