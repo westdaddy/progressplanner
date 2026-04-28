@@ -1273,11 +1273,15 @@ def compute_safe_stock(variants, speed_map=None):
             if speed_map is not None
             else calculate_variant_sales_speed(v, today=today)
         )
-        recent_speed = calculate_variant_sales_speed(v, weeks=13, today=today)
+        avg_speed = float(avg_speed or 0)
+        recent_speed = float(calculate_variant_sales_speed(v, weeks=13, today=today) or 0)
 
         min_threshold = avg_speed * 2
         ideal_level = avg_speed * 6
-        restock_wait = getattr(v.product, "restock_time", 0)
+        restock_wait_raw = getattr(v.product, "restock_time", 0)
+        restock_wait = float(restock_wait_raw or 0)
+        if restock_wait < 0:
+            restock_wait = 0
         stock_at_restock = max(0, math.ceil(current - restock_wait * avg_speed))
         restock_qty = max(math.ceil(ideal_level - stock_at_restock), 0)
         six_month_stock = math.ceil(ideal_level)
