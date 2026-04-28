@@ -39,6 +39,7 @@ from .utils import (
     get_restock_alerts,
     calculate_variant_sales_speed,
     get_category_speed_stats,
+    compute_safe_stock,
 )
 from .discount_chip_colors import resolve_discount_chip_colors
 from .views import (
@@ -385,6 +386,29 @@ class CategorySpeedStatsTests(TestCase):
         self.assertIn("S", stats["size_avgs"])
         self.assertGreater(stats["overall_avg"], 0)
         self.assertGreater(stats["size_avgs"]["S"], 0)
+
+
+class SafeStockTests(TestCase):
+    def test_compute_safe_stock_handles_null_restock_time(self):
+        product = Product.objects.create(
+            product_id="P-RESTOCK-NULL",
+            product_name="Restock Null",
+            restock_time=None,
+        )
+        variant = ProductVariant.objects.create(
+            product=product,
+            variant_code="V-RESTOCK-NULL",
+            primary_color="#000000",
+        )
+        InventorySnapshot.objects.create(
+            product_variant=variant,
+            date=date.today() - timedelta(days=7),
+            inventory_count=20,
+        )
+        variant.latest_inventory = 20
+
+        result = compute_safe_stock([variant], speed_map={variant.id: 2.0})
+        self.assertEqual(result["safe_stock_data"][0]["stock_at_restock"], 20)
 
 
 class ProductAdminFormTests(TestCase):

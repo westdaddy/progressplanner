@@ -1045,7 +1045,8 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="{% static 'no-restock-toggle.js' %}"></script>
   <script src="{% static 'add-product-form.js' %}"></script>
-  <script>
+<script src="{% static 'order_split.js' %}"></script>
+<script>
     (function() {
       const filterControllers = [];
       const applyButton = document.querySelector('.filter-apply-button');
@@ -1973,39 +1974,8 @@
       };
 
       const updateOrderSplit = (modal) => {
-        const totalInput = modal.querySelector('[data-total-order-input]');
-        if (!totalInput) return;
-        const total = Math.max(parseInt(totalInput.value, 10) || 0, 0);
-        const rows = Array.from(modal.querySelectorAll('[data-order-qty-input]'));
-        if (!rows.length) return;
-        const shares = rows.map((input) => {
-          const parsed = parseFloat(input.dataset.sizeShare || '0');
-          return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
-        });
-        const totalShare = shares.reduce((sum, share) => sum + share, 0);
-        const normalized = totalShare > 0
-          ? shares.map((share) => share / totalShare)
-          : shares.map(() => 1 / rows.length);
-
-        const splitRows = rows.map((input, index) => {
-          const rawValue = total * normalized[index];
-          const floorValue = Math.floor(rawValue);
-          return { input, floorValue, fraction: rawValue - floorValue };
-        });
-
-        let remainder = total - splitRows.reduce((sum, row) => sum + row.floorValue, 0);
-        splitRows.sort((a, b) => b.fraction - a.fraction);
-
-        let index = 0;
-        while (remainder > 0 && splitRows.length) {
-          splitRows[index % splitRows.length].floorValue += 1;
-          remainder -= 1;
-          index += 1;
-        }
-
-        splitRows.forEach((row) => {
-          row.input.value = row.floorValue > 0 ? row.floorValue : '';
-        });
+        if (!window.ProgressPlannerOrderSplit) return;
+        window.ProgressPlannerOrderSplit.applyIdealSplitToModal(modal);
       };
 
       document.querySelectorAll('[data-open-order-modal]').forEach((btn) => {
