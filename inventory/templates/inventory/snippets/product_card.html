@@ -125,6 +125,7 @@
     id="order-modal-{{ product.id }}"
     aria-hidden="true"
     data-product-id="{{ product.id }}"
+    data-order-mix-url="{% url 'product_order_mix_stats' product.id %}"
     data-pending-order-id="{{ product.pending_order.order_id|default:'' }}"
     data-pending-order-expected="{{ product.pending_order.expected_date|date:'Y-m-d' }}"
     data-pending-order-cost="{{ product.pending_order.item_cost_price|default:'' }}"
@@ -204,11 +205,18 @@
                   <td>{{ variant.size|default:"—" }}</td>
                   <td>{{ variant.variant_code }}</td>
                   <td>{{ variant.latest_inventory|default:0 }}</td>
-                  <td>
+                  <td data-speed-value="{{ variant.id }}">
                     {% if variant.sales_speed_6_months is not None %}
                       {{ variant.sales_speed_6_months|floatformat:1 }} / month
                     {% else %}
                       —
+                    {% endif %}
+                  </td>
+                  <td data-split-value="{{ variant.id }}">
+                    {% if variant.size_sales_share %}
+                      {% widthratio variant.size_sales_share 1 100 %}%
+                    {% else %}
+                      0%
                     {% endif %}
                   </td>
                   <td>
@@ -225,6 +233,7 @@
                       placeholder="0"
                       name="variant_{{ variant.id }}"
                       data-order-qty-input
+                      data-variant-id="{{ variant.id }}"
                       data-size="{{ variant.size|default:'' }}"
                       data-size-share="{{ variant.size_sales_share|default:0 }}"
                       data-pending-qty="{{ variant.pending_order_qty|default:0 }}"

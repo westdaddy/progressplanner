@@ -1978,11 +1978,63 @@
         window.ProgressPlannerOrderSplit.applyIdealSplitToModal(modal);
       };
 
+      const orderMixCache = new Map();
+
+      const renderOrderMixStats = (modal, payload) => {
+        if (!modal || !payload || !Array.isArray(payload.variants)) return;
+        const variantById = new Map(
+          payload.variants.map((row) => [String(row.variant_id), row])
+        );
+
+        modal.querySelectorAll('[data-order-qty-input]').forEach((input) => {
+          const variantId = String(input.dataset.variantId || '');
+          const row = variantById.get(variantId);
+          if (!row) return;
+          const share = Number(row.size_share || 0);
+          const speed = Number(row.sales_speed || 0);
+          input.dataset.sizeShare = String(share);
+
+          const speedCell = modal.querySelector(`[data-speed-value="${variantId}"]`);
+          if (speedCell) {
+            speedCell.textContent = speed > 0 ? `${speed.toFixed(1)} / month` : '—';
+          }
+
+          const splitCell = modal.querySelector(`[data-split-value="${variantId}"]`);
+          if (splitCell) {
+            splitCell.textContent = `${Math.round(share * 100)}%`;
+          }
+        });
+
+        updateOrderSplit(modal);
+      };
+
+      const loadOrderMixStats = async (modal) => {
+        if (!modal) return;
+        const endpoint = modal.dataset.orderMixUrl;
+        if (!endpoint) return;
+
+        if (orderMixCache.has(endpoint)) {
+          renderOrderMixStats(modal, orderMixCache.get(endpoint));
+          return;
+        }
+
+        try {
+          const response = await fetch(endpoint, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+          if (!response.ok) return;
+          const payload = await response.json();
+          orderMixCache.set(endpoint, payload);
+          renderOrderMixStats(modal, payload);
+        } catch (error) {
+          console.warn('Failed to load order mix stats', error);
+        }
+      };
+
       document.querySelectorAll('[data-open-order-modal]').forEach((btn) => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
           const modal = document.getElementById(btn.getAttribute('data-open-order-modal'));
           hydrateVariantCreator(modal);
           toggleOrderModal(modal, true);
+          await loadOrderMixStats(modal);
         });
       });
 

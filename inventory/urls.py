@@ -7,6 +7,11 @@ urlpatterns = [
     path('products/create/', views.add_product, name='add_product'),
     path('products/filtered/', views.product_filtered, name='product_filtered'),
     path(
+        'products/<int:product_id>/order-mix-stats/',
+        views.product_order_mix_stats,
+        name='product_order_mix_stats',
+    ),
+    path(
         'products/<int:product_id>/toggle-no-restock/',
         views.product_toggle_no_restock,
         name='product_toggle_no_restock',

@@ -1339,22 +1339,9 @@ def _build_product_list_context(request, preset_filters=None):
                     SIZE_ORDER.get(variant.size, 9999),
                 )
             )
-            cohort_speed_stats = get_product_cohort_speed_stats(
-                product, weeks=52, today=today
-            )
-            cohort_size_speed_map = cohort_speed_stats.get("size_avgs", {})
-            mix = calculate_category_size_mix(
-                product,
-                target_sizes=[variant.size for variant in product.variants_with_inventory if variant.size],
-                long_weeks=52,
-                recent_weeks=26,
-                today=today,
-            )
-            size_share_map = mix.get("shares", {})
             for variant in product.variants_with_inventory:
-                cohort_speed = float(cohort_size_speed_map.get(variant.size, 0.0) or 0.0)
-                variant.sales_speed_6_months = cohort_speed
-                variant.size_sales_share = size_share_map.get(variant.size, 0)
+                variant.sales_speed_6_months = None
+                variant.size_sales_share = 0
         product.total_ordered = sum(
             getattr(variant, "total_ordered", 0) or 0
             for variant in product.variants_with_inventory
@@ -1760,6 +1747,43 @@ def add_product(request):
 def product_list(request):
     context = _build_product_list_context(request)
     return render(request, "inventory/product_list.html", context)
+
+
+@require_GET
+def product_order_mix_stats(request, product_id: int):
+    """Return on-demand cohort speed/share stats for Create Order modal."""
+
+    today = now().date()
+    product = get_object_or_404(Product, id=product_id)
+    variants = list(product.variants.all().order_by("variant_code"))
+    target_sizes = [variant.size for variant in variants if variant.size]
+
+    cohort_speed_stats = get_product_cohort_speed_stats(product, weeks=52, today=today)
+    cohort_size_speed_map = cohort_speed_stats.get("size_avgs", {})
+    mix = calculate_category_size_mix(
+        product,
+        target_sizes=target_sizes,
+        long_weeks=52,
+        recent_weeks=26,
+        today=today,
+    )
+    size_share_map = mix.get("shares", {})
+
+    payload = {
+        "product_id": product.id,
+        "method": mix.get("method"),
+        "sample_variants": mix.get("sample_variants", 0),
+        "variants": [
+            {
+                "variant_id": variant.id,
+                "size": variant.size,
+                "sales_speed": float(cohort_size_speed_map.get(variant.size, 0.0) or 0.0),
+                "size_share": float(size_share_map.get(variant.size, 0.0) or 0.0),
+            }
+            for variant in variants
+        ],
+    }
+    return JsonResponse(payload)
 
 
 def _choice_label(choices, key):
