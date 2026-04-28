@@ -658,48 +658,35 @@ def calculate_category_size_mix(
     today = today or date.today()
     variant_qs = get_product_cohort_variant_queryset(product)
 
-    variants = list(variant_qs.select_related("product").prefetch_related("sales", "snapshots"))
+    variants = list(
+        variant_qs.select_related("product").prefetch_related("sales", "snapshots")
+    )
     size_scores: Dict[str, float] = defaultdict(float)
     total_active_weeks = 0
-    requested_sizes = [size for size in (target_sizes or []) if size]
+    requested_sizes = []
+    seen_sizes = set()
+    for raw_size in target_sizes or []:
+        normalized = (raw_size or "").strip()
+        if not normalized or normalized in seen_sizes:
+            continue
+        seen_sizes.add(normalized)
+        requested_sizes.append(normalized)
 
     for candidate in variants:
-        long_detail = calculate_variant_sales_speed_details(
-            candidate, weeks=long_weeks, today=today, fallback_weeks=long_weeks
-        )
-        recent_detail = calculate_variant_sales_speed_details(
-            candidate, weeks=recent_weeks, today=today, fallback_weeks=recent_weeks
-        )
-
-        long_speed = float(long_detail.get("speed") or 0.0)
-        recent_speed = float(recent_detail.get("speed") or 0.0)
-        if long_speed <= 0 and recent_speed <= 0:
+        size_key = (candidate.size or "").strip()
+        if not size_key:
             continue
-
-        # Base demand estimate: stable long-term + recency signal.
-        blended_speed = (long_speed * 0.65) + (recent_speed * 0.35)
-
-        # Momentum scaling to react to changing demand but keep bounded.
-        if long_speed > 0 and recent_speed > 0:
-            momentum_ratio = max(0.75, min(1.35, recent_speed / long_speed))
-        else:
-            momentum_ratio = 1.0
-
-        # Reliability weighting based on in-stock observation coverage.
-        active_weeks = max(
-            int(long_detail.get("active_weeks") or 0),
-            int(recent_detail.get("active_weeks") or 0),
+        detail = calculate_variant_sales_speed_details(
+            candidate,
+            weeks=long_weeks,
+            today=today,
+            fallback_weeks=max(long_weeks, recent_weeks),
         )
-        reliability = max(min(active_weeks / max(long_weeks, 1), 1.0), 0.25)
-
-        stockout_boost = (
-            1.08
-            if long_detail.get("had_stockout") or recent_detail.get("had_stockout")
-            else 1.0
-        )
-        score = blended_speed * momentum_ratio * reliability * stockout_boost
-        size_scores[candidate.size] += score
-        total_active_weeks += active_weeks
+        speed = float(detail.get("speed") or 0.0)
+        if speed <= 0:
+            continue
+        size_scores[size_key] += speed
+        total_active_weeks += int(detail.get("active_weeks") or 0)
 
     if requested_sizes:
         size_scores = {size: size_scores.get(size, 0.0) for size in requested_sizes}
