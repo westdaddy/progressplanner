@@ -10,6 +10,7 @@ import math
 from urllib.parse import urlencode, parse_qsl
 import logging
 import re
+from time import perf_counter
 from io import BytesIO
 import os
 from pathlib import Path
@@ -1753,7 +1754,13 @@ def product_list(request):
 def product_order_mix_stats(request, product_id: int):
     """Return on-demand cohort speed/share stats for Create Order modal."""
 
+    started_at = perf_counter()
     today = now().date()
+    cache_key = f"order_mix_stats:{product_id}:{today.isoformat()}"
+    cached_payload = cache.get(cache_key)
+    if cached_payload is not None:
+        return JsonResponse(cached_payload)
+
     product = get_object_or_404(Product, id=product_id)
     variants = list(product.variants.all().order_by("variant_code"))
     target_sizes = [variant.size for variant in variants if variant.size]
@@ -1772,7 +1779,11 @@ def product_order_mix_stats(request, product_id: int):
     payload = {
         "product_id": product.id,
         "method": mix.get("method"),
+        "confidence": mix.get("confidence", "low"),
         "sample_variants": mix.get("sample_variants", 0),
+        "active_weeks": mix.get("active_weeks", 0),
+        "window_weeks": 52,
+        "generated_at": now().isoformat(),
         "variants": [
             {
                 "variant_id": variant.id,
@@ -1783,6 +1794,16 @@ def product_order_mix_stats(request, product_id: int):
             for variant in variants
         ],
     }
+    cache.set(cache_key, payload, 60 * 10)
+    elapsed_ms = (perf_counter() - started_at) * 1000
+    logger.info(
+        "order_mix_stats product_id=%s variants=%s method=%s confidence=%s elapsed_ms=%.1f",
+        product_id,
+        len(variants),
+        payload["method"],
+        payload["confidence"],
+        elapsed_ms,
+    )
     return JsonResponse(payload)
 
 

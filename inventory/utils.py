@@ -650,9 +650,8 @@ def calculate_category_size_mix(
     """Estimate an order size mix for ``product`` using cohort sales velocity.
 
     The cohort is all variants whose parent products match the target product's
-    category (``type``), subcategory (``subtype``), and age group (``age``).
-    The estimator blends long-window and recent sales speed and only counts
-    weeks where variants were in stock.
+    style, type and age group. Scores are derived from per-variant monthly
+    sales speed and weighted by in-stock observation coverage.
     """
 
     today = today or date.today()
@@ -685,8 +684,10 @@ def calculate_category_size_mix(
         speed = float(detail.get("speed") or 0.0)
         if speed <= 0:
             continue
-        size_scores[size_key] += speed
-        total_active_weeks += int(detail.get("active_weeks") or 0)
+        active_weeks = int(detail.get("active_weeks") or 0)
+        reliability = max(min(active_weeks / max(long_weeks, 1), 1.0), 0.25)
+        size_scores[size_key] += speed * reliability
+        total_active_weeks += active_weeks
 
     if requested_sizes:
         size_scores = {size: size_scores.get(size, 0.0) for size in requested_sizes}
@@ -711,6 +712,7 @@ def calculate_category_size_mix(
                 "method": "cohort_size_avg",
                 "sample_variants": len(variants),
                 "active_weeks": total_active_weeks,
+                "confidence": "medium" if len(variants) >= 8 else "low",
             }
 
     if score_total <= 0 and requested_sizes:
@@ -729,6 +731,7 @@ def calculate_category_size_mix(
         "method": method,
         "sample_variants": len(variants),
         "active_weeks": total_active_weeks,
+        "confidence": "high" if len(variants) >= 12 else "medium" if len(variants) >= 6 else "low",
     }
 
 
@@ -1240,27 +1243,38 @@ def get_product_cohort_variant_queryset(product: Product):
 def get_product_cohort_speed_stats(
     product: Product, *, weeks: int = 26, today: Optional[date] = None
 ):
-    """Return average sales speed info for a product's type/subtype/age cohort."""
+    """Return weighted average sales speed info for a product's style/type/age cohort."""
 
     today = today or date.today()
     variants = get_product_cohort_variant_queryset(product).prefetch_related(
         "sales", "snapshots"
     )
-    speed_map = get_variant_speed_map(variants, weeks=weeks, today=today)
-
-    size_buckets: Dict[Optional[str], list[float]] = defaultdict(list)
+    size_buckets: Dict[Optional[str], list[tuple[float, float]]] = defaultdict(list)
+    overall_weighted_total = 0.0
+    overall_weight_sum = 0.0
     for variant in variants:
-        size_buckets[variant.size].append(speed_map.get(variant.id, 0.0))
+        detail = calculate_variant_sales_speed_details(variant, weeks=weeks, today=today)
+        speed = float(detail.get("speed") or 0.0)
+        active_weeks = float(detail.get("active_weeks") or 0.0)
+        if speed <= 0:
+            continue
+        weight = max(active_weeks, 1.0)
+        size_buckets[variant.size].append((speed, weight))
+        overall_weighted_total += speed * weight
+        overall_weight_sum += weight
 
     size_avgs = {
-        sz: round(sum(values) / len(values), 1)
+        sz: round(
+            sum(speed * weight for speed, weight in values)
+            / max(sum(weight for _speed, weight in values), 1.0),
+            1,
+        )
         for sz, values in size_buckets.items()
         if values
     }
     size_avgs = dict(sorted(size_avgs.items(), key=lambda item: item[0] or ""))
 
-    speeds = list(speed_map.values())
-    overall = round(sum(speeds) / len(speeds), 1) if speeds else 0.0
+    overall = round(overall_weighted_total / overall_weight_sum, 1) if overall_weight_sum else 0.0
     return {"overall_avg": overall, "size_avgs": size_avgs}
 
 
