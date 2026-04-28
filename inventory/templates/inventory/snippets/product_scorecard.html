@@ -52,39 +52,48 @@
 
                 <p class="signal-line signal-line--stock">
                   {{ product.total_inventory|default:0 }} in stock / {{ product.last_order_qty|default:0 }} ordered
-                  <span class="signal-muted">|</span>
-                  <button
-                    type="button"
-                    class="btn-flat signal-line signal-line--variants variant-summary-trigger"
-                    data-variant-panel-trigger
-                    data-product-id="{{ product.id }}"
-                  >
-                    Variants: {{ product.out_of_stock_variant_count|default:0 }} OOS · {{ product.low_stock_variant_count|default:0 }} Low
-                  </button>
-                  <span class="signal-muted">|</span>
-                  {% for core in product.core_size_signals %}
-                    <span class="signal-core {% if core.in_stock %}signal-core--ok{% else %}signal-core--miss{% endif %}">
-                      {% if core.in_stock %}✔{% else %}✖{% endif %} {{ core.size }}
-                    </span>
-                  {% endfor %}
+                  {% if product.total_inventory|default:0 != 0 or product.last_order_qty|default:0 != 0 or product.total_sales|default:0 != 0 %}
+                    <span class="signal-muted">|</span>
+                    <button
+                      type="button"
+                      class="btn-flat signal-line signal-line--variants variant-summary-trigger"
+                      data-variant-panel-trigger
+                      data-product-id="{{ product.id }}"
+                    >
+                      Variants: {{ product.out_of_stock_variant_count|default:0 }} OOS · {{ product.low_stock_variant_count|default:0 }} Low
+                    </button>
+                    <span class="signal-muted">|</span>
+                    {% for core in product.core_size_signals %}
+                      <span class="signal-core {% if core.in_stock %}signal-core--ok{% else %}signal-core--miss{% endif %}">
+                        {% if core.in_stock %}✔{% else %}✖{% endif %} {{ core.size }}
+                      </span>
+                    {% endfor %}
+                  {% endif %}
                 </p>
 
-                <hr/>
+                {% if product.total_inventory|default:0 != 0 or product.last_order_qty|default:0 != 0 or product.total_sales|default:0 != 0 %}
+                  <hr/>
 
-                <p class="signal-line">
-                    {% if product.time_on_market_months is not None %}
-                      {{ product.time_on_market_months|floatformat:0 }} months
-                    {% else %}
-                      -
-                    {% endif %}
-                    on market
-                  <span class="signal-muted">|</span>
-                  {{ product.total_sales|default:0 }} sold
-                  <span class="signal-muted">|</span>
-                  gross margin {{ product.profit_percentage|floatformat:0|default_if_none:"-" }}%
-                  <span class="signal-muted">|</span>
-                  av. discount {{ product.average_discount_percentage|floatformat:0|default_if_none:"-" }}%
-                </p>
+                  <p class="signal-line">
+                      {% if product.time_on_market_months is not None %}
+                        {{ product.time_on_market_months|floatformat:0 }} months
+                      {% else %}
+                        -
+                      {% endif %}
+                      on market
+                    <span class="signal-muted">|</span>
+                    {{ product.total_sales|default:0 }} sold
+                    <span class="signal-muted">|</span>
+                    gross margin {{ product.profit_percentage|floatformat:0|default_if_none:"-" }}%
+                    <span class="signal-muted">|</span>
+                    av. discount {{ product.average_discount_percentage|floatformat:0|default_if_none:"-" }}%
+                  </p>
+                {% else %}
+                  <hr/>
+                  <p class="signal-line">
+                    <a href="{% url 'order_list' %}?product={{ product.id }}">Create order for this product</a>
+                  </p>
+                {% endif %}
 
               </div>
             </div>
