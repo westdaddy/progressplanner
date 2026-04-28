@@ -15,19 +15,21 @@ body {
   background: #35363a !important;
 }
 
+nav, nav .nav-wrapper i, nav a.sidenav-trigger, nav a.sidenav-trigger i {
+  height: auto;
+}
+
 .app-nav {
   background: #f7f7f5 !important;
   border-bottom: 1px solid #d8d5cf;
   box-shadow: none;
-  margin: 40px auto 0;
-  width: min(1320px, calc(100% - 64px));
+  margin: 0px auto 0;
 }
 
 .app-nav .nav-wrapper.app-nav__inner {
   align-items: center;
-  display: flex;
-  min-height: 88px;
-  padding: 0 24px;
+  min-height: 82px;
+  padding: 0 24px 0 0;
 }
 
 .app-nav .brand-logo.app-nav__brand {
@@ -43,7 +45,7 @@ body {
 .app-nav .app-nav__links {
   align-items: stretch;
   display: flex;
-  gap: 28px;
+  gap: 25px;
   margin-left: 72px;
 }
 
