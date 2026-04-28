@@ -34,21 +34,23 @@
               <div class="signal-card__metrics">
 
 
-                <div class="signal-progress-wrap">
-                  <div class="signal-progress">
-                    <span
-                      class="signal-progress__fill"
-                      style="width: {% if product.stock_remaining_pct is not None %}{{ product.stock_remaining_pct|floatformat:0 }}{% else %}0{% endif %}%; --stock-pct: {% if product.stock_remaining_pct is not None %}{{ product.stock_remaining_pct|floatformat:0 }}{% else %}0{% endif %};"
-                    ></span>
+                {% if not product.is_new_unlaunched and not product.is_on_order_no_sales %}
+                  <div class="signal-progress-wrap">
+                    <div class="signal-progress">
+                      <span
+                        class="signal-progress__fill"
+                        style="width: {% if product.stock_remaining_pct is not None %}{{ product.stock_remaining_pct|floatformat:0 }}{% else %}0{% endif %}%; --stock-pct: {% if product.stock_remaining_pct is not None %}{{ product.stock_remaining_pct|floatformat:0 }}{% else %}0{% endif %};"
+                      ></span>
+                    </div>
+                    <span class="signal-muted">
+                      {% if product.stock_remaining_pct is not None %}
+                        {{ product.stock_remaining_pct|floatformat:0 }}%
+                      {% else %}
+                        -
+                      {% endif %}
+                    </span>
                   </div>
-                  <span class="signal-muted">
-                    {% if product.stock_remaining_pct is not None %}
-                      {{ product.stock_remaining_pct|floatformat:0 }}%
-                    {% else %}
-                      -
-                    {% endif %}
-                  </span>
-                </div>
+                {% endif %}
 
                 <p class="signal-line signal-line--stock">
                   {{ product.total_inventory|default:0 }} in stock / {{ product.last_order_qty|default:0 }} ordered
