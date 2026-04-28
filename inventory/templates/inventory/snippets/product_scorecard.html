@@ -103,7 +103,14 @@
                 {% else %}
                   <hr/>
                   <p class="signal-line">
-                    <a href="{% url 'order_list' %}?product={{ product.id }}">Create order for this product</a>
+                    <button
+                      type="button"
+                      class="btn-flat"
+                      data-open-order-modal="order-modal-{{ product.id }}"
+                      data-order-mode="create"
+                    >
+                      Create order
+                    </button>
                   </p>
                 {% endif %}
 
@@ -216,6 +223,102 @@
           {% endfor %}
         </tbody>
       </table>
+    </div>
+  </div>
+</div>
+
+<div
+  class="product-order-modal"
+  id="order-modal-{{ product.id }}"
+  aria-hidden="true"
+  data-product-style="{{ product.style|default:'' }}"
+  data-product-age="{{ product.age|default:'' }}"
+>
+  <div class="product-order-modal__backdrop" data-close-order-modal></div>
+  <div class="product-order-modal__content">
+    <div class="product-order-modal__header">
+      <h5>Create order · {{ product.product_name }}</h5>
+      <button type="button" class="btn-flat" data-close-order-modal>&times;</button>
+    </div>
+    <div class="product-order-modal__body">
+      <form method="post" action="{% url 'order_item_create' %}" class="product-order-form" data-order-form data-create-action="{% url 'order_item_create' %}" style="width: 100%;">
+        {% csrf_token %}
+        <input type="hidden" name="product_id" value="{{ product.id }}">
+        <div class="product-order-modal__table">
+          <div class="product-order-modal__product-head">
+            <div>
+              {% if product.product_photo %}
+                <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" class="product-order-modal__photo">
+              {% else %}
+                <img src="{{ MEDIA_URL }}product_photos/product-placeholder.jpg" alt="{{ product.product_name }}" class="product-order-modal__photo">
+              {% endif %}
+            </div>
+            <div>
+              <p><strong>{{ product.product_name }}</strong> ({{ product.product_id }})</p>
+              <p class="grey-text text-darken-1">
+                {{ product.get_style_display|default:"—" }} · {{ product.get_type_display|default:"—" }} · {{ product.get_subtype_display|default:"—" }}
+              </p>
+            </div>
+          </div>
+
+          {% if product.variants_with_inventory %}
+            <div class="row" style="margin: 0 0 8px;">
+              <div class="input-field col s12 m6" style="margin-top: 0;">
+                <input type="date" name="date_expected" required>
+                <label>Expected arrival date</label>
+              </div>
+              <div class="input-field col s12 m6" style="margin-top: 0;">
+                <input type="number" min="0" step="0.01" name="item_cost_price" required>
+                <label>Item cost price (CNY)</label>
+              </div>
+            </div>
+            <div class="input-field" style="margin-top: 0;">
+              <input type="number" min="0" class="total-order-input" data-total-order-input placeholder="0">
+              <label>Total order quantity</label>
+            </div>
+            <table class="striped">
+              <thead>
+                <tr>
+                  <th>Variant</th>
+                  <th>Size</th>
+                  <th>Current stock</th>
+                  <th>Suggested qty</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for variant in product.variants_with_inventory %}
+                  <tr>
+                    <td>{{ variant.variant_code }}</td>
+                    <td>{{ variant.size|default:"—" }}</td>
+                    <td>{{ variant.latest_inventory|default:0 }}</td>
+                    <td>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        name="variant_{{ variant.id }}"
+                        data-order-qty-input
+                        data-size-share="{{ variant.size_sales_share|default:0 }}"
+                      >
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p class="grey-text text-darken-2"><strong>No variants yet.</strong> Create variants before placing this order.</p>
+            <p class="grey-text">Suggested sizes based on category:</p>
+            <div class="product-order-modal__variant-options" data-variant-size-options></div>
+            <input type="hidden" name="create_variants" value="1">
+          {% endif %}
+
+          <div style="margin-top: 16px; text-align: right;">
+            <button type="submit" class="btn btn-primary">
+              {% if product.variants_with_inventory %}Save order{% else %}Create variants{% endif %}
+            </button>
+          </div>
+        </div>
+      </form>
     </div>
   </div>
 </div>
