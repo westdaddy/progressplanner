@@ -793,7 +793,7 @@
             </span>
           </li>
           <li class="collection-item" style="border-left: 3px solid #26a69a;">
-            <strong>Clearance in category</strong>
+            <strong>Clearance </strong>
             <span class="secondary-content teal-text text-darken-2">{{ discounted_products }} products / {{ discounted_items }} items</span>
           </li>
           <li class="collection-item" style="border-left: 3px solid #26a69a;">
@@ -833,11 +833,12 @@
       </div>
     </div>
 
+  </div>
 
+  <div class="row">
 
     <!-- NOTES COLUMN -->
     <div class="col s12 m4">
-
       <div class="card-panel">
         <ul class="collection" style="margin: 0;">
           <li class="collection-item" style="border-left: 3px solid #26a69a;">
@@ -848,81 +849,34 @@
             <strong>Partially out-of-stock</strong>
             <span class="secondary-content teal-text text-darken-2">{{ partial_oos_products }}</span>
           </li>
-          <li class="collection-item" style="border-left: 3px solid #26a69a;">
-            <strong>Discounted products</strong>
-            <span class="secondary-content teal-text text-darken-2">{{ discounted_products }}</span>
-          </li>
-          <li class="collection-item" style="border-left: 3px solid #26a69a;">
-            <strong>New products (no orders or sales)</strong>
-            <span class="secondary-content teal-text text-darken-2">{{ new_products }}</span>
-          </li>
+
         </ul>
       </div>
+    </div>
 
 
-      <!-- STOCK POSITION BY PRODUCT CATEGORY -->
-      {% if stock_balance_categories %}
-        <div class="card-panel">
-          <h6 class="grey-text text-darken-1" style="margin-top: 0;">By category</h6>
-          <ul class="collection" style="margin: 0;">
-            {% for entry in stock_balance_categories %}
-              <li class="collection-item" style="border-left: 3px solid #26a69a;">
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                  {% if entry.url %}
-                    <strong><a href="{{ entry.url }}" class="teal-text text-darken-2" style="text-decoration: none;">{{ entry.label }}</a></strong>
-                  {% else %}
-                    <strong>{{ entry.label }}</strong>
-                  {% endif %}
-                  {% if entry.percent %}
-                    <span class="teal-text text-darken-2">{{ entry.percent }}%</span>
-                  {% endif %}
-                </div>
-                <p class="grey-text text-darken-1" style="margin: 4px 0 0;">{{ entry.message }}</p>
-              </li>
-            {% endfor %}
-          </ul>
-        </div>
-      {% endif %}
+    <!-- TIME ON MARKET -->
+    <div class="col s12 m4">
+    {% if stock_age_breakdown %}
+      <div class="card-panel">
+        <h6 class="grey-text text-darken-1" style="margin-top: 0;">Time on market</h6>
+        <ul class="collection" style="margin: 0;">
+          {% for entry in stock_age_breakdown %}
+            <li class="collection-item" style="border-left: 3px solid #26a69a;">
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                <strong>{{ entry.label }}</strong>
+                {% if entry.percent %}
+                  <span class="teal-text text-darken-2">{{ entry.percent }}%</span>
+                {% endif %}
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+    </div>
 
-      <!-- STOCK POSITION BY GROUP CORE MID-RANGE PREMIUM -->
-      {% if stock_balance_groups %}
-        <div class="card-panel">
-          <h6 class="grey-text text-darken-1" style="margin-top: 0;">By group</h6>
-          <ul class="collection" style="margin: 0;">
-            {% for entry in stock_balance_groups %}
-              <li class="collection-item" style="border-left: 3px solid #26a69a;">
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                  <strong>{{ entry.label }}</strong>
-                  {% if entry.percent %}
-                    <span class="teal-text text-darken-2">{{ entry.percent }}%</span>
-                  {% endif %}
-                </div>
-                <p class="grey-text text-darken-1" style="margin: 4px 0 0;">{{ entry.message }}</p>
-              </li>
-            {% endfor %}
-          </ul>
-        </div>
-      {% endif %}
-
-      <!-- TIME ON MARKET -->
-      {% if stock_age_breakdown %}
-        <div class="card-panel">
-          <h6 class="grey-text text-darken-1" style="margin-top: 0;">Time on market</h6>
-          <ul class="collection" style="margin: 0;">
-            {% for entry in stock_age_breakdown %}
-              <li class="collection-item" style="border-left: 3px solid #26a69a;">
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                  <strong>{{ entry.label }}</strong>
-                  {% if entry.percent %}
-                    <span class="teal-text text-darken-2">{{ entry.percent }}%</span>
-                  {% endif %}
-                </div>
-              </li>
-            {% endfor %}
-          </ul>
-        </div>
-      {% endif %}
-
+    <div class="col s12 m4">
       <div class="card-panel">
         <h6 class="grey-text text-darken-1">Quarterly Sales (last 12 quarters)</h6>
         {% if has_quarterly_data %}
@@ -944,10 +898,9 @@
             <li class="collection-item">No sales data available.</li>
           {% endfor %}
         </ul>
-
       </div>
-
     </div>
+
   </div>
 
   <div class="row">
