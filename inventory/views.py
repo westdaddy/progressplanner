@@ -102,6 +102,7 @@ from .utils import (
     get_variant_speed_map,
     get_category_speed_stats,
     calculate_category_size_mix,
+    get_product_cohort_speed_stats,
 )
 
 
@@ -3729,7 +3730,7 @@ def product_detail(request, product_id):
         row["six_month_stock_pct"] = round((six / total_six_month_stock) * 100, 1) if total_six_month_stock else 0
 
     # --- Category and size average sales speeds ---
-    speed_stats = get_category_speed_stats(product.type)
+    speed_stats = get_product_cohort_speed_stats(product)
     category_avg_speed = speed_stats["overall_avg"]
     size_avg_map = speed_stats["size_avgs"]
 

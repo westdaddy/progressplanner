@@ -40,6 +40,7 @@ from .utils import (
     calculate_variant_sales_speed,
     get_category_speed_stats,
     calculate_category_size_mix,
+    get_product_cohort_speed_stats,
     compute_safe_stock,
 )
 from .discount_chip_colors import resolve_discount_chip_colors
@@ -515,6 +516,56 @@ class CategorySizeMixTests(TestCase):
         self.assertIn("shares", mix)
         self.assertGreater(mix["shares"].get("M", 0), mix["shares"].get("S", 0))
         self.assertNotIn("L", mix["shares"])
+
+    def test_cohort_speed_stats_ignore_other_subtypes(self):
+        today = date.today()
+        target = Product.objects.create(
+            product_id="P-COHORT-STATS",
+            product_name="Target Stats",
+            type="rg",
+            subtype="ss",
+            age="adult",
+        )
+        target_s = ProductVariant.objects.create(
+            product=target, variant_code="TSTAT-S", primary_color="#000000", size="S"
+        )
+        InventorySnapshot.objects.create(
+            product_variant=target_s, date=today - timedelta(weeks=4), inventory_count=20
+        )
+        for i in range(4):
+            Sale.objects.create(
+                order_number=f"TSTAT-{i}",
+                date=today - timedelta(weeks=i),
+                variant=target_s,
+                sold_quantity=1,
+                sold_value=10,
+            )
+
+        other = Product.objects.create(
+            product_id="P-COHORT-OTHER",
+            product_name="Other Stats",
+            type="rg",
+            subtype="ls",
+            age="adult",
+        )
+        other_l = ProductVariant.objects.create(
+            product=other, variant_code="OSTAT-L", primary_color="#000000", size="L"
+        )
+        InventorySnapshot.objects.create(
+            product_variant=other_l, date=today - timedelta(weeks=4), inventory_count=20
+        )
+        for i in range(4):
+            Sale.objects.create(
+                order_number=f"OSTAT-{i}",
+                date=today - timedelta(weeks=i),
+                variant=other_l,
+                sold_quantity=4,
+                sold_value=40,
+            )
+
+        stats = get_product_cohort_speed_stats(target, weeks=4, today=today)
+        self.assertIn("S", stats["size_avgs"])
+        self.assertNotIn("L", stats["size_avgs"])
 
 
 class ProductAdminFormTests(TestCase):

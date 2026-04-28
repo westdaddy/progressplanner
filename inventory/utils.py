@@ -656,19 +656,7 @@ def calculate_category_size_mix(
     """
 
     today = today or date.today()
-    variant_qs = ProductVariant.objects.filter(size__isnull=False).exclude(size="")
-    if product.type:
-        variant_qs = variant_qs.filter(product__type=product.type)
-    else:
-        variant_qs = variant_qs.filter(product__type__isnull=True)
-    if product.subtype:
-        variant_qs = variant_qs.filter(product__subtype=product.subtype)
-    else:
-        variant_qs = variant_qs.filter(product__subtype__isnull=True)
-    if product.age:
-        variant_qs = variant_qs.filter(product__age=product.age)
-    else:
-        variant_qs = variant_qs.filter(product__age__isnull=True)
+    variant_qs = get_product_cohort_variant_queryset(product)
 
     variants = list(variant_qs.select_related("product").prefetch_related("sales", "snapshots"))
     size_scores: Dict[str, float] = defaultdict(float)
@@ -717,6 +705,27 @@ def calculate_category_size_mix(
         size_scores = {size: size_scores.get(size, 0.0) for size in requested_sizes}
 
     score_total = sum(size_scores.values())
+    if score_total <= 0:
+        cohort_stats = get_product_cohort_speed_stats(
+            product, weeks=long_weeks, today=today
+        )
+        cohort_size_avgs = cohort_stats.get("size_avgs", {})
+        if requested_sizes:
+            cohort_size_avgs = {
+                size: float(cohort_size_avgs.get(size, 0.0))
+                for size in requested_sizes
+            }
+        cohort_total = sum(cohort_size_avgs.values())
+        if cohort_total > 0:
+            return {
+                "shares": {
+                    size: value / cohort_total for size, value in cohort_size_avgs.items()
+                },
+                "method": "cohort_size_avg",
+                "sample_variants": len(variants),
+                "active_weeks": total_active_weeks,
+            }
+
     if score_total <= 0 and requested_sizes:
         equal_share = 1 / len(requested_sizes)
         shares = {size: equal_share for size in requested_sizes}
@@ -1219,6 +1228,52 @@ def get_category_speed_stats(
     # sort size averages alphabetically for stable output
     size_avgs = dict(sorted(size_avgs.items(), key=lambda x: x[0] or ""))
 
+    return {"overall_avg": overall, "size_avgs": size_avgs}
+
+
+def get_product_cohort_variant_queryset(product: Product):
+    """Return variants in the same type/subtype/age cohort as ``product``."""
+
+    queryset = ProductVariant.objects.filter(size__isnull=False).exclude(size="")
+    if product.type:
+        queryset = queryset.filter(product__type=product.type)
+    else:
+        queryset = queryset.filter(product__type__isnull=True)
+    if product.subtype:
+        queryset = queryset.filter(product__subtype=product.subtype)
+    else:
+        queryset = queryset.filter(product__subtype__isnull=True)
+    if product.age:
+        queryset = queryset.filter(product__age=product.age)
+    else:
+        queryset = queryset.filter(product__age__isnull=True)
+    return queryset
+
+
+def get_product_cohort_speed_stats(
+    product: Product, *, weeks: int = 26, today: Optional[date] = None
+):
+    """Return average sales speed info for a product's type/subtype/age cohort."""
+
+    today = today or date.today()
+    variants = get_product_cohort_variant_queryset(product).prefetch_related(
+        "sales", "snapshots"
+    )
+    speed_map = get_variant_speed_map(variants, weeks=weeks, today=today)
+
+    size_buckets: Dict[Optional[str], list[float]] = defaultdict(list)
+    for variant in variants:
+        size_buckets[variant.size].append(speed_map.get(variant.id, 0.0))
+
+    size_avgs = {
+        sz: round(sum(values) / len(values), 1)
+        for sz, values in size_buckets.items()
+        if values
+    }
+    size_avgs = dict(sorted(size_avgs.items(), key=lambda item: item[0] or ""))
+
+    speeds = list(speed_map.values())
+    overall = round(sum(speeds) / len(speeds), 1) if speeds else 0.0
     return {"overall_avg": overall, "size_avgs": size_avgs}
 
 
