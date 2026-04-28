@@ -639,6 +639,137 @@ def build_product_reorder_summary(
     }
 
 
+def calculate_category_size_mix(
+    product: Product,
+    *,
+    target_sizes: Optional[Sequence[str]] = None,
+    long_weeks: int = 26,
+    recent_weeks: int = 13,
+    today: Optional[date] = None,
+) -> dict[str, Any]:
+    """Estimate an order size mix for ``product`` using category sales velocity.
+
+    The estimator intentionally avoids using only cumulative sold units (which
+    can be biased by eventual sell-through). Instead it blends long-window and
+    recent sales speed and only counts weeks where variants were in stock.
+    """
+
+    today = today or date.today()
+    variant_qs = ProductVariant.objects.filter(
+        product__style=product.style,
+        product__type=product.type,
+        size__isnull=False,
+    ).exclude(size="")
+
+    variants = list(variant_qs.select_related("product").prefetch_related("sales", "snapshots"))
+    size_scores: Dict[str, float] = defaultdict(float)
+    total_active_weeks = 0
+    requested_sizes = [size for size in (target_sizes or []) if size]
+
+    # 1) Prefer product's own velocity profile (same basis as product detail safe-stock table).
+    product_variants = list(
+        ProductVariant.objects.filter(product=product, size__isnull=False)
+        .exclude(size="")
+        .prefetch_related("sales", "snapshots")
+    )
+    product_speed_by_size: Dict[str, float] = defaultdict(float)
+    for variant in product_variants:
+        speed = float(calculate_variant_sales_speed(variant, weeks=long_weeks, today=today) or 0.0)
+        if speed > 0:
+            product_speed_by_size[variant.size] += speed
+
+    if requested_sizes:
+        product_speed_by_size = {
+            size: product_speed_by_size.get(size, 0.0) for size in requested_sizes
+        }
+
+    product_total_speed = sum(product_speed_by_size.values())
+    if product_total_speed > 0:
+        return {
+            "shares": {size: speed / product_total_speed for size, speed in product_speed_by_size.items()},
+            "method": "product_speed_6m",
+            "sample_variants": len(product_variants),
+            "active_weeks": long_weeks,
+        }
+
+    for candidate in variants:
+        long_detail = calculate_variant_sales_speed_details(
+            candidate, weeks=long_weeks, today=today, fallback_weeks=long_weeks
+        )
+        recent_detail = calculate_variant_sales_speed_details(
+            candidate, weeks=recent_weeks, today=today, fallback_weeks=recent_weeks
+        )
+
+        long_speed = float(long_detail.get("speed") or 0.0)
+        recent_speed = float(recent_detail.get("speed") or 0.0)
+        if long_speed <= 0 and recent_speed <= 0:
+            continue
+
+        # Base demand estimate: stable long-term + recency signal.
+        blended_speed = (long_speed * 0.65) + (recent_speed * 0.35)
+
+        # Momentum scaling to react to changing demand but keep bounded.
+        if long_speed > 0 and recent_speed > 0:
+            momentum_ratio = max(0.75, min(1.35, recent_speed / long_speed))
+        else:
+            momentum_ratio = 1.0
+
+        # Reliability weighting based on in-stock observation coverage.
+        active_weeks = max(
+            int(long_detail.get("active_weeks") or 0),
+            int(recent_detail.get("active_weeks") or 0),
+        )
+        reliability = max(min(active_weeks / max(long_weeks, 1), 1.0), 0.25)
+
+        stockout_boost = (
+            1.08
+            if long_detail.get("had_stockout") or recent_detail.get("had_stockout")
+            else 1.0
+        )
+        score = blended_speed * momentum_ratio * reliability * stockout_boost
+        size_scores[candidate.size] += score
+        total_active_weeks += active_weeks
+
+    if requested_sizes:
+        size_scores = {size: size_scores.get(size, 0.0) for size in requested_sizes}
+
+    score_total = sum(size_scores.values())
+    if score_total <= 0:
+        # 2) Fall back to type-level size average speeds (same "Type Avg / Size Avg" idea
+        # shown on the product detail restock table).
+        type_stats = get_category_speed_stats(product.type, weeks=long_weeks, today=today)
+        type_size_avgs = {
+            size: float(type_stats.get("size_avgs", {}).get(size, 0.0))
+            for size in (requested_sizes or list(type_stats.get("size_avgs", {}).keys()))
+        }
+        type_total = sum(type_size_avgs.values())
+        if type_total > 0:
+            return {
+                "shares": {size: value / type_total for size, value in type_size_avgs.items()},
+                "method": "type_size_avg",
+                "sample_variants": len(variants),
+                "active_weeks": long_weeks,
+            }
+
+    if score_total <= 0 and requested_sizes:
+        equal_share = 1 / len(requested_sizes)
+        shares = {size: equal_share for size in requested_sizes}
+        method = "equal_fallback"
+    elif score_total <= 0:
+        shares = {}
+        method = "no_data"
+    else:
+        shares = {size: score / score_total for size, score in size_scores.items()}
+        method = "velocity_weighted"
+
+    return {
+        "shares": shares,
+        "method": method,
+        "sample_variants": len(variants),
+        "active_weeks": total_active_weeks,
+    }
+
+
 def calculate_variant_sales_speed_details(
     variant: ProductVariant,
     *,

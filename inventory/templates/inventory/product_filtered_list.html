@@ -597,6 +597,55 @@
       font-weight: 500;
       font-size: 12px;
     }
+
+    .product-order-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+    }
+    .product-order-modal.is-open { display: block; }
+    .product-order-modal__backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+    }
+    .product-order-modal__content {
+      position: relative;
+      background: #fff;
+      width: min(980px, 95%);
+      margin: 3vh auto;
+      border-radius: 12px;
+      padding: 20px;
+      z-index: 1;
+      max-height: 94vh;
+      overflow-y: auto;
+    }
+    .product-order-modal__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .product-order-modal__product-head {
+      display: grid;
+      grid-template-columns: 90px 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+      align-items: center;
+    }
+    .product-order-modal__photo {
+      width: 90px;
+      height: 90px;
+      object-fit: cover;
+      border-radius: 10px;
+    }
+    .product-order-modal__variant-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 8px;
+    }
   </style>
   {% if filter_controls %}
 
@@ -1896,6 +1945,86 @@
           const panel = closeButton.closest('.variant-panel');
           toggleVariantPanel(panel, false);
         });
+      });
+
+      const variantRecommendations = {
+        gi: { adult: ['A0', 'A1', 'A1L', 'A2', 'A2L', 'A3', 'A3L', 'A4', 'A5', 'F1', 'F2', 'F3', 'F4'], kids: ['M000', 'M00', 'M0', 'M1', 'M2', 'M3', 'M4'] },
+        ng: { adult: ['XS', 'S', 'M', 'L', 'XL', 'XXL'], kids: ['KXS', 'KS', 'KM', 'KL', 'KXL'] },
+        ap: { default: ['XS', 'S', 'M', 'L', 'XL'] },
+        ac: { default: [] },
+      };
+
+      const toggleOrderModal = (modal, open) => {
+        if (!modal) return;
+        modal.classList.toggle('is-open', open);
+        modal.setAttribute('aria-hidden', open ? 'false' : 'true');
+      };
+
+      const hydrateVariantCreator = (modal) => {
+        const optionsWrap = modal.querySelector('[data-variant-size-options]');
+        if (!optionsWrap) return;
+        const style = modal.dataset.productStyle || '';
+        const age = modal.dataset.productAge || '';
+        const styleMap = variantRecommendations[style] || {};
+        const sizes = styleMap[age] || styleMap.default || [];
+        optionsWrap.innerHTML = sizes.length
+          ? sizes.map((size) => `<label><input type="checkbox" class="filled-in" name="variant_sizes" value="${size}" checked><span>${size}</span></label>`).join('')
+          : '<span class="grey-text">No standard sizes for this category.</span>';
+      };
+
+      const updateOrderSplit = (modal) => {
+        const totalInput = modal.querySelector('[data-total-order-input]');
+        if (!totalInput) return;
+        const total = Math.max(parseInt(totalInput.value, 10) || 0, 0);
+        const rows = Array.from(modal.querySelectorAll('[data-order-qty-input]'));
+        if (!rows.length) return;
+        const shares = rows.map((input) => {
+          const parsed = parseFloat(input.dataset.sizeShare || '0');
+          return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+        });
+        const totalShare = shares.reduce((sum, share) => sum + share, 0);
+        const normalized = totalShare > 0
+          ? shares.map((share) => share / totalShare)
+          : shares.map(() => 1 / rows.length);
+
+        const splitRows = rows.map((input, index) => {
+          const rawValue = total * normalized[index];
+          const floorValue = Math.floor(rawValue);
+          return { input, floorValue, fraction: rawValue - floorValue };
+        });
+
+        let remainder = total - splitRows.reduce((sum, row) => sum + row.floorValue, 0);
+        splitRows.sort((a, b) => b.fraction - a.fraction);
+
+        let index = 0;
+        while (remainder > 0 && splitRows.length) {
+          splitRows[index % splitRows.length].floorValue += 1;
+          remainder -= 1;
+          index += 1;
+        }
+
+        splitRows.forEach((row) => {
+          row.input.value = row.floorValue > 0 ? row.floorValue : '';
+        });
+      };
+
+      document.querySelectorAll('[data-open-order-modal]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const modal = document.getElementById(btn.getAttribute('data-open-order-modal'));
+          hydrateVariantCreator(modal);
+          toggleOrderModal(modal, true);
+        });
+      });
+
+      document.querySelectorAll('[data-close-order-modal]').forEach((btn) => {
+        btn.addEventListener('click', () => toggleOrderModal(btn.closest('.product-order-modal'), false));
+      });
+
+      document.querySelectorAll('.product-order-modal').forEach((modal) => {
+        const totalInput = modal.querySelector('[data-total-order-input]');
+        if (totalInput) {
+          totalInput.addEventListener('input', () => updateOrderSplit(modal));
+        }
       });
 
       if (!dataPoints || !dataPoints.length || !document.getElementById('quarterlySalesChart')) {

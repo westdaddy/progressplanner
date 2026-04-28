@@ -100,6 +100,7 @@ from .utils import (
     CORE_SIZES,
     get_variant_speed_map,
     get_category_speed_stats,
+    calculate_category_size_mix,
 )
 
 
@@ -4127,10 +4128,19 @@ def order_list(request):
         filtered_sales_last_year = 0
         size_sales_share = {}
 
-    if size_sales_share:
-        for product in filtered_products:
-            for variant in getattr(product, "variants_with_inventory", []):
-                variant.size_sales_share = size_sales_share.get(variant.size, 0)
+    for product in filtered_products:
+        product_variants = list(getattr(product, "variants_with_inventory", []))
+        target_sizes = [v.size for v in product_variants if v.size]
+        mix = calculate_category_size_mix(
+            product,
+            target_sizes=target_sizes,
+            today=today,
+        )
+        share_map = mix.get("shares", {})
+        product.size_mix_method = mix.get("method")
+        product.size_mix_sample_variants = mix.get("sample_variants", 0)
+        for variant in product_variants:
+            variant.size_sales_share = share_map.get(variant.size, 0)
 
     pending_product_totals: dict[int, int] = defaultdict(int)
     pending_variant_totals: dict[int, int] = {}
@@ -4510,8 +4520,14 @@ def order_list(request):
                 )
                 .order_by("variant_code")
             )
+            mix = calculate_category_size_mix(
+                selected_product,
+                target_sizes=[v.size for v in variants if v.size],
+                today=today,
+            )
+            share_map = mix.get("shares", {})
             for variant in variants:
-                variant.size_sales_share = size_sales_share.get(variant.size, 0)
+                variant.size_sales_share = share_map.get(variant.size, 0)
             variant_stock_rows = [
                 {
                     "variant_code": variant.variant_code,
@@ -4747,6 +4763,31 @@ def order_list(request):
 def order_item_create(request):
     item_cost = request.POST.get("item_cost_price")
     date_expected = request.POST.get("date_expected")
+    create_variants = request.POST.get("create_variants") in {"1", "true", "on", "yes"}
+    product_id = request.POST.get("product_id")
+
+    if create_variants and product_id:
+        try:
+            product = Product.objects.get(id=int(product_id))
+        except (TypeError, ValueError, Product.DoesNotExist):
+            return HttpResponseBadRequest("Invalid product.")
+
+        requested_sizes = request.POST.getlist("variant_sizes")
+        for raw_size in requested_sizes:
+            size = (raw_size or "").strip()
+            if not size:
+                continue
+            if product.variants.filter(size=size).exists():
+                continue
+            base_code = f"{product.product_id}-{size}"
+            ProductVariant.objects.create(
+                product=product,
+                variant_code=_build_unique_variant_code(base_code),
+                size=size,
+                primary_color=None,
+            )
+        return redirect("order_list")
+
     if not item_cost or not date_expected:
         return HttpResponseBadRequest("Missing cost or expected date.")
 
