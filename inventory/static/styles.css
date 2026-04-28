@@ -20,7 +20,7 @@ main {
 :root {
   --button-height: 44px;
   --button-padding-x: 22px;
-  --button-radius: 20px;
+  --button-radius: 10px;
   --button-border: #d7d7db;
   --button-bg: #f3f3f4;
   --button-text: #1a1a1a;
@@ -36,13 +36,13 @@ main {
 .btn-large {
   align-items: center;
   background: var(--button-bg) !important;
-  border: 1px solid var(--button-border) !important;
+  border: none;
   border-radius: var(--button-radius);
-  box-shadow: 0 1px 2px rgba(18, 18, 23, 0.08);
+  box-shadow: none;
   color: var(--button-text) !important;
   display: inline-flex;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 300;
   gap: 8px;
   height: var(--button-height);
   justify-content: center;
@@ -65,7 +65,6 @@ main {
 .btn-small:hover,
 .btn-large:hover {
   background: #ececef !important;
-  box-shadow: 0 2px 6px rgba(18, 18, 23, 0.12);
 }
 
 .btn:focus,
@@ -84,7 +83,6 @@ main {
 .btn-small.btn-primary,
 .btn-large.btn-primary {
   background: var(--button-primary-bg) !important;
-  border-color: var(--button-primary-border) !important;
   color: var(--button-primary-text) !important;
 }
 
