@@ -797,10 +797,6 @@
             <span class="secondary-content teal-text text-darken-2">{{ discounted_products }} products / {{ discounted_items }} items</span>
           </li>
           <li class="collection-item" style="border-left: 3px solid #26a69a;">
-            <strong>On market over 6 months</strong>
-            <span class="secondary-content teal-text text-darken-2">{{ mature_products_over_six_months }} products</span>
-          </li>
-          <li class="collection-item" style="border-left: 3px solid #26a69a;">
             <strong>Already in order</strong>
             <span class="secondary-content teal-text text-darken-2">{{ items_in_order }} items</span>
           </li>
@@ -837,26 +833,8 @@
 
   <div class="row">
 
-    <!-- NOTES COLUMN -->
-    <div class="col s12 m4">
-      <div class="card-panel">
-        <ul class="collection" style="margin: 0;">
-          <li class="collection-item" style="border-left: 3px solid #26a69a;">
-            <strong>Products in this category</strong>
-            <span class="secondary-content teal-text text-darken-2">{{ total_products }}</span>
-          </li>
-          <li class="collection-item" style="border-left: 3px solid #26a69a;">
-            <strong>Partially out-of-stock</strong>
-            <span class="secondary-content teal-text text-darken-2">{{ partial_oos_products }}</span>
-          </li>
-
-        </ul>
-      </div>
-    </div>
-
-
     <!-- TIME ON MARKET -->
-    <div class="col s12 m4">
+    <div class="col s12 m6">
     {% if stock_age_breakdown %}
       <div class="card-panel">
         <h6 class="grey-text text-darken-1" style="margin-top: 0;">Time on market</h6>
@@ -866,7 +844,7 @@
               <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
                 <strong>{{ entry.label }}</strong>
                 {% if entry.percent %}
-                  <span class="teal-text text-darken-2">{{ entry.percent }}%</span>
+                  <span class="teal-text text-darken-2">{{ entry.percent }}% ({{ entry.product_count }} products)</span>
                 {% endif %}
               </div>
             </li>
@@ -876,7 +854,7 @@
     {% endif %}
     </div>
 
-    <div class="col s12 m4">
+    <div class="col s12 m6">
       <div class="card-panel">
         <h6 class="grey-text text-darken-1">Quarterly Sales (last 12 quarters)</h6>
         {% if has_quarterly_data %}
