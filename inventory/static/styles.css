@@ -11,6 +11,81 @@ body {
     "GRAD" 0;
 }
 
+.app-shell {
+  background: #35363a !important;
+}
+
+.app-nav {
+  background: #f7f7f5 !important;
+  border-bottom: 1px solid #d8d5cf;
+  box-shadow: none;
+  margin: 40px auto 0;
+  width: min(1320px, calc(100% - 64px));
+}
+
+.app-nav .nav-wrapper.app-nav__inner {
+  align-items: center;
+  display: flex;
+  min-height: 88px;
+  padding: 0 24px;
+}
+
+.app-nav .brand-logo.app-nav__brand {
+  color: #2d2d2f;
+  font-size: 2.1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  position: static;
+  transform: none;
+}
+
+.app-nav .app-nav__links {
+  align-items: stretch;
+  display: flex;
+  gap: 28px;
+  margin-left: 72px;
+}
+
+.app-nav .app-nav__links li {
+  background: transparent !important;
+  float: none;
+  line-height: 1;
+}
+
+.app-nav .app-nav__links li a {
+  border-bottom: 2px solid transparent;
+  color: #8a8578;
+  font-size: 1.05rem;
+  font-weight: 400;
+  line-height: 1;
+  padding: 36px 12px 30px;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.app-nav .app-nav__links li.active,
+.app-nav .app-nav__links li.active a {
+  background: transparent !important;
+}
+
+.app-nav .app-nav__links li.active a,
+.app-nav .app-nav__links li a:hover {
+  background: transparent;
+  border-bottom-color: #535353;
+  color: #2f2f31;
+}
+
+.app-nav .app-nav__links li a:focus {
+  background: transparent;
+}
+
+main .container {
+  background: #f7f7f5;
+  margin-top: 0;
+  padding-top: 24px;
+  width: min(1320px, calc(100% - 64px));
+}
+
 
 
 main {
@@ -816,12 +891,6 @@ main {
 :where(.card, .card-panel).yellow.accent-2 { --card-border-color: #ffea00; }
 :where(.card, .card-panel).yellow.accent-3 { --card-border-color: #ffd600; }
 :where(.card, .card-panel).yellow.accent-4 { --card-border-color: #ffd600; }
-
-a.brand-logo img {
-  width: 150px;
-  margin: 20px 0;
-}
-
 
 div.metadata {
   padding: 10px;
