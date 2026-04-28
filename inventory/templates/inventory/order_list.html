@@ -1,4 +1,5 @@
 {% extends 'inventory/base.html' %}
+{% load static %}
 
 {% block title %}Orders{% endblock %}
 
@@ -644,6 +645,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.3/build/global/luxon.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
+<script src="{% static 'order_split.js' %}"></script>
 <script>
   (function() {
     const filterControllers = [];
@@ -1418,45 +1420,9 @@
     });
 
     const updateOrderSplit = (modal) => {
-      const totalInput = modal.querySelector('[data-total-order-input]');
-      if (!totalInput) return;
-      const total = Math.max(parseInt(totalInput.value, 10) || 0, 0);
-      const rows = Array.from(modal.querySelectorAll('[data-order-qty-input]'));
-      if (!rows.length) return;
-
-      const shares = rows.map((input) => {
-        const parsed = parseFloat(input.dataset.sizeShare || '0');
-        return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
-      });
-      const totalShare = shares.reduce((sum, share) => sum + share, 0);
-      const normalized = totalShare > 0
-        ? shares.map((share) => share / totalShare)
-        : shares.map(() => 1 / rows.length);
-
-      const splitRows = rows.map((input, index) => {
-        const rawValue = total * normalized[index];
-        const floorValue = Math.floor(rawValue);
-        return {
-          input,
-          floorValue,
-          fraction: rawValue - floorValue,
-        };
-      });
-
-      let remainder = total - splitRows.reduce((sum, row) => sum + row.floorValue, 0);
-      splitRows.sort((a, b) => b.fraction - a.fraction);
-
-      let index = 0;
-      while (remainder > 0 && splitRows.length) {
-        splitRows[index % splitRows.length].floorValue += 1;
-        remainder -= 1;
-        index += 1;
+      if (window.ProgressPlannerOrderSplit) {
+        window.ProgressPlannerOrderSplit.applyIdealSplitToModal(modal);
       }
-
-      splitRows.forEach((row) => {
-        row.input.value = row.floorValue > 0 ? row.floorValue : '';
-      });
-
       updateOrderProjectionChart(modal);
     };
 

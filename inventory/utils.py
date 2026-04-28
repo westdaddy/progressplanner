@@ -4,7 +4,7 @@ import json
 
 from collections import defaultdict
 from datetime import date, datetime, timedelta
-from typing import List, Optional, Sequence, Dict, Any, Iterable, Union
+from typing import List, Optional, Sequence, Dict, Any, Iterable, Union, Mapping
 from decimal import Decimal, ROUND_HALF_UP
 
 from dateutil.relativedelta import relativedelta
@@ -996,6 +996,83 @@ def calculate_sales_speed(
     return calculate_sales_speed_for_variants(
         resolved_variants, weeks=weeks, today=today, weight=weight
     )
+
+
+def calculate_sales_speed_by_size(
+    target: Optional[Union[ProductVariant, Product, Iterable[ProductVariant]]] = None,
+    *,
+    variants: Optional[Iterable[ProductVariant]] = None,
+    variant_filters: Optional[dict[str, Any]] = None,
+    weeks: int = 26,
+    today: Optional[date] = None,
+) -> dict[str, float]:
+    """Return a size-keyed monthly sales speed map.
+
+    This is the unified entry-point for places that need per-size sales speed
+    data. Variants sharing the same size are summed together.
+    """
+
+    resolved_variants = _resolve_variants_for_sales_speed(
+        target, variants=variants, variant_filters=variant_filters
+    )
+    speed_map: dict[str, float] = defaultdict(float)
+    for variant in resolved_variants:
+        size_key = (variant.size or "").strip() or variant.variant_code
+        speed_map[size_key] += calculate_sales_speed(
+            variant,
+            weeks=weeks,
+            today=today,
+        )
+    return dict(speed_map)
+
+
+def build_ideal_order_split(
+    total_quantity: int,
+    shares_by_key: Mapping[str, float],
+) -> dict[str, int]:
+    """Allocate ``total_quantity`` into an idealized split using shares.
+
+    Uses largest-remainder rounding so all units are allocated while remaining
+    close to the requested proportions.
+    """
+
+    total = max(int(total_quantity or 0), 0)
+    keys = list(shares_by_key.keys())
+    if not keys:
+        return {}
+
+    cleaned_shares = {
+        key: max(float(shares_by_key.get(key, 0) or 0), 0.0) for key in keys
+    }
+    total_share = sum(cleaned_shares.values())
+    if total_share <= 0:
+        normalized = {key: 1 / len(keys) for key in keys}
+    else:
+        normalized = {key: share / total_share for key, share in cleaned_shares.items()}
+
+    rows = []
+    allocated = 0
+    for key in keys:
+        raw_value = total * normalized[key]
+        floor_value = math.floor(raw_value)
+        allocated += floor_value
+        rows.append(
+            {
+                "key": key,
+                "value": floor_value,
+                "fraction": raw_value - floor_value,
+            }
+        )
+
+    remainder = total - allocated
+    rows.sort(key=lambda row: row["fraction"], reverse=True)
+    index = 0
+    while remainder > 0 and rows:
+        rows[index % len(rows)]["value"] += 1
+        remainder -= 1
+        index += 1
+
+    return {row["key"]: int(row["value"]) for row in rows}
 
 
 def calculate_sell_through_projection(
