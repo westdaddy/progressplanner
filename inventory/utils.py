@@ -650,55 +650,43 @@ def calculate_category_size_mix(
     """Estimate an order size mix for ``product`` using cohort sales velocity.
 
     The cohort is all variants whose parent products match the target product's
-    category (``type``), subcategory (``subtype``), and age group (``age``).
-    The estimator blends long-window and recent sales speed and only counts
-    weeks where variants were in stock.
+    style, type and age group. Scores are derived from per-variant monthly
+    sales speed and weighted by in-stock observation coverage.
     """
 
     today = today or date.today()
     variant_qs = get_product_cohort_variant_queryset(product)
 
-    variants = list(variant_qs.select_related("product").prefetch_related("sales", "snapshots"))
+    variants = list(
+        variant_qs.select_related("product").prefetch_related("sales", "snapshots")
+    )
     size_scores: Dict[str, float] = defaultdict(float)
     total_active_weeks = 0
-    requested_sizes = [size for size in (target_sizes or []) if size]
+    requested_sizes = []
+    seen_sizes = set()
+    for raw_size in target_sizes or []:
+        normalized = (raw_size or "").strip()
+        if not normalized or normalized in seen_sizes:
+            continue
+        seen_sizes.add(normalized)
+        requested_sizes.append(normalized)
 
     for candidate in variants:
-        long_detail = calculate_variant_sales_speed_details(
-            candidate, weeks=long_weeks, today=today, fallback_weeks=long_weeks
-        )
-        recent_detail = calculate_variant_sales_speed_details(
-            candidate, weeks=recent_weeks, today=today, fallback_weeks=recent_weeks
-        )
-
-        long_speed = float(long_detail.get("speed") or 0.0)
-        recent_speed = float(recent_detail.get("speed") or 0.0)
-        if long_speed <= 0 and recent_speed <= 0:
+        size_key = (candidate.size or "").strip()
+        if not size_key:
             continue
-
-        # Base demand estimate: stable long-term + recency signal.
-        blended_speed = (long_speed * 0.65) + (recent_speed * 0.35)
-
-        # Momentum scaling to react to changing demand but keep bounded.
-        if long_speed > 0 and recent_speed > 0:
-            momentum_ratio = max(0.75, min(1.35, recent_speed / long_speed))
-        else:
-            momentum_ratio = 1.0
-
-        # Reliability weighting based on in-stock observation coverage.
-        active_weeks = max(
-            int(long_detail.get("active_weeks") or 0),
-            int(recent_detail.get("active_weeks") or 0),
+        detail = calculate_variant_sales_speed_details(
+            candidate,
+            weeks=long_weeks,
+            today=today,
+            fallback_weeks=max(long_weeks, recent_weeks),
         )
+        speed = float(detail.get("speed") or 0.0)
+        if speed <= 0:
+            continue
+        active_weeks = int(detail.get("active_weeks") or 0)
         reliability = max(min(active_weeks / max(long_weeks, 1), 1.0), 0.25)
-
-        stockout_boost = (
-            1.08
-            if long_detail.get("had_stockout") or recent_detail.get("had_stockout")
-            else 1.0
-        )
-        score = blended_speed * momentum_ratio * reliability * stockout_boost
-        size_scores[candidate.size] += score
+        size_scores[size_key] += speed * reliability
         total_active_weeks += active_weeks
 
     if requested_sizes:
@@ -724,6 +712,7 @@ def calculate_category_size_mix(
                 "method": "cohort_size_avg",
                 "sample_variants": len(variants),
                 "active_weeks": total_active_weeks,
+                "confidence": "medium" if len(variants) >= 8 else "low",
             }
 
     if score_total <= 0 and requested_sizes:
@@ -742,6 +731,7 @@ def calculate_category_size_mix(
         "method": method,
         "sample_variants": len(variants),
         "active_weeks": total_active_weeks,
+        "confidence": "high" if len(variants) >= 12 else "medium" if len(variants) >= 6 else "low",
     }
 
 
@@ -1232,48 +1222,59 @@ def get_category_speed_stats(
 
 
 def get_product_cohort_variant_queryset(product: Product):
-    """Return variants in the same type/subtype/age cohort as ``product``."""
+    """Return variants in the same style/type/age cohort as ``product``."""
 
     queryset = ProductVariant.objects.filter(size__isnull=False).exclude(size="")
+    if product.style:
+        queryset = queryset.filter(product__style=product.style)
+    else:
+        queryset = queryset.filter(Q(product__style__isnull=True) | Q(product__style=""))
     if product.type:
         queryset = queryset.filter(product__type=product.type)
     else:
-        queryset = queryset.filter(product__type__isnull=True)
-    if product.subtype:
-        queryset = queryset.filter(product__subtype=product.subtype)
-    else:
-        queryset = queryset.filter(product__subtype__isnull=True)
+        queryset = queryset.filter(Q(product__type__isnull=True) | Q(product__type=""))
     if product.age:
         queryset = queryset.filter(product__age=product.age)
     else:
-        queryset = queryset.filter(product__age__isnull=True)
+        queryset = queryset.filter(Q(product__age__isnull=True) | Q(product__age=""))
     return queryset
 
 
 def get_product_cohort_speed_stats(
     product: Product, *, weeks: int = 26, today: Optional[date] = None
 ):
-    """Return average sales speed info for a product's type/subtype/age cohort."""
+    """Return weighted average sales speed info for a product's style/type/age cohort."""
 
     today = today or date.today()
     variants = get_product_cohort_variant_queryset(product).prefetch_related(
         "sales", "snapshots"
     )
-    speed_map = get_variant_speed_map(variants, weeks=weeks, today=today)
-
-    size_buckets: Dict[Optional[str], list[float]] = defaultdict(list)
+    size_buckets: Dict[Optional[str], list[tuple[float, float]]] = defaultdict(list)
+    overall_weighted_total = 0.0
+    overall_weight_sum = 0.0
     for variant in variants:
-        size_buckets[variant.size].append(speed_map.get(variant.id, 0.0))
+        detail = calculate_variant_sales_speed_details(variant, weeks=weeks, today=today)
+        speed = float(detail.get("speed") or 0.0)
+        active_weeks = float(detail.get("active_weeks") or 0.0)
+        if speed <= 0:
+            continue
+        weight = max(active_weeks, 1.0)
+        size_buckets[variant.size].append((speed, weight))
+        overall_weighted_total += speed * weight
+        overall_weight_sum += weight
 
     size_avgs = {
-        sz: round(sum(values) / len(values), 1)
+        sz: round(
+            sum(speed * weight for speed, weight in values)
+            / max(sum(weight for _speed, weight in values), 1.0),
+            1,
+        )
         for sz, values in size_buckets.items()
         if values
     }
     size_avgs = dict(sorted(size_avgs.items(), key=lambda item: item[0] or ""))
 
-    speeds = list(speed_map.values())
-    overall = round(sum(speeds) / len(speeds), 1) if speeds else 0.0
+    overall = round(overall_weighted_total / overall_weight_sum, 1) if overall_weight_sum else 0.0
     return {"overall_avg": overall, "size_avgs": size_avgs}
 
 

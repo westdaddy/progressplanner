@@ -10,6 +10,7 @@ import math
 from urllib.parse import urlencode, parse_qsl
 import logging
 import re
+from time import perf_counter
 from io import BytesIO
 import os
 from pathlib import Path
@@ -1339,6 +1340,9 @@ def _build_product_list_context(request, preset_filters=None):
                     SIZE_ORDER.get(variant.size, 9999),
                 )
             )
+            for variant in product.variants_with_inventory:
+                variant.sales_speed_6_months = None
+                variant.size_sales_share = 0
         product.total_ordered = sum(
             getattr(variant, "total_ordered", 0) or 0
             for variant in product.variants_with_inventory
@@ -1744,6 +1748,63 @@ def add_product(request):
 def product_list(request):
     context = _build_product_list_context(request)
     return render(request, "inventory/product_list.html", context)
+
+
+@require_GET
+def product_order_mix_stats(request, product_id: int):
+    """Return on-demand cohort speed/share stats for Create Order modal."""
+
+    started_at = perf_counter()
+    today = now().date()
+    cache_key = f"order_mix_stats:{product_id}:{today.isoformat()}"
+    cached_payload = cache.get(cache_key)
+    if cached_payload is not None:
+        return JsonResponse(cached_payload)
+
+    product = get_object_or_404(Product, id=product_id)
+    variants = list(product.variants.all().order_by("variant_code"))
+    target_sizes = [variant.size for variant in variants if variant.size]
+
+    cohort_speed_stats = get_product_cohort_speed_stats(product, weeks=52, today=today)
+    cohort_size_speed_map = cohort_speed_stats.get("size_avgs", {})
+    mix = calculate_category_size_mix(
+        product,
+        target_sizes=target_sizes,
+        long_weeks=52,
+        recent_weeks=26,
+        today=today,
+    )
+    size_share_map = mix.get("shares", {})
+
+    payload = {
+        "product_id": product.id,
+        "method": mix.get("method"),
+        "confidence": mix.get("confidence", "low"),
+        "sample_variants": mix.get("sample_variants", 0),
+        "active_weeks": mix.get("active_weeks", 0),
+        "window_weeks": 52,
+        "generated_at": now().isoformat(),
+        "variants": [
+            {
+                "variant_id": variant.id,
+                "size": variant.size,
+                "sales_speed": float(cohort_size_speed_map.get(variant.size, 0.0) or 0.0),
+                "size_share": float(size_share_map.get(variant.size, 0.0) or 0.0),
+            }
+            for variant in variants
+        ],
+    }
+    cache.set(cache_key, payload, 60 * 10)
+    elapsed_ms = (perf_counter() - started_at) * 1000
+    logger.info(
+        "order_mix_stats product_id=%s variants=%s method=%s confidence=%s elapsed_ms=%.1f",
+        product_id,
+        len(variants),
+        payload["method"],
+        payload["confidence"],
+        elapsed_ms,
+    )
+    return JsonResponse(payload)
 
 
 def _choice_label(choices, key):
@@ -4058,11 +4119,12 @@ def order_list(request):
         pending_order = pending_order_lookup.get(product.id)
         product.pending_order = pending_order
         variants_with_inventory = getattr(product, "variants_with_inventory", None)
-        speed_map = (
-            get_variant_speed_map(variants_with_inventory, weeks=26, today=today)
+        cohort_speed_stats = (
+            get_product_cohort_speed_stats(product, weeks=52, today=today)
             if variants_with_inventory
             else {}
         )
+        cohort_size_speed_map = cohort_speed_stats.get("size_avgs", {})
         if variants_with_inventory:
             for variant in variants_with_inventory:
                 variant.pending_order_qty = (
@@ -4070,7 +4132,9 @@ def order_list(request):
                     if pending_order
                     else 0
                 )
-                variant.sales_speed_6_months = speed_map.get(variant.id)
+                variant.sales_speed_6_months = float(
+                    cohort_size_speed_map.get(variant.size, 0.0) or 0.0
+                )
     ordered_product_ids = set()
     sold_product_ids = set()
     if filtered_products:

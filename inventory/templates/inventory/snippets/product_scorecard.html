@@ -231,6 +231,8 @@
   class="product-order-modal"
   id="order-modal-{{ product.id }}"
   aria-hidden="true"
+  data-product-id="{{ product.id }}"
+  data-order-mix-url="{% url 'product_order_mix_stats' product.id %}"
   data-product-style="{{ product.style|default:'' }}"
   data-product-age="{{ product.age|default:'' }}"
 >
@@ -276,12 +278,19 @@
               <input type="number" min="0" class="total-order-input" data-total-order-input placeholder="0">
               <label>Total order quantity</label>
             </div>
+            <p class="grey-text text-darken-1" style="margin: 0 0 8px;" data-order-mix-meta>
+              Method: <span data-mix-method>loading…</span> ·
+              Confidence: <span data-mix-confidence>—</span> ·
+              Cohort samples: <span data-mix-sample>—</span>
+            </p>
             <table class="striped">
               <thead>
                 <tr>
                   <th>Variant</th>
                   <th>Size</th>
                   <th>Current stock</th>
+                  <th>Sales speed (12 mo cohort avg)</th>
+                  <th>Suggested split</th>
                   <th>Suggested qty</th>
                 </tr>
               </thead>
@@ -291,6 +300,20 @@
                     <td>{{ variant.variant_code }}</td>
                     <td>{{ variant.size|default:"—" }}</td>
                     <td>{{ variant.latest_inventory|default:0 }}</td>
+                    <td data-speed-value="{{ variant.id }}">
+                      {% if variant.sales_speed_6_months is not None %}
+                        {{ variant.sales_speed_6_months|floatformat:1 }} / month
+                      {% else %}
+                        —
+                      {% endif %}
+                    </td>
+                    <td data-split-value="{{ variant.id }}">
+                      {% if variant.size_sales_share %}
+                        {% widthratio variant.size_sales_share 1 100 %}%
+                      {% else %}
+                        0%
+                      {% endif %}
+                    </td>
                     <td>
                       <input
                         type="number"
@@ -298,12 +321,21 @@
                         placeholder="0"
                         name="variant_{{ variant.id }}"
                         data-order-qty-input
+                        data-variant-id="{{ variant.id }}"
+                        data-size="{{ variant.size|default:'' }}"
                         data-size-share="{{ variant.size_sales_share|default:0 }}"
                       >
                     </td>
                   </tr>
                 {% endfor %}
               </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="6" class="right-align grey-text text-darken-1">
+                    Total suggested split: <span data-split-total>0.0%</span>
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           {% else %}
             <p class="grey-text text-darken-2"><strong>No variants yet.</strong> Create variants before placing this order.</p>
