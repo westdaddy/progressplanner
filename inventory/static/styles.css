@@ -4,8 +4,11 @@ body {
     display: flex;
     min-height: 100vh;
     flex-direction: column;
-    font-family: "TikTok Sans", sans-serif;
-    font-weight: 500;
+    font-family: "Google Sans", sans-serif;
+    font-weight: 400;
+    font-optical-sizing: auto;
+    font-variation-settings:
+    "GRAD" 0;
 }
 
 
