@@ -1339,23 +1339,21 @@ def _build_product_list_context(request, preset_filters=None):
                     SIZE_ORDER.get(variant.size, 9999),
                 )
             )
-            variant_speed_map = get_variant_speed_map(
-                product.variants_with_inventory, weeks=26, today=today
-            )
             cohort_speed_stats = get_product_cohort_speed_stats(
-                product, weeks=26, today=today
+                product, weeks=52, today=today
             )
             cohort_size_speed_map = cohort_speed_stats.get("size_avgs", {})
             mix = calculate_category_size_mix(
                 product,
                 target_sizes=[variant.size for variant in product.variants_with_inventory if variant.size],
+                long_weeks=52,
+                recent_weeks=26,
                 today=today,
             )
             size_share_map = mix.get("shares", {})
             for variant in product.variants_with_inventory:
-                own_speed = variant_speed_map.get(variant.id, 0.0) or 0.0
                 cohort_speed = float(cohort_size_speed_map.get(variant.size, 0.0) or 0.0)
-                variant.sales_speed_6_months = own_speed if own_speed > 0 else cohort_speed
+                variant.sales_speed_6_months = cohort_speed
                 variant.size_sales_share = size_share_map.get(variant.size, 0)
         product.total_ordered = sum(
             getattr(variant, "total_ordered", 0) or 0
@@ -4076,11 +4074,12 @@ def order_list(request):
         pending_order = pending_order_lookup.get(product.id)
         product.pending_order = pending_order
         variants_with_inventory = getattr(product, "variants_with_inventory", None)
-        speed_map = (
-            get_variant_speed_map(variants_with_inventory, weeks=26, today=today)
+        cohort_speed_stats = (
+            get_product_cohort_speed_stats(product, weeks=52, today=today)
             if variants_with_inventory
             else {}
         )
+        cohort_size_speed_map = cohort_speed_stats.get("size_avgs", {})
         if variants_with_inventory:
             for variant in variants_with_inventory:
                 variant.pending_order_qty = (
@@ -4088,7 +4087,9 @@ def order_list(request):
                     if pending_order
                     else 0
                 )
-                variant.sales_speed_6_months = speed_map.get(variant.id)
+                variant.sales_speed_6_months = float(
+                    cohort_size_speed_map.get(variant.size, 0.0) or 0.0
+                )
     ordered_product_ids = set()
     sold_product_ids = set()
     if filtered_products:
