@@ -28,8 +28,8 @@ nav, nav .nav-wrapper i, nav a.sidenav-trigger, nav a.sidenav-trigger i {
 
 .app-nav .nav-wrapper.app-nav__inner {
   align-items: center;
-  min-height: 82px;
-  padding: 0 24px 0 0;
+  min-height: 100px;
+  padding: 18px 24px 0 0;
 }
 
 .app-nav .brand-logo.app-nav__brand {
@@ -941,7 +941,7 @@ div.metadata {
   font-size: 2.92rem;
   font-weight: 400;
   line-height: 110%;
-  margin: 1.46rem 0 1.168rem;
+  margin: 1.46rem 0 0.5rem;
   padding: 0;
 }
 
