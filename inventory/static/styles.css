@@ -20,7 +20,7 @@ nav, nav .nav-wrapper i, nav a.sidenav-trigger, nav a.sidenav-trigger i {
 }
 
 .app-nav {
-  background: #f7f7f5 !important;
+  background: none;
   border-bottom: 1px solid #d8d5cf;
   box-shadow: none;
   margin: 0px auto 0;
@@ -42,8 +42,10 @@ nav, nav .nav-wrapper i, nav a.sidenav-trigger, nav a.sidenav-trigger i {
 
 .app-nav .app-nav__brand-image {
   display: block;
-  height: 44px;
+  height: 28px;
   width: auto;
+  position:relative;
+  top: 20px;
 }
 
 .app-nav .app-nav__links {
@@ -86,7 +88,6 @@ nav, nav .nav-wrapper i, nav a.sidenav-trigger, nav a.sidenav-trigger i {
 }
 
 main .container {
-  background: #f7f7f5;
   margin-top: 0;
   padding-top: 60px;
   width: min(1320px, calc(100% - 64px));
