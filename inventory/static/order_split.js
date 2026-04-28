@@ -18,10 +18,11 @@
     }
 
     const normalized = normalizeShares(shares);
-    const rows = normalized.map((share) => {
+    const rows = normalized.map((share, index) => {
       const rawValue = total * share;
       const floorValue = Math.floor(rawValue);
       return {
+        index,
         value: floorValue,
         fraction: rawValue - floorValue,
       };
@@ -37,6 +38,7 @@
       index += 1;
     }
 
+    rows.sort((a, b) => a.index - b.index);
     return rows.map((row) => row.value);
   };
 

@@ -231,6 +231,8 @@
   class="product-order-modal"
   id="order-modal-{{ product.id }}"
   aria-hidden="true"
+  data-product-id="{{ product.id }}"
+  data-order-mix-url="{% url 'product_order_mix_stats' product.id %}"
   data-product-style="{{ product.style|default:'' }}"
   data-product-age="{{ product.age|default:'' }}"
 >
@@ -282,6 +284,8 @@
                   <th>Variant</th>
                   <th>Size</th>
                   <th>Current stock</th>
+                  <th>Sales speed (12 mo cohort avg)</th>
+                  <th>Suggested split</th>
                   <th>Suggested qty</th>
                 </tr>
               </thead>
@@ -291,6 +295,20 @@
                     <td>{{ variant.variant_code }}</td>
                     <td>{{ variant.size|default:"—" }}</td>
                     <td>{{ variant.latest_inventory|default:0 }}</td>
+                    <td data-speed-value="{{ variant.id }}">
+                      {% if variant.sales_speed_6_months is not None %}
+                        {{ variant.sales_speed_6_months|floatformat:1 }} / month
+                      {% else %}
+                        —
+                      {% endif %}
+                    </td>
+                    <td data-split-value="{{ variant.id }}">
+                      {% if variant.size_sales_share %}
+                        {% widthratio variant.size_sales_share 1 100 %}%
+                      {% else %}
+                        0%
+                      {% endif %}
+                    </td>
                     <td>
                       <input
                         type="number"
@@ -298,6 +316,8 @@
                         placeholder="0"
                         name="variant_{{ variant.id }}"
                         data-order-qty-input
+                        data-variant-id="{{ variant.id }}"
+                        data-size="{{ variant.size|default:'' }}"
                         data-size-share="{{ variant.size_sales_share|default:0 }}"
                       >
                     </td>

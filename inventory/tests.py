@@ -35,6 +35,7 @@ from .models import (
 from django.urls import reverse
 from .admin import SaleAdmin, SaleDateEqualsFilter
 from .utils import (
+    build_ideal_order_split,
     get_low_stock_products,
     get_restock_alerts,
     calculate_variant_sales_speed,
@@ -478,12 +479,12 @@ class CategorySizeMixTests(TestCase):
                 sold_value=50,
             )
 
-        # Non-matching subtype should not influence the mix.
+        # Non-matching product type should not influence the mix.
         other_subtype_product = Product.objects.create(
             product_id="P-MIX-OTHER",
             product_name="Other",
-            type="rg",
-            subtype="ls",
+            type="dk",
+            subtype="bs",
             age="adult",
         )
         other_l = ProductVariant.objects.create(
@@ -517,7 +518,7 @@ class CategorySizeMixTests(TestCase):
         self.assertGreater(mix["shares"].get("M", 0), mix["shares"].get("S", 0))
         self.assertNotIn("L", mix["shares"])
 
-    def test_cohort_speed_stats_ignore_other_subtypes(self):
+    def test_cohort_speed_stats_ignore_other_types(self):
         today = date.today()
         target = Product.objects.create(
             product_id="P-COHORT-STATS",
@@ -544,8 +545,8 @@ class CategorySizeMixTests(TestCase):
         other = Product.objects.create(
             product_id="P-COHORT-OTHER",
             product_name="Other Stats",
-            type="rg",
-            subtype="ls",
+            type="dk",
+            subtype="bs",
             age="adult",
         )
         other_l = ProductVariant.objects.create(
@@ -566,6 +567,106 @@ class CategorySizeMixTests(TestCase):
         stats = get_product_cohort_speed_stats(target, weeks=4, today=today)
         self.assertIn("S", stats["size_avgs"])
         self.assertNotIn("L", stats["size_avgs"])
+
+    def test_category_size_mix_uses_all_matching_variants_for_ratio(self):
+        today = date.today()
+        target = Product.objects.create(
+            product_id="P-MIX-RATIO-T",
+            product_name="Ratio Target",
+            type="ng",
+            subtype="ss",
+            age="adult",
+        )
+        target_variants = {
+            "S": ProductVariant.objects.create(
+                product=target, variant_code="R-T-S", primary_color="#000000", size="S"
+            ),
+            "M": ProductVariant.objects.create(
+                product=target, variant_code="R-T-M", primary_color="#000000", size="M"
+            ),
+            "L": ProductVariant.objects.create(
+                product=target, variant_code="R-T-L", primary_color="#000000", size="L"
+            ),
+        }
+
+        cohort_product = Product.objects.create(
+            product_id="P-MIX-RATIO-C",
+            product_name="Ratio Cohort",
+            type="ng",
+            subtype="ss",
+            age="adult",
+        )
+        cohort_variants = {
+            "S": ProductVariant.objects.create(
+                product=cohort_product,
+                variant_code="R-C-S",
+                primary_color="#000000",
+                size="S",
+            ),
+            "M": ProductVariant.objects.create(
+                product=cohort_product,
+                variant_code="R-C-M",
+                primary_color="#000000",
+                size="M",
+            ),
+            "L": ProductVariant.objects.create(
+                product=cohort_product,
+                variant_code="R-C-L",
+                primary_color="#000000",
+                size="L",
+            ),
+        }
+
+        all_matching_variants = list(target_variants.values()) + list(
+            cohort_variants.values()
+        )
+        for variant in all_matching_variants:
+            InventorySnapshot.objects.create(
+                product_variant=variant,
+                date=today - timedelta(weeks=8),
+                inventory_count=500,
+            )
+            InventorySnapshot.objects.create(
+                product_variant=variant,
+                date=today,
+                inventory_count=400,
+            )
+
+        for i in range(8):
+            Sale.objects.create(
+                order_number=f"R-S-{i}",
+                date=today - timedelta(weeks=i),
+                variant=cohort_variants["S"],
+                sold_quantity=2,
+                sold_value=20,
+            )
+            Sale.objects.create(
+                order_number=f"R-M-{i}",
+                date=today - timedelta(weeks=i),
+                variant=cohort_variants["M"],
+                sold_quantity=8,
+                sold_value=80,
+            )
+            Sale.objects.create(
+                order_number=f"R-L-{i}",
+                date=today - timedelta(weeks=i),
+                variant=cohort_variants["L"],
+                sold_quantity=4,
+                sold_value=40,
+            )
+
+        mix = calculate_category_size_mix(
+            target,
+            target_sizes=["S", "M", "L"],
+            long_weeks=8,
+            recent_weeks=4,
+            today=today,
+        )
+        split = build_ideal_order_split(100, mix["shares"])
+
+        self.assertEqual(split.get("S"), 14)
+        self.assertEqual(split.get("M"), 57)
+        self.assertEqual(split.get("L"), 29)
 
 
 class ProductAdminFormTests(TestCase):
