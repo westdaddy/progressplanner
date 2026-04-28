@@ -1936,6 +1936,23 @@ def _render_filtered_products(
         if product.id not in sales_product_ids
         and product.id not in order_product_ids
     )
+    pipeline_products = sum(
+        1
+        for product in products
+        if product.id not in sales_product_ids
+        and product.id not in order_product_ids
+        and not product.discounted
+        and not product.decommissioned
+    )
+    items_in_order = 0
+    if variant_ids:
+        items_in_order = (
+            OrderItem.objects.filter(
+                product_variant_id__in=variant_ids,
+                date_arrived__isnull=True,
+            ).aggregate(total_qty=Sum("quantity")).get("total_qty")
+            or 0
+        )
 
     group_choices = list(context.get("group_choices") or Group.objects.all())
     group_label_map = {group.id: group.name or "Unspecified" for group in group_choices}
@@ -3108,6 +3125,8 @@ def _render_filtered_products(
             "is_understocked": is_understocked,
             "discounted_items": discounted_items,
             "mature_products_over_six_months": len(mature_product_ids),
+            "items_in_order": items_in_order,
+            "pipeline_products": pipeline_products,
             "has_quarterly_data": bool(variant_ids),
             "filter_controls": filter_controls,
             "showing_summary": " | ".join(selected_labels_flat)
