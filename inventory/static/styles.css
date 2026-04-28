@@ -84,7 +84,7 @@ nav, nav .nav-wrapper i, nav a.sidenav-trigger, nav a.sidenav-trigger i {
 main .container {
   background: #f7f7f5;
   margin-top: 0;
-  padding-top: 24px;
+  padding-top: 60px;
   width: min(1320px, calc(100% - 64px));
 }
 
