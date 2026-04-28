@@ -1978,18 +1978,33 @@
         const total = Math.max(parseInt(totalInput.value, 10) || 0, 0);
         const rows = Array.from(modal.querySelectorAll('[data-order-qty-input]'));
         if (!rows.length) return;
-        const raw = rows.map((input) => {
-          const share = parseFloat(input.dataset.sizeShare || '0');
-          const rawValue = total * share;
+        const shares = rows.map((input) => {
+          const parsed = parseFloat(input.dataset.sizeShare || '0');
+          return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+        });
+        const totalShare = shares.reduce((sum, share) => sum + share, 0);
+        const normalized = totalShare > 0
+          ? shares.map((share) => share / totalShare)
+          : shares.map(() => 1 / rows.length);
+
+        const splitRows = rows.map((input, index) => {
+          const rawValue = total * normalized[index];
           const floorValue = Math.floor(rawValue);
           return { input, floorValue, fraction: rawValue - floorValue };
         });
-        let remainder = total - raw.reduce((sum, row) => sum + row.floorValue, 0);
-        raw.sort((a, b) => b.fraction - a.fraction).forEach((row) => {
-          const add = remainder > 0 ? 1 : 0;
-          const value = row.floorValue + add;
-          row.input.value = value > 0 ? value : '';
-          remainder = Math.max(remainder - add, 0);
+
+        let remainder = total - splitRows.reduce((sum, row) => sum + row.floorValue, 0);
+        splitRows.sort((a, b) => b.fraction - a.fraction);
+
+        let index = 0;
+        while (remainder > 0 && splitRows.length) {
+          splitRows[index % splitRows.length].floorValue += 1;
+          remainder -= 1;
+          index += 1;
+        }
+
+        splitRows.forEach((row) => {
+          row.input.value = row.floorValue > 0 ? row.floorValue : '';
         });
       };
 
