@@ -1985,6 +1985,7 @@
         const variantById = new Map(
           payload.variants.map((row) => [String(row.variant_id), row])
         );
+        let totalSharePct = 0;
 
         modal.querySelectorAll('[data-order-qty-input]').forEach((input) => {
           const variantId = String(input.dataset.variantId || '');
@@ -1992,6 +1993,7 @@
           if (!row) return;
           const share = Number(row.size_share || 0);
           const speed = Number(row.sales_speed || 0);
+          totalSharePct += share * 100;
           input.dataset.sizeShare = String(share);
 
           const speedCell = modal.querySelector(`[data-speed-value="${variantId}"]`);
@@ -2001,9 +2003,34 @@
 
           const splitCell = modal.querySelector(`[data-split-value="${variantId}"]`);
           if (splitCell) {
-            splitCell.textContent = `${Math.round(share * 100)}%`;
+            splitCell.textContent = `${(share * 100).toFixed(1)}%`;
           }
         });
+
+        const splitTotal = modal.querySelector('[data-split-total]');
+        if (splitTotal) {
+          splitTotal.textContent = `${totalSharePct.toFixed(1)}%`;
+        }
+
+        const methodLabel = modal.querySelector('[data-mix-method]');
+        if (methodLabel) {
+          const method = payload.method || 'no_data';
+          const methodTitles = {
+            velocity_weighted: 'Velocity weighted',
+            cohort_size_avg: 'Cohort size average',
+            equal_fallback: 'Equal fallback',
+            no_data: 'No data',
+          };
+          methodLabel.textContent = methodTitles[method] || method;
+        }
+        const confidenceLabel = modal.querySelector('[data-mix-confidence]');
+        if (confidenceLabel) {
+          confidenceLabel.textContent = (payload.confidence || 'low').toUpperCase();
+        }
+        const sampleLabel = modal.querySelector('[data-mix-sample]');
+        if (sampleLabel) {
+          sampleLabel.textContent = `${payload.sample_variants || 0} variants`;
+        }
 
         updateOrderSplit(modal);
       };
@@ -2026,6 +2053,8 @@
           renderOrderMixStats(modal, payload);
         } catch (error) {
           console.warn('Failed to load order mix stats', error);
+          const methodLabel = modal.querySelector('[data-mix-method]');
+          if (methodLabel) methodLabel.textContent = 'Failed to load';
         }
       };
 

@@ -278,6 +278,11 @@
               <input type="number" min="0" class="total-order-input" data-total-order-input placeholder="0">
               <label>Total order quantity</label>
             </div>
+            <p class="grey-text text-darken-1" style="margin: 0 0 8px;" data-order-mix-meta>
+              Method: <span data-mix-method>loading…</span> ·
+              Confidence: <span data-mix-confidence>—</span> ·
+              Cohort samples: <span data-mix-sample>—</span>
+            </p>
             <table class="striped">
               <thead>
                 <tr>
@@ -310,20 +315,6 @@
                       {% endif %}
                     </td>
                     <td>
-                      {% if variant.sales_speed_6_months is not None %}
-                        {{ variant.sales_speed_6_months|floatformat:1 }} / month
-                      {% else %}
-                        —
-                      {% endif %}
-                    </td>
-                    <td>
-                      {% if variant.size_sales_share %}
-                        {% widthratio variant.size_sales_share 1 100 %}%
-                      {% else %}
-                        0%
-                      {% endif %}
-                    </td>
-                    <td>
                       <input
                         type="number"
                         min="0"
@@ -338,6 +329,13 @@
                   </tr>
                 {% endfor %}
               </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="6" class="right-align grey-text text-darken-1">
+                    Total suggested split: <span data-split-total>0.0%</span>
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           {% else %}
             <p class="grey-text text-darken-2"><strong>No variants yet.</strong> Create variants before placing this order.</p>

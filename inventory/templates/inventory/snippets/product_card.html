@@ -188,6 +188,11 @@
             <h6>Variant Stock Projection</h6>
             <canvas data-order-stock-chart></canvas>
           </div>
+          <p class="grey-text text-darken-1" style="margin: 0 0 8px;" data-order-mix-meta>
+            Method: <span data-mix-method>loading…</span> ·
+            Confidence: <span data-mix-confidence>—</span> ·
+            Cohort samples: <span data-mix-sample>—</span>
+          </p>
           <table class="striped">
             <thead>
               <tr>
@@ -220,13 +225,6 @@
                     {% endif %}
                   </td>
                   <td>
-                    {% if variant.size_sales_share %}
-                      {% widthratio variant.size_sales_share 1 100 %}%
-                    {% else %}
-                      0%
-                    {% endif %}
-                  </td>
-                  <td>
                     <input
                       type="number"
                       min="0"
@@ -249,6 +247,13 @@
                 </tr>
               {% endfor %}
             </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="6" class="right-align grey-text text-darken-1">
+                  Total suggested split: <span data-split-total>0.0%</span>
+                </td>
+              </tr>
+            </tfoot>
           </table>
           <div style="margin-top: 16px; text-align: right;">
             <button type="submit" class="btn btn-primary">Save order</button>
