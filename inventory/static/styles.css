@@ -33,13 +33,17 @@ nav, nav .nav-wrapper i, nav a.sidenav-trigger, nav a.sidenav-trigger i {
 }
 
 .app-nav .brand-logo.app-nav__brand {
-  color: #2d2d2f;
-  font-size: 2.1rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  align-items: center;
+  display: inline-flex;
   line-height: 1;
   position: static;
   transform: none;
+}
+
+.app-nav .app-nav__brand-image {
+  display: block;
+  height: 44px;
+  width: auto;
 }
 
 .app-nav .app-nav__links {
