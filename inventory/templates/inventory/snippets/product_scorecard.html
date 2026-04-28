@@ -310,6 +310,20 @@
                       {% endif %}
                     </td>
                     <td>
+                      {% if variant.sales_speed_6_months is not None %}
+                        {{ variant.sales_speed_6_months|floatformat:1 }} / month
+                      {% else %}
+                        —
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if variant.size_sales_share %}
+                        {% widthratio variant.size_sales_share 1 100 %}%
+                      {% else %}
+                        0%
+                      {% endif %}
+                    </td>
+                    <td>
                       <input
                         type="number"
                         min="0"
