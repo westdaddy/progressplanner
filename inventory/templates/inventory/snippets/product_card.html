@@ -193,7 +193,8 @@
                 <th>Size</th>
                 <th>SKU</th>
                 <th>Stock</th>
-                <th>Sales speed (6 mo)</th>
+                <th>Sales speed (12 mo cohort avg)</th>
+                <th>Suggested split</th>
                 <th>Order Qty</th>
               </tr>
             </thead>
@@ -208,6 +209,13 @@
                       {{ variant.sales_speed_6_months|floatformat:1 }} / month
                     {% else %}
                       —
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if variant.size_sales_share %}
+                      {% widthratio variant.size_sales_share 1 100 %}%
+                    {% else %}
+                      0%
                     {% endif %}
                   </td>
                   <td>
@@ -228,7 +236,7 @@
                 </tr>
               {% empty %}
                 <tr>
-                  <td colspan="5" class="grey-text">No variants available.</td>
+                  <td colspan="6" class="grey-text">No variants available.</td>
                 </tr>
               {% endfor %}
             </tbody>
