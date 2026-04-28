@@ -39,6 +39,8 @@ from .utils import (
     get_restock_alerts,
     calculate_variant_sales_speed,
     get_category_speed_stats,
+    calculate_category_size_mix,
+    compute_safe_stock,
 )
 from .discount_chip_colors import resolve_discount_chip_colors
 from .views import (
@@ -385,6 +387,134 @@ class CategorySpeedStatsTests(TestCase):
         self.assertIn("S", stats["size_avgs"])
         self.assertGreater(stats["overall_avg"], 0)
         self.assertGreater(stats["size_avgs"]["S"], 0)
+
+
+class SafeStockTests(TestCase):
+    def test_compute_safe_stock_handles_null_restock_time(self):
+        product = Product.objects.create(
+            product_id="P-RESTOCK-NULL",
+            product_name="Restock Null",
+            restock_time=None,
+        )
+        variant = ProductVariant.objects.create(
+            product=product,
+            variant_code="V-RESTOCK-NULL",
+            primary_color="#000000",
+        )
+        InventorySnapshot.objects.create(
+            product_variant=variant,
+            date=date.today() - timedelta(days=7),
+            inventory_count=20,
+        )
+        variant.latest_inventory = 20
+
+        result = compute_safe_stock([variant], speed_map={variant.id: 2.0})
+        self.assertEqual(result["safe_stock_data"][0]["stock_at_restock"], 20)
+
+
+class CategorySizeMixTests(TestCase):
+    def test_size_mix_uses_matching_type_subtype_and_age_cohort(self):
+        today = date.today()
+        target = Product.objects.create(
+            product_id="P-MIX-TARGET",
+            product_name="Target",
+            type="rg",
+            subtype="ss",
+            age="adult",
+        )
+        target_s = ProductVariant.objects.create(
+            product=target, variant_code="TARGET-S", primary_color="#000000", size="S"
+        )
+        target_m = ProductVariant.objects.create(
+            product=target, variant_code="TARGET-M", primary_color="#000000", size="M"
+        )
+
+        for variant in [target_s, target_m]:
+            InventorySnapshot.objects.create(
+                product_variant=variant,
+                date=today - timedelta(weeks=4),
+                inventory_count=50,
+            )
+            InventorySnapshot.objects.create(
+                product_variant=variant, date=today, inventory_count=45
+            )
+
+        # Target product's own sales skew toward S.
+        for i in range(6):
+            Sale.objects.create(
+                order_number=f"T-S-{i}",
+                date=today - timedelta(weeks=i),
+                variant=target_s,
+                sold_quantity=2,
+                sold_value=20,
+            )
+
+        # Matching cohort product skews strongly toward M.
+        cohort = Product.objects.create(
+            product_id="P-MIX-COHORT",
+            product_name="Cohort",
+            type="rg",
+            subtype="ss",
+            age="adult",
+        )
+        cohort_m = ProductVariant.objects.create(
+            product=cohort, variant_code="COHORT-M", primary_color="#000000", size="M"
+        )
+        InventorySnapshot.objects.create(
+            product_variant=cohort_m,
+            date=today - timedelta(weeks=4),
+            inventory_count=100,
+        )
+        InventorySnapshot.objects.create(
+            product_variant=cohort_m, date=today, inventory_count=70
+        )
+        for i in range(6):
+            Sale.objects.create(
+                order_number=f"C-M-{i}",
+                date=today - timedelta(weeks=i),
+                variant=cohort_m,
+                sold_quantity=5,
+                sold_value=50,
+            )
+
+        # Non-matching subtype should not influence the mix.
+        other_subtype_product = Product.objects.create(
+            product_id="P-MIX-OTHER",
+            product_name="Other",
+            type="rg",
+            subtype="ls",
+            age="adult",
+        )
+        other_l = ProductVariant.objects.create(
+            product=other_subtype_product,
+            variant_code="OTHER-L",
+            primary_color="#000000",
+            size="L",
+        )
+        InventorySnapshot.objects.create(
+            product_variant=other_l,
+            date=today - timedelta(weeks=4),
+            inventory_count=120,
+        )
+        InventorySnapshot.objects.create(
+            product_variant=other_l, date=today, inventory_count=60
+        )
+        for i in range(6):
+            Sale.objects.create(
+                order_number=f"O-L-{i}",
+                date=today - timedelta(weeks=i),
+                variant=other_l,
+                sold_quantity=10,
+                sold_value=100,
+            )
+
+        mix = calculate_category_size_mix(
+            target, target_sizes=["S", "M"], long_weeks=8, recent_weeks=4, today=today
+        )
+
+        self.assertIn("shares", mix)
+        self.assertGreater(mix["shares"].get("M", 0), mix["shares"].get("S", 0))
+        self.assertNotIn("L", mix["shares"])
 
 
 class ProductAdminFormTests(TestCase):
