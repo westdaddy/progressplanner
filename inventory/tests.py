@@ -479,12 +479,12 @@ class CategorySizeMixTests(TestCase):
                 sold_value=50,
             )
 
-        # Non-matching subtype should not influence the mix.
+        # Non-matching product type should not influence the mix.
         other_subtype_product = Product.objects.create(
             product_id="P-MIX-OTHER",
             product_name="Other",
-            type="rg",
-            subtype="ls",
+            type="dk",
+            subtype="bs",
             age="adult",
         )
         other_l = ProductVariant.objects.create(
@@ -518,7 +518,7 @@ class CategorySizeMixTests(TestCase):
         self.assertGreater(mix["shares"].get("M", 0), mix["shares"].get("S", 0))
         self.assertNotIn("L", mix["shares"])
 
-    def test_cohort_speed_stats_ignore_other_subtypes(self):
+    def test_cohort_speed_stats_ignore_other_types(self):
         today = date.today()
         target = Product.objects.create(
             product_id="P-COHORT-STATS",
@@ -545,8 +545,8 @@ class CategorySizeMixTests(TestCase):
         other = Product.objects.create(
             product_id="P-COHORT-OTHER",
             product_name="Other Stats",
-            type="rg",
-            subtype="ls",
+            type="dk",
+            subtype="bs",
             age="adult",
         )
         other_l = ProductVariant.objects.create(

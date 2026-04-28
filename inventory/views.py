@@ -1339,6 +1339,24 @@ def _build_product_list_context(request, preset_filters=None):
                     SIZE_ORDER.get(variant.size, 9999),
                 )
             )
+            variant_speed_map = get_variant_speed_map(
+                product.variants_with_inventory, weeks=26, today=today
+            )
+            cohort_speed_stats = get_product_cohort_speed_stats(
+                product, weeks=26, today=today
+            )
+            cohort_size_speed_map = cohort_speed_stats.get("size_avgs", {})
+            mix = calculate_category_size_mix(
+                product,
+                target_sizes=[variant.size for variant in product.variants_with_inventory if variant.size],
+                today=today,
+            )
+            size_share_map = mix.get("shares", {})
+            for variant in product.variants_with_inventory:
+                own_speed = variant_speed_map.get(variant.id, 0.0) or 0.0
+                cohort_speed = float(cohort_size_speed_map.get(variant.size, 0.0) or 0.0)
+                variant.sales_speed_6_months = own_speed if own_speed > 0 else cohort_speed
+                variant.size_sales_share = size_share_map.get(variant.size, 0)
         product.total_ordered = sum(
             getattr(variant, "total_ordered", 0) or 0
             for variant in product.variants_with_inventory

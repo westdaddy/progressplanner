@@ -1219,21 +1219,21 @@ def get_category_speed_stats(
 
 
 def get_product_cohort_variant_queryset(product: Product):
-    """Return variants in the same type/subtype/age cohort as ``product``."""
+    """Return variants in the same style/type/age cohort as ``product``."""
 
     queryset = ProductVariant.objects.filter(size__isnull=False).exclude(size="")
+    if product.style:
+        queryset = queryset.filter(product__style=product.style)
+    else:
+        queryset = queryset.filter(Q(product__style__isnull=True) | Q(product__style=""))
     if product.type:
         queryset = queryset.filter(product__type=product.type)
     else:
-        queryset = queryset.filter(product__type__isnull=True)
-    if product.subtype:
-        queryset = queryset.filter(product__subtype=product.subtype)
-    else:
-        queryset = queryset.filter(product__subtype__isnull=True)
+        queryset = queryset.filter(Q(product__type__isnull=True) | Q(product__type=""))
     if product.age:
         queryset = queryset.filter(product__age=product.age)
     else:
-        queryset = queryset.filter(product__age__isnull=True)
+        queryset = queryset.filter(Q(product__age__isnull=True) | Q(product__age=""))
     return queryset
 
 
