@@ -797,10 +797,6 @@
             <span class="secondary-content teal-text text-darken-2">{{ discounted_products }} products / {{ discounted_items }} items</span>
           </li>
           <li class="collection-item" style="border-left: 3px solid #26a69a;">
-            <strong>On market over 6 months</strong>
-            <span class="secondary-content teal-text text-darken-2">{{ mature_products_over_six_months }} products</span>
-          </li>
-          <li class="collection-item" style="border-left: 3px solid #26a69a;">
             <strong>Already in order</strong>
             <span class="secondary-content teal-text text-darken-2">{{ items_in_order }} items</span>
           </li>
@@ -837,6 +833,7 @@
 
   <div class="row">
 
+<<<<<<< HEAD
     <!-- NOTES BOX -->
     <div class="col s12 m4">
       <div class="card-panel">
@@ -858,6 +855,10 @@
 
     <!-- TIME ON MARKET BOX -->
     <div class="col s12 m4">
+=======
+    <!-- TIME ON MARKET -->
+    <div class="col s12 m6">
+>>>>>>> d251113b01b498c98286e6b3e979b03e58e368e2
     {% if stock_age_breakdown %}
       <div class="card-panel">
         <h6 class="grey-text text-darken-1" style="margin-top: 0;">Time on market</h6>
@@ -867,7 +868,7 @@
               <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
                 <strong>{{ entry.label }}</strong>
                 {% if entry.percent %}
-                  <span class="teal-text text-darken-2">{{ entry.percent }}%</span>
+                  <span class="teal-text text-darken-2">{{ entry.percent }}% ({{ entry.product_count }} products)</span>
                 {% endif %}
               </div>
             </li>
@@ -878,8 +879,12 @@
     </div>
     <!-- END TIME ON MARKET BOX -->
 
+<<<<<<< HEAD
     <!-- QUARTERLY SALES BOX -->
     <div class="col s12 m4">
+=======
+    <div class="col s12 m6">
+>>>>>>> d251113b01b498c98286e6b3e979b03e58e368e2
       <div class="card-panel">
         <h6 class="grey-text text-darken-1">Quarterly Sales (last 12 quarters)</h6>
         {% if has_quarterly_data %}
