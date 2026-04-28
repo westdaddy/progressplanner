@@ -1205,6 +1205,7 @@ def _build_product_list_context(request, preset_filters=None):
     )
 
     pending_variant_totals: dict[int, int] = {}
+    pending_expected_date_by_product: dict[int, date] = {}
     if products:
         pending_rows = (
             OrderItem.objects.filter(
@@ -1216,6 +1217,19 @@ def _build_product_list_context(request, preset_filters=None):
         )
         pending_variant_totals = {
             row["product_variant_id"]: row["total"] or 0 for row in pending_rows
+        }
+        pending_expected_rows = (
+            OrderItem.objects.filter(
+                product_variant__product__in=products,
+                date_arrived__isnull=True,
+            )
+            .values("product_variant__product_id")
+            .annotate(expected_date=Max("date_expected"))
+        )
+        pending_expected_date_by_product = {
+            row["product_variant__product_id"]: row["expected_date"]
+            for row in pending_expected_rows
+            if row.get("expected_date")
         }
 
     # ─── Compute per‐product stats ───────────────────────────────────────────────
@@ -1295,6 +1309,19 @@ def _build_product_list_context(request, preset_filters=None):
         product.last_order_qty = metrics["last_order_qty"]
         product.sold_since_last_order = metrics["sold_since_last_order"]
         product.variant_months_to_sell_out = metrics["variant_months_to_sell_out"]
+        product.pending_order_expected_date = pending_expected_date_by_product.get(
+            product.id
+        )
+        product.is_new_unlaunched = (
+            product.total_inventory == 0
+            and product.last_order_qty == 0
+            and product.total_sales == 0
+        )
+        product.is_on_order_no_sales = (
+            product.total_inventory == 0
+            and product.total_sales == 0
+            and product.last_order_label == "On Order"
+        )
         product.profit = product.total_sales_value - product.last_order_cost
         product.gift_units = metrics.get("gift_units", 0)
         product.gift_rate = (

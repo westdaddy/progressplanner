@@ -52,7 +52,7 @@
 
                 <p class="signal-line signal-line--stock">
                   {{ product.total_inventory|default:0 }} in stock / {{ product.last_order_qty|default:0 }} ordered
-                  {% if product.total_inventory|default:0 != 0 or product.last_order_qty|default:0 != 0 or product.total_sales|default:0 != 0 %}
+                  {% if not product.is_new_unlaunched and not product.is_on_order_no_sales %}
                     <span class="signal-muted">|</span>
                     <button
                       type="button"
@@ -71,7 +71,7 @@
                   {% endif %}
                 </p>
 
-                {% if product.total_inventory|default:0 != 0 or product.last_order_qty|default:0 != 0 or product.total_sales|default:0 != 0 %}
+                {% if not product.is_new_unlaunched and not product.is_on_order_no_sales %}
                   <hr/>
 
                   <p class="signal-line">
@@ -87,6 +87,16 @@
                     gross margin {{ product.profit_percentage|floatformat:0|default_if_none:"-" }}%
                     <span class="signal-muted">|</span>
                     av. discount {{ product.average_discount_percentage|floatformat:0|default_if_none:"-" }}%
+                  </p>
+                {% elif product.is_on_order_no_sales %}
+                  <hr/>
+                  <p class="signal-line">
+                    Estimated arrival:
+                    {% if product.pending_order_expected_date %}
+                      {{ product.pending_order_expected_date|date:"M j, Y" }}
+                    {% else %}
+                      —
+                    {% endif %}
                   </p>
                 {% else %}
                   <hr/>
