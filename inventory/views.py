@@ -95,12 +95,14 @@ from .utils import (
     compute_product_health,
     get_low_stock_products,
     calculate_sales_speed,
-    calculate_variant_sales_speed,
+    calculate_sales_speed_by_size,
     calculate_months_to_stockout,
+    build_ideal_order_split,
     CORE_SIZES,
     get_variant_speed_map,
     get_category_speed_stats,
     calculate_category_size_mix,
+    get_product_cohort_speed_stats,
 )
 
 
@@ -3728,7 +3730,7 @@ def product_detail(request, product_id):
         row["six_month_stock_pct"] = round((six / total_six_month_stock) * 100, 1) if total_six_month_stock else 0
 
     # --- Category and size average sales speeds ---
-    speed_stats = get_category_speed_stats(product.type)
+    speed_stats = get_product_cohort_speed_stats(product)
     category_avg_speed = speed_stats["overall_avg"]
     size_avg_map = speed_stats["size_avgs"]
 
@@ -4215,7 +4217,12 @@ def order_list(request):
             product.variants.all()
         )
         stock_by_size: dict[str, int] = defaultdict(int)
-        speed_by_size: dict[str, Decimal] = {}
+        speed_by_size = {
+            size: Decimal(str(speed or 0))
+            for size, speed in calculate_sales_speed_by_size(
+                variants=variants, weeks=26, today=today
+            ).items()
+        }
         out_of_stock_sizes: set[str] = set()
         out_of_stock_variants: set[str] = set()
         total_stock = 0
@@ -4230,9 +4237,6 @@ def order_list(request):
                 out_of_stock_variants.add(variant.variant_code)
             else:
                 has_in_stock = True
-            speed_by_size[size_key] = speed_by_size.get(size_key, Decimal("0")) + Decimal(
-                str(calculate_variant_sales_speed(variant, weeks=26, today=today) or 0)
-            )
 
         on_order_total = pending_product_totals.get(product.id, 0)
         months_remaining = None
@@ -4310,14 +4314,19 @@ def order_list(request):
                 speed for speed in speed_by_size.values() if speed and speed > 0
             )
             if total_speed > 0:
-                for size, speed in sorted(speed_by_size.items()):
-                    if not speed or speed <= 0:
+                share_map = {
+                    size: float(speed / total_speed)
+                    for size, speed in speed_by_size.items()
+                    if speed and speed > 0
+                }
+                ratio_split = build_ideal_order_split(100, share_map)
+                for size, pct in sorted(ratio_split.items()):
+                    if pct <= 0:
                         continue
-                    ratio = float(speed / total_speed)
                     size_ratios.append(
                         {
                             "size": size,
-                            "ratio": round(ratio * 100, 1),
+                            "ratio": round(float(pct), 1),
                         }
                     )
             else:

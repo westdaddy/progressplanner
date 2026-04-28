@@ -4,7 +4,7 @@ import json
 
 from collections import defaultdict
 from datetime import date, datetime, timedelta
-from typing import List, Optional, Sequence, Dict, Any, Iterable, Union
+from typing import List, Optional, Sequence, Dict, Any, Iterable, Union, Mapping
 from decimal import Decimal, ROUND_HALF_UP
 
 from dateutil.relativedelta import relativedelta
@@ -647,50 +647,21 @@ def calculate_category_size_mix(
     recent_weeks: int = 13,
     today: Optional[date] = None,
 ) -> dict[str, Any]:
-    """Estimate an order size mix for ``product`` using category sales velocity.
+    """Estimate an order size mix for ``product`` using cohort sales velocity.
 
-    The estimator intentionally avoids using only cumulative sold units (which
-    can be biased by eventual sell-through). Instead it blends long-window and
-    recent sales speed and only counts weeks where variants were in stock.
+    The cohort is all variants whose parent products match the target product's
+    category (``type``), subcategory (``subtype``), and age group (``age``).
+    The estimator blends long-window and recent sales speed and only counts
+    weeks where variants were in stock.
     """
 
     today = today or date.today()
-    variant_qs = ProductVariant.objects.filter(
-        product__style=product.style,
-        product__type=product.type,
-        size__isnull=False,
-    ).exclude(size="")
+    variant_qs = get_product_cohort_variant_queryset(product)
 
     variants = list(variant_qs.select_related("product").prefetch_related("sales", "snapshots"))
     size_scores: Dict[str, float] = defaultdict(float)
     total_active_weeks = 0
     requested_sizes = [size for size in (target_sizes or []) if size]
-
-    # 1) Prefer product's own velocity profile (same basis as product detail safe-stock table).
-    product_variants = list(
-        ProductVariant.objects.filter(product=product, size__isnull=False)
-        .exclude(size="")
-        .prefetch_related("sales", "snapshots")
-    )
-    product_speed_by_size: Dict[str, float] = defaultdict(float)
-    for variant in product_variants:
-        speed = float(calculate_variant_sales_speed(variant, weeks=long_weeks, today=today) or 0.0)
-        if speed > 0:
-            product_speed_by_size[variant.size] += speed
-
-    if requested_sizes:
-        product_speed_by_size = {
-            size: product_speed_by_size.get(size, 0.0) for size in requested_sizes
-        }
-
-    product_total_speed = sum(product_speed_by_size.values())
-    if product_total_speed > 0:
-        return {
-            "shares": {size: speed / product_total_speed for size, speed in product_speed_by_size.items()},
-            "method": "product_speed_6m",
-            "sample_variants": len(product_variants),
-            "active_weeks": long_weeks,
-        }
 
     for candidate in variants:
         long_detail = calculate_variant_sales_speed_details(
@@ -735,20 +706,24 @@ def calculate_category_size_mix(
 
     score_total = sum(size_scores.values())
     if score_total <= 0:
-        # 2) Fall back to type-level size average speeds (same "Type Avg / Size Avg" idea
-        # shown on the product detail restock table).
-        type_stats = get_category_speed_stats(product.type, weeks=long_weeks, today=today)
-        type_size_avgs = {
-            size: float(type_stats.get("size_avgs", {}).get(size, 0.0))
-            for size in (requested_sizes or list(type_stats.get("size_avgs", {}).keys()))
-        }
-        type_total = sum(type_size_avgs.values())
-        if type_total > 0:
+        cohort_stats = get_product_cohort_speed_stats(
+            product, weeks=long_weeks, today=today
+        )
+        cohort_size_avgs = cohort_stats.get("size_avgs", {})
+        if requested_sizes:
+            cohort_size_avgs = {
+                size: float(cohort_size_avgs.get(size, 0.0))
+                for size in requested_sizes
+            }
+        cohort_total = sum(cohort_size_avgs.values())
+        if cohort_total > 0:
             return {
-                "shares": {size: value / type_total for size, value in type_size_avgs.items()},
-                "method": "type_size_avg",
+                "shares": {
+                    size: value / cohort_total for size, value in cohort_size_avgs.items()
+                },
+                "method": "cohort_size_avg",
                 "sample_variants": len(variants),
-                "active_weeks": long_weeks,
+                "active_weeks": total_active_weeks,
             }
 
     if score_total <= 0 and requested_sizes:
@@ -998,6 +973,83 @@ def calculate_sales_speed(
     )
 
 
+def calculate_sales_speed_by_size(
+    target: Optional[Union[ProductVariant, Product, Iterable[ProductVariant]]] = None,
+    *,
+    variants: Optional[Iterable[ProductVariant]] = None,
+    variant_filters: Optional[dict[str, Any]] = None,
+    weeks: int = 26,
+    today: Optional[date] = None,
+) -> dict[str, float]:
+    """Return a size-keyed monthly sales speed map.
+
+    This is the unified entry-point for places that need per-size sales speed
+    data. Variants sharing the same size are summed together.
+    """
+
+    resolved_variants = _resolve_variants_for_sales_speed(
+        target, variants=variants, variant_filters=variant_filters
+    )
+    speed_map: dict[str, float] = defaultdict(float)
+    for variant in resolved_variants:
+        size_key = (variant.size or "").strip() or variant.variant_code
+        speed_map[size_key] += calculate_sales_speed(
+            variant,
+            weeks=weeks,
+            today=today,
+        )
+    return dict(speed_map)
+
+
+def build_ideal_order_split(
+    total_quantity: int,
+    shares_by_key: Mapping[str, float],
+) -> dict[str, int]:
+    """Allocate ``total_quantity`` into an idealized split using shares.
+
+    Uses largest-remainder rounding so all units are allocated while remaining
+    close to the requested proportions.
+    """
+
+    total = max(int(total_quantity or 0), 0)
+    keys = list(shares_by_key.keys())
+    if not keys:
+        return {}
+
+    cleaned_shares = {
+        key: max(float(shares_by_key.get(key, 0) or 0), 0.0) for key in keys
+    }
+    total_share = sum(cleaned_shares.values())
+    if total_share <= 0:
+        normalized = {key: 1 / len(keys) for key in keys}
+    else:
+        normalized = {key: share / total_share for key, share in cleaned_shares.items()}
+
+    rows = []
+    allocated = 0
+    for key in keys:
+        raw_value = total * normalized[key]
+        floor_value = math.floor(raw_value)
+        allocated += floor_value
+        rows.append(
+            {
+                "key": key,
+                "value": floor_value,
+                "fraction": raw_value - floor_value,
+            }
+        )
+
+    remainder = total - allocated
+    rows.sort(key=lambda row: row["fraction"], reverse=True)
+    index = 0
+    while remainder > 0 and rows:
+        rows[index % len(rows)]["value"] += 1
+        remainder -= 1
+        index += 1
+
+    return {row["key"]: int(row["value"]) for row in rows}
+
+
 def calculate_sell_through_projection(
     target: Optional[Union[ProductVariant, Product, Iterable[ProductVariant]]] = None,
     *,
@@ -1179,6 +1231,52 @@ def get_category_speed_stats(
     return {"overall_avg": overall, "size_avgs": size_avgs}
 
 
+def get_product_cohort_variant_queryset(product: Product):
+    """Return variants in the same type/subtype/age cohort as ``product``."""
+
+    queryset = ProductVariant.objects.filter(size__isnull=False).exclude(size="")
+    if product.type:
+        queryset = queryset.filter(product__type=product.type)
+    else:
+        queryset = queryset.filter(product__type__isnull=True)
+    if product.subtype:
+        queryset = queryset.filter(product__subtype=product.subtype)
+    else:
+        queryset = queryset.filter(product__subtype__isnull=True)
+    if product.age:
+        queryset = queryset.filter(product__age=product.age)
+    else:
+        queryset = queryset.filter(product__age__isnull=True)
+    return queryset
+
+
+def get_product_cohort_speed_stats(
+    product: Product, *, weeks: int = 26, today: Optional[date] = None
+):
+    """Return average sales speed info for a product's type/subtype/age cohort."""
+
+    today = today or date.today()
+    variants = get_product_cohort_variant_queryset(product).prefetch_related(
+        "sales", "snapshots"
+    )
+    speed_map = get_variant_speed_map(variants, weeks=weeks, today=today)
+
+    size_buckets: Dict[Optional[str], list[float]] = defaultdict(list)
+    for variant in variants:
+        size_buckets[variant.size].append(speed_map.get(variant.id, 0.0))
+
+    size_avgs = {
+        sz: round(sum(values) / len(values), 1)
+        for sz, values in size_buckets.items()
+        if values
+    }
+    size_avgs = dict(sorted(size_avgs.items(), key=lambda item: item[0] or ""))
+
+    speeds = list(speed_map.values())
+    overall = round(sum(speeds) / len(speeds), 1) if speeds else 0.0
+    return {"overall_avg": overall, "size_avgs": size_avgs}
+
+
 def compute_safe_stock(variants, speed_map=None):
     """
     Compute safe stock data and product-level summary for a list of variants.
@@ -1196,11 +1294,15 @@ def compute_safe_stock(variants, speed_map=None):
             if speed_map is not None
             else calculate_variant_sales_speed(v, today=today)
         )
-        recent_speed = calculate_variant_sales_speed(v, weeks=13, today=today)
+        avg_speed = float(avg_speed or 0)
+        recent_speed = float(calculate_variant_sales_speed(v, weeks=13, today=today) or 0)
 
         min_threshold = avg_speed * 2
         ideal_level = avg_speed * 6
-        restock_wait = getattr(v.product, "restock_time", 0)
+        restock_wait_raw = getattr(v.product, "restock_time", 0)
+        restock_wait = float(restock_wait_raw or 0)
+        if restock_wait < 0:
+            restock_wait = 0
         stock_at_restock = max(0, math.ceil(current - restock_wait * avg_speed))
         restock_qty = max(math.ceil(ideal_level - stock_at_restock), 0)
         six_month_stock = math.ceil(ideal_level)
