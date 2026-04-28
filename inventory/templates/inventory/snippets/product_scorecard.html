@@ -282,6 +282,8 @@
                   <th>Variant</th>
                   <th>Size</th>
                   <th>Current stock</th>
+                  <th>Sales speed (6 mo)</th>
+                  <th>Suggested split</th>
                   <th>Suggested qty</th>
                 </tr>
               </thead>
@@ -291,6 +293,20 @@
                     <td>{{ variant.variant_code }}</td>
                     <td>{{ variant.size|default:"—" }}</td>
                     <td>{{ variant.latest_inventory|default:0 }}</td>
+                    <td>
+                      {% if variant.sales_speed_6_months is not None %}
+                        {{ variant.sales_speed_6_months|floatformat:1 }} / month
+                      {% else %}
+                        —
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if variant.size_sales_share %}
+                        {% widthratio variant.size_sales_share 1 100 %}%
+                      {% else %}
+                        0%
+                      {% endif %}
+                    </td>
                     <td>
                       <input
                         type="number"
