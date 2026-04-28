@@ -1895,7 +1895,6 @@ def _render_filtered_products(
         getattr(product, "total_inventory", 0) for product in products
     )
     product_ids = [product.id for product in products]
-    total_products = len(products)
     discounted_products = sum(1 for product in products if product.discounted)
     discounted_items = sum(
         (getattr(variant, "latest_inventory", 0) or 0)
@@ -1903,19 +1902,6 @@ def _render_filtered_products(
         if product.discounted
         for variant in getattr(product, "variants_with_inventory", [])
     )
-    partial_oos_products = 0
-    for product in products:
-        variants = getattr(product, "variants_with_inventory", [])
-        if not variants:
-            continue
-        has_in_stock = any(
-            (getattr(variant, "latest_inventory", 0) or 0) > 0 for variant in variants
-        )
-        has_oos = any(
-            (getattr(variant, "latest_inventory", 0) or 0) <= 0 for variant in variants
-        )
-        if has_in_stock and has_oos:
-            partial_oos_products += 1
 
     sales_product_ids = set()
     order_product_ids = set()
@@ -2492,24 +2478,6 @@ def _render_filtered_products(
         replenishment_low = max(0, base_replenishment_low - stock_gap_adjustment)
         replenishment_high = max(0, base_replenishment_high - stock_gap_adjustment)
 
-    six_months_ago = today - relativedelta(months=6)
-    mature_product_ids = set()
-    if product_ids:
-        mature_from_arrivals = set(
-            OrderItem.objects.filter(
-                product_variant__product_id__in=product_ids,
-                date_arrived__isnull=False,
-                date_arrived__lte=six_months_ago,
-            ).values_list("product_variant__product_id", flat=True)
-        )
-        mature_from_sales = set(
-            Sale.objects.filter(
-                variant__product_id__in=product_ids,
-                date__lte=six_months_ago,
-            ).values_list("variant__product_id", flat=True)
-        )
-        mature_product_ids = mature_from_arrivals | mature_from_sales
-
     size_keys = (
         set(size_totals.keys())
         | set(size_sales_totals.keys())
@@ -2978,6 +2946,12 @@ def _render_filtered_products(
             "six_to_twelve": 0,
             "over_12": 0,
         }
+        bucket_product_ids: dict[str, set[int]] = {
+            "under_3": set(),
+            "three_to_six": set(),
+            "six_to_twelve": set(),
+            "over_12": set(),
+        }
         unknown_inventory = 0
 
         three_months_ago = today - relativedelta(months=3)
@@ -3004,6 +2978,7 @@ def _render_filtered_products(
                     bucket_key = "over_12"
 
                 bucket_totals[bucket_key] += inventory_count
+                bucket_product_ids[bucket_key].add(product.id)
 
         bucket_messages = {
             "under_3": "arrived within the last 3 months.",
@@ -3034,6 +3009,7 @@ def _render_filtered_products(
                 {
                     "label": label,
                     "percent": f"{percent_val:.1f}",
+                    "product_count": len(bucket_product_ids.get(key, set())),
                     "message": message,
                 }
             )
@@ -3072,8 +3048,6 @@ def _render_filtered_products(
             "filter_heading": heading,
             "filter_description": description,
             "filtered_inventory_total": filtered_inventory_total,
-            "total_products": total_products,
-            "partial_oos_products": partial_oos_products,
             "discounted_products": discounted_products,
             "new_products": new_products,
             "size_stock_rows": size_stock_rows,
@@ -3124,7 +3098,6 @@ def _render_filtered_products(
             "stock_delta_percent_abs": stock_delta_percent_abs,
             "is_understocked": is_understocked,
             "discounted_items": discounted_items,
-            "mature_products_over_six_months": len(mature_product_ids),
             "items_in_order": items_in_order,
             "pipeline_products": pipeline_products,
             "has_quarterly_data": bool(variant_ids),
