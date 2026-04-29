@@ -13,8 +13,8 @@
     }
 
     .filter-card {
-      padding: 12px 16px 10px;
-      border: 1px solid #e0e0e0;
+      padding: 20px;
+      border: none;
       border-radius: 10px;
       box-shadow: none;
       flex: 0 0 15%;
@@ -35,9 +35,7 @@
     }
 
     .filter-showing {
-      margin: 0;
-      color: #546e7a;
-      font-weight: 600;
+      margin: 0 0 0 20px;
     }
 
     @media (max-width: 992px) {
@@ -174,6 +172,10 @@
       display: inline-flex;
       width: auto;
       margin-right: 10px;
+    }
+
+    p.box-title {
+      margin: 0 0 50px;
     }
 
     .size-snapshot {
@@ -794,14 +796,14 @@
     <!-- SALES SUMMARY SECTION -->
     <div class="col s12 m4">
       <div class="card-panel">
-        <h4 class="teal-text text-darken-2" style="margin-top: 0; margin-bottom: 4px;">{{ sales_last_year_total }} <span class="grey-text">/</span> ¥{{ sales_last_year_value_total|floatformat:"0g" }}</h4>
-        <p class="grey-text text-darken-1" style="margin: 0;">Items sold last year / Sales value </p>
+        <p class="grey-text box-title">Items sold last year / Sales value </p>
+        <h4 class="teal-text text-darken-2">{{ sales_last_year_total }} <span class="grey-text">/</span><span class="small-text grey-text"> ¥{{ sales_last_year_value_total|floatformat:"0g" }}</span></h4>
 
         <div class="filter-divider"></div>
         {% if sales_category_values %}
           <ul id="salesCategorySplitList" class="category-split-list"></ul>
         {% else %}
-          <p class="grey-text text-darken-1" style="margin: 0;">No sales data available.</p>
+          <p class="grey-text text-darken-1">No sales data available.</p>
         {% endif %}
       </div>
     </div>
@@ -810,8 +812,10 @@
     <!-- STOCK SUMMARY SECTION -->
     <div class="col s12 m4">
       <div class="card-panel">
-        <h4 class="teal-text text-darken-2" style="margin-top: 0; margin-bottom: 4px;">{{ filtered_inventory_total }} <span class="grey-text">/</span> ¥{{ inventory_value_total|floatformat:"0g" }}</h4>
-        <p class="grey-text text-darken-1" style="margin: 0;">Items in stock / Retail value</p>
+        <p class="grey-text box-title">Items in stock / Retail value</p>
+
+        <h4 class="teal-text text-darken-2">{{ filtered_inventory_total }} <span class="grey-text">/</span> <span class="small-text grey-text">¥{{ inventory_value_total|floatformat:"0g" }}</span></h4>
+
 
         <div class="filter-divider"></div>
         {% if category_breakdown_values %}
@@ -822,12 +826,14 @@
       </div>
     </div>
 
+    <!-- REPLENISHMENT RATES -->
     <div class="col s12 m4">
       <div class="card-panel">
-        <h4 class="teal-text text-darken-2" style="margin-top: 0; margin-bottom: 4px;">
+        <p class="grey-text box-title">Estimated replenishment order (items)</p>
+        <h4 class="teal-text text-darken-2">
           {{ replenishment_low }}-{{ replenishment_high }}
         </h4>
-        <p class="grey-text text-darken-1" style="margin: 0;">Estimated replenishment order (items)</p>
+
 
         <div class="filter-divider"></div>
         <ul class="collection" style="margin: 0;">
@@ -856,9 +862,9 @@
 
     <div class="col s12 m12">
       <div class="profitability-summary">
+        <p class="grey-text box-title">Profitability</p>
         <p class="profitability-summary__row">
           <span>
-            <strong>Profitability (sales period)</strong>
             <span class="grey-text text-darken-1">{{ profitability_summary.category_profit_percent|floatformat:1 }}%</span>
             {% if profitability_summary.profitability_delta_percent >= 0 %}
               <span class="teal-text text-darken-2">(+{{ profitability_summary.profitability_delta_percent|floatformat:1 }}% vs shop avg)</span>
@@ -883,7 +889,7 @@
     <div class="col s12 m6">
     {% if stock_age_breakdown %}
       <div class="card-panel">
-        <h6 class="grey-text text-darken-1" style="margin-top: 0;">Time on market</h6>
+        <p class="grey-text box-title">Time on market</p>
         <ul class="collection" style="margin: 0;">
           {% for entry in stock_age_breakdown %}
             <li class="collection-item" style="border-left: 3px solid #26a69a;">
@@ -903,7 +909,7 @@
 
     <div class="col s12 m6">
       <div class="card-panel">
-        <h6 class="grey-text text-darken-1">Quarterly Sales (last 12 quarters)</h6>
+        <p class="grey-text box-title">Quarterly Sales (last 12 quarters)</p>
         {% if has_quarterly_data %}
           <canvas id="quarterlySalesChart" height="220"></canvas>
         {% else %}

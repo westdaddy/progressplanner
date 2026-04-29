@@ -89,7 +89,7 @@ nav, nav .nav-wrapper i, nav a.sidenav-trigger, nav a.sidenav-trigger i {
 
 main .container {
   margin-top: 0;
-  padding-top: 60px;
+  padding-top: 80px;
   width: min(1320px, calc(100% - 64px));
 }
 
@@ -147,6 +147,7 @@ main {
 .btn-small:hover,
 .btn-large:hover {
   background: #ececef !important;
+  box-shadow: none;
 }
 
 .btn:focus,
@@ -191,9 +192,10 @@ main {
 /* Global card styling overrides */
 .card,
 .card-panel {
-  border: 1px solid var(--card-border-color, #e0e0e0);
+  border: none;
   border-radius: 10px;
   box-shadow: none;
+  padding:40px;
 }
 
 .scorecard-box .discount-highlight {
@@ -957,7 +959,7 @@ div.metadata {
 
 .filter-divider {
   border-bottom: 1px solid #e0e0e0;
-  margin: 12px 0 20px;
+  margin: 12px 0 30px;
   padding-bottom: 8px;
 }
 
@@ -1778,6 +1780,10 @@ vertical-align: middle;
 }
 
 /* HOME PAGE STYLES */
+
+span.small-text {
+  font-size: 0.8em;
+}
 
 .card-title span.small, h3 span.small {
   font-size:0.8em;
