@@ -800,8 +800,18 @@
         <h4 class="teal-text text-darken-2">{{ sales_last_year_total }} <span class="grey-text">/</span><span class="small-text grey-text"> ¥{{ sales_last_year_value_total|floatformat:"0g" }}</span></h4>
 
         <div class="filter-divider"></div>
-        {% if sales_category_values %}
-          <ul id="salesCategorySplitList" class="category-split-list"></ul>
+        {% if sales_category_rows %}
+          <ul class="category-split-list">
+            {% for row in sales_category_rows %}
+              <li class="category-split-list__item">
+                <span class="category-split-list__label">{{ row.label }}</span>
+                <span class="category-split-list__value">
+                  {{ row.percentage }}%
+                  <span class="category-split-list__count">{{ row.value }} sold</span>
+                </span>
+              </li>
+            {% endfor %}
+          </ul>
         {% else %}
           <p class="grey-text text-darken-1">No sales data available.</p>
         {% endif %}
@@ -818,8 +828,18 @@
 
 
         <div class="filter-divider"></div>
-        {% if category_breakdown_values %}
-          <ul id="categoryBreakdownList" class="category-split-list"></ul>
+        {% if category_breakdown_rows %}
+          <ul class="category-split-list">
+            {% for row in category_breakdown_rows %}
+              <li class="category-split-list__item">
+                <span class="category-split-list__label">{{ row.label }}</span>
+                <span class="category-split-list__value">
+                  {{ row.percentage }}%
+                  <span class="category-split-list__count">{{ row.value }} in stock</span>
+                </span>
+              </li>
+            {% endfor %}
+          </ul>
         {% else %}
           <p class="grey-text text-darken-1" style="margin: 0;">No category data available.</p>
         {% endif %}
@@ -841,7 +861,7 @@
             <strong>Stock position</strong>
             <span class="secondary-content {% if is_understocked %}red-text text-darken-1{% else %}teal-text text-darken-2{% endif %}">
               {% if is_understocked %}Understocked{% else %}Overstocked{% endif %}
-              {{ stock_delta_percent_abs|floatformat:1 }}%
+              {{ stock_delta_percent_abs|floatformat:0 }}%
             </span>
           </li>
           <li class="collection-item" style="border-left: 3px solid #26a69a;">
@@ -1562,13 +1582,9 @@
       const genderValues = {{ gender_breakdown_values|default:'[]'|safe }};
       const categoryLabels = {{ category_breakdown_labels|default:'[]'|safe }};
       const categoryValues = {{ category_breakdown_values|default:'[]'|safe }};
-      const categoryCodes = {{ category_breakdown_codes|default:'[]'|safe }};
       const salesCategoryLabels = {{ sales_category_labels|default:'[]'|safe }};
       const salesCategoryValues = {{ sales_category_values|default:'[]'|safe }};
-      const salesCategoryCodes = {{ sales_category_codes|default:'[]'|safe }};
       const selectedStyles = JSON.parse('{{ style_filters_json|default:"[]"|escapejs }}' || '[]');
-      const categoryBreakdownMode = '{{ category_breakdown_mode|default:"style" }}';
-      const salesCategoryMode = '{{ sales_category_mode|default:"style" }}';
       const inventoryValueLabels = {{ inventory_value_category_labels|default:'[]'|safe }};
       const inventoryValueValues = {{ inventory_value_category_values|default:'[]'|safe }};
       const inventoryValueCodes = {{ inventory_value_category_codes|default:'[]'|safe }};
@@ -1609,67 +1625,6 @@
       const selectedStyleSet = Array.isArray(selectedStyles)
         ? new Set(selectedStyles)
         : new Set();
-
-      const applyTypeFilter = (typeCode) => {
-        if (!typeCode) return;
-        const nextParams = new URLSearchParams(window.location.search || '');
-        nextParams.delete('type_filter');
-        nextParams.delete('subtype_filter');
-        nextParams.append('type_filter', String(typeCode));
-        window.location.search = nextParams.toString();
-      };
-
-      const renderCategorySplitList = ({
-        elementId,
-        labels,
-        values,
-        codes,
-        mode,
-        countSuffix,
-      }) => {
-        const listElement = document.getElementById(elementId);
-        if (!listElement || !Array.isArray(labels) || !labels.length || !Array.isArray(values) || !values.length) {
-          return;
-        }
-
-        const total = values.reduce((sum, value) => sum + Number(value || 0), 0);
-        listElement.innerHTML = '';
-
-        labels.forEach((label, index) => {
-          const value = Number(values[index] || 0);
-          const code = Array.isArray(codes) ? codes[index] : null;
-          const percentage = total ? ((value / total) * 100).toFixed(1) : '0.0';
-          const isClickable = mode === 'type' && Boolean(code);
-
-          const item = document.createElement('button');
-          item.type = 'button';
-          item.className = `category-split-list__item${isClickable ? ' is-clickable' : ''}`;
-          item.innerHTML = `
-            <span class="category-split-list__label">${label}</span>
-            <span class="category-split-list__value">
-              ${percentage}%
-              <span class="category-split-list__count">${value} ${countSuffix}</span>
-            </span>
-          `;
-
-          if (isClickable) {
-            item.addEventListener('click', () => applyTypeFilter(code));
-          }
-
-          const li = document.createElement('li');
-          li.appendChild(item);
-          listElement.appendChild(li);
-        });
-      };
-
-      renderCategorySplitList({
-        elementId: 'categoryBreakdownList',
-        labels: categoryLabels,
-        values: categoryValues,
-        codes: categoryCodes,
-        mode: categoryBreakdownMode,
-        countSuffix: 'in stock',
-      });
 
       const inventoryValueChartElement = document.getElementById('inventoryValueChart');
       if (
@@ -1747,21 +1702,6 @@
         });
       }
 
-      const salesMode =
-        salesCategoryMode === 'type'
-          ? 'type'
-          : salesCategoryMode === 'group'
-            ? 'group'
-            : 'style';
-
-      renderCategorySplitList({
-        elementId: 'salesCategorySplitList',
-        labels: salesCategoryLabels,
-        values: salesCategoryValues,
-        codes: salesCategoryCodes,
-        mode: salesMode,
-        countSuffix: 'sold',
-      });
 
       const salesValueChartElement = document.getElementById('salesValueChart');
       if (
