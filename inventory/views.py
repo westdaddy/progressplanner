@@ -3134,6 +3134,24 @@ def _render_filtered_products(
             sales_value_category_style = selected_style_for_breakdown
             sales_value_category_codes = ordered_sales_value_types
 
+    def _build_category_split_rows(labels, values):
+        total = sum(float(value or 0) for value in values)
+        rows = []
+        for index, label in enumerate(labels):
+            value = int(float(values[index] or 0)) if index < len(values) else 0
+            percentage = round((value / total) * 100) if total else 0
+            rows.append({"label": label, "value": value, "percentage": percentage})
+        return rows
+
+    category_breakdown_rows = _build_category_split_rows(
+        category_breakdown_labels,
+        category_breakdown_values,
+    )
+    sales_category_rows = _build_category_split_rows(
+        sales_category_labels,
+        sales_category_values,
+    )
+
     context.update(
         {
             "filter_heading": heading,
@@ -3154,6 +3172,7 @@ def _render_filtered_products(
             "sales_last_year_total": last_year_sales_total if variant_ids else 0,
             "sales_category_labels": json.dumps(sales_category_labels),
             "sales_category_values": json.dumps(sales_category_values),
+            "sales_category_rows": sales_category_rows,
             "sales_category_codes": json.dumps(ordered_sales_styles),
             "sales_category_mode": sales_category_mode,
             "sales_category_style": sales_category_style,
@@ -3204,6 +3223,7 @@ def _render_filtered_products(
             "gender_breakdown_values": json.dumps(gender_breakdown_values),
             "category_breakdown_labels": json.dumps(category_breakdown_labels),
             "category_breakdown_values": json.dumps(category_breakdown_values),
+            "category_breakdown_rows": category_breakdown_rows,
             "category_breakdown_codes": json.dumps(category_breakdown_codes),
             "category_breakdown_mode": category_breakdown_mode,
             "category_breakdown_style": category_breakdown_style,
