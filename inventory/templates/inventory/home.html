@@ -7,6 +7,15 @@
 
 <div class="products-page-header">
   <h3 class="page-title">Dashboard</h3>
+  <div class="month-chooser" aria-label="Selected month">
+    <a href="#" id="prevMonth" class="month-arrow month-chooser__arrow" aria-label="Previous month">
+      <i class="material-icons">chevron_left</i>
+    </a>
+    <span id="monthChooserLabel" class="month-chooser__label">{{ current_month_name }}</span>
+    <a href="#" id="nextMonth" class="month-arrow month-chooser__arrow" aria-label="Next month">
+      <i class="material-icons">chevron_right</i>
+    </a>
+  </div>
 </div>
 
 <div class="filter-divider"></div>
@@ -100,13 +109,6 @@
     <!-- CATEGORY BREAKDOWN SECTION -->
     <div class="col s12 m8">
       <div id="sales-info-card" class="card z-depth-2" style="overflow: hidden; position: relative;">
-        <a href="#" id="prevMonth" class="month-arrow" style="position:absolute; left:0; top:50%; transform:translate(-50%,-50%);">
-          <i class="material-icons">chevron_left</i>
-        </a>
-        <a href="#" id="nextMonth" class="month-arrow" style="position:absolute; right:0; top:50%; transform:translate(50%,-50%);">
-          <i class="material-icons">chevron_right</i>
-        </a>
-
         <div class="card-content white">
           <h6 id="salesMonthLabel" class="center-align">{{ current_month_name }}</h6>
           <div class="row" style="margin: 0;">
@@ -265,6 +267,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function updateSalesSection(data) {
     document.getElementById('salesMonthLabel').textContent = data.month_label;
+    document.getElementById('monthChooserLabel').textContent = formatMonthRange(data.current_month_slug);
     document.getElementById('totalItemsSold').textContent = data.total_items_sold;
     document.getElementById('totalSales').textContent = '¥' + Math.round(data.total_sales).toLocaleString();
     document.getElementById('totalReturns').textContent = '¥' + Math.round(data.total_returns).toLocaleString();
@@ -303,6 +306,20 @@ document.addEventListener("DOMContentLoaded", function () {
       .then(d => { currentMonth = d.current_month_slug; updateSalesSection(d); updateInventorySection(d); });
   }
 
+  function formatMonthRange(monthSlug) {
+    const parts = monthSlug.split('-');
+    if (parts.length !== 2) return monthSlug;
+    const year = Number(parts[0]);
+    const month = Number(parts[1]);
+    if (!year || !month) return monthSlug;
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0);
+    const opts = { month: 'short', day: '2-digit' };
+    const startLabel = startDate.toLocaleDateString('en-US', opts);
+    const endLabel = endDate.toLocaleDateString('en-US', opts);
+    return `${startLabel} - ${endLabel}`;
+  }
+
   function adjustMonth(off) {
     const parts = currentMonth.split('-');
     let y = parseInt(parts[0]);
@@ -314,6 +331,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   document.getElementById('prevMonth').addEventListener('click', function(e){ e.preventDefault(); adjustMonth(-1); });
   document.getElementById('nextMonth').addEventListener('click', function(e){ e.preventDefault(); adjustMonth(1); });
+  document.getElementById('monthChooserLabel').textContent = formatMonthRange(currentMonth);
 </script>
 
 

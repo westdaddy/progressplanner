@@ -2144,6 +2144,32 @@ label.hide {
   min-width: 0;
 }
 
+.month-chooser {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #efefec;
+}
+
+.month-chooser__arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.month-chooser__label {
+  min-width: 150px;
+  text-align: center;
+  font-size: 1.05rem;
+  color: #2f2f2f;
+}
+
 .add-product-modal {
   max-width: 860px;
 }
