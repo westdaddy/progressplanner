@@ -104,7 +104,7 @@ main {
   --button-padding-x: 22px;
   --button-radius: 10px;
   --button-border: #d7d7db;
-  --button-bg: #f3f3f4;
+  --button-bg: #b2dfdb;
   --button-text: #1a1a1a;
   --button-primary-bg: #2f6df6;
   --button-primary-bg-hover: #235ee4;
@@ -146,7 +146,7 @@ main {
 .btn:hover,
 .btn-small:hover,
 .btn-large:hover {
-  background: #ececef !important;
+  background: #80cbc4 !important;
   box-shadow: none;
 }
 
@@ -901,6 +901,8 @@ main {
 :where(.card, .card-panel).yellow.accent-3 { --card-border-color: #ffd600; }
 :where(.card, .card-panel).yellow.accent-4 { --card-border-color: #ffd600; }
 
+
+
 div.metadata {
   padding: 10px;
   font-size: 0.8rem;
@@ -935,7 +937,6 @@ div.metadata {
 
 .filter-showing {
   color: #546e7a;
-  font-weight: 600;
   margin: 0;
 }
 
@@ -1782,7 +1783,7 @@ vertical-align: middle;
 /* HOME PAGE STYLES */
 
 span.small-text {
-  font-size: 0.8em;
+  font-size: 0.7em;
 }
 
 .card-title span.small, h3 span.small {
