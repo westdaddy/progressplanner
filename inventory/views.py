@@ -1103,10 +1103,6 @@ def _build_product_list_context(request, preset_filters=None):
         group_filters = [gid.strip() for gid in request.GET.getlist("group_filter") if gid]
     group_filters = [str(g) for g in group_filters]
 
-    series_filters = preset_filters.get("series_filters")
-    if series_filters is None:
-        series_filters = [sid.strip() for sid in request.GET.getlist("series_filter") if sid]
-    series_filters = [str(s) for s in series_filters]
 
     zero_inventory = _get_filter("zero_inventory", "false")
     zero_inventory = zero_inventory if isinstance(zero_inventory, bool) else str(zero_inventory).lower() == "true"
@@ -1183,8 +1179,6 @@ def _build_product_list_context(request, preset_filters=None):
     if group_filters:
         products_qs = products_qs.filter(groups__id__in=group_filters).distinct()
 
-    if series_filters:
-        products_qs = products_qs.filter(series__id__in=series_filters).distinct()
 
     if clearance_only:
         products_qs = products_qs.filter(discounted=True)
@@ -1591,7 +1585,6 @@ def _build_product_list_context(request, preset_filters=None):
         "age_filter": age_filters[0] if age_filters else None,
         "age_filters": age_filters,
         "group_filters": group_filters,
-        "series_filters": series_filters,
         "option_filters": option_filters,
         "zero_inventory": zero_inventory,
         "clearance_only": clearance_only,
@@ -1601,7 +1594,6 @@ def _build_product_list_context(request, preset_filters=None):
         "style_choices": PRODUCT_STYLE_CHOICES,
         "age_choices": PRODUCT_AGE_CHOICES,
         "group_choices": Group.objects.all(),
-        "series_choices": Series.objects.all(),
         "sitewide_average_discount": sitewide_average_discount,
     }
 
@@ -1849,7 +1841,6 @@ def _render_filtered_products(
     style_selected = set(context.get("style_filters", []))
     age_selected = set(context.get("age_filters", []))
     group_selected = set(context.get("group_filters", []))
-    series_selected = set(context.get("series_filters", []))
     option_selected = set(context.get("option_filters", []))
 
     category_filter_control = {
@@ -1904,18 +1895,6 @@ def _render_filtered_products(
                     "checked": str(group.id) in group_selected,
                 }
                 for group in (context.get("group_choices") or Group.objects.all())
-            ],
-        ),
-        build_control(
-            "series",
-            "series_filter",
-            [
-                {
-                    "value": str(series.id),
-                    "label": series.name,
-                    "checked": str(series.id) in series_selected,
-                }
-                for series in (context.get("series_choices") or Series.objects.all())
             ],
         ),
         build_control(
@@ -3266,7 +3245,6 @@ def _build_filter_controls_context(
     style_selected = set(context.get("style_filters", []))
     age_selected = set(context.get("age_filters", []))
     group_selected = set(context.get("group_filters", []))
-    series_selected = set(context.get("series_filters", []))
 
     category_filter_control = {
         "styles": [
@@ -3322,18 +3300,6 @@ def _build_filter_controls_context(
                 for group in (context.get("group_choices") or Group.objects.all())
             ],
         ),
-        build_control(
-            "series",
-            "series_filter",
-            [
-                {
-                    "value": str(series.id),
-                    "label": series.name,
-                    "checked": str(series.id) in series_selected,
-                }
-                for series in (context.get("series_choices") or Series.objects.all())
-            ],
-        ),
     ]
 
     if category:
@@ -3378,7 +3344,6 @@ def product_filtered(request):
         ("style_filter", "style"),
         ("age_filter", "age"),
         ("group_filter", "group"),
-        ("series_filter", "series"),
         ("option_filter", "options"),
         ("show_retired", "options"),
         ("clearance_only", "options"),

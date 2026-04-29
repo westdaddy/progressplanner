@@ -24,10 +24,8 @@
 
     .filter-section-header {
       display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 0px;
-      margin: 0px;
+      justify-content: flex-end;
+      margin-top: 8px;
     }
 
     .filter-title {
@@ -660,14 +658,6 @@
       {% if search_query %}
         <input type="hidden" name="product_search" value="{{ search_query }}">
       {% endif %}
-      <div class="filter-section-header">
-        <button type="submit" class="btn filter-apply-button" disabled>
-          Apply
-        </button>
-      </div>
-
-
-
       <div class="filter-bar">
         {% if category_filter %}
           <div
@@ -767,6 +757,11 @@
           {% endwith %}
         {% endfor %}
 
+      </div>
+      <div class="filter-section-header" hidden data-filter-apply-container>
+        <button type="submit" class="btn filter-apply-button" disabled>
+          Apply
+        </button>
       </div>
       <div class="filter-divider"></div>
     </form>
@@ -1064,6 +1059,7 @@
     (function() {
       const filterControllers = [];
       const applyButton = document.querySelector('.filter-apply-button');
+      const applyContainer = document.querySelector('[data-filter-apply-container]');
 
       const selectionsDiffer = (a, b) => {
         if (a.length !== b.length) return true;
@@ -1081,6 +1077,12 @@
 
         applyButton.disabled = !isDirty;
         applyButton.classList.toggle('is-dirty', isDirty);
+      };
+
+      const rebuildApplyVisibility = () => {
+        if (!applyContainer) return;
+        const hasExpandedFilter = filterControllers.some((controller) => controller.isExpanded());
+        applyContainer.hidden = !hasExpandedFilter;
       };
 
       const parseJsonScript = (id, fallback = []) => {
@@ -1547,6 +1549,7 @@
       });
 
       rebuildApplyState();
+      rebuildApplyVisibility();
 
       const setAllExpanded = (expanded) => {
         filterControllers.forEach((controller) => controller.setExpanded(expanded));
@@ -1559,6 +1562,7 @@
             const allExpanded = filterControllers.every((c) => c.isExpanded());
             const newState = !allExpanded;
             setAllExpanded(newState);
+            rebuildApplyVisibility();
           });
         });
       });
