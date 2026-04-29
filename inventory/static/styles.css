@@ -924,7 +924,6 @@ div.metadata {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin-bottom: 16px;
 }
 
 .filter-section-header {
@@ -2149,8 +2148,6 @@ label.hide {
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
-  border-radius: 999px;
-  background: #efefec;
 }
 
 .month-chooser__arrow {
@@ -2169,6 +2166,16 @@ label.hide {
   font-size: 1.05rem;
   color: #2f2f2f;
 }
+
+
+p.box-title {
+  margin: 0 0 50px;
+}
+
+p.box-title.large {
+  font-size:1.5rem;
+}
+
 
 .add-product-modal {
   max-width: 860px;

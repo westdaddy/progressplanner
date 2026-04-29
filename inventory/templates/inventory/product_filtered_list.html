@@ -9,7 +9,6 @@
       display: flex;
       gap: 12px;
       flex-wrap: wrap;
-      margin-bottom: 16px;
     }
 
     .filter-card {
@@ -20,6 +19,7 @@
       flex: 0 0 15%;
       max-width: 20%;
       min-width: 245px;
+      margin-bottom:5px;
     }
 
     .filter-section-header {
@@ -172,10 +172,6 @@
       display: inline-flex;
       width: auto;
       margin-right: 10px;
-    }
-
-    p.box-title {
-      margin: 0 0 50px;
     }
 
     .size-snapshot {
@@ -648,7 +644,7 @@
   {% if filter_controls %}
 
   <div class="products-page-header">
-    <h3 class="page-title">Products</h3>
+    <h3 class="page-title">Products <span class="filter-showing small-text grey-text"> / {{ showing_summary }}</span></h3>
     <a class="btn btn-compact add-product-trigger modal-trigger" href="#add-product-modal">Add Product</a>
   </div>
 
@@ -665,9 +661,6 @@
         <input type="hidden" name="product_search" value="{{ search_query }}">
       {% endif %}
       <div class="filter-section-header">
-        <div>
-          <p class="filter-showing">Showing: {{ showing_summary }}</p>
-        </div>
         <button type="submit" class="btn filter-apply-button" disabled>
           Apply
         </button>
