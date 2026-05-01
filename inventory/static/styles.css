@@ -952,7 +952,8 @@ div.metadata {
   box-shadow: none;
   max-width: 100%;
   min-width: 220px;
-  padding: 20px;
+  padding: 12px 16px 10px;
+  flex: 1 1 310px;
 }
 
 .filter-divider {
@@ -967,14 +968,40 @@ div.metadata {
   border-radius: 12px;
   box-shadow: none;
   color: #455a64;
-  cursor: pointer;
+  cursor: default;
   font-size: 12px;
   height: 36px;
   line-height: 1;
-  opacity: 1;
+  opacity: 0.5;
   padding: 0 14px;
   text-transform: none;
+  transition: opacity 0.2s ease, color 0.2s ease;
 }
+.filter-apply-button.is-dirty { opacity: 1; cursor: pointer; }
+.filter-card__header { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+.filter-card__content { flex: 1; min-width: 0; }
+.filter-card__subtitle { margin: 0 0 6px; }
+.filter-card__description { margin: 0 0 8px; }
+.filter-card__empty-state { margin: 0; }
+.filter-card__toggle-symbol { display:inline-block; font-size:22px; line-height:0; width:24px; text-align:right; position:relative; top:-6px; right:-16px; }
+.filter-card__options { border-top:1px solid #eceff1; margin-top:12px; padding-top:12px; }
+.option-list { display:block; margin:0 0 12px; }
+.filter-option { display:block; width:100%; text-align:left; padding:6px 0; border:none; background:transparent; color:#039be5; font-weight:700; cursor:pointer; text-decoration:underline; transition:color 0.2s ease; }
+.filter-option:hover { color:#0277bd; }
+.filter-card--tiered .tiered-section { margin-bottom: 12px; }
+.filter-card--tiered .tiered-section[hidden] { display: none; }
+.filter-card--tiered .tiered-section__title { margin:0 0 6px; font-weight:600; color:#455a64; }
+.filter-card--tiered .filter-option { display:inline-flex; width:auto; margin-right:10px; }
+.chip-set { display:flex; flex-wrap:wrap; gap:8px; margin:0; min-height:32px; }
+.chip-set .chip__placeholder { background:#eceff1; color:#607d8b; padding:6px 10px; border-radius:5px; font-size:13px; display:inline-flex; align-items:center; }
+.chip--selected { display:inline-flex; align-items:center; gap:6px; background:#e0f2f1; border:1px solid #b2dfdb; border-radius:0; }
+.chip__remove { border:none; background:transparent; cursor:pointer; padding:0 4px; color:#00695c; font-size:16px; line-height:1; }
+
+.product-filter-surface { padding: 10px 15px; }
+.product-filter-form { margin: 0; width: 100%; }
+.product-filter-grid { width: 100%; }
+.product-filter-controls .input-field { margin-top: 0; }
+.product-filter-groups { display:flex; flex-direction:column; gap:12px; }
 
 .filter-card--compact {
   flex: 1 1 220px;

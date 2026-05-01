@@ -18,10 +18,10 @@
     <div class="card-panel red lighten-5 red-text text-darken-3">Could not save product. Please check the required fields and Product ID.</div>
   {% endif %}
 
-  <div id="controls" class="row grey lighten-3">
-    <form id="productFilterForm" method="get">
+  <div id="controls" class="row grey lighten-3 product-filter-surface">
+    <form id="productFilterForm" method="get" class="product-filter-form">
 
-      <div class="col s2">
+      <div class="col s12 m3 product-filter-controls">
 
         <div class="input-field">
           <select name="type_filter" onchange="this.form.submit()">
@@ -55,7 +55,7 @@
 
 
       </div>
-      <div class="col s9">
+      <div class="col s12 m9 product-filter-groups">
 
 
         <div class="checkbox-set">
