@@ -58,6 +58,17 @@
 
                 <p class="signal-line signal-line--stock">
                   {{ product.total_inventory|default:0 }} in stock / {{ product.last_order_qty|default:0 }} ordered
+                  {% if product.pending_order %}
+                    <span class="signal-muted">| </span>
+                    <button
+                      type="button"
+                      class="btn-flat"
+                      data-open-order-modal="order-modal-{{ product.id }}"
+                      data-order-mode="pending"
+                    >
+                      View order
+                    </button>
+                  {% endif %}
                   {% if not product.is_new_unlaunched and not product.is_on_order_no_sales %}
                     <span class="signal-muted">|</span>
                     <button
