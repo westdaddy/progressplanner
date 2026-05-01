@@ -5,90 +5,92 @@
 
 {% block content %}
 
+<style>
+.flag-details {
+    margin: 6px 0 0;
+  }
+
+  .flag-details__flag {
+    font-weight: 600;
+  }
+
+  .flag-details__variant {
+    margin-left: 12px;
+  }
+
+  .product-order-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+  }
+
+  .product-order-modal.is-open {
+    display: block;
+  }
+
+  .product-order-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  .product-order-modal__content {
+    position: relative;
+    background: #fff;
+    width: min(1200px, 95%);
+    margin: 3vh auto;
+    border-radius: 12px;
+    padding: 20px;
+    z-index: 1;
+    max-height: 94vh;
+    overflow-y: auto;
+  }
+
+  .product-order-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .product-order-modal__body {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .product-order-form {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .product-order-modal__table {
+    flex: 1;
+    min-width: 240px;
+  }
+
+  .product-order-modal__chart {
+    margin: 16px 0 20px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: #f6f7f8;
+  }
+
+  .product-order-modal__chart h6 {
+    margin: 0 0 12px;
+    font-weight: 600;
+    color: #455a64;
+  }
+</style>
+
 
 <div class="section">
-  <h3 class="page-title">Order Planner</h3>
+  <h3 class="page-title">Orders<span class="filter-showing small-text grey-text">/ {{ showing_summary }}</span></h3>
 
-  <style>
-.flag-details {
-      margin: 6px 0 0;
-    }
 
-    .flag-details__flag {
-      font-weight: 600;
-    }
-
-    .flag-details__variant {
-      margin-left: 12px;
-    }
-
-    .product-order-modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 1000;
-    }
-
-    .product-order-modal.is-open {
-      display: block;
-    }
-
-    .product-order-modal__backdrop {
-      position: absolute;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.5);
-    }
-
-    .product-order-modal__content {
-      position: relative;
-      background: #fff;
-      width: min(1200px, 95%);
-      margin: 3vh auto;
-      border-radius: 12px;
-      padding: 20px;
-      z-index: 1;
-      max-height: 94vh;
-      overflow-y: auto;
-    }
-
-    .product-order-modal__header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 16px;
-    }
-
-    .product-order-modal__body {
-      display: flex;
-      gap: 20px;
-      flex-wrap: wrap;
-    }
-
-    .product-order-form {
-      display: flex;
-      gap: 20px;
-      flex-wrap: wrap;
-      width: 100%;
-    }
-
-    .product-order-modal__table {
-      flex: 1;
-      min-width: 240px;
-    }
-
-    .product-order-modal__chart {
-      margin: 16px 0 20px;
-      padding: 12px 16px;
-      border-radius: 10px;
-      background: #f6f7f8;
-    }
-
-    .product-order-modal__chart h6 {
-      margin: 0 0 12px;
-      font-weight: 600;
-      color: #455a64;
-    }
-  </style>
   {% if filter_controls %}
 
   <div class="filter-divider"></div>
@@ -96,9 +98,6 @@
   <!-- FILTERS BAR -->
     <form method="get" class="filter-bar__form">
       <div class="filter-section-header">
-        <div>
-          <p class="filter-showing">Showing: {{ showing_summary }}</p>
-        </div>
         <button type="submit" class="btn filter-apply-button" disabled>
           Apply
         </button>
