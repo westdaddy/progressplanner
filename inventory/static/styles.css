@@ -399,10 +399,8 @@ main {
 }
 
 .signal-card {
-  border: 1px solid #dfe5e8;
-  border-radius: 14px;
-  background: #fff;
-  padding: 12px 16px;
+  padding: 0;
+  margin:0;
 }
 
 .signal-card__status-row {
@@ -1901,7 +1899,6 @@ tr.small {
 }
 
 .collection .collection-item.avatar img {
-
   top: 15px;
 }
 
@@ -1915,29 +1912,34 @@ tr.small {
   height: 190px;
   width: 190px;
   border-radius: 10px;
-  position: relative;
-  left: 0px;
-  top: 9px;
-  border: 1px solid #e1e1e1;
+  position: revert;
+  top:0;
+  left: 0;
   }
 
 .collection-item .row.item {
-  margin: 0 0 20px 0;
+  margin: 0;
   min-height: 145px;
 }
 
-.collection-item .row.title {
-  padding: 0px 0 5px;
-  margin: 15px 0px 5px;
+.collection-item .row.item .content {
+  padding:0;
+}
+
+.collection-item .row.item .col.photo {
+  padding-left: 0;
+}
+
+.collection .collection-item.avatar .title {
+  font-size: 18px;
+  margin: 0 0 10px 0;
+  padding: 0 0 10px 0;
   border-bottom: 1px solid #f1f1f1;
 }
 
+
 .collection .collection-item.avatar span.title {
   font-size: 20px;
-}
-
-.row .col.content, .row .col.content .row.title .col {
-  padding-left: 0;
 }
 
 .collection-item .row {

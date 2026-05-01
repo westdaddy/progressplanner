@@ -5,19 +5,12 @@
 
   <li class="collection-item avatar lighten-4 {% if product.total_sales|default:0 == 0 and product.total_inventory|default:0 == 0 %}new{% endif %}">
     <div class="row item">
+
       <div class="col s12 m12 content">
-        <div class="row title">
-          <div class="col s12">
-            <span class="title">
-              <a href="{% url 'product_detail' product.id %}">
-                <strong>{{ product.product_name }}</strong>
-              </a>
-            </span>
-            ({{ product.product_id }})
-          </div>
-        </div>
 
         <div class="row scorecard-boxes">
+
+          <!-- PRODUCT PHOTO -->
           <div class="col s12 m6 l2 photo">
             {% if product.product_photo %}
               <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" class="circle product-photo-large">
@@ -25,6 +18,17 @@
               <img src="{{ MEDIA_URL }}product_photos/product-placeholder.jpg" alt="{{ product.product_name }}" class="circle product-photo-large">
             {% endif %}
           </div>
+
+          <!-- PRODUCT INFORMATION -->
+          <div class="col s12 m10 l10">
+
+            <div class="row title">
+                <a href="{% url 'product_detail' product.id %}">
+                  <strong>{{ product.product_name }}</strong>
+                </a>
+                ({{ product.product_id }})
+            </div>
+
 
           <!-- PRODUCT STATISTICS SECTION -->
           <div class="col s12 m6 l7">
@@ -185,6 +189,7 @@
           </div>
           <!-- END ACTIONS SECTION -->
 
+          </div>
         </div>
       </div>
     </div>
