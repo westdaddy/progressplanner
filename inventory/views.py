@@ -1251,14 +1251,26 @@ def _build_product_list_context(request, preset_filters=None):
                     "order_id": order_id,
                     "expected_date": pending_item.date_expected,
                     "total_quantity": 0,
+                    "item_cost_price": pending_item.item_cost_price,
+                    "variant_quantities": defaultdict(int),
+                    "unassigned": order_id is None,
+                    "latest_reference_date": pending_item.date_expected or date.min,
                 }
                 pending_order_groups[group_key] = group
             group["total_quantity"] += pending_item.quantity or 0
+            group["variant_quantities"][pending_item.product_variant_id] += (
+                pending_item.quantity or 0
+            )
+            if pending_item.item_cost_price is not None:
+                group["item_cost_price"] = pending_item.item_cost_price
             if pending_item.date_expected and (
                 group["expected_date"] is None
                 or pending_item.date_expected > group["expected_date"]
             ):
                 group["expected_date"] = pending_item.date_expected
+            reference_date = pending_item.date_expected or date.min
+            if reference_date > group["latest_reference_date"]:
+                group["latest_reference_date"] = reference_date
 
         grouped_by_product: dict[int, list[dict[str, Any]]] = defaultdict(list)
         for grouped in pending_order_groups.values():
@@ -1267,13 +1279,20 @@ def _build_product_list_context(request, preset_filters=None):
         for product_id, product_groups in grouped_by_product.items():
             product_groups.sort(
                 key=lambda group: (
-                    group["expected_date"] is None,
-                    group["expected_date"] or date.min,
+                    group["latest_reference_date"],
                     group["order_id"] or 0,
                 ),
                 reverse=True,
             )
-            pending_order_lookup[product_id] = product_groups[0]
+            selected_group = product_groups[0]
+            pending_order_lookup[product_id] = {
+                "order_id": selected_group["order_id"],
+                "expected_date": selected_group["expected_date"],
+                "item_cost_price": selected_group["item_cost_price"],
+                "total_quantity": selected_group["total_quantity"],
+                "variant_quantities": dict(selected_group["variant_quantities"]),
+                "unassigned": selected_group["unassigned"],
+            }
 
     # ─── Compute per‐product stats ───────────────────────────────────────────────
     SIZE_ORDER = {
