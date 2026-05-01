@@ -87,9 +87,7 @@
 </style>
 
 
-<div class="section">
-  <h3 class="page-title">Orders<span class="filter-showing small-text grey-text">/ {{ showing_summary }}</span></h3>
-
+<h3 class="page-title">Orders<span class="filter-showing small-text grey-text"> / {{ showing_summary }}</span></h3>
 
   {% if filter_controls %}
 
@@ -218,53 +216,36 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  <h3>Stock Orders</h3>
-
+  <!-- UPCOMING MONTHS -->
   <div class="row">
-{% for block in calendar_data %}
-  <div class="col s3">
-    <div class="card red lighten-4 z-depth-2" style="height:500px;">
-      <div class="card-content center-align">
-        <span class="grey-text">{{ block.month_label }}</span>
-        {% if block.events %}
-          <ul>
-            {% for ev in block.events %}
-              <li>
-                <img src="{% if ev.product.product_photo %}{{ ev.product.product_photo.url }}{% endif %}"
-                     alt="{{ ev.product.product_name }}"
-                     style="width:24px; height:24px; object-fit:cover; border-radius:2px; margin-right:4px;">
-                {{ ev.product.product_name }} × {{ ev.quantity }}
-              </li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <p><em>No arrivals</em></p>
-        {% endif %}
+    {% for block in calendar_data %}
+    <div class="col s12 m3">
+      <div class="card-panel">
+          <p class="grey-text text-darken-2 box-title">{{ block.month_label }}</p>
+          <div class="filter-divider"></div>
+          <div class="card-content">
+            {% if block.events %}
+              <ul>
+                {% for ev in block.events %}
+                  <li>
+                    <img src="{% if ev.product.product_photo %}{{ ev.product.product_photo.url }}{% endif %}"
+                         alt="{{ ev.product.product_name }}"
+                         style="width:24px; height:24px; object-fit:cover; border-radius:2px; margin-right:4px;">
+                    {{ ev.product.product_name }} × {{ ev.quantity }}
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p><em>No arrivals</em></p>
+            {% endif %}
+          </div>
+
+        </div>
       </div>
-
-    </div>
+    {% endfor %}
   </div>
-{% endfor %}
-</div>
-</div> <!-- END OF SECTION -->
+  <!-- END UPCOMING MONTHS -->
 
-
-<div class="section">
-    <h1 class="center-align">Stock Orders</h1>
 
     <ul class="collection">
         {% for order in orders %}
