@@ -4119,398 +4119,7 @@ def product_detail(request, product_id):
 def order_list(request):
     filter_context = _build_product_list_context(request)
     filter_ui_context = _build_filter_controls_context(filter_context)
-    filtered_products = filter_context.get("products", [])
-    style_filters = filter_context.get("style_filters", [])
-    type_filters = filter_context.get("type_filters", [])
-    subtype_filters = filter_context.get("subtype_filters", [])
-    today = now().date()
-    pending_order_lookup = {}
-    if filtered_products:
-        pending_items = (
-            OrderItem.objects.filter(
-                product_variant__product__in=filtered_products,
-                date_arrived__isnull=True,
-            )
-            .select_related("product_variant", "order")
-            .order_by("-date_expected")
-        )
-        grouped_pending = defaultdict(dict)
-        for item in pending_items:
-            product_id = item.product_variant.product_id
-            order_id = item.order_id
-            key = order_id if order_id is not None else "unassigned"
-            group = grouped_pending[product_id].setdefault(
-                key,
-                {
-                    "order_id": order_id,
-                    "order_date": item.order.order_date if item.order_id else None,
-                    "expected_date": item.date_expected,
-                    "item_cost_price": item.item_cost_price,
-                    "total_quantity": 0,
-                    "variant_quantities": defaultdict(int),
-                    "latest_reference_date": item.order.order_date
-                    if item.order_id
-                    else item.date_expected,
-                },
-            )
-            if item.date_expected > group["expected_date"]:
-                group["expected_date"] = item.date_expected
-            reference_date = item.order.order_date if item.order_id else item.date_expected
-            if reference_date and reference_date > group["latest_reference_date"]:
-                group["latest_reference_date"] = reference_date
-            group["item_cost_price"] = group["item_cost_price"] or item.item_cost_price
-            group["total_quantity"] += item.quantity
-            group["variant_quantities"][item.product_variant_id] += item.quantity
 
-        for product_id, groups in grouped_pending.items():
-            pending_order = None
-            for group in groups.values():
-                if pending_order is None or group["latest_reference_date"] > pending_order["latest_reference_date"]:
-                    pending_order = group
-            if pending_order:
-                pending_order_lookup[product_id] = {
-                    "order_id": pending_order["order_id"],
-                    "expected_date": pending_order["expected_date"],
-                    "item_cost_price": pending_order["item_cost_price"],
-                    "total_quantity": pending_order["total_quantity"],
-                    "variant_quantities": dict(pending_order["variant_quantities"]),
-                    "unassigned": pending_order["order_id"] is None,
-                }
-
-    for product in filtered_products:
-        pending_order = pending_order_lookup.get(product.id)
-        product.pending_order = pending_order
-        variants_with_inventory = getattr(product, "variants_with_inventory", None)
-        cohort_speed_stats = (
-            get_product_cohort_speed_stats(product, weeks=52, today=today)
-            if variants_with_inventory
-            else {}
-        )
-        cohort_size_speed_map = cohort_speed_stats.get("size_avgs", {})
-        if variants_with_inventory:
-            for variant in variants_with_inventory:
-                variant.pending_order_qty = (
-                    pending_order["variant_quantities"].get(variant.id, 0)
-                    if pending_order
-                    else 0
-                )
-                variant.sales_speed_6_months = float(
-                    cohort_size_speed_map.get(variant.size, 0.0) or 0.0
-                )
-    ordered_product_ids = set()
-    sold_product_ids = set()
-    if filtered_products:
-        ordered_product_ids = set(
-            OrderItem.objects.filter(product_variant__product__in=filtered_products)
-            .values_list("product_variant__product_id", flat=True)
-            .distinct()
-        )
-        sold_product_ids = set(
-            Sale.objects.filter(variant__product__in=filtered_products)
-            .values_list("variant__product_id", flat=True)
-            .distinct()
-        )
-    for product in filtered_products:
-        product_variants = list(getattr(product, "variants_with_inventory", []))
-        target_sizes = [v.size for v in product_variants if v.size]
-        mix = calculate_category_size_mix(
-            product,
-            target_sizes=target_sizes,
-            today=today,
-        )
-        share_map = mix.get("shares", {})
-        product.size_mix_method = mix.get("method")
-        product.size_mix_sample_variants = mix.get("sample_variants", 0)
-        for variant in product_variants:
-            variant.size_sales_share = share_map.get(variant.size, 0)
-
-    pending_product_totals: dict[int, int] = defaultdict(int)
-    pending_variant_totals: dict[int, int] = {}
-    if filtered_products:
-        pending_rows = (
-            OrderItem.objects.filter(
-                product_variant__product__in=filtered_products,
-                date_arrived__isnull=True,
-            )
-            .values("product_variant_id", "product_variant__product_id")
-            .annotate(total=Coalesce(Sum("quantity"), 0))
-        )
-        for row in pending_rows:
-            qty = row["total"] or 0
-            product_id = row["product_variant__product_id"]
-            pending_product_totals[product_id] += qty
-            pending_variant_totals[row["product_variant_id"]] = qty
-
-    def _normalize_group_label(value: str) -> str:
-        return (
-            value.lower()
-            .replace("&", "and")
-            .replace("-", "")
-            .replace(" ", "")
-        )
-
-    def _resolve_style_code(product: Product) -> Optional[str]:
-        if product.style:
-            return product.style
-        if product.type:
-            styles = PRODUCT_TYPE_TO_STYLES.get(product.type)
-            if styles:
-                return sorted(styles)[0]
-        return None
-
-    def _format_months(months: Optional[Decimal]) -> Optional[Decimal]:
-        if months is None:
-            return None
-        return months.quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
-
-    lead_time_months = Decimal("3")
-
-    new_product_recommendations = []
-    prior_order_recommendations = []
-    for product in filtered_products:
-        if getattr(product, "no_restock", False):
-            continue
-        if product.id not in ordered_product_ids:
-            new_product_recommendations.append(
-                {
-                    "product": product,
-                    "status": "NEW_PRODUCT_ORDER",
-                    "message": "No prior orders found; consider first order.",
-                }
-            )
-            continue
-        normalized_groups = {
-            _normalize_group_label(group.name)
-            for group in product.groups.all()
-        }
-        is_one_and_done = "oneanddone" in normalized_groups
-        is_core_group = any("core" in group for group in normalized_groups)
-        is_mid_group = any("midrange" in group for group in normalized_groups)
-        is_no_restock = getattr(product, "no_restock", False)
-        is_core = bool(product.restock_time and product.restock_time > 0 and not is_no_restock)
-        if is_one_and_done:
-            continue
-        if not (is_core_group or is_mid_group or is_core):
-            continue
-
-        variants = getattr(product, "variants_with_inventory", None) or list(
-            product.variants.all()
-        )
-        stock_by_size: dict[str, int] = defaultdict(int)
-        speed_by_size = {
-            size: Decimal(str(speed or 0))
-            for size, speed in calculate_sales_speed_by_size(
-                variants=variants, weeks=26, today=today
-            ).items()
-        }
-        out_of_stock_sizes: set[str] = set()
-        out_of_stock_variants: set[str] = set()
-        total_stock = 0
-        has_in_stock = False
-        for variant in variants:
-            stock_units = int(getattr(variant, "latest_inventory", 0) or 0)
-            total_stock += stock_units
-            size_key = variant.size or variant.variant_code
-            stock_by_size[size_key] += stock_units
-            if stock_units <= 0:
-                out_of_stock_sizes.add(size_key)
-                out_of_stock_variants.add(variant.variant_code)
-            else:
-                has_in_stock = True
-
-        on_order_total = pending_product_totals.get(product.id, 0)
-        months_remaining = None
-        months_remaining = calculate_months_to_stockout(
-            variants,
-            on_order_by_variant=pending_variant_totals,
-            annual_sales=Decimal(product.sales_last_12_months or 0),
-            weeks=26,
-            today=today,
-        )
-        months_remaining = _format_months(months_remaining)
-
-        status = "SAFE"
-        if months_remaining is None:
-            status = "NO_DATA"
-        elif months_remaining < Decimal("2"):
-            status = "HIGH_PRIORITY_REORDER"
-        elif months_remaining < Decimal("4"):
-            status = "REORDER_CANDIDATE"
-
-        flags = []
-        explanations = []
-        if months_remaining is not None:
-            explanations.append(
-                f"Projected stock coverage ~{months_remaining} months (includes {on_order_total} on order)."
-            )
-        else:
-            explanations.append("Sales speed data unavailable; review manually.")
-
-        has_stockout = len(out_of_stock_sizes) > 0
-        if has_stockout:
-            flags.append("HAS_STOCKOUT")
-            if not has_in_stock:
-                status = "HIGH_PRIORITY_REORDER"
-            # Stockout details are surfaced via flag details.
-
-        style_code = _resolve_style_code(product)
-        core_sizes = CORE_SIZES.get(style_code or "", [])
-        core_oos: set[str] = set()
-        core_low: set[str] = set()
-        core_oos_variants: set[str] = set()
-        core_low_variants: set[str] = set()
-        for variant in variants:
-            if not variant.size or variant.size not in core_sizes:
-                continue
-            stock_units = int(getattr(variant, "latest_inventory", 0) or 0)
-            if stock_units <= 0:
-                core_oos.add(variant.size)
-                core_oos_variants.add(variant.variant_code)
-            speed = speed_by_size.get(variant.size or variant.variant_code, Decimal("0"))
-            if speed > 0:
-                pending_qty = pending_variant_totals.get(variant.id, 0)
-                variant_months = Decimal(stock_units + pending_qty) / speed
-                if variant_months <= lead_time_months:
-                    core_low.add(variant.size)
-                    core_low_variants.add(variant.variant_code)
-
-        if core_oos:
-            if "HAS_STOCKOUT" not in flags:
-                flags.append("CORE_VARIANT_OOS")
-            status = "HIGH_PRIORITY_REORDER"
-            # Core out-of-stock details are surfaced via flag details.
-
-        if core_low and "CORE_VARIANT_OOS" not in flags:
-            flags.append("CORE_VARIANT_LOW")
-            status = "HIGH_PRIORITY_REORDER"
-            # Core low details are surfaced via flag details.
-
-        # HAS_STOCKOUT already surfaces all out-of-stock variants.
-
-        size_ratios = []
-        size_ratio_summary = None
-        if status in {"REORDER_CANDIDATE", "HIGH_PRIORITY_REORDER"}:
-            total_speed = sum(
-                speed for speed in speed_by_size.values() if speed and speed > 0
-            )
-            if total_speed > 0:
-                share_map = {
-                    size: float(speed / total_speed)
-                    for size, speed in speed_by_size.items()
-                    if speed and speed > 0
-                }
-                ratio_split = build_ideal_order_split(100, share_map)
-                for size, pct in sorted(ratio_split.items()):
-                    if pct <= 0:
-                        continue
-                    size_ratios.append(
-                        {
-                            "size": size,
-                            "ratio": round(float(pct), 1),
-                        }
-                    )
-            else:
-                fallback_sizes = sorted(stock_by_size.keys())
-                if fallback_sizes:
-                    equal_ratio = round(100 / len(fallback_sizes), 1)
-                    size_ratios = [
-                        {"size": size, "ratio": equal_ratio} for size in fallback_sizes
-                    ]
-
-            if size_ratios:
-                size_ratio_summary = ", ".join(
-                    f"{entry['size']} {entry['ratio']}%" for entry in size_ratios
-                )
-
-            total_stock_by_size = sum(stock_by_size.values()) or 0
-            if total_speed > 0 and total_stock_by_size > 0:
-                imbalance_threshold = 0.2
-                for size, speed in speed_by_size.items():
-                    if speed <= 0:
-                        continue
-                    speed_share = float(speed / total_speed)
-                    stock_share = stock_by_size.get(size, 0) / total_stock_by_size
-                    if abs(stock_share - speed_share) >= imbalance_threshold:
-                        flags.append("SIZE_IMBALANCE")
-                        break
-
-        has_stockout_variants = [
-            f"{code} (Core Size)" if code in core_oos_variants else code
-            for code in sorted(out_of_stock_variants)
-        ]
-        flag_variants = {
-            "HAS_STOCKOUT": has_stockout_variants,
-            "CORE_VARIANT_OOS": sorted(core_oos_variants),
-            "CORE_VARIANT_LOW": sorted(core_low_variants),
-        }
-        entry = {
-            "product": product,
-            "status": status,
-            "months_remaining": months_remaining,
-            "flags": flags,
-            "flag_details": [
-                {"flag": flag, "variants": flag_variants.get(flag, [])} for flag in flags
-            ],
-            "message": " ".join(explanations),
-            "size_ratios": size_ratios,
-            "size_ratio_summary": size_ratio_summary,
-        }
-        if status == "SAFE":
-            product.reorder_status = status
-            product.reorder_flags = flags
-            product.reorder_message = entry["message"]
-        if status not in {"IGNORE", "SAFE"}:
-            prior_order_recommendations.append(entry)
-
-    avg_restock_months = None
-    restock_candidates = [
-        product.restock_time
-        for product in filtered_products
-        if getattr(product, "restock_time", 0)
-    ]
-    if restock_candidates:
-        avg_restock_months = sum(restock_candidates) / len(restock_candidates)
-    restock_lead_months = max(int(math.ceil(avg_restock_months or 3)), 1)
-
-    def _stock_status_label(stock_coverage: Optional[Decimal]) -> str:
-        if stock_coverage is None:
-            return "no data"
-        if stock_coverage >= Decimal("9"):
-            return "overstocked"
-        if stock_coverage >= Decimal("6"):
-            return "on target"
-        if stock_coverage >= Decimal("3"):
-            return "low stock"
-        return "priority low"
-
-    def _stock_status_display(status: str) -> str:
-        if status == "priority low":
-            return "Priority low"
-        if status == "no data":
-            return "No data"
-        return status.title()
-
-    if filtered_products:
-        filtered_variants = [
-            variant
-            for product in filtered_products
-            for variant in getattr(product, "variants_with_inventory", [])
-        ]
-        stock_coverage_months = calculate_months_to_stockout(
-            filtered_variants,
-            on_order_by_variant=pending_variant_totals,
-            annual_sales=Decimal(filtered_sales_last_year or 0),
-            weeks=26,
-            today=today,
-        )
-        if stock_coverage_months is not None:
-            stock_coverage_months = stock_coverage_months.quantize(
-                Decimal("0.1"), rounding=ROUND_HALF_UP
-            )
-    else:
-        stock_coverage_months = None
-
-    # Fetch orders and prefetch related items for efficiency
     orders = (
         Order.objects.all()
         .prefetch_related("order_items")
@@ -4528,41 +4137,37 @@ def order_list(request):
         .order_by("-order_date")
     )
 
-    # — Build calendar_data for upcoming four months —
     today = date.today()
     first_day_current = today.replace(day=1)
     start_month = first_day_current + relativedelta(months=1)
+    end_month = start_month + relativedelta(months=4)
+    incoming_qs = (
+        OrderItem.objects.filter(date_expected__gte=start_month, date_expected__lt=end_month)
+        .select_related("product_variant__product")
+        .order_by("date_expected")
+    )
+
+    monthly_product_totals = defaultdict(dict)
+    for oi in incoming_qs:
+        month_key = oi.date_expected.replace(day=1)
+        prod = oi.product_variant.product
+        month_bucket = monthly_product_totals[month_key]
+        if prod.id not in month_bucket:
+            month_bucket[prod.id] = {"product": prod, "quantity": 0}
+        month_bucket[prod.id]["quantity"] += oi.quantity
+
     calendar_data = []
     for i in range(4):
         month_start = start_month + relativedelta(months=i)
-        month_end = month_start + relativedelta(months=1)
         month_label = month_start.strftime("%B %Y")
-
-        incoming_qs = OrderItem.objects.filter(
-            date_expected__gte=month_start, date_expected__lt=month_end
-        ).select_related("product_variant__product")
-
-        prod_map = {}
-        for oi in incoming_qs:
-            prod = oi.product_variant.product
-            if prod.id not in prod_map:
-                prod_map[prod.id] = {"product": prod, "quantity": 0}
-            prod_map[prod.id]["quantity"] += oi.quantity
-
-        calendar_data.append(
-            {
-                "month_label": month_label,
-                "events": list(prod_map.values()),
-            }
-        )
+        events = list(monthly_product_totals.get(month_start, {}).values())
+        calendar_data.append({"month_label": month_label, "events": events})
 
     context = {
         **filter_context,
         **filter_ui_context,
         "orders": orders,
         "calendar_data": calendar_data,
-        "new_product_recommendations": new_product_recommendations,
-        "prior_order_recommendations": prior_order_recommendations,
     }
     return render(request, "inventory/order_list.html", context)
 
