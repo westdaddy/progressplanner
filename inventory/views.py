@@ -1204,6 +1204,7 @@ def _build_product_list_context(request, preset_filters=None):
 
     pending_variant_totals: dict[int, int] = {}
     pending_expected_date_by_product: dict[int, date] = {}
+    pending_order_lookup: dict[int, dict[str, Any]] = {}
     if products:
         pending_rows = (
             OrderItem.objects.filter(
@@ -1229,6 +1230,69 @@ def _build_product_list_context(request, preset_filters=None):
             for row in pending_expected_rows
             if row.get("expected_date")
         }
+
+        pending_order_groups: dict[tuple[int, Optional[int]], dict[str, Any]] = {}
+        pending_order_rows = (
+            OrderItem.objects.filter(
+                product_variant__product__in=products,
+                date_arrived__isnull=True,
+            )
+            .select_related("order")
+            .order_by("product_variant__product_id", "date_expected", "id")
+        )
+        for pending_item in pending_order_rows:
+            product_id = pending_item.product_variant.product_id
+            order_id = pending_item.order_id
+            group_key = (product_id, order_id)
+            group = pending_order_groups.get(group_key)
+            if group is None:
+                group = {
+                    "product_id": product_id,
+                    "order_id": order_id,
+                    "expected_date": pending_item.date_expected,
+                    "total_quantity": 0,
+                    "item_cost_price": pending_item.item_cost_price,
+                    "variant_quantities": defaultdict(int),
+                    "unassigned": order_id is None,
+                    "latest_reference_date": pending_item.date_expected or date.min,
+                }
+                pending_order_groups[group_key] = group
+            group["total_quantity"] += pending_item.quantity or 0
+            group["variant_quantities"][pending_item.product_variant_id] += (
+                pending_item.quantity or 0
+            )
+            if pending_item.item_cost_price is not None:
+                group["item_cost_price"] = pending_item.item_cost_price
+            if pending_item.date_expected and (
+                group["expected_date"] is None
+                or pending_item.date_expected > group["expected_date"]
+            ):
+                group["expected_date"] = pending_item.date_expected
+            reference_date = pending_item.date_expected or date.min
+            if reference_date > group["latest_reference_date"]:
+                group["latest_reference_date"] = reference_date
+
+        grouped_by_product: dict[int, list[dict[str, Any]]] = defaultdict(list)
+        for grouped in pending_order_groups.values():
+            grouped_by_product[grouped["product_id"]].append(grouped)
+
+        for product_id, product_groups in grouped_by_product.items():
+            product_groups.sort(
+                key=lambda group: (
+                    group["latest_reference_date"],
+                    group["order_id"] or 0,
+                ),
+                reverse=True,
+            )
+            selected_group = product_groups[0]
+            pending_order_lookup[product_id] = {
+                "order_id": selected_group["order_id"],
+                "expected_date": selected_group["expected_date"],
+                "item_cost_price": selected_group["item_cost_price"],
+                "total_quantity": selected_group["total_quantity"],
+                "variant_quantities": dict(selected_group["variant_quantities"]),
+                "unassigned": selected_group["unassigned"],
+            }
 
     # ─── Compute per‐product stats ───────────────────────────────────────────────
     SIZE_ORDER = {
@@ -1310,6 +1374,7 @@ def _build_product_list_context(request, preset_filters=None):
         product.pending_order_expected_date = pending_expected_date_by_product.get(
             product.id
         )
+        product.pending_order = pending_order_lookup.get(product.id)
         product.is_new_unlaunched = (
             product.total_inventory == 0
             and product.last_order_qty == 0
