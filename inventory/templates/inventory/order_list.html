@@ -269,9 +269,6 @@
 
   <!-- FILTERS BAR -->
     <form method="get" class="filter-bar__form">
-      {% if selected_product %}
-        <input type="hidden" name="product" value="{{ selected_product.id }}">
-      {% endif %}
       <div class="filter-section-header">
         <div>
           <p class="filter-showing">Showing: {{ showing_summary }}</p>
@@ -404,197 +401,11 @@
 
 
 
-  <!-- STOCK POSITION -->
-  <div class="row">
-
-    <div class="col s12 m4">
-      <h4 class="">General Stock Position</h4>
-      <p class="grey-text">Compare the current stock levels and breakdown with previous years' sales.</p>
-      <div class="card-panel">
-          <ul class="collection" style="margin: 0;">
-              <li class="collection-item" style="border-left: 3px solid #26a69a;">
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                    <strong>Sales in the last 12 months</strong>
-                    <span class="teal-text text-darken-2">{{ filtered_sales_last_year }}</span>
-                </div>
-                <p class="grey-text text-darken-1" style="margin: 4px 0 0;">Net of returns</p>
-              </li>
-
-              <li class="collection-item" style="border-left: 3px solid #26a69a;">
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                    <strong>Avg monthly demand</strong>
-                    <span class="teal-text text-darken-2">{{ filtered_sell_through_rate }}</span>
-                </div>
-                <p class="grey-text text-darken-1" style="margin: 4px 0 0;">12-month average / month</p>
-              </li>
-
-              <li class="collection-item" style="border-left: 3px solid #26a69a;">
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                    <strong>Current stock (matching filters)</strong>
-                    <span class="teal-text text-darken-2">{{ filtered_stock_current }}</span>
-                </div>
-                <p class="grey-text text-darken-1" style="margin: 4px 0 0;">On order: {{ filtered_on_order }}</p>
-              </li>
-
-              <li class="collection-item" style="border-left: 3px solid #26a69a;">
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                    <strong>Stock position</strong>
-                    <span class="teal-text text-darken-2 right-align">
-                      {% if stock_status_label == "no data" %}
-                        No data
-                      {% elif stock_status_label == "priority low" %}
-                        Priority low
-                      {% else %}
-                        {{ stock_status_label|capfirst }}
-                      {% endif %}
-                      {% if stock_coverage_months is not None %}
-                        ({{ stock_coverage_months }} months)
-                      {% endif %}
-                    </span>
-                </div>
-                <p class="grey-text text-darken-1" style="margin: 4px 0 0;">Based on the last 12 months of demand.</p>
-              </li>
-          </ul>
-        </div>
-      </div>
 
 
-      <div class="col s12 m8">
-        <div class="card z-depth-2" style="overflow: hidden;">
-          <div class="card-content cyan darken-2 white-text" style="padding: 16px;">
-            <div class="row" style="margin: 0 0 12px;">
-              <div class="col s12">
-                <span>Projected sell-through (last 6 months + 12 month projection)</span>
-              </div>
-            </div>
-            <canvas id="sellThroughChart" height="140"></canvas>
-          </div>
-        </div>
-      </div>
 
-    </div>
 
-    <div class="row">
-      <div class="col s12 m12">
-        <div class="card-panel">
-          <h5 class="grey-text text-darken-1">Recommendations</h5>
-          {% if new_product_recommendations %}
-            <h6 class="grey-text text-darken-1" style="margin-top: 12px;">New Product Orders</h6>
-            <p class="grey-text text-darken-1" style="margin-top: 4px;">
-              New products with no prior orders.
-            </p>
-            <ul class="collection" style="margin-top: 12px;">
-              {% for rec in new_product_recommendations %}
-                <li class="collection-item avatar">
-                  <strong>{{ rec.product.product_id }}</strong>
-                  <span class="grey-text text-darken-1">
-                    {{ rec.product.product_name }}
-                  </span>
-                  <span class="badge">{{ rec.status }}</span>
-                  {% if rec.message %}
-                    <div class="grey-text text-darken-1">{{ rec.message }}</div>
-                  {% endif %}
-                </li>
-              {% endfor %}
-            </ul>
-          {% endif %}
-          {% if prior_order_recommendations %}
-            <h6 class="grey-text text-darken-1" style="margin-top: 12px;">Restock Recommendations</h6>
-            <ul class="collection" style="margin-top: 12px;">
-              {% for rec in prior_order_recommendations %}
-                <li class="collection-item avatar">
 
-                  <div class="row item">
-
-                    <div class="col s12 content">
-                      <div class="row title">
-                        <div class="col s12">
-                          <span class="title">
-                            <a href="{% url 'product_detail' rec.product.id %}">
-                              <strong>{{ rec.product.product_name }}</strong>
-                            </a>
-                          </span>
-                          ({{ rec.product.product_id }})
-                        </div>
-                      </div>
-
-                      <div class="row scorecard-boxes">
-
-                        <div class="col s12 m6 l2 photo">
-                          {% if rec.product.product_photo %}
-                            <img src="{{ rec.product.product_photo.url }}" alt="{{ rec.product.product_name }}" class="circle product-photo-large">
-                          {% else %}
-                            <img src="{{ MEDIA_URL }}product_photos/product-placeholder.jpg" alt="{{ rec.product.product_name }}" class="circle product-photo-large">
-                          {% endif %}
-                        </div>
-
-                        <div class="col s12 m6 l10">
-                          <div class="card-panel scorecard-box">
-
-                            <span class="badge">{{ rec.status }}</span>
-                            {% if rec.months_remaining is not None %}
-                              <div class="grey-text text-darken-1">
-                                {{ rec.months_remaining }} months of stock remaining
-                              </div>
-                            {% endif %}
-                            {% if rec.flag_details %}
-                              <div class="grey-text text-darken-1 flag-details">
-                                {% for flag in rec.flag_details %}
-                                  <div class="flag-details__flag">{{ flag.flag }}</div>
-                                  {% for variant in flag.variants %}
-                                    <div class="flag-details__variant">{{ variant }}</div>
-                                  {% endfor %}
-                                {% endfor %}
-                              </div>
-                            {% endif %}
-                            <div class="grey-text text-darken-1">{{ rec.message }}</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </li>
-              {% endfor %}
-            </ul>
-          {% endif %}
-        </div>
-      </div>
-
-    </div>
-  <!-- END STOCK POSITION -->
-
-  <!-- PRODUCTS LIST -->
-  <div class="row">
-    <div class="col s12">
-      {% if products %}
-        {% for product in products %}
-          {% include 'inventory/snippets/product_card.html' with product=product %}
-        {% endfor %}
-      {% else %}
-        <p class="grey-text">No products match the current filters.</p>
-      {% endif %}
-    </div>
-  </div>
-
-  {% if selected_product %}
-
-    {% include 'inventory/snippets/product_card.html' with product=selected_product %}
-
-    <div class="row">
-      <div class="col s12 m6">
-        <div class="card-panel center-align">
-          <h6 class="grey-text text-darken-1">Last 12 months sold (matching categories)</h6>
-          <div class="flow-text">{{ category_sales_last_year }}</div>
-        </div>
-      </div>
-      <div class="col s12 m6">
-        <div class="card-panel center-align">
-          <h6 class="grey-text text-darken-1">Current stock (matching categories)</h6>
-          <div class="flow-text">{{ category_stock_current }}</div>
-        </div>
-      </div>
-    </div>
-  {% endif %}
 
   <h3>Stock Orders</h3>
 
@@ -642,9 +453,6 @@
     </ul>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.3/build/global/luxon.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
 <script src="{% static 'order_split.js' %}"></script>
 <script>
   (function() {
