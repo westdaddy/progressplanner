@@ -1204,6 +1204,7 @@ def _build_product_list_context(request, preset_filters=None):
 
     pending_variant_totals: dict[int, int] = {}
     pending_expected_date_by_product: dict[int, date] = {}
+    pending_order_lookup: dict[int, dict[str, Any]] = {}
     if products:
         pending_rows = (
             OrderItem.objects.filter(
@@ -1229,6 +1230,50 @@ def _build_product_list_context(request, preset_filters=None):
             for row in pending_expected_rows
             if row.get("expected_date")
         }
+
+        pending_order_groups: dict[tuple[int, Optional[int]], dict[str, Any]] = {}
+        pending_order_rows = (
+            OrderItem.objects.filter(
+                product_variant__product__in=products,
+                date_arrived__isnull=True,
+            )
+            .select_related("order")
+            .order_by("product_variant__product_id", "date_expected", "id")
+        )
+        for pending_item in pending_order_rows:
+            product_id = pending_item.product_variant.product_id
+            order_id = pending_item.order_id
+            group_key = (product_id, order_id)
+            group = pending_order_groups.get(group_key)
+            if group is None:
+                group = {
+                    "product_id": product_id,
+                    "order_id": order_id,
+                    "expected_date": pending_item.date_expected,
+                    "total_quantity": 0,
+                }
+                pending_order_groups[group_key] = group
+            group["total_quantity"] += pending_item.quantity or 0
+            if pending_item.date_expected and (
+                group["expected_date"] is None
+                or pending_item.date_expected > group["expected_date"]
+            ):
+                group["expected_date"] = pending_item.date_expected
+
+        grouped_by_product: dict[int, list[dict[str, Any]]] = defaultdict(list)
+        for grouped in pending_order_groups.values():
+            grouped_by_product[grouped["product_id"]].append(grouped)
+
+        for product_id, product_groups in grouped_by_product.items():
+            product_groups.sort(
+                key=lambda group: (
+                    group["expected_date"] is None,
+                    group["expected_date"] or date.min,
+                    group["order_id"] or 0,
+                ),
+                reverse=True,
+            )
+            pending_order_lookup[product_id] = product_groups[0]
 
     # ─── Compute per‐product stats ───────────────────────────────────────────────
     SIZE_ORDER = {
@@ -1310,6 +1355,7 @@ def _build_product_list_context(request, preset_filters=None):
         product.pending_order_expected_date = pending_expected_date_by_product.get(
             product.id
         )
+        product.pending_order = pending_order_lookup.get(product.id)
         product.is_new_unlaunched = (
             product.total_inventory == 0
             and product.last_order_qty == 0
