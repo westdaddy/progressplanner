@@ -4,14 +4,10 @@
 {% for product in products %}
 
   <li class="collection-item avatar lighten-4 {% if product.total_sales|default:0 == 0 and product.total_inventory|default:0 == 0 %}new{% endif %}">
-    <div class="row item">
-
-      <div class="col s12 m12 content">
-
-        <div class="row scorecard-boxes">
+    <div class="row item scorecard-boxes">
 
           <!-- PRODUCT PHOTO -->
-          <div class="col s12 m6 l2 photo">
+          <div class="col s12 m6 l3 photo">
             {% if product.product_photo %}
               <img src="{{ product.product_photo.url }}" alt="{{ product.product_name }}" class="circle product-photo-large">
             {% else %}
@@ -20,103 +16,50 @@
           </div>
 
           <!-- PRODUCT INFORMATION -->
-          <div class="col s12 m10 l10">
+          <div class="col s12 m10 l9">
 
+            <!-- TITLE -->
             <div class="row title">
                 <a href="{% url 'product_detail' product.id %}">
-                  <strong>{{ product.product_name }}</strong>
+                  {{ product.product_name }}
                 </a>
                 ({{ product.product_id }})
             </div>
+            <!-- END TITLE -->
+
+            <!-- CONTENT -->
+            <div class="row content">
+
+              <!-- PRODUCT STATISTICS SECTION -->
+              <div class="col s12 m6 l7">
+                <div class="scorecard-box signal-card">
 
 
-          <!-- PRODUCT STATISTICS SECTION -->
-          <div class="col s12 m6 l7">
-            <div class="card-panel scorecard-box signal-card">
+                  <div class="signal-card__metrics">
 
 
-              <div class="signal-card__metrics">
+                    {% if not product.is_new_unlaunched and not product.is_on_order_no_sales %}
+                      <div class="signal-progress-wrap">
+                        <div class="signal-progress">
+                          <span
+                            class="signal-progress__fill"
+                            style="width: {% if product.stock_remaining_pct is not None %}{{ product.stock_remaining_pct|floatformat:0 }}{% else %}0{% endif %}%; --stock-pct: {% if product.stock_remaining_pct is not None %}{{ product.stock_remaining_pct|floatformat:0 }}{% else %}0{% endif %};"
+                          ></span>
+                        </div>
+                        <span class="signal-muted">
+                          {% if product.stock_remaining_pct is not None %}
+                            {{ product.stock_remaining_pct|floatformat:0 }}%
+                          {% else %}
+                            -
+                          {% endif %}
+                        </span>
+                      </div>
+                    {% endif %}
 
-
-                {% if not product.is_new_unlaunched and not product.is_on_order_no_sales %}
-                  <div class="signal-progress-wrap">
-                    <div class="signal-progress">
-                      <span
-                        class="signal-progress__fill"
-                        style="width: {% if product.stock_remaining_pct is not None %}{{ product.stock_remaining_pct|floatformat:0 }}{% else %}0{% endif %}%; --stock-pct: {% if product.stock_remaining_pct is not None %}{{ product.stock_remaining_pct|floatformat:0 }}{% else %}0{% endif %};"
-                      ></span>
-                    </div>
-                    <span class="signal-muted">
-                      {% if product.stock_remaining_pct is not None %}
-                        {{ product.stock_remaining_pct|floatformat:0 }}%
-                      {% else %}
-                        -
-                      {% endif %}
-                    </span>
-                  </div>
-                {% endif %}
-
-                <p class="signal-line signal-line--stock">
-                  {{ product.total_inventory|default:0 }} in stock / {{ product.last_order_qty|default:0 }} ordered
-                  {% if product.pending_order %}
-                    <span class="signal-muted">| </span>
-                    <button
-                      type="button"
-                      class="btn-flat"
-                      data-open-order-modal="order-modal-{{ product.id }}"
-                      data-order-mode="pending"
-                    >
-                      View order
-                    </button>
-                  {% endif %}
-                  {% if not product.is_new_unlaunched and not product.is_on_order_no_sales %}
-                    <span class="signal-muted">|</span>
-                    <button
-                      type="button"
-                      class="btn-flat signal-line signal-line--variants variant-summary-trigger"
-                      data-variant-panel-trigger
-                      data-product-id="{{ product.id }}"
-                    >
-                      Variants: {{ product.out_of_stock_variant_count|default:0 }} OOS · {{ product.low_stock_variant_count|default:0 }} Low
-                    </button>
-                    <span class="signal-muted">|</span>
-                    {% for core in product.core_size_signals %}
-                      <span class="signal-core {% if core.in_stock %}signal-core--ok{% else %}signal-core--miss{% endif %}">
-                        {% if core.in_stock %}✔{% else %}✖{% endif %} {{ core.size }}
-                      </span>
-                    {% endfor %}
-                  {% endif %}
-                </p>
-
-                {% if not product.is_new_unlaunched and not product.is_on_order_no_sales %}
-                  <hr/>
-
-                  <p class="signal-line">
-                      {% if product.time_on_market_months is not None %}
-                        {{ product.time_on_market_months|floatformat:0 }} months
-                      {% else %}
-                        -
-                      {% endif %}
-                      on market
-                    <span class="signal-muted">|</span>
-                    {{ product.total_sales|default:0 }} sold
-                    <span class="signal-muted">|</span>
-                    gross margin {{ product.profit_percentage|floatformat:0|default_if_none:"-" }}%
-                    <span class="signal-muted">|</span>
-                    av. discount {{ product.average_discount_percentage|floatformat:0|default_if_none:"-" }}%
-                  </p>
-                  {% if not product.no_restock %}
-                    <p class="signal-line" style="margin-top: 6px;">
-                      <button
-                        type="button"
-                        class="btn-flat"
-                        data-open-order-modal="order-modal-{{ product.id }}"
-                        data-order-mode="create"
-                      >
-                        Create reorder
-                      </button>
+                    <p class="signal-line signal-line--stock">
+                      {{ product.total_inventory|default:0 }} in stock / {{ product.last_order_qty|default:0 }} ordered
                       {% if product.pending_order %}
-                        <span class="signal-muted">|</span>
+                        <span class="signal-muted">| </span>
                         <button
                           type="button"
                           class="btn-flat"
@@ -126,121 +69,180 @@
                           View order
                         </button>
                       {% endif %}
+                      {% if not product.is_new_unlaunched and not product.is_on_order_no_sales %}
+                        <span class="signal-muted">|</span>
+                        <button
+                          type="button"
+                          class="btn-flat signal-line signal-line--variants variant-summary-trigger"
+                          data-variant-panel-trigger
+                          data-product-id="{{ product.id }}"
+                        >
+                          Variants: {{ product.out_of_stock_variant_count|default:0 }} OOS · {{ product.low_stock_variant_count|default:0 }} Low
+                        </button>
+                        <span class="signal-muted">|</span>
+                        {% for core in product.core_size_signals %}
+                          <span class="signal-core {% if core.in_stock %}signal-core--ok{% else %}signal-core--miss{% endif %}">
+                            {% if core.in_stock %}✔{% else %}✖{% endif %} {{ core.size }}
+                          </span>
+                        {% endfor %}
+                      {% endif %}
                     </p>
-                  {% elif product.pending_order %}
-                    <p class="signal-line" style="margin-top: 6px;">
-                      <button
-                        type="button"
-                        class="btn-flat"
-                        data-open-order-modal="order-modal-{{ product.id }}"
-                        data-order-mode="pending"
-                      >
-                        View order
-                      </button>
-                    </p>
-                  {% endif %}
-                {% elif product.is_on_order_no_sales %}
-                  <hr/>
-                  <p class="signal-line">
-                    Estimated arrival:
-                    {% if product.pending_order_expected_date %}
-                      {{ product.pending_order_expected_date|date:"M j, Y" }}
-                    {% else %}
-                      —
-                    {% endif %}
-                  </p>
-                {% else %}
-                  <hr/>
-                  <p class="signal-line">
-                    <button
-                      type="button"
-                      class="btn-flat"
-                      data-open-order-modal="order-modal-{{ product.id }}"
-                      data-order-mode="create"
-                    >
-                      Create order
-                    </button>
-                  </p>
-                {% endif %}
 
+                    {% if not product.is_new_unlaunched and not product.is_on_order_no_sales %}
+                      <hr/>
+
+                      <p class="signal-line">
+                          {% if product.time_on_market_months is not None %}
+                            {{ product.time_on_market_months|floatformat:0 }} months
+                          {% else %}
+                            -
+                          {% endif %}
+                          on market
+                        <span class="signal-muted">|</span>
+                        {{ product.total_sales|default:0 }} sold
+                        <span class="signal-muted">|</span>
+                        gross margin {{ product.profit_percentage|floatformat:0|default_if_none:"-" }}%
+                        <span class="signal-muted">|</span>
+                        av. discount {{ product.average_discount_percentage|floatformat:0|default_if_none:"-" }}%
+                      </p>
+                      {% if not product.no_restock %}
+                        <p class="signal-line" style="margin-top: 6px;">
+                          <button
+                            type="button"
+                            class="btn-flat"
+                            data-open-order-modal="order-modal-{{ product.id }}"
+                            data-order-mode="create"
+                          >
+                            Create reorder
+                          </button>
+                          {% if product.pending_order %}
+                            <span class="signal-muted">|</span>
+                            <button
+                              type="button"
+                              class="btn-flat"
+                              data-open-order-modal="order-modal-{{ product.id }}"
+                              data-order-mode="pending"
+                            >
+                              View order
+                            </button>
+                          {% endif %}
+                        </p>
+                      {% elif product.pending_order %}
+                        <p class="signal-line" style="margin-top: 6px;">
+                          <button
+                            type="button"
+                            class="btn-flat"
+                            data-open-order-modal="order-modal-{{ product.id }}"
+                            data-order-mode="pending"
+                          >
+                            View order
+                          </button>
+                        </p>
+                      {% endif %}
+                    {% elif product.is_on_order_no_sales %}
+                      <hr/>
+                      <p class="signal-line">
+                        Estimated arrival:
+                        {% if product.pending_order_expected_date %}
+                          {{ product.pending_order_expected_date|date:"M j, Y" }}
+                        {% else %}
+                          —
+                        {% endif %}
+                      </p>
+                    {% else %}
+                      <hr/>
+                      <p class="signal-line">
+                        <button
+                          type="button"
+                          class="btn-flat"
+                          data-open-order-modal="order-modal-{{ product.id }}"
+                          data-order-mode="create"
+                        >
+                          Create order
+                        </button>
+                      </p>
+                    {% endif %}
+
+                  </div>
+                </div>
+              <!-- END PRODUCT STATISTICS SECTION -->
               </div>
+            <!-- END CONTENT -->
+
+
+            <!-- ACTIONS SECTION -->
+            <div class="col s12 m6 l5">
+                <div class="scorecard-box">
+                  <div class="product-action-toggles">
+                    <form method="post" action="{% url 'product_toggle_no_restock' product.id %}" data-product-toggle-form data-toggle-field="no_restock" style="margin-top: 12px;">
+                      {% csrf_token %}
+                      {% if request.GET.urlencode %}
+                        <input type="hidden" name="redirect_querystring" value="{{ request.GET.urlencode }}">
+                      {% endif %}
+                      <input type="hidden" name="no_restock" value="{% if product.no_restock %}0{% else %}1{% endif %}" data-toggle-state-input>
+                      <button
+                        type="submit"
+                        class="product-action-toggle {% if product.no_restock %}is-on{% endif %}"
+                        data-toggle-button
+                        data-off-label="Restock"
+                        data-on-label="No Restock"
+                        aria-pressed="{% if product.no_restock %}true{% else %}false{% endif %}"
+                      >
+                        <span class="product-action-toggle__label product-action-toggle__label--off">Restock</span>
+                        <span class="product-action-toggle__label product-action-toggle__label--on">No Restock</span>
+                      </button>
+                    </form>
+
+                    <form method="post" action="{% url 'product_toggle_clearance' product.id %}" data-product-toggle-form data-toggle-field="discounted" style="margin-top: 8px;">
+                      {% csrf_token %}
+                      {% if request.GET.urlencode %}
+                        <input type="hidden" name="redirect_querystring" value="{{ request.GET.urlencode }}">
+                      {% endif %}
+                      <input type="hidden" name="discounted" value="{% if product.discounted %}0{% else %}1{% endif %}" data-toggle-state-input>
+                      <button
+                        type="submit"
+                        class="product-action-toggle {% if product.discounted %}is-on{% endif %}"
+                        data-toggle-button
+                        data-off-label="Regular"
+                        data-on-label="Clearance"
+                        aria-pressed="{% if product.discounted %}true{% else %}false{% endif %}"
+                      >
+                        <span class="product-action-toggle__label product-action-toggle__label--off">Regular</span>
+                        <span class="product-action-toggle__label product-action-toggle__label--on">Clearance</span>
+                      </button>
+                    </form>
+
+                    <form method="post" action="{% url 'product_decommission' product.id %}" data-product-toggle-form data-toggle-field="decommissioned" style="margin-top: 8px;">
+                      {% csrf_token %}
+                      {% if request.GET.urlencode %}
+                        <input type="hidden" name="redirect_querystring" value="{{ request.GET.urlencode }}">
+                      {% endif %}
+                      <input type="hidden" name="decommissioned" value="{% if product.decommissioned %}0{% else %}1{% endif %}" data-toggle-state-input>
+                      <input type="hidden" name="force" value="true">
+                      <button
+                        type="submit"
+                        class="product-action-toggle {% if product.decommissioned %}is-on{% endif %}"
+                        data-toggle-button
+                        data-off-label="Active"
+                        data-on-label="Decommissioned"
+                        aria-pressed="{% if product.decommissioned %}true{% else %}false{% endif %}"
+                      >
+                        <span class="product-action-toggle__label product-action-toggle__label--off">Active</span>
+                        <span class="product-action-toggle__label product-action-toggle__label--on">Decommissioned</span>
+                      </button>
+                    </form>
+                  </div>
+                </div>
+            </div>
+            <!-- END ACTIONS SECTION -->
+
             </div>
           </div>
-          <!-- END PRODUCT STATISTICS SECTION -->
-
-          <!-- ACTIONS SECTION -->
-          <div class="col s12 m6 l3">
-              <div class="card-panel scorecard-box">
-                <div class="product-action-toggles">
-                  <form method="post" action="{% url 'product_toggle_no_restock' product.id %}" data-product-toggle-form data-toggle-field="no_restock" style="margin-top: 12px;">
-                    {% csrf_token %}
-                    {% if request.GET.urlencode %}
-                      <input type="hidden" name="redirect_querystring" value="{{ request.GET.urlencode }}">
-                    {% endif %}
-                    <input type="hidden" name="no_restock" value="{% if product.no_restock %}0{% else %}1{% endif %}" data-toggle-state-input>
-                    <button
-                      type="submit"
-                      class="product-action-toggle {% if product.no_restock %}is-on{% endif %}"
-                      data-toggle-button
-                      data-off-label="Restock"
-                      data-on-label="No Restock"
-                      aria-pressed="{% if product.no_restock %}true{% else %}false{% endif %}"
-                    >
-                      <span class="product-action-toggle__label product-action-toggle__label--off">Restock</span>
-                      <span class="product-action-toggle__label product-action-toggle__label--on">No Restock</span>
-                    </button>
-                  </form>
-
-                  <form method="post" action="{% url 'product_toggle_clearance' product.id %}" data-product-toggle-form data-toggle-field="discounted" style="margin-top: 8px;">
-                    {% csrf_token %}
-                    {% if request.GET.urlencode %}
-                      <input type="hidden" name="redirect_querystring" value="{{ request.GET.urlencode }}">
-                    {% endif %}
-                    <input type="hidden" name="discounted" value="{% if product.discounted %}0{% else %}1{% endif %}" data-toggle-state-input>
-                    <button
-                      type="submit"
-                      class="product-action-toggle {% if product.discounted %}is-on{% endif %}"
-                      data-toggle-button
-                      data-off-label="Regular"
-                      data-on-label="Clearance"
-                      aria-pressed="{% if product.discounted %}true{% else %}false{% endif %}"
-                    >
-                      <span class="product-action-toggle__label product-action-toggle__label--off">Regular</span>
-                      <span class="product-action-toggle__label product-action-toggle__label--on">Clearance</span>
-                    </button>
-                  </form>
-
-                  <form method="post" action="{% url 'product_decommission' product.id %}" data-product-toggle-form data-toggle-field="decommissioned" style="margin-top: 8px;">
-                    {% csrf_token %}
-                    {% if request.GET.urlencode %}
-                      <input type="hidden" name="redirect_querystring" value="{{ request.GET.urlencode }}">
-                    {% endif %}
-                    <input type="hidden" name="decommissioned" value="{% if product.decommissioned %}0{% else %}1{% endif %}" data-toggle-state-input>
-                    <input type="hidden" name="force" value="true">
-                    <button
-                      type="submit"
-                      class="product-action-toggle {% if product.decommissioned %}is-on{% endif %}"
-                      data-toggle-button
-                      data-off-label="Active"
-                      data-on-label="Decommissioned"
-                      aria-pressed="{% if product.decommissioned %}true{% else %}false{% endif %}"
-                    >
-                      <span class="product-action-toggle__label product-action-toggle__label--off">Active</span>
-                      <span class="product-action-toggle__label product-action-toggle__label--on">Decommissioned</span>
-                    </button>
-                  </form>
-                </div>
-              </div>
-          </div>
-          <!-- END ACTIONS SECTION -->
-
-          </div>
-        </div>
-      </div>
+          <!-- END PRODUCT INFORMATION -->
     </div>
   </li>
 
-
+<!-- MODALS -->
 <div class="variant-panel" data-variant-panel="{{ product.id }}" aria-hidden="true">
   <div class="variant-panel__backdrop" data-variant-panel-close></div>
   <div class="variant-panel__content">
