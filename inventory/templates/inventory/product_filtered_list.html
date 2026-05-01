@@ -784,15 +784,15 @@
     <div class="col s12 m4">
       <div class="card-panel">
         <p class="grey-text text-darken-2 box-title">Items sold last year / Sales value </p>
-        <h3 class="teal-text text-darken-2">{{ sales_last_year_total }} <span class="grey-text small-text ">/ ¥{{ sales_last_year_value_total|floatformat:"0g" }}</span></h3>
+        <h3 class="teal-text">{{ sales_last_year_total }} <span class="grey-text small-text ">/ ¥{{ sales_last_year_value_total|floatformat:"0g" }}</span></h3>
 
         <div class="filter-divider"></div>
         {% if sales_category_rows %}
           <ul class="category-split-list">
             {% for row in sales_category_rows %}
               <li class="category-split-list__item">
-                <span class="category-split-list__label">{{ row.label }}</span>
-                <span class="category-split-list__value">
+                <strong>{{ row.label }}</strong>
+                <span class="secondary-content teal-text">
                   {{ row.percentage }}% / {{ row.value }} sold
                 </span>
               </li>
@@ -810,7 +810,7 @@
       <div class="card-panel">
         <p class="grey-text text-darken-2 box-title">Items in stock / Retail value</p>
 
-        <h3 class="teal-text text-darken-2">{{ filtered_inventory_total }} <span class="grey-text small-text">/ ¥{{ inventory_value_total|floatformat:"0g" }}</span></h3>
+        <h3 class="teal-text">{{ filtered_inventory_total }} <span class="grey-text small-text">/ ¥{{ inventory_value_total|floatformat:"0g" }}</span></h3>
 
 
         <div class="filter-divider"></div>
@@ -818,8 +818,8 @@
           <ul class="category-split-list">
             {% for row in category_breakdown_rows %}
               <li class="category-split-list__item">
-                <span class="category-split-list__label">{{ row.label }}</span>
-                <span class="category-split-list__value">
+                <strong>{{ row.label }}</strong>
+                <span class="secondary-content teal-text">
                   {{ row.percentage }}% / {{ row.value }} in stock
                 </span>
               </li>
@@ -835,7 +835,7 @@
     <div class="col s12 m4">
       <div class="card-panel">
         <p class="grey-text text-darken-2 box-title">Estimated replenishment order (items)</p>
-        <h3 class="teal-text text-darken-2">
+        <h3 class="teal-text">
           {{ replenishment_low }}-{{ replenishment_high }}
         </h3>
 
@@ -844,22 +844,22 @@
         <ul class="category-split-list">
           <li class="category-split-list__item">
             <strong>Stock position</strong>
-            <span class="secondary-content {% if is_understocked %}red-text text-darken-1{% else %}teal-text text-darken-2{% endif %}">
+            <span class="secondary-content {% if is_understocked %}red-text text-darken-1{% else %}blue-text{% endif %}">
               {% if is_understocked %}Understocked{% else %}Overstocked{% endif %}
               {{ stock_delta_percent_abs|floatformat:0 }}%
             </span>
           </li>
           <li class="category-split-list__item">
             <strong>Clearance </strong>
-            <span class="secondary-content teal-text text-darken-2">{{ discounted_products }} products / {{ discounted_items }} items</span>
+            <span class="secondary-content teal-text">{{ discounted_products }} products / {{ discounted_items }} items</span>
           </li>
           <li class="category-split-list__item">
             <strong>On order</strong>
-            <span class="secondary-content teal-text text-darken-2">{{ items_in_order }} items</span>
+            <span class="secondary-content teal-text">{{ items_in_order }} items</span>
           </li>
           <li class="category-split-list__item">
             <strong>In the pipeline</strong>
-            <span class="secondary-content teal-text text-darken-2">{{ pipeline_products }} products</span>
+            <span class="secondary-content teal-text">{{ pipeline_products }} products</span>
           </li>
         </ul>
       </div>
@@ -878,12 +878,10 @@
         <ul class="category-split-list">
           {% for entry in stock_age_breakdown %}
             <li class="category-split-list__item">
-              <div>
                 <strong>{{ entry.label }}</strong>
                 {% if entry.percent %}
-                  <span class="teal-text text-darken-2">{{ entry.product_count }} products  / {{ entry.percent }}% </span>
+                  <span class="secondary-content teal-text">{{ entry.product_count }} products  / {{ entry.percent }}% </span>
                 {% endif %}
-              </div>
             </li>
           {% endfor %}
         </ul>
