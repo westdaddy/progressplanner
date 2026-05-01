@@ -1768,6 +1768,18 @@ def product_order_mix_stats(request, product_id: int):
     )
     size_share_map = mix.get("shares", {})
 
+    def _norm_size(value):
+        return (value or "").strip().upper()
+
+    normalized_speed_map = {
+        _norm_size(size): float(speed or 0.0)
+        for size, speed in cohort_size_speed_map.items()
+    }
+    normalized_share_map = {
+        _norm_size(size): float(share or 0.0)
+        for size, share in size_share_map.items()
+    }
+
     payload = {
         "product_id": product.id,
         "method": mix.get("method"),
@@ -1780,8 +1792,8 @@ def product_order_mix_stats(request, product_id: int):
             {
                 "variant_id": variant.id,
                 "size": variant.size,
-                "sales_speed": float(cohort_size_speed_map.get(variant.size, 0.0) or 0.0),
-                "size_share": float(size_share_map.get(variant.size, 0.0) or 0.0),
+                "sales_speed": normalized_speed_map.get(_norm_size(variant.size), 0.0),
+                "size_share": normalized_share_map.get(_norm_size(variant.size), 0.0),
             }
             for variant in variants
         ],
@@ -4819,6 +4831,10 @@ def order_list(request):
 
 @require_POST
 def order_item_create(request):
+    next_url = (request.POST.get("next") or "").strip()
+    if not next_url.startswith("/"):
+        next_url = reverse("product_filtered")
+
     item_cost = request.POST.get("item_cost_price")
     date_expected = request.POST.get("date_expected")
     create_variants = request.POST.get("create_variants") in {"1", "true", "on", "yes"}
@@ -4844,7 +4860,7 @@ def order_item_create(request):
                 size=size,
                 primary_color=None,
             )
-        return redirect("order_list")
+        return redirect(next_url)
 
     if not item_cost or not date_expected:
         return HttpResponseBadRequest("Missing cost or expected date.")
@@ -4882,7 +4898,7 @@ def order_item_create(request):
     if not created:
         return HttpResponseBadRequest("No quantities provided.")
 
-    return redirect("order_list")
+    return redirect(next_url)
 
 
 @require_POST
