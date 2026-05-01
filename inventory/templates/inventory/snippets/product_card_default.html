@@ -21,6 +21,15 @@
                 </a>
               </span>
               ({{ product.product_id }})
+              {% if product.pending_order %}
+                ·
+                <a
+                  href="#"
+                  data-open-pending-order-modal="pending-order-modal-{{ product.id }}"
+                >
+                  View Order
+                </a>
+              {% endif %}
               <!-- Variant Stock Dots -->
               <p class="variant-stock">
                 {% for variant in product.variants_with_inventory %}
@@ -132,5 +141,40 @@
         </div>
       </div>
     </li>
+    {% if product.pending_order %}
+      <div id="pending-order-modal-{{ product.id }}" class="modal">
+        <div class="modal-content">
+          <h5>{{ product.product_name }} ({{ product.product_id }})</h5>
+          <p>
+            <strong>Order:</strong>
+            {% if product.pending_order.order_id %}
+              <a href="{% url 'order_detail' product.pending_order.order_id %}">#{{ product.pending_order.order_id }}</a>
+            {% else %}
+              Unassigned
+            {% endif %}
+          </p>
+          <p><strong>Undelivered qty:</strong> {{ product.pending_order.total_quantity|default:0 }}</p>
+          <p><strong>Estimated arrival:</strong> {{ product.pending_order.expected_date|date:"M j, Y"|default:"—" }}</p>
+        </div>
+        <div class="modal-footer">
+          <a href="#!" class="modal-close waves-effect waves-green btn-flat">Close</a>
+        </div>
+      </div>
+    {% endif %}
   {% endfor %}
 </ul>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-open-pending-order-modal]').forEach((link) => {
+      link.addEventListener('click', function (event) {
+        event.preventDefault();
+        const modalId = link.getAttribute('data-open-pending-order-modal');
+        const modalElement = document.getElementById(modalId);
+        if (!modalElement) return;
+        const instance = M.Modal.getInstance(modalElement) || M.Modal.init(modalElement);
+        instance.open();
+      });
+    });
+  });
+</script>
