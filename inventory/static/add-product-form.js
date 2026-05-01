@@ -26,6 +26,10 @@ document.addEventListener('DOMContentLoaded', function () {
   const photoDropzone = document.getElementById('product-photo-dropzone');
   const photoFilename = document.getElementById('product-photo-filename');
 
+  if (!form || !stepLabel || !nextBtn || !backBtn || !saveBtn) {
+    return;
+  }
+
   let step = 1;
 
   const selectElements = form.querySelectorAll('select');
@@ -68,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const setStep = (nextStep) => {
     step = Math.max(1, Math.min(3, nextStep));
     steps.forEach((panel, index) => panel.classList.toggle('is-active', index === step - 1));
-    stepLabel.textContent = `Step ${step} of 3`;
+    if (stepLabel) stepLabel.textContent = `Step ${step} of 3`;
     backBtn.disabled = step === 1;
     nextBtn.hidden = step === 3;
     saveBtn.hidden = step !== 3;
