@@ -94,6 +94,40 @@
                     <span class="signal-muted">|</span>
                     av. discount {{ product.average_discount_percentage|floatformat:0|default_if_none:"-" }}%
                   </p>
+                  {% if not product.no_restock %}
+                    <p class="signal-line" style="margin-top: 6px;">
+                      <button
+                        type="button"
+                        class="btn-flat"
+                        data-open-order-modal="order-modal-{{ product.id }}"
+                        data-order-mode="create"
+                      >
+                        Create reorder
+                      </button>
+                      {% if product.pending_order %}
+                        <span class="signal-muted">|</span>
+                        <button
+                          type="button"
+                          class="btn-flat"
+                          data-open-order-modal="order-modal-{{ product.id }}"
+                          data-order-mode="pending"
+                        >
+                          View order
+                        </button>
+                      {% endif %}
+                    </p>
+                  {% elif product.pending_order %}
+                    <p class="signal-line" style="margin-top: 6px;">
+                      <button
+                        type="button"
+                        class="btn-flat"
+                        data-open-order-modal="order-modal-{{ product.id }}"
+                        data-order-mode="pending"
+                      >
+                        View order
+                      </button>
+                    </p>
+                  {% endif %}
                 {% elif product.is_on_order_no_sales %}
                   <hr/>
                   <p class="signal-line">
