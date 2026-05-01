@@ -4819,6 +4819,10 @@ def order_list(request):
 
 @require_POST
 def order_item_create(request):
+    next_url = (request.POST.get("next") or "").strip()
+    if not next_url.startswith("/"):
+        next_url = reverse("product_filtered")
+
     item_cost = request.POST.get("item_cost_price")
     date_expected = request.POST.get("date_expected")
     create_variants = request.POST.get("create_variants") in {"1", "true", "on", "yes"}
@@ -4844,7 +4848,7 @@ def order_item_create(request):
                 size=size,
                 primary_color=None,
             )
-        return redirect("order_list")
+        return redirect(next_url)
 
     if not item_cost or not date_expected:
         return HttpResponseBadRequest("Missing cost or expected date.")
@@ -4882,7 +4886,7 @@ def order_item_create(request):
     if not created:
         return HttpResponseBadRequest("No quantities provided.")
 
-    return redirect("order_list")
+    return redirect(next_url)
 
 
 @require_POST

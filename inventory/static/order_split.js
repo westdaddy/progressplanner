@@ -57,8 +57,20 @@
     });
   };
 
+  const syncTotalFromVariantInputs = (modal) => {
+    if (!modal) return;
+    const totalInput = modal.querySelector('[data-total-order-input]');
+    if (!totalInput) return;
+    const total = Array.from(modal.querySelectorAll('[data-order-qty-input]')).reduce((sum, input) => {
+      const value = parseInt(input.value, 10);
+      return sum + (Number.isFinite(value) && value > 0 ? value : 0);
+    }, 0);
+    totalInput.value = total > 0 ? String(total) : '';
+  };
+
   window.ProgressPlannerOrderSplit = {
     computeSplit,
     applyIdealSplitToModal,
+    syncTotalFromVariantInputs,
   };
 })(window);

@@ -246,6 +246,7 @@
       <form method="post" action="{% url 'order_item_create' %}" class="product-order-form" data-order-form data-create-action="{% url 'order_item_create' %}" style="width: 100%;">
         {% csrf_token %}
         <input type="hidden" name="product_id" value="{{ product.id }}">
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
         <div class="product-order-modal__table">
           <div class="product-order-modal__product-head">
             <div>

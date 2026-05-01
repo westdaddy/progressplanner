@@ -2012,6 +2012,13 @@
         if (totalInput) {
           totalInput.addEventListener('input', () => updateOrderSplit(modal));
         }
+
+        modal.querySelectorAll('[data-order-qty-input]').forEach((input) => {
+          input.addEventListener('input', () => {
+            if (!window.ProgressPlannerOrderSplit) return;
+            window.ProgressPlannerOrderSplit.syncTotalFromVariantInputs(modal);
+          });
+        });
       });
 
       if (!dataPoints || !dataPoints.length || !document.getElementById('quarterlySalesChart')) {
