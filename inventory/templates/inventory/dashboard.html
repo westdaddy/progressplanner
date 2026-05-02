@@ -4,10 +4,11 @@
 
 {% block content %}
 
-<div class="section">
+<div class="dashboard-modern">
+<div class="section dashboard-modern__section">
   <h2>Sales Funnel by Category</h2>
   <p>Categories show current stock, sales last month, average monthly sales (over 12 and 3 months), and items on order.</p>
-  <table class="highlight striped">
+  <table class="highlight striped dashboard-modern__table">
     <thead>
       <tr>
         <th>Category</th>
@@ -35,10 +36,10 @@
 
 
 
-<div class="section">
+<div class="section dashboard-modern__section">
     <h2>Sales Funnel by Category</h2>
     <p>Comparing last month's sales, average monthly sales (over the last 3 months), and current stock by category.</p>
-    <table class="highlight striped dashboard-table">
+    <table class="highlight striped dashboard-table dashboard-modern__table dashboard-modern__table--expandable">
         <thead>
             <tr>
                 <th style="width: 40px;"></th>  {# Column for the toggle icon #}
@@ -96,14 +97,15 @@
 </div>
 
 
-<div class="section">
+<div class="section dashboard-modern__section">
     <h2>Stock Levels Projection</h2>
+    <p>Projected inventory trends by category with a high-contrast line overlay for total stock.</p>
 
-    <!-- Graph -->
-    <div>
+    <div class="dashboard-modern__chart-wrap">
         <canvas id="stockProjectionChart"></canvas>
     </div>
-
+</div>
+</div>
 
 {% endblock %}
 
@@ -118,9 +120,13 @@
             datasets: [{
                 label: "Projected Total Stock",
                 data: JSON.parse('{{ stock_levels|escapejs }}'),
-                borderColor: "rgba(75, 192, 192, 1)",
-                backgroundColor: "rgba(75, 192, 192, 0.2)",
-                borderWidth: 2,
+                borderColor: "#334155",
+                backgroundColor: "rgba(51, 65, 85, 0.12)",
+                pointBackgroundColor: "#0ea5e9",
+                pointBorderColor: "#ffffff",
+                pointHoverRadius: 6,
+                tension: 0.35,
+                borderWidth: 3,
                 type: "line",
                 fill: false
             }]
@@ -130,11 +136,13 @@
         stackedBarData.datasets.forEach(dataset => {
             dataset.type = "bar";
             dataset.backgroundColor = [
-                "rgba(255, 99, 132, 0.6)",  // nogi
-                "rgba(54, 162, 235, 0.6)",  // gi
-                "rgba(255, 206, 86, 0.6)",  // apparel
-                "rgba(75, 192, 192, 0.6)"   // accessories
-            ][stackedBarData.datasets.indexOf(dataset)]; // Assign different colors
+                "rgba(99, 102, 241, 0.7)",
+                "rgba(16, 185, 129, 0.7)",
+                "rgba(245, 158, 11, 0.72)",
+                "rgba(236, 72, 153, 0.68)"
+            ][stackedBarData.datasets.indexOf(dataset)];
+            dataset.borderRadius = 8;
+            dataset.borderSkipped = false;
             dataset.stack = "stack";
         });
 
@@ -148,15 +156,41 @@
             data: combinedData,
             options: {
                 responsive: true,
+                interaction: {
+                    mode: "index",
+                    intersect: false
+                },
                 plugins: {
                     title: {
                         display: true,
-                        text: "Projected Stock Levels (Total + Product Category Breakdown)"
+                        text: "Projected Stock Levels (Total + Product Category Breakdown)",
+                        color: "#0f172a",
+                        font: { size: 16, weight: "600" },
+                        padding: { bottom: 18 }
+                    },
+                    legend: {
+                        labels: {
+                            color: "#334155",
+                            usePointStyle: true,
+                            boxWidth: 12,
+                            boxHeight: 12
+                        }
                     }
                 },
                 scales: {
-                    x: { stacked: true, title: { display: true, text: "Months" } },
-                    y: { stacked: true, title: { display: true, text: "Stock Levels" }, beginAtZero: true }
+                    x: {
+                        stacked: true,
+                        title: { display: true, text: "Months", color: "#475569" },
+                        ticks: { color: "#64748b" },
+                        grid: { color: "rgba(148, 163, 184, 0.18)" }
+                    },
+                    y: {
+                        stacked: true,
+                        title: { display: true, text: "Stock Levels", color: "#475569" },
+                        ticks: { color: "#64748b" },
+                        grid: { color: "rgba(148, 163, 184, 0.2)" },
+                        beginAtZero: true
+                    }
                 }
             }
         });
