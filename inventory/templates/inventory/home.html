@@ -5,7 +5,7 @@
 {% block content %}
 
 
-<div class="products-page-header">
+<div class="products-page-header home-modern__header">
   <h3 class="page-title">Dashboard</h3>
   <div class="month-chooser" aria-label="Selected month">
     <a href="#" id="prevMonth" class="month-arrow month-chooser__arrow" aria-label="Previous month">
@@ -18,17 +18,17 @@
   </div>
 </div>
 
-<div class="filter-divider"></div>
+<div class="filter-divider home-modern__divider"></div>
 
-  <div class="row">
+  <div class="row home-modern">
 
     <!-- SALES LINE CHART -->
     <div class="col s12">
-        <p class="grey-text text-darken-2 box-title large">Sales Revenue (12 months)</p>
+        <p class="box-title large home-modern__chart-title">Sales Revenue (12 months)</p>
 
           <!-- Top: Line Chart with colored background -->
-          <div class="card-content">
-            <div>
+          <div class="card-content home-modern__chart-card">
+            <div class="home-modern__chart-shell">
               <span></span>
               <canvas id="monthlySalesChart" style="width: 100%; height: 350px;"></canvas>
             </div>
@@ -38,19 +38,19 @@
 
     <!-- SALES STATISTICS SECTION -->
     <div class="col s12 m4">
-      <div class="card-panel" style="padding: 0; overflow: hidden;">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto;">
-          <div class="green lighten-2 white-text center-align" style="padding: 35px;">
-            <span class="green-text text-darken-2" style="font-size: 1rem; font-weight: 300;">Gross Sales</span>
-            <h5 id="totalSales" class="green-text text-lighten-4" style="margin: 0; font-weight: 500;">¥{{ total_sales|floatformat:0 }}</h5>
+      <div class="card-panel home-modern__stats-panel">
+        <div class="home-modern__stats-grid">
+          <div class="home-modern__stat-block home-modern__stat-block--gross">
+            <span class="home-modern__stat-label">Gross Sales</span>
+            <h5 id="totalSales" class="home-modern__stat-value">¥{{ total_sales|floatformat:0 }}</h5>
           </div>
-          <div class="red lighten-2 white-text center-align" style="padding: 35px;">
-            <span class="red-text text-darken-2" style="font-size: 1rem; font-weight: 300;">Returns</span>
-            <h5 id="totalReturns" class="red-text text-lighten-4" style="margin: 0 0; font-weight: 500;">¥{{ total_returns|floatformat:0 }}</h5>
+          <div class="home-modern__stat-block home-modern__stat-block--returns">
+            <span class="home-modern__stat-label">Returns</span>
+            <h5 id="totalReturns" class="home-modern__stat-value">¥{{ total_returns|floatformat:0 }}</h5>
           </div>
-          <div class="blue lighten-2 white-text center-align" style="padding: 30px 35px 40px; grid-column: 1 / span 2;">
-            <span class="blue-text text-darken-2" style="font-size: 1rem; font-weight: 300;">Net Sales</span>
-            <h5 id="netSales" style="margin: 0 0; font-weight: 500; font-size: 2rem;">¥{{ net_sales|floatformat:0 }}</h5>
+          <div class="home-modern__stat-block home-modern__stat-block--net">
+            <span class="home-modern__stat-label">Net Sales</span>
+            <h5 id="netSales" class="home-modern__stat-value home-modern__stat-value--net">¥{{ net_sales|floatformat:0 }}</h5>
           </div>
         </div>
       </div>
@@ -58,15 +58,15 @@
 
     <!-- INVENTORY SECTION -->
     <div class="col s12 m4">
-      <div class="card teal lighten-2 z-depth-1">
+      <div class="card home-modern__info-card home-modern__info-card--inventory z-depth-1">
         <div class="card-content white-text center-align">
-          <span class="teal-text text-darken-4" style="font-size: 1.1rem; font-weight: 600;">Inventory</span>
+          <span class="home-modern__info-title">Inventory</span>
           <h5 id="inventoryCount" style="margin: 0px; font-weight: 500;">{{ inventory_count }} items</h5>
           <span id="inventoryValue" class="details teal-text text-darken-2">cost value ¥{{ inventory_value|floatformat:0 }}</span><br/>
           <span id="onPaperValue" class="details green-text text-darken-2">on paper value ¥{{ on_paper_value|floatformat:0 }}</span><br/>
           <span id="estimatedInventorySalesValue" class="details pink-text text-darken-2">estimated sales value ¥{{ estimated_inventory_sales_value|floatformat:0 }}</span>
       </div>
-      <div class="teal darken-1 center-align" style="padding: 8px;">
+      <div class="home-modern__info-footer center-align">
         <a href="{% url 'inventory_snapshots' %}"
            class="white-text"
            style="font-weight:500;">
@@ -77,17 +77,17 @@
   </div>
 
   <div class="col s12 m4">
-    <div class="card pink lighten-2 z-depth-1">
+      <div class="card home-modern__info-card home-modern__info-card--orders z-depth-1">
 
       <div class="card-content white-text center-align">
-        <span class="pink-text text-darken-4" style="font-size: 1.1rem; font-weight: 600;">On Order</span>
+        <span class="home-modern__info-title">On Order</span>
         <h5 id="onOrderCount" style="margin: 0px; font-weight: 500;">{{ on_order_count }} items</h5>
         <span id="onOrderValue" class="details pink-text text-darken-2">cost value ¥{{ on_order_value|floatformat:0 }}</span><br/>
         <span id="onOrderPaperValue" class="details green-text text-darken-2">on paper value ¥{{ on_order_on_paper_value|floatformat:0 }}</span><br/>
         <span id="estimatedOnOrderSalesValue" class="details teal-text text-darken-2">estimated sales value ¥{{ estimated_on_order_sales_value|floatformat:0 }}</span>
       </div>
 
-      <div class="pink darken-1 center-align" style="padding: 8px;">
+      <div class="home-modern__info-footer center-align">
         <a href="{% url 'order_list' %}"
            class="white-text"
            style="font-weight:500;">
@@ -159,12 +159,12 @@ document.addEventListener("DOMContentLoaded", function () {
         {
           label: "Sales per Month (Value)",
           data: JSON.parse('{{ monthly_sales|escapejs }}'),
-          backgroundColor: "rgba(190, 251, 244, 0.2)",
-          borderColor: "rgba(190, 251, 244, 1)",
-          borderWidth: 2,
+          backgroundColor: "rgba(56, 189, 248, 0.18)",
+          borderColor: "#0ea5e9",
+          borderWidth: 3,
           fill: true,
           tension: 0.3,
-          pointBackgroundColor: "rgba(75, 192, 192, 1)",
+          pointBackgroundColor: "#0284c7",
           pointBorderColor: "#fff",
           pointRadius: 4,
           pointHoverRadius: 6
@@ -173,12 +173,12 @@ document.addEventListener("DOMContentLoaded", function () {
           label: "Sales Last Year",
           data: JSON.parse('{{ monthly_sales_last_year|escapejs }}'),
           backgroundColor: "rgba(255, 255, 255, 0)",  // no fill
-          borderColor: "rgba(255, 255, 255, 0.5)",
+          borderColor: "rgba(100, 116, 139, 0.65)",
           borderWidth: 2,
           fill: false,
           tension: 0.3,
           borderDash: [5, 5],
-          pointBackgroundColor: "rgba(255, 255, 255, 0.5)",
+          pointBackgroundColor: "rgba(100, 116, 139, 0.65)",
           pointBorderColor: "#fff",
           pointRadius: 3,
           pointHoverRadius: 5
@@ -190,7 +190,7 @@ document.addEventListener("DOMContentLoaded", function () {
       plugins: {
         legend: {
           display: true,
-          labels: { color: 'white' }
+          labels: { color: '#334155' }
         },
         title: {
           display: false,
@@ -207,17 +207,20 @@ document.addEventListener("DOMContentLoaded", function () {
       },
       scales: {
         x: {
-          ticks: { color: 'white' },
-          title: { display: false, text: 'Month', color: 'white' }
+          ticks: { color: '#64748b' },
+          grid: { display: false },
+          title: { display: false, text: 'Month', color: '#475569' }
         },
         y: {
           ticks: {
-            color: 'white',
+            display: false,
+            color: '#64748b',
             callback: function(value, index, values) {
               return value >= 1000 ? (value / 1000) + 'k' : value;
             }
           },
-          title: { display: false, text: 'Sales Value (¥)', color: 'white' },
+          grid: { color: 'rgba(148, 163, 184, 0.2)' },
+          title: { display: false, text: 'Sales Value (¥)', color: '#475569' },
           beginAtZero: true
         }
       }
