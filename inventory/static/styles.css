@@ -2545,3 +2545,75 @@ p.box-title.large {
 .dashboard-modern__chart-wrap canvas {
   max-height: 480px;
 }
+
+/* HOME DASHBOARD MODERN REFRESH */
+.home-modern__chart-title {
+  color: #0f172a;
+  font-size: 1.75rem;
+  letter-spacing: -0.02em;
+}
+
+.home-modern__chart-card {
+  background: linear-gradient(160deg, #ffffff, #f8fbff);
+  border: 1px solid #dbeafe;
+  border-radius: 20px;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+  padding: 1rem;
+}
+
+.home-modern__chart-shell {
+  background: radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 42%);
+  border-radius: 14px;
+  padding: 0.75rem;
+}
+
+.home-modern__stats-panel {
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+  padding: 0;
+}
+
+.home-modern__stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.home-modern__stat-block {
+  padding: 1.8rem;
+  text-align: center;
+}
+
+.home-modern__stat-block--gross { background: linear-gradient(145deg, #bbf7d0, #86efac); }
+.home-modern__stat-block--returns { background: linear-gradient(145deg, #fecaca, #fca5a5); }
+.home-modern__stat-block--net { background: linear-gradient(145deg, #bfdbfe, #93c5fd); grid-column: 1 / span 2; }
+
+.home-modern__stat-label { color: #334155; font-size: 1rem; }
+.home-modern__stat-value { color: #0f172a; font-weight: 600; margin: 0.2rem 0 0; }
+.home-modern__stat-value--net { font-size: 2rem; }
+
+.home-modern__info-card {
+  border-radius: 18px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
+  overflow: hidden;
+}
+
+.home-modern__info-card--inventory {
+  background: linear-gradient(165deg, #2dd4bf, #14b8a6);
+}
+
+.home-modern__info-card--orders {
+  background: linear-gradient(165deg, #f472b6, #ec4899);
+}
+
+.home-modern__info-title {
+  color: #0f172a;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.home-modern__info-footer {
+  background: rgba(15, 23, 42, 0.2);
+  padding: 10px;
+}
