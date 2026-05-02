@@ -211,11 +211,12 @@ document.addEventListener("DOMContentLoaded", function () {
       scales: {
         x: {
           ticks: { color: '#64748b' },
-          grid: { color: 'rgba(148, 163, 184, 0.18)' },
+          grid: { display: false },
           title: { display: false, text: 'Month', color: '#475569' }
         },
         y: {
           ticks: {
+            display: false,
             color: '#64748b',
             callback: function(value, index, values) {
               return value >= 1000 ? (value / 1000) + 'k' : value;
