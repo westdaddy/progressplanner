@@ -23,7 +23,7 @@
   <div class="row home-modern">
 
     <!-- SALES LINE CHART -->
-    <div class="col s12 m12 l9">
+    <div class="col s12">
         <p class="box-title large home-modern__chart-title">Sales Revenue (12 months)</p>
 
           <!-- Top: Line Chart with colored background -->
@@ -194,10 +194,14 @@ document.addEventListener("DOMContentLoaded", function () {
     },
     options: {
       responsive: true,
+      layout: {
+        padding: {
+          left: 0
+        }
+      },
       plugins: {
         legend: {
-          display: true,
-          labels: { color: '#334155' }
+          display: false
         },
         title: {
           display: false,
@@ -214,6 +218,7 @@ document.addEventListener("DOMContentLoaded", function () {
       },
       scales: {
         x: {
+          offset: false,
           ticks: { color: '#64748b' },
           grid: { display: false },
           title: { display: false, text: 'Month', color: '#475569' }
@@ -226,7 +231,8 @@ document.addEventListener("DOMContentLoaded", function () {
               return value >= 1000 ? (value / 1000) + 'k' : value;
             }
           },
-          grid: { color: 'rgba(148, 163, 184, 0.2)' },
+          border: { display: false },
+          grid: { color: 'rgba(148, 163, 184, 0.2)', drawTicks: false },
           title: { display: false, text: 'Sales Value (¥)', color: '#475569' },
           beginAtZero: true
         }
