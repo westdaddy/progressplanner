@@ -21,102 +21,56 @@
 <div class="filter-divider home-modern__divider"></div>
 
   <div class="row home-modern">
+    <div class="col l12">
+      <div class="card-panel">
+        <div class="row">
+          <div class="col s12 m12 l4">
+            <p class="box-title large home-modern__chart-title">Sales Revenue (12 months)</p>
+            <p class="small-text grey-text darken-3">Some explanatory content goes here</p>
+          </div>
 
-    <!-- SALES LINE CHART -->
-    <div class="col s12">
-        <p class="box-title large home-modern__chart-title">Sales Revenue (12 months)</p>
-
-          <!-- Top: Line Chart with colored background -->
-          <div class="card-content home-modern__chart-card">
-            <div class="home-modern__chart-shell">
-              <span></span>
-              <canvas id="monthlySalesChart" style="width: 100%; height: 450px;"></canvas>
+          <!-- SALES STATISTICS SECTION -->
+          <div class="col s12 m12 l8">
+            <div class="row">
+              <div class="col l8 right-align">
+                <span id="netSales" class="big-number teal-text text-lighten-2">¥{{ net_sales|floatformat:0 }}</span>
+              </div>
+              <div class="col l4 left-align">
+                <div  class="center-vertically"><span id="totalSales">¥{{ total_sales|floatformat:0 }} </span>  gross sales</div>
+                <div class="filter-divider"></div>
+                <div class="center-vertically"><span id="totalReturns">¥{{ total_returns|floatformat:0 }} </span>  returns</div>
+              </div>
             </div>
           </div>
-      </div>
-    </div>
 
-    <div class="col s12 m12 l3">
-
-    </div>
-
-    <div class="filter-divider"></div>
-
-
-    <!-- SALES STATISTICS SECTION -->
-    <div class="col s12 m4">
-      <div class="card-panel home-modern__stats-panel">
-        <div class="home-modern__stats-grid">
-          <div class="home-modern__stat-block home-modern__stat-block--gross">
-            <span class="home-modern__stat-label">Gross Sales</span>
-            <h5 id="totalSales" class="home-modern__stat-value">¥{{ total_sales|floatformat:0 }}</h5>
-          </div>
-          <div class="home-modern__stat-block home-modern__stat-block--returns">
-            <span class="home-modern__stat-label">Returns</span>
-            <h5 id="totalReturns" class="home-modern__stat-value">¥{{ total_returns|floatformat:0 }}</h5>
-          </div>
-          <div class="home-modern__stat-block home-modern__stat-block--net">
-            <span class="home-modern__stat-label">Net Sales</span>
-            <h5 id="netSales" class="home-modern__stat-value home-modern__stat-value--net">¥{{ net_sales|floatformat:0 }}</h5>
+          <!-- SALES LINE CHART -->
+          <div class="col s12 m12 l12">
+              <!-- Top: Line Chart with colored background -->
+              <div class="card-content home-modern__chart-card">
+                <div class="home-modern__chart-shell">
+                  <span></span>
+                  <canvas id="monthlySalesChart" style="width: 95%; height: 350px;"></canvas>
+                </div>
+              </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- INVENTORY SECTION -->
-    <div class="col s12 m4">
-      <div class="card home-modern__info-card home-modern__info-card--inventory z-depth-1">
-        <div class="card-content white-text center-align">
-          <span class="home-modern__info-title">Inventory</span>
-          <h5 id="inventoryCount" style="margin: 0px; font-weight: 500;">{{ inventory_count }} items</h5>
-          <span id="inventoryValue" class="details teal-text text-darken-2">cost value ¥{{ inventory_value|floatformat:0 }}</span><br/>
-          <span id="onPaperValue" class="details green-text text-darken-2">on paper value ¥{{ on_paper_value|floatformat:0 }}</span><br/>
-          <span id="estimatedInventorySalesValue" class="details pink-text text-darken-2">estimated sales value ¥{{ estimated_inventory_sales_value|floatformat:0 }}</span>
-      </div>
-      <div class="home-modern__info-footer center-align">
-        <a href="{% url 'inventory_snapshots' %}"
-           class="white-text"
-           style="font-weight:500;">
-          View Inventory
-        </a>
-      </div>
-    </div>
   </div>
 
-  <div class="col s12 m4">
-      <div class="card home-modern__info-card home-modern__info-card--orders z-depth-1">
 
-      <div class="card-content white-text center-align">
-        <span class="home-modern__info-title">On Order</span>
-        <h5 id="onOrderCount" style="margin: 0px; font-weight: 500;">{{ on_order_count }} items</h5>
-        <span id="onOrderValue" class="details pink-text text-darken-2">cost value ¥{{ on_order_value|floatformat:0 }}</span><br/>
-        <span id="onOrderPaperValue" class="details green-text text-darken-2">on paper value ¥{{ on_order_on_paper_value|floatformat:0 }}</span><br/>
-        <span id="estimatedOnOrderSalesValue" class="details teal-text text-darken-2">estimated sales value ¥{{ estimated_on_order_sales_value|floatformat:0 }}</span>
-      </div>
-
-      <div class="home-modern__info-footer center-align">
-        <a href="{% url 'order_list' %}"
-           class="white-text"
-           style="font-weight:500;">
-          View Orders
-        </a>
-      </div>
-
-    </div>
-  </div>
-</div>
-
-<div class="row">
+  <div class="row">
 
     <!-- CATEGORY BREAKDOWN SECTION -->
-    <div class="col s12 m8">
+    <div class="col s12 m6 l6">
       <div id="sales-info-card" class="card z-depth-2" style="overflow: hidden; position: relative;">
         <div class="card-content white">
           <h6 id="salesMonthLabel" class="center-align">{{ current_month_name }}</h6>
           <div class="row" style="margin: 0;">
             <div class="col s12 m6">
-              <div style="position: relative; width: 150px; height: 150px; margin: 0 auto;">
-                <canvas id="categoryDonutChart" width="150" height="150"></canvas>
+              <div style="position: relative; width: 200px; height: 200px; margin: 0 auto;">
+                <canvas id="categoryDonutChart" width="200" height="200"></canvas>
                 <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
                   <span id="totalItemsSold" style="font-size: 1.4rem; font-weight: bold;">{{ total_items_sold }}</span><br>
                   <span style="font-size: 0.9rem;">Items Sold</span>
@@ -136,6 +90,36 @@
       </div>
     </div>
 
+    <div class="col l6">
+      <div class="row">
+
+        <!-- INVENTORY SECTION -->
+        <div class="col s12 m12 l12">
+          <div class="card">
+            <p class="grey-text text-darken-2 box-title">In stock</p>
+              <h5 id="inventoryCount" style="margin: 0px; font-weight: 500;">{{ inventory_count }} items</h5>
+              <span id="inventoryValue" class="details teal-text text-darken-2">cost value ¥{{ inventory_value|floatformat:0 }}</span><br/>
+              <span id="onPaperValue" class="details green-text text-darken-2">on paper value ¥{{ on_paper_value|floatformat:0 }}</span><br/>
+              <span id="estimatedInventorySalesValue" class="details pink-text text-darken-2">estimated sales value ¥{{ estimated_inventory_sales_value|floatformat:0 }}</span>
+          </div>
+        </div>
+
+        <div class="col s12 m12 l12">
+          <div class="card">
+              <p class="grey-text text-darken-2 box-title">On order</p>
+              <h5 id="onOrderCount" style="margin: 0px; font-weight: 500;">{{ on_order_count }} items</h5>
+              <span id="onOrderValue" class="details pink-text text-darken-2">cost value ¥{{ on_order_value|floatformat:0 }}</span><br/>
+              <span id="onOrderPaperValue" class="details green-text text-darken-2">on paper value ¥{{ on_order_on_paper_value|floatformat:0 }}</span><br/>
+              <span id="estimatedOnOrderSalesValue" class="details teal-text text-darken-2">estimated sales value ¥{{ estimated_on_order_sales_value|floatformat:0 }}</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+</div>
+
+<div class="row">
 
     <!-- INVENTORY SECTION -->
     <p id="snapshotWarning" class="red-text center-align" style="{% if not snapshot_warning %}display:none;{% endif %}">

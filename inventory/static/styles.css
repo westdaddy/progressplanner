@@ -1990,6 +1990,13 @@ span.small-text {
   font-size: 0.7em;
 }
 
+span.big-number {
+  font-weight: 300;
+  font-size: 4rem;
+  padding: 10px 30px 10px 0;
+  border-right: 1px solid #e1e1e1;
+}
+
 .card-title span.small, h3 span.small {
   font-size:0.8em;
 }
@@ -2547,6 +2554,7 @@ p.box-title.large {
 }
 
 /* HOME DASHBOARD MODERN REFRESH */
+
 .home-modern__chart-title {
   color: #0f172a;
   font-size: 1.75rem;
@@ -2555,7 +2563,7 @@ p.box-title.large {
 
 .home-modern__chart-card {
   padding: 0rem;
-  margin: 0 0 50px 0
+  margin: 0 0 0px 0
 }
 
 .home-modern__chart-shell {
@@ -2592,14 +2600,6 @@ p.box-title.large {
   border-radius: 18px;
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
   overflow: hidden;
-}
-
-.home-modern__info-card--inventory {
-  background: linear-gradient(165deg, #2dd4bf, #14b8a6);
-}
-
-.home-modern__info-card--orders {
-  background: linear-gradient(165deg, #f472b6, #ec4899);
 }
 
 .home-modern__info-title {
