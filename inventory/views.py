@@ -630,11 +630,12 @@ def home(request):
     # — Determining current month's date range —
     today = date.today()
     first_day_current = today.replace(day=1)
-    end_of_month = (first_day_current + relativedelta(months=1)) - timedelta(days=1)
+    first_day_latest_full_month = first_day_current - relativedelta(months=1)
+    end_of_month = (first_day_latest_full_month + relativedelta(months=1)) - timedelta(days=1)
 
-    # — Sales for current month —
+    # — Sales for latest full month —
     sales_this_month = Sale.objects.filter(
-        date__range=(first_day_current, end_of_month)
+        date__range=(first_day_latest_full_month, end_of_month)
     )
 
     # — Aggregate item counts by category —
@@ -677,8 +678,8 @@ def home(request):
         monthly_sales.append(float(rev))
         monthly_sales_last_year.append(float(rev_last))
 
-    current_month_name = first_day_current.strftime("%B %Y")
-    current_month_slug = first_day_current.strftime("%Y-%m")
+    current_month_name = first_day_latest_full_month.strftime("%B %Y")
+    current_month_slug = first_day_latest_full_month.strftime("%Y-%m")
 
     # — Summary card totals —
     total_sales = (
