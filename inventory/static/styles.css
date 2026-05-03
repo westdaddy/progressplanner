@@ -970,7 +970,7 @@ margin-bottom: 5px;
 
 .filter-divider {
   border-bottom: 1px solid #e0e0e0;
-  margin: 12px 0 30px;
+  margin: 12px 0;
   padding-bottom: 8px;
 }
 
@@ -1993,8 +1993,6 @@ span.small-text {
 span.big-number {
   font-weight: 300;
   font-size: 4rem;
-  padding: 10px 30px 10px 0;
-  border-right: 1px solid #e1e1e1;
 }
 
 .card-title span.small, h3 span.small {
@@ -2552,6 +2550,57 @@ p.box-title.large {
 .dashboard-modern__chart-wrap canvas {
   max-height: 480px;
 }
+
+
+
+    .category-split-list {
+      list-style: none;
+      margin: 0 0 10px;
+      padding: 0;
+    }
+
+    .category-split-list__item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+      border: none;
+      background: transparent;
+      border-bottom: 1px solid #eceff1;
+      padding: 8px 0;
+      text-align: left;
+    }
+
+    .category-split-list__item:last-child {
+      border-bottom: none;
+    }
+
+    .category-split-list__item.is-clickable {
+      cursor: pointer;
+    }
+
+    .category-split-list__item.is-clickable:hover .category-split-list__label {
+      text-decoration: underline;
+      color: #0277bd;
+    }
+
+    .category-split-list__label {
+      color: #37474f;
+      font-weight: 600;
+    }
+
+    .category-split-list__value {
+      color: #00695c;
+      text-align: right;
+    }
+
+    .category-split-list__count {
+      display: block;
+      color: #607d8b;
+      font-weight: 500;
+      font-size: 12px;
+    }
 
 /* HOME DASHBOARD MODERN REFRESH */
 

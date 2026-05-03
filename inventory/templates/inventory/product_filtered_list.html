@@ -380,50 +380,6 @@
       color: #78909c;
     }
 
-    .category-split-list {
-      list-style: none;
-      margin: 0 0 10px;
-      padding: 0;
-    }
-
-    .category-split-list__item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      width: 100%;
-      border: none;
-      background: transparent;
-      border-bottom: 1px solid #eceff1;
-      padding: 8px 0;
-      text-align: left;
-    }
-
-    .category-split-list__item.is-clickable {
-      cursor: pointer;
-    }
-
-    .category-split-list__item.is-clickable:hover .category-split-list__label {
-      text-decoration: underline;
-      color: #0277bd;
-    }
-
-    .category-split-list__label {
-      color: #37474f;
-      font-weight: 600;
-    }
-
-    .category-split-list__value {
-      color: #00695c;
-      text-align: right;
-    }
-
-    .category-split-list__count {
-      display: block;
-      color: #607d8b;
-      font-weight: 500;
-      font-size: 12px;
-    }
 
     .product-order-modal {
       display: none;
@@ -476,10 +432,17 @@
   </style>
   {% if filter_controls %}
 
-  <div class="products-page-header">
-    <h3 class="page-title">Products <span class="filter-showing small-text grey-text"> / {{ showing_summary }}</span></h3>
-    <a class="btn btn-compact add-product-trigger modal-trigger" href="#add-product-modal">Add Product</a>
+  <div class="row">
+    <div class="col l10">
+      <h3 class="page-title">Products <span class="filter-showing small-text grey-text"> / {{ showing_summary }}</span></h3>
+    </div>
+    <div class="col l2 right-align">
+      <a class="btn btn-compact add-product-trigger modal-trigger" href="#add-product-modal">Add Product</a>
+    </div>
+
   </div>
+
+  <div class="filter-divider"></div>
 
   {% if request.GET.add_product_success %}
     <div class="card-panel green lighten-5 green-text text-darken-3">Product saved successfully.</div>
@@ -487,7 +450,6 @@
     <div class="card-panel red lighten-5 red-text text-darken-3">Could not save product. Please check the required fields and Product ID.</div>
   {% endif %}
 
-  <div class="filter-divider"></div>
 
     <form method="get" class="filter-bar__form">
       {% if search_query %}
@@ -593,14 +555,16 @@
         {% endfor %}
 
       </div>
-      <div class="filter-section-header" hidden data-filter-apply-container>
+
+      <div class="card-panel">
         <button type="submit" class="btn filter-apply-button" disabled>
           Apply
         </button>
       </div>
-      <div class="filter-divider"></div>
     </form>
   {% endif %}
+
+  <div class="filter-divider"></div>
 
   {% if category_filter %}
     {{ category_filter.styles|json_script:"category-style-options" }}
