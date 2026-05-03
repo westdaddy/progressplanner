@@ -444,27 +444,58 @@
       margin: 0;
     }
     .products-toolbar__filters-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 48px;
+      padding: 0 20px;
+      border-radius: 999px;
+      border: 1px solid #d5dade;
       background: #fff;
-      color: #263238;
-      border: 1px solid #dfe5e8;
+      color: #111;
+      font-weight: 600;
+      text-transform: none;
+      box-shadow: none;
     }
     .products-toolbar__filters-btn:hover,
     .products-toolbar__filters-btn:focus {
       background: #fff;
+      box-shadow: none;
+    }
+    .products-toolbar__filters-btn .material-icons {
+      font-size: 20px;
+      line-height: 1;
     }
     .filters-strip {
-      margin: 8px 0 14px;
-      padding: 8px 12px;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      background: #fafafa;
+      margin: 14px 0 14px;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .filters-strip .chip-set {
       display: flex;
       flex-wrap: wrap;
+      justify-content: flex-end;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
+    .filters-strip .chip {
+      margin: 0;
+      padding: 0 14px;
+      min-height: 42px;
+      border: 1px solid #d5dade;
+      border-radius: 999px;
+      background: #fff;
+      color: #52575c;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 18px;
+    }
+    .filters-strip .chip .chip__remove { font-size: 26px; line-height: 1; }
     .filters-strip[hidden] { display: none; }
-    .filters-strip__label { font-size: 12px; color: #607d8b; font-weight: 700; }
     [data-filters-panel][hidden],
     [data-filter-apply-container][hidden] {
       display: none !important;
@@ -485,7 +516,6 @@
   <div class="filter-divider"></div>
 
   <div class="filters-strip" data-active-filters-strip hidden>
-    <span class="filters-strip__label">Active filters</span>
     <div class="chip-set" data-active-filters-chips></div>
   </div>
 
