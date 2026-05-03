@@ -479,9 +479,10 @@ def _get_monthly_inventory_data(end_of_month: date) -> dict:
 
     Finds the InventorySnapshot closest to ``end_of_month`` (searching both
     before and after) and computes aggregate inventory metrics using that
-    snapshot date. Also calculates quantities that were still on order on the
-    specified date. Returns a dictionary containing the various totals along
-    with ``snapshot_warning`` and ``snapshot_date``.
+    snapshot date. Also calculates quantities currently considered "on order"
+    (expected delivery date in the future and no arrival date). Returns a
+    dictionary containing the various totals along with ``snapshot_warning``
+    and ``snapshot_date``.
     """
 
     # Locate the snapshot date nearest to the month end
@@ -573,12 +574,13 @@ def _get_monthly_inventory_data(end_of_month: date) -> dict:
         variants, _simplify_type
     )
 
-    # Order items still open at end_of_month.
-    # We intentionally calculate this from OrderItem records directly so
-    # unassigned order items (order=None) are included.
+    # "On order" means expected delivery in the future and no arrival date.
+    # Calculate directly from OrderItem records so unassigned items are included.
+    today = date.today()
     incoming = OrderItem.objects.filter(
-        date_expected__lte=end_of_month
-    ).filter(Q(date_arrived__isnull=True) | Q(date_arrived__gt=end_of_month))
+        date_expected__gt=today,
+        date_arrived__isnull=True,
+    )
     on_order_count = incoming.aggregate(total=Sum("quantity"))["total"] or 0
     on_order_value = (
         incoming.aggregate(
