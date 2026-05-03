@@ -951,6 +951,29 @@ class SalesDataInventoryTests(TestCase):
         self.assertFalse(data["snapshot_warning"])
         self.assertEqual(data["snapshot_date"], "2024-04-01")
 
+    def test_on_order_calculation_includes_unassigned_order_items(self):
+        InventorySnapshot.objects.create(
+            product_variant=self.variant,
+            date=date(2024, 4, 1),
+            inventory_count=8,
+        )
+        OrderItem.objects.create(
+            order=None,
+            product_variant=self.variant,
+            quantity=4,
+            item_cost_price=2,
+            date_expected=date(2024, 3, 18),
+            date_arrived=None,
+        )
+
+        url = reverse("sales_data")
+        res = self.client.get(url, {"year": 2024, "month": 3})
+        data = res.json()
+
+        self.assertEqual(data["on_order_count"], 4)
+        self.assertEqual(data["on_order_value"], 8.0)
+
+
 
 class SalesViewTests(TestCase):
     def setUp(self):

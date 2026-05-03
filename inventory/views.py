@@ -573,10 +573,12 @@ def _get_monthly_inventory_data(end_of_month: date) -> dict:
         variants, _simplify_type
     )
 
-    # Orders still open at end_of_month
-    incoming = OrderItem.objects.filter(order__order_date__lte=end_of_month).filter(
-        Q(date_arrived__isnull=True) | Q(date_arrived__gt=end_of_month)
-    )
+    # Order items still open at end_of_month.
+    # We intentionally calculate this from OrderItem records directly so
+    # unassigned order items (order=None) are included.
+    incoming = OrderItem.objects.filter(
+        date_expected__lte=end_of_month
+    ).filter(Q(date_arrived__isnull=True) | Q(date_arrived__gt=end_of_month))
     on_order_count = incoming.aggregate(total=Sum("quantity"))["total"] or 0
     on_order_value = (
         incoming.aggregate(
