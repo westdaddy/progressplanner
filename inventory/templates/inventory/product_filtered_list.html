@@ -450,9 +450,9 @@
       min-height: 48px;
       padding: 0 20px;
       border-radius: 999px;
-      border: 1px solid #d5dade;
-      background: #fff;
-      color: #111;
+      border: 1px solid #d5dade !important;
+      background: #fff !important;
+      color: #111 !important;
       font-weight: 600;
       text-transform: none;
       box-shadow: none;
@@ -467,7 +467,7 @@
       line-height: 1;
     }
     .filters-strip {
-      margin: 14px 0 14px;
+      margin: 10px 0 14px;
       display: flex;
       justify-content: flex-end;
       align-items: center;
@@ -484,7 +484,7 @@
     .filters-strip .chip {
       margin: 0;
       padding: 0 14px;
-      min-height: 42px;
+      min-height: 46px;
       border: 1px solid #d5dade;
       border-radius: 999px;
       background: #fff;
@@ -492,7 +492,15 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      font-size: 18px;
+      font-size: 16px;
+      line-height: 1;
+    }
+    .filters-strip .chip .chip__label { font-size: 16px; line-height: 1; font-weight: 500; }
+    .filters-strip .chip .chip__remove {
+      font-size: 24px;
+      line-height: 0.9;
+      margin-left: 2px;
+      color: #676c70;
     }
     .filters-strip .chip .chip__remove { font-size: 26px; line-height: 1; }
     .filters-strip[hidden] { display: none; }
@@ -507,7 +515,7 @@
       <h3 class="page-title">Products <span class="filter-showing small-text grey-text"> / {{ showing_summary }}</span></h3>
     </div>
     <div class="col l2 right-align products-toolbar">
-      <button type="button" class="btn btn-compact products-toolbar__filters-btn" data-filters-toggle aria-expanded="false"><i class="material-icons medium">tune</i> Filters</button>
+      <button type="button" class="btn-flat btn-compact products-toolbar__filters-btn" data-filters-toggle aria-expanded="false"><i class="material-icons medium">tune</i> Filters</button>
       <a class="btn btn-compact add-product-trigger modal-trigger" href="#add-product-modal">Add Product</a>
     </div>
 
