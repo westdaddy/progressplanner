@@ -476,21 +476,18 @@
       <h3 class="page-title">Products <span class="filter-showing small-text grey-text"> / {{ showing_summary }}</span></h3>
     </div>
     <div class="col l2 right-align products-toolbar">
-<<<<<<< HEAD
-      <button type="button" class="btn-flat" data-filters-toggle aria-expanded="false"><i class="material-icons medium">tune</i> Filters</button>
-=======
-      <button type="button" class="btn btn-compact products-toolbar__filters-btn" data-filters-toggle aria-expanded="false">Filters</button>
->>>>>>> ed76f0479add27e67f45b3cf536615c9b8ffbe56
+      <button type="button" class="btn btn-compact products-toolbar__filters-btn" data-filters-toggle aria-expanded="false"><i class="material-icons medium">tune</i> Filters</button>
       <a class="btn btn-compact add-product-trigger modal-trigger" href="#add-product-modal">Add Product</a>
     </div>
 
   </div>
+
+  <div class="filter-divider"></div>
+
   <div class="filters-strip" data-active-filters-strip hidden>
     <span class="filters-strip__label">Active filters</span>
     <div class="chip-set" data-active-filters-chips></div>
   </div>
-
-  <div class="filter-divider"></div>
 
   {% if request.GET.add_product_success %}
     <div class="card-panel green lighten-5 green-text text-darken-3">Product saved successfully.</div>
@@ -605,8 +602,6 @@
       </div>
     </form>
   {% endif %}
-
-  <div class="filter-divider"></div>
 
   {% if category_filter %}
     {{ category_filter.styles|json_script:"category-style-options" }}
