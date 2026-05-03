@@ -67,7 +67,6 @@
       <div id="sales-info-card" class="card-panel">
         <p class="grey-text text-darken-2 box-title">Categories breakdown</p>
 
-        <h6 id="salesMonthLabel" class="center-align">{{ current_month_name }}</h6>
         <div class="row" style="margin: 0;">
           <div class="col s12 m6">
             <div style="position: relative; width: 200px; height: 200px; margin: 0 auto;">
@@ -280,7 +279,6 @@ document.addEventListener("DOMContentLoaded", function () {
   let currentMonth = '{{ current_month_slug }}';
 
   function updateSalesSection(data) {
-    document.getElementById('salesMonthLabel').textContent = data.month_label;
     document.getElementById('monthChooserLabel').textContent = formatMonthRange(data.current_month_slug);
     document.getElementById('totalItemsSold').textContent = data.total_items_sold;
     document.getElementById('totalSales').textContent = '¥' + Math.round(data.total_sales).toLocaleString();
@@ -295,14 +293,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function updateInventorySection(data) {
     document.getElementById('inventoryCount').textContent = data.inventory_count + ' items';
-    document.getElementById('inventoryValue').textContent = 'cost value ¥' + Math.round(data.inventory_value).toLocaleString();
-    document.getElementById('onPaperValue').textContent = 'on paper value ¥' + Math.round(data.on_paper_value).toLocaleString();
-    document.getElementById('estimatedInventorySalesValue').textContent = 'estimated sales value ¥' + Math.round(data.estimated_inventory_sales_value).toLocaleString();
+    document.getElementById('inventoryValue').textContent = '¥' + Math.round(data.inventory_value).toLocaleString();
+    document.getElementById('onPaperValue').textContent = '¥' + Math.round(data.on_paper_value).toLocaleString();
+    document.getElementById('estimatedInventorySalesValue').textContent = '¥' + Math.round(data.estimated_inventory_sales_value).toLocaleString();
 
     document.getElementById('onOrderCount').textContent = data.on_order_count + ' items';
-    document.getElementById('onOrderValue').textContent = 'cost value ¥' + Math.round(data.on_order_value).toLocaleString();
-    document.getElementById('onOrderPaperValue').textContent = 'on paper value ¥' + Math.round(data.on_order_on_paper_value).toLocaleString();
-    document.getElementById('estimatedOnOrderSalesValue').textContent = 'estimated sales value ¥' + Math.round(data.estimated_on_order_sales_value).toLocaleString();
+    document.getElementById('onOrderValue').textContent = '¥' + Math.round(data.on_order_value).toLocaleString();
+    document.getElementById('onOrderPaperValue').textContent = '¥' + Math.round(data.on_order_on_paper_value).toLocaleString();
+    document.getElementById('estimatedOnOrderSalesValue').textContent = '¥' + Math.round(data.estimated_on_order_sales_value).toLocaleString();
 
     const warn = document.getElementById('snapshotWarning');
     const dateEl = document.getElementById('snapshotDate');
