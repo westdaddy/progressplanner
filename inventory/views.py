@@ -474,14 +474,27 @@ def _get_sales_insights_month(today: date) -> Tuple[date, date, bool]:
     return previous_start, previous_end, False
 
 
+
+
+def _on_order_items_queryset(today: Optional[date] = None):
+    """Return OrderItems considered currently on order.
+
+    On-order items are expected in the future and have no recorded arrival date.
+    """
+    today = today or date.today()
+    return OrderItem.objects.filter(
+        date_expected__gt=today,
+        date_arrived__isnull=True,
+    )
 def _get_monthly_inventory_data(end_of_month: date) -> dict:
     """Return inventory and on-order stats as of the given month end.
 
     Finds the InventorySnapshot closest to ``end_of_month`` (searching both
     before and after) and computes aggregate inventory metrics using that
-    snapshot date. Also calculates quantities that were still on order on the
-    specified date. Returns a dictionary containing the various totals along
-    with ``snapshot_warning`` and ``snapshot_date``.
+    snapshot date. Also calculates quantities currently considered "on order"
+    (expected delivery date in the future and no arrival date). Returns a
+    dictionary containing the various totals along with ``snapshot_warning``
+    and ``snapshot_date``.
     """
 
     # Locate the snapshot date nearest to the month end
@@ -573,10 +586,9 @@ def _get_monthly_inventory_data(end_of_month: date) -> dict:
         variants, _simplify_type
     )
 
-    # Orders still open at end_of_month
-    incoming = OrderItem.objects.filter(order__order_date__lte=end_of_month).filter(
-        Q(date_arrived__isnull=True) | Q(date_arrived__gt=end_of_month)
-    )
+    # "On order" means expected delivery in the future and no arrival date.
+    # Calculate directly from OrderItem records so unassigned items are included.
+    incoming = _on_order_items_queryset()
     on_order_count = incoming.aggregate(total=Sum("quantity"))["total"] or 0
     on_order_value = (
         incoming.aggregate(
@@ -5906,7 +5918,7 @@ def inventory_snapshots(request):
     # base querysets
     snap_qs = InventorySnapshot.objects.filter(date__lte=today)
     sale_qs = Sale.objects.filter(date__lte=today)
-    order_qs = OrderItem.objects.filter(date_arrived__isnull=True)
+    order_qs = _on_order_items_queryset()
 
     if selected_types:
         snap_qs = snap_qs.filter(product_variant__product__type__in=selected_types)
@@ -6188,7 +6200,7 @@ def inventory_snapshots(request):
         events[mo] += -avg_monthly
 
     # 3c) Restock bumps on their exact date_expected
-    for oi in order_qs.filter(date_expected__gt=last_snapshot_date):
+    for oi in order_qs:
         events[oi.date_expected] += oi.quantity
 
     # ——— 4) Turn events into a sorted forecast_data list ——————————
