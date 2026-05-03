@@ -437,7 +437,20 @@
       justify-content: flex-end;
       align-items: center;
       gap: 10px;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
+    }
+    .products-toolbar .btn,
+    .products-toolbar .btn-flat {
+      margin: 0;
+    }
+    .products-toolbar__filters-btn {
+      background: #fff;
+      color: #263238;
+      border: 1px solid #dfe5e8;
+    }
+    .products-toolbar__filters-btn:hover,
+    .products-toolbar__filters-btn:focus {
+      background: #fff;
     }
     .filters-strip {
       margin: 8px 0 14px;
@@ -452,6 +465,10 @@
     }
     .filters-strip[hidden] { display: none; }
     .filters-strip__label { font-size: 12px; color: #607d8b; font-weight: 700; }
+    [data-filters-panel][hidden],
+    [data-filter-apply-container][hidden] {
+      display: none !important;
+    }
   </style>
 
   <div class="row">
@@ -459,7 +476,7 @@
       <h3 class="page-title">Products <span class="filter-showing small-text grey-text"> / {{ showing_summary }}</span></h3>
     </div>
     <div class="col l2 right-align products-toolbar">
-      <button type="button" class="btn-flat" data-filters-toggle aria-expanded="false">Filters</button>
+      <button type="button" class="btn btn-compact products-toolbar__filters-btn" data-filters-toggle aria-expanded="false">Filters</button>
       <a class="btn btn-compact add-product-trigger modal-trigger" href="#add-product-modal">Add Product</a>
     </div>
 
