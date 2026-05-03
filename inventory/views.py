@@ -5918,12 +5918,11 @@ def inventory_snapshots(request):
     # base querysets
     snap_qs = InventorySnapshot.objects.filter(date__lte=today)
     sale_qs = Sale.objects.filter(date__lte=today)
-    order_qs = _on_order_items_queryset()
+
 
     if selected_types:
         snap_qs = snap_qs.filter(product_variant__product__type__in=selected_types)
         sale_qs = sale_qs.filter(variant__product__type__in=selected_types)
-        order_qs = order_qs.filter(product_variant__product__type__in=selected_types)
 
     def _normalize_group_name(name: str) -> str:
         return "".join(ch.lower() for ch in (name or "") if ch.isalnum())
@@ -6164,6 +6163,15 @@ def inventory_snapshots(request):
         last_snapshot_date = date.fromisoformat(actual_data[-1]["x"])
         last_inventory = actual_data[-1]["y"]
 
+    # Pending inbound items for forecasting from the last snapshot forward.
+    # Include overdue undelivered items as a same-day bump so they are not lost.
+    order_qs = OrderItem.objects.filter(
+        date_arrived__isnull=True,
+        date_expected__gt=last_snapshot_date,
+    )
+    if selected_types:
+        order_qs = order_qs.filter(product_variant__product__type__in=selected_types)
+
     # ——— 2) Compute average monthly sales over past 6 months ————————
     six_mo_ago = today - relativedelta(months=6)
     total_sold = (
@@ -6199,9 +6207,10 @@ def inventory_snapshots(request):
         mo = cursor.replace(day=1)
         events[mo] += -avg_monthly
 
-    # 3c) Restock bumps on their exact date_expected
+    # 3c) Restock bumps from pending inbound order items.
     for oi in order_qs:
-        events[oi.date_expected] += oi.quantity
+        bump_date = oi.date_expected if oi.date_expected > today else today
+        events[bump_date] += oi.quantity
 
     # ——— 4) Turn events into a sorted forecast_data list ——————————
     forecast_data = [{"x": last_snapshot_date.isoformat(), "y": round(last_inventory)}]
