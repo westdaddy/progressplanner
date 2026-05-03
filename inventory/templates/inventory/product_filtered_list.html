@@ -444,27 +444,65 @@
       margin: 0;
     }
     .products-toolbar__filters-btn {
-      background: #fff;
-      color: #263238;
-      border: 1px solid #dfe5e8;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 48px;
+      padding: 0 20px;
+      border-radius: 999px;
+      border: 1px solid #d5dade !important;
+      background: #fff !important;
+      color: #111 !important;
+      font-weight: 600;
+      text-transform: none;
+      box-shadow: none;
     }
     .products-toolbar__filters-btn:hover,
     .products-toolbar__filters-btn:focus {
       background: #fff;
+      box-shadow: none;
+    }
+    .products-toolbar__filters-btn .material-icons {
+      font-size: 20px;
+      line-height: 1;
     }
     .filters-strip {
-      margin: 8px 0 14px;
-      padding: 8px 12px;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      background: #fafafa;
+      margin: 10px 0 14px;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .filters-strip .chip-set {
       display: flex;
       flex-wrap: wrap;
+      justify-content: flex-end;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+    }
+    .filters-strip .chip {
+      margin: 0;
+      padding: 0 14px;
+      min-height: 46px;
+      border: 1px solid #d5dade;
+      border-radius: 999px;
+      background: #fff;
+      color: #52575c;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 16px;
+      line-height: 1;
+    }
+    .filters-strip .chip .chip__label { font-size: 16px; line-height: 1; font-weight: 500; }
+    .filters-strip .chip .chip__remove {
+      font-size: 24px;
+      line-height: 0.9;
+      margin-left: 2px;
+      color: #676c70;
     }
     .filters-strip[hidden] { display: none; }
-    .filters-strip__label { font-size: 12px; color: #607d8b; font-weight: 700; }
     [data-filters-panel][hidden],
     [data-filter-apply-container][hidden] {
       display: none !important;
@@ -476,7 +514,7 @@
       <h3 class="page-title">Products <span class="filter-showing small-text grey-text"> / {{ showing_summary }}</span></h3>
     </div>
     <div class="col l2 right-align products-toolbar">
-      <button type="button" class="btn btn-compact products-toolbar__filters-btn" data-filters-toggle aria-expanded="false"><i class="material-icons medium">tune</i> Filters</button>
+      <button type="button" class="btn-flat btn-compact products-toolbar__filters-btn" data-filters-toggle aria-expanded="false"><i class="material-icons medium">tune</i> Filters</button>
       <a class="btn btn-compact add-product-trigger modal-trigger" href="#add-product-modal">Add Product</a>
     </div>
 
@@ -485,7 +523,6 @@
   <div class="filter-divider"></div>
 
   <div class="filters-strip" data-active-filters-strip hidden>
-    <span class="filters-strip__label">Active filters</span>
     <div class="chip-set" data-active-filters-chips></div>
   </div>
 
