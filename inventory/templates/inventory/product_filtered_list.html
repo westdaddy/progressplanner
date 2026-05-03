@@ -431,15 +431,42 @@
     }
   </style>
   {% if filter_controls %}
+  <style>
+    .products-toolbar {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .filters-strip {
+      margin: 8px 0 14px;
+      padding: 8px 12px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      background: #fafafa;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+    .filters-strip[hidden] { display: none; }
+    .filters-strip__label { font-size: 12px; color: #607d8b; font-weight: 700; }
+  </style>
 
   <div class="row">
     <div class="col l10">
       <h3 class="page-title">Products <span class="filter-showing small-text grey-text"> / {{ showing_summary }}</span></h3>
     </div>
-    <div class="col l2 right-align">
+    <div class="col l2 right-align products-toolbar">
+      <button type="button" class="btn-flat" data-filters-toggle aria-expanded="false">Filters</button>
       <a class="btn btn-compact add-product-trigger modal-trigger" href="#add-product-modal">Add Product</a>
     </div>
 
+  </div>
+  <div class="filters-strip" data-active-filters-strip hidden>
+    <span class="filters-strip__label">Active filters</span>
+    <div class="chip-set" data-active-filters-chips></div>
   </div>
 
   <div class="filter-divider"></div>
@@ -455,7 +482,7 @@
       {% if search_query %}
         <input type="hidden" name="product_search" value="{{ search_query }}">
       {% endif %}
-      <div class="filter-bar">
+      <div class="filter-bar" data-filters-panel hidden>
         {% if category_filter %}
           <div
             class="card-panel grey lighten-5 filter-card filter-card--tiered"
@@ -471,10 +498,7 @@
                   <span class="chip__placeholder" data-placeholder>None selected</span>
                 </div>
               </div>
-              <button type="button" class="btn-flat filter-card__toggle" aria-expanded="false">
-                <span class="filter-card__toggle-symbol blue">+</span>
-              </button>
-            </div>
+              </div>
 
             <div class="filter-card__options" hidden data-tiered-options>
               <div class="tiered-section" data-style-section>
@@ -524,9 +548,6 @@
                     {% endif %}
                   </div>
                 </div>
-                <button type="button" class="btn-flat filter-card__toggle" aria-expanded="false" aria-controls="{{ option_id }}">
-                  <span class="filter-card__toggle-symbol blue">+</span>
-                </button>
               </div>
 
               <div id="{{ option_id }}" class="filter-card__options" hidden>
@@ -556,7 +577,7 @@
 
       </div>
 
-      <div class="card-panel">
+      <div class="card-panel" data-filter-apply-container hidden>
         <button type="submit" class="btn filter-apply-button" disabled>
           Apply
         </button>
@@ -857,6 +878,10 @@
       const filterControllers = [];
       const applyButton = document.querySelector('.filter-apply-button');
       const applyContainer = document.querySelector('[data-filter-apply-container]');
+      const filtersPanel = document.querySelector('[data-filters-panel]');
+      const filtersToggle = document.querySelector('[data-filters-toggle]');
+      const activeFiltersStrip = document.querySelector('[data-active-filters-strip]');
+      const activeFiltersChips = document.querySelector('[data-active-filters-chips]');
 
       const selectionsDiffer = (a, b) => {
         if (a.length !== b.length) return true;
@@ -878,8 +903,21 @@
 
       const rebuildApplyVisibility = () => {
         if (!applyContainer) return;
-        const hasExpandedFilter = filterControllers.some((controller) => controller.isExpanded());
-        applyContainer.hidden = !hasExpandedFilter;
+        applyContainer.hidden = !(filtersPanel && !filtersPanel.hidden);
+      };
+
+      const rebuildActiveFiltersStrip = () => {
+        if (!activeFiltersStrip || !activeFiltersChips) return;
+        activeFiltersChips.innerHTML = '';
+        document.querySelectorAll('.chip-set [data-selected-value]').forEach((chip) => {
+          const label = chip.querySelector('.chip__label');
+          if (!label) return;
+          const stripChip = document.createElement('span');
+          stripChip.className = 'chip chip--selected';
+          stripChip.textContent = label.textContent.trim();
+          activeFiltersChips.appendChild(stripChip);
+        });
+        activeFiltersStrip.hidden = !activeFiltersChips.children.length;
       };
 
       const parseJsonScript = (id, fallback = []) => {
@@ -928,6 +966,7 @@
 
         const notifyChange = () => {
           rebuildApplyState();
+          rebuildActiveFiltersStrip();
         };
 
         let selectedStyles = new Set(
@@ -1217,6 +1256,7 @@
 
         const notifyChange = () => {
           rebuildApplyState();
+          rebuildActiveFiltersStrip();
         };
 
         const getSelection = () => {
@@ -1346,23 +1386,26 @@
       });
 
       rebuildApplyState();
+      rebuildActiveFiltersStrip();
       rebuildApplyVisibility();
 
-      const setAllExpanded = (expanded) => {
+      const setFiltersExpanded = (expanded) => {
+        if (filtersPanel) {
+          filtersPanel.hidden = !expanded;
+        }
         filterControllers.forEach((controller) => controller.setExpanded(expanded));
+        if (filtersToggle) {
+          filtersToggle.setAttribute('aria-expanded', expanded);
+        }
+        rebuildApplyVisibility();
       };
 
-      filterControllers.forEach((controller) => {
-        controller.toggleButtons.forEach((btn) => {
-          btn.addEventListener('click', (event) => {
-            event.preventDefault();
-            const allExpanded = filterControllers.every((c) => c.isExpanded());
-            const newState = !allExpanded;
-            setAllExpanded(newState);
-            rebuildApplyVisibility();
-          });
+      setFiltersExpanded(false);
+      if (filtersToggle) {
+        filtersToggle.addEventListener('click', () => {
+          setFiltersExpanded(filtersPanel ? filtersPanel.hidden : true);
         });
-      });
+      }
 
       const labels = {{ quarterly_labels|safe }};
       const dataPoints = {{ quarterly_sales|safe }};
