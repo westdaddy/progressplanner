@@ -1558,42 +1558,61 @@ def get_products_sales_data(
 
 def calculate_estimated_inventory_sales_value(variants, _simplify_type):
     """
-    Given a queryset of ProductVariant annotated with `latest_inventory`,
-    returns the Decimal total of (stock × avg selling price), where:
-      - avg selling price per variant = total revenue / total qty sold
-      - fallback is the avg price for the variant’s category
-    `simplify_type` is your function to bucket a type_code into a category key.
+    Given variants annotated with ``latest_inventory``, estimate sales value by:
+      1) computing historical average discount for each (age, style, type) subset
+      2) applying that discount to current retail prices
+      3) summing (inventory × discounted retail) across all variants
+
+    Average discount is weighted by sold quantity via totals:
+      discount = 1 - (sum sold_value / sum baseline_list_value)
+    where baseline_list_value is ``sold_quantity × coalesce(Sale.list_price,
+    Product.retail_price)``.
     """
-    # 1) Per‐variant stats
-    stats = Sale.objects.values("variant").annotate(
-        total_revenue=Sum("sold_value"), total_qty=Sum("sold_quantity")
+    sale_subset_stats = (
+        Sale.objects.filter(sold_quantity__gt=0)
+        .values(
+            "variant__product__age",
+            "variant__product__style",
+            "variant__product__type",
+        )
+        .annotate(
+            total_sold_value=Sum("sold_value"),
+            total_list_value=Sum(
+                ExpressionWrapper(
+                    F("sold_quantity")
+                    * Coalesce(F("list_price"), F("variant__product__retail_price")),
+                    output_field=DecimalField(max_digits=16, decimal_places=2),
+                )
+            ),
+        )
     )
-    avg_price_map = {
-        s["variant"]: s["total_revenue"] / s["total_qty"]
-        for s in stats
-        if s["total_qty"]
-    }
 
-    # 2) Category‐level fallback
-    cat_stats = (
-        Sale.objects.select_related("variant__product")
-        .annotate(cat=F("variant__product__type"))
-        .values("cat")
-        .annotate(total_revenue=Sum("sold_value"), total_qty=Sum("sold_quantity"))
-    )
-    category_avg = {
-        _simplify_type(s["cat"]): s["total_revenue"] / s["total_qty"]
-        for s in cat_stats
-        if s["total_qty"]
-    }
+    discount_by_subset = {}
+    for row in sale_subset_stats:
+        total_list_value = row["total_list_value"]
+        if not total_list_value:
+            continue
 
-    # 3) Sum up
+        raw_discount = Decimal("1") - (row["total_sold_value"] / total_list_value)
+        bounded_discount = min(max(raw_discount, Decimal("0")), Decimal("1"))
+        subset_key = (
+            row["variant__product__age"],
+            row["variant__product__style"],
+            row["variant__product__type"],
+        )
+        discount_by_subset[subset_key] = bounded_discount
+
     total = Decimal("0")
-    for v in variants:
-        unit_avg = avg_price_map.get(v.id)
-        if unit_avg is None:
-            unit_avg = category_avg.get(_simplify_type(v.product.type), Decimal("0"))
-        total += Decimal(v.latest_inventory) * Decimal(unit_avg)
+    for variant in variants.select_related("product"):
+        retail_price = variant.product.retail_price or Decimal("0")
+        if retail_price <= 0:
+            continue
+
+        subset_key = (variant.product.age, variant.product.style, variant.product.type)
+        average_discount = discount_by_subset.get(subset_key, Decimal("0"))
+        estimated_unit_price = retail_price * (Decimal("1") - average_discount)
+        total += Decimal(variant.latest_inventory) * estimated_unit_price
+
     return total
 
 
